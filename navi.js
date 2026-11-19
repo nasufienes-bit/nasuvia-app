@@ -32,7 +32,7 @@
       { id: 'privat', name: 'Home-Büro', text: 'Privat: Konto, Abos, Rechnungen', href: WURZEL + 'privat/', icon: '<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>' },
       { id: 'hilfe', name: 'Anleitung', text: 'Schritt für Schritt, mit Suche', href: WURZEL + 'hilfe/', icon: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"/><path d="M12 17h.01"/>' }
     ];
-    WEBSITE = { name: 'Lizenz und Konto', text: 'Paket, Stand, bestellen', href: WURZEL + 'lizenz/' };
+    WEBSITE = { id: 'lizenz', name: 'Lizenz und Konto', text: 'Paket, Stand, bestellen', href: WURZEL + 'lizenz/' };
   }
   var hier = ds.hier || '';
 
@@ -99,7 +99,7 @@
           '<span class="nv-ic">' + svg(b.icon) + '</span><span><b>' + b.name + '</b><small>' + b.text + '</small></span>' + (b.id === hier ? '<em>Hier</em>' : '') + '</a>';
       }).join('') +
       '<div class="nv-trenner"></div>' +
-      '<a class="nv-ziel" href="' + WEBSITE.href + '" target="_blank" rel="noopener" style="transition-delay:' + (60 + BEREICHE.length * 45) + 'ms"><span class="nv-ic">' + svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>') + '</span><span><b>' + WEBSITE.name + '</b><small>' + WEBSITE.text + '</small></span><span class="nv-pfeil">↗</span></a>' +
+      '<a class="nv-ziel' + (WEBSITE.id && WEBSITE.id === hier ? ' nv-hier' : '') + '" href="' + WEBSITE.href + '"' + (PRODUKT ? '' : ' target="_blank" rel="noopener"') + ' style="transition-delay:' + (60 + BEREICHE.length * 45) + 'ms"><span class="nv-ic">' + svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>') + '</span><span><b>' + WEBSITE.name + '</b><small>' + WEBSITE.text + '</small></span><span class="nv-pfeil">↗</span></a>' +
       '<p class="nv-fuss">Überall mit demselben Konto angemeldet.</p>' +
     '</nav>';
 

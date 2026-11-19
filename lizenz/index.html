@@ -60,7 +60,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 </head>
 <body>
 <div class="wrap">
-  <header><a href="../">← Zurück zum Programm</a><a href="../hilfe/">Anleitung</a></header>
+  <header><span class="kopf-links" style="display:flex;align-items:center;gap:10px"><a href="../">← Zurück zum Programm</a></span><a href="../hilfe/">Anleitung</a></header>
   <h1>Lizenz und Konto</h1>
   <p class="unter" id="unter">Ihr Paket, Ihr Stand und die Lizenz bestellen.</p>
 
@@ -190,5 +190,6 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   })();
 })();
 </script>
+<script src="../navi.js" data-hier="lizenz" data-einfuegen=".kopf-links"></script>
 </body>
 </html>
