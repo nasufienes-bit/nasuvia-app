@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Anleitung</title>
+<meta name="theme-color" content="#F7F9FD" />
+<link rel="stylesheet" href="../schrift.css" />
+<script src="../konfig.js"></script>
+<style>
+:root{--papier:#F7F9FD;--flaeche:#EEF1F8;--tinte:#0C1226;--text:#47506B;--leise:#7C8499;--blau:#1C2A7B;--elektrik:#3B55E6;--linie:rgba(28,42,123,.14)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:16px/1.55 'League Spartan',-apple-system,system-ui,sans-serif;background:var(--papier);color:var(--tinte)}
+.wrap{max-width:900px;margin:0 auto;padding:0 18px 60px}
+header{padding:28px 0 10px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+header a{color:var(--elektrik);text-decoration:none;font-weight:600}
+h1{font-size:clamp(30px,6vw,44px);letter-spacing:-.03em;line-height:1.05;margin:10px 0 8px}
+.unter{color:var(--text);max-width:40em}
+.such{position:sticky;top:0;z-index:5;background:rgba(247,249,253,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:14px 0;margin:10px 0}
+.such div{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--linie);border-radius:100px;padding:12px 18px;box-shadow:0 10px 30px -18px rgba(28,42,123,.45)}
+.such svg{width:20px;height:20px;stroke:var(--elektrik);fill:none;stroke-width:2.2;stroke-linecap:round;flex:none}
+.such input{flex:1;border:0;outline:0;font:inherit;font-size:17px;background:none;min-width:0}
+.bereiche{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.bereiche a{font-size:14px;border-radius:100px;padding:6px 12px;background:#fff;border:1px solid var(--linie);color:var(--blau);text-decoration:none}
+h2{font-size:22px;margin:30px 0 12px;letter-spacing:-.01em}
+.artikel{background:#fff;border-radius:18px;padding:18px 20px;margin-bottom:10px;box-shadow:0 1px 2px rgba(12,18,38,.05),0 10px 26px -18px rgba(12,18,38,.28);scroll-margin-top:90px}
+.artikel h3{font-size:18px;margin-bottom:6px}
+.artikel ol{margin-left:20px;display:grid;gap:6px;color:var(--text)}
+.artikel a.los{display:inline-block;margin-top:12px;border-radius:100px;padding:8px 14px;background:var(--blau);color:#fff;font-weight:600;font-size:14px;text-decoration:none}
+.artikel:target{outline:3px solid rgba(59,85,230,.35)}
+.leer{color:var(--leise);padding:20px 0}
+.kontakt{margin-top:30px;background:linear-gradient(135deg,var(--blau),var(--elektrik));color:#fff;border-radius:20px;padding:22px}
+.kontakt a{color:#fff;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><a href="../">← Zurück zum Programm</a><a href="mailto:info@nasuvia.ch">Hilfe per E-Mail</a></header>
+  <h1>Anleitung</h1>
+  <p class="unter">Alles Schritt für Schritt: Rechnungen, Buchhaltung, Löhne und Home-Büro. Suchen Sie einfach, was Sie brauchen.</p>
+  <div class="such"><div><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" id="q" placeholder="z. B. Mahnung, Lohn, Bankauszug, Logo" autocomplete="off" /></div></div>
+  <div class="bereiche" id="bereiche"></div>
+  <div id="inhalt"></div>
+  <div class="kontakt"><b>Nicht gefunden?</b><br>Schreiben Sie an <a href="mailto:info@nasuvia.ch">info@nasuvia.ch</a> oder rufen Sie an: <a href="tel:+41798218408">079 821 84 08</a>.</div>
+</div>
+<script src="../suche.js" data-ohne-knopf></script>
+<script>
+(function(){
+  var S = window.NasuviaSuche, $ = function(id){ return document.getElementById(id); };
+  var esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var bereiche = []; S.artikel.forEach(function(a){ if (bereiche.indexOf(a.bereich) < 0) bereiche.push(a.bereich); });
+  var slug = function(b){ return 'b-' + b.toLowerCase().replace(/[^a-zäöü]+/g, '-'); };
+  $('bereiche').innerHTML = bereiche.map(function(b){ return '<a href="#' + slug(b) + '">' + esc(b) + '</a>'; }).join('');
+  function karte(a){
+    return '<article class="artikel" id="' + a.id + '"><h3>' + esc(a.titel) + '</h3><ol>' + a.schritte.map(function(s){ return '<li>' + esc(s) + '</li>'; }).join('') + '</ol>' +
+      (a.ziel && a.ziel.indexOf('/hilfe/') < 0 ? '<a class="los" href="' + esc(a.ziel) + '">Jetzt öffnen</a>' : '') + '</article>';
+  }
+  function zeichnen(){
+    var q = $('q').value.trim();
+    if (q) {
+      var t = S.finden(q);
+      $('inhalt').innerHTML = t.length ? '<h2>' + t.length + ' Treffer</h2>' + t.map(karte).join('') : '<p class="leer">Nichts gefunden. Versuchen Sie ein anderes Wort.</p>';
+      return;
+    }
+    $('inhalt').innerHTML = bereiche.map(function(b){
+      return '<h2 id="' + slug(b) + '">' + esc(b) + '</h2>' + S.artikel.filter(function(a){ return a.bereich === b; }).map(karte).join('');
+    }).join('');
+  }
+  $('q').addEventListener('input', zeichnen);
+  zeichnen();
+  if (location.hash) { var z = document.querySelector(location.hash); if (z) setTimeout(function(){ z.scrollIntoView(); }, 50); }
+})();
+</script>
+</body>
+</html>

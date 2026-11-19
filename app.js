@@ -1595,7 +1595,19 @@
   (async () => {
     await Speicher.dauerhaftAnfragen();
     await laden();
+    // Sprungziele aus Suche und Anleitung: ?ansicht=loehne, ?aktion=fahrt …
+    const q = new URLSearchParams(location.search);
+    if (q.get('ansicht') && ANSICHTEN.some(([id]) => id === q.get('ansicht'))) Z.ansicht = q.get('ansicht');
     zeichnen();
+    const aktion = q.get('aktion');
+    if (aktion) {
+      history.replaceState(null, '', location.pathname + (q.get('produkt') ? '?produkt=' + q.get('produkt') : ''));
+      setTimeout(() => {
+        if (aktion === 'firma' && window.Marke) Marke.dialog({ beiSpeichern: () => location.reload() });
+        else if (aktion === 'neu') buchungBearbeiten();
+        else if (window.NB[aktion]) window.NB[aktion]();
+      }, 300);
+    }
     if (window.Abgleich) {
       Abgleich.beiAenderung(async (geholt) => {
         if (geholt) {

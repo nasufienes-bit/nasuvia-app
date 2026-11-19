@@ -139,8 +139,6 @@
     const tage = Math.round((new Date((l.status === 'test' ? l.test_bis : l.gueltig_bis) + 'T12:00') - new Date(h + 'T12:00')) / 864e5);
     if (l.status === 'test') pille(`Gratis-Test: noch ${tage} ${tage === 1 ? 'Tag' : 'Tage'} · <b>Lizenz kaufen</b>`);
     else if (tage <= 21) pille(`Lizenz läuft am ${dk(l.gueltig_bis)} ab · <b>Verlängern</b>`);
-    // Erster Start: Firma und Design einrichten
-    if (PRODUKT !== 'privat' && window.Marke && !Marke.daten().name) setTimeout(() => Marke.dialog({ beiSpeichern: () => location.reload() }), 700);
   }
   sb.auth.onAuthStateChange((ereignis) => {
     if (ereignis === 'PASSWORD_RECOVERY') zeigen(`${SYMBOL}<h2>Neues Passwort</h2><form data-lz-form="passwort"><label>Neues Passwort (mindestens 8 Zeichen)<input name="passwort" type="password" minlength="8" autocomplete="new-password" required></label><p class="lz-meldung" data-lz-meldung></p><button class="lz-knopf">Speichern</button></form>`);
