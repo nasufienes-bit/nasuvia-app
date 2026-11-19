@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Home-Büro</title>
+<meta name="theme-color" content="#F7F9FD" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Home-Büro" />
+<link rel="apple-touch-icon" href="../icon-180.png" />
+<link rel="stylesheet" href="../schrift.css" />
+<script src="../konfig.js"></script>
+<script src="../lib/supabase.js"></script>
+<style>
+:root{--papier:#F7F9FD;--flaeche:#EEF1F8;--karte:#fff;--tinte:#0C1226;--text:#47506B;--leise:#7C8499;--blau:#1C2A7B;--elektrik:#3B55E6;--gruen:#0E9F6E;--rot:#E5484D;--gelb:#B7791F;--linie:rgba(28,42,123,.14);--schatten:0 1px 2px rgba(12,18,38,.05),0 10px 26px -16px rgba(12,18,38,.25);--display:'League Spartan',-apple-system,system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace;--unten:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:15px/1.5 var(--display);background:var(--papier);color:var(--tinte);min-height:100vh;padding-bottom:calc(80px + var(--unten))}
+[hidden]{display:none!important}
+button{font:inherit;cursor:pointer}
+.kopfzeile{position:sticky;top:0;z-index:20;background:rgba(247,249,253,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--linie)}
+.kopfzeile .wrap{display:flex;align-items:center;gap:12px;height:62px}
+.marke{display:flex;align-items:center;gap:8px;font-weight:700;font-size:19px;letter-spacing:-.02em}
+.marke i{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--blau),var(--elektrik));display:grid;place-items:center}
+.marke i svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.tabs{margin-left:auto;display:flex;gap:2px}
+.tabs button{border:0;background:none;padding:8px 12px;border-radius:100px;color:var(--text);font-weight:500}
+.tabs button.an{background:#fff;color:var(--blau);font-weight:600;box-shadow:var(--schatten)}
+.wrap{max-width:1100px;margin:0 auto;padding:0 18px}
+main{padding:22px 0 30px}
+h1{font-size:30px;letter-spacing:-.02em;line-height:1.1}
+.unter{color:var(--text);margin-top:4px}
+.kopf{display:flex;justify-content:space-between;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:18px}
+.aktionen{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:0;border-radius:100px;padding:10px 16px;font-weight:600;background:#fff;color:var(--blau);box-shadow:var(--schatten);white-space:nowrap}
+.btn.haupt{background:var(--blau);color:#fff}
+.btn.klein{padding:6px 11px;font-size:13px}
+.btn.rot{color:var(--rot)}
+.raster{display:grid;gap:14px}
+.r2{grid-template-columns:repeat(2,minmax(0,1fr))}.r4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:820px){.r2,.r4{grid-template-columns:1fr 1fr}.r2.voll{grid-template-columns:1fr}.tabs{display:none}}
+@media(max-width:520px){.r2{grid-template-columns:1fr}}
+.card{background:var(--karte);border-radius:18px;padding:18px;box-shadow:var(--schatten)}
+.card h2{font-size:17px;margin-bottom:10px}
+.abstand{margin-top:14px}
+.zahl .l{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--leise)}
+.zahl .w{font-size:25px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.zahl .k{font-size:12.5px;color:var(--leise)}
+.plus{color:var(--gruen)}.minus{color:var(--rot)}
+.leer{color:var(--leise);padding:10px 0}
+.hinweis{color:var(--text);font-size:13.5px}
+.zeile{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--linie)}
+.zeile:last-child{border-bottom:0}
+.zeile b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zeile small{color:var(--leise);font-size:12.5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zeile .betrag{font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.zeile.klick{cursor:pointer}
+.marke-s{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;border-radius:100px;padding:2px 8px;margin-left:6px;vertical-align:1px}
+.m-offen{background:rgba(245,181,61,.2);color:#8a5a00}.m-ok{background:rgba(14,159,110,.12);color:#0A7150}.m-rot{background:rgba(229,72,77,.12);color:#B4282D}.m-blau{background:rgba(59,85,230,.1);color:var(--blau)}
+.spur{height:7px;background:var(--flaeche);border-radius:7px;overflow:hidden;margin-top:6px;grid-column:1/-1}
+.spur i{display:block;height:100%;border-radius:7px}
+.ring{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.ring svg{width:170px;height:170px;flex:none}
+.ring .lg{flex:1;min-width:170px;display:grid;gap:6px;font-size:13.5px}
+.ring .lg div{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:8px;align-items:center}
+.ring .lg i{width:12px;height:12px;border-radius:4px}
+.ring .lg span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+select,input[type=text],input[type=date],input[type=search],input[type=number],textarea{font:inherit;border:1px solid rgba(28,42,123,.26);border-radius:10px;padding:8px 11px;background:#fff;color:var(--tinte)}
+.segment{display:inline-flex;background:var(--flaeche);border-radius:100px;padding:3px;gap:2px}
+.segment button{border:0;background:none;border-radius:100px;padding:7px 13px;color:var(--text)}
+.segment button.an{background:#fff;color:var(--blau);font-weight:600;box-shadow:0 2px 8px rgba(12,18,38,.08)}
+dialog{border:0;border-radius:20px;padding:0;width:min(520px,calc(100% - 20px));box-shadow:0 40px 100px -30px rgba(12,18,38,.5)}
+dialog::backdrop{background:rgba(12,18,38,.35)}
+.dlg{padding:20px;display:grid;gap:10px;max-height:calc(100vh - 40px);overflow:auto}
+.dlg h3{font-size:20px}
+.dlg label{display:grid;gap:4px;font-size:13px;color:var(--text)}
+.dlg .zwei{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dlg .fuss{display:flex;justify-content:space-between;gap:8px;margin-top:6px;flex-wrap:wrap}
+.unten-nav{display:none}
+@media(max-width:820px){.unten-nav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(247,249,253,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--linie);padding:6px 4px calc(6px + var(--unten))}
+.unten-nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--leise);padding:4px 0}
+.unten-nav button.an{color:var(--blau);font-weight:600}
+.unten-nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}}
+.toast{position:fixed;left:50%;bottom:calc(90px + var(--unten));transform:translate(-50%,20px);opacity:0;background:var(--tinte);color:#fff;border-radius:100px;padding:11px 18px;font-weight:600;transition:.3s;z-index:99;pointer-events:none;max-width:90vw;text-align:center}
+.toast.da{transform:translate(-50%,0);opacity:1}
+.start{text-align:center;padding:40px 18px}
+.start .gross{width:74px;height:74px;border-radius:22px;margin:0 auto 16px;background:linear-gradient(135deg,var(--blau),var(--elektrik));display:grid;place-items:center}
+.start .gross svg{width:38px;height:38px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.start h2{font-size:24px;margin-bottom:6px}
+.start p{max-width:520px;margin:0 auto 18px;color:var(--text)}
+.frist{font-weight:700}
+.segment{max-width:100%;overflow-x:auto;scrollbar-width:none}.segment::-webkit-scrollbar{display:none}.segment button{white-space:nowrap}
+.zeile.zwei{grid-template-columns:1fr}.zeile.zwei .frist{font-size:13px}
+@media(max-width:520px){.zahl .w{font-size:19px}.card{padding:14px}.kopf .aktionen{width:100%}h1{font-size:26px}}
+.info-box{background:rgba(59,85,230,.07);border-radius:14px;padding:12px 14px;font-size:13.5px;color:var(--blau);margin-top:10px}
+</style>
+</head>
+<body>
+<header class="kopfzeile"><div class="wrap">
+  <div class="marke"><i><svg viewBox="0 0 24 24"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg></i>Home-Büro</div>
+  <nav class="tabs" id="tabs"></nav>
+</div></header>
+<main class="wrap" id="inhalt"></main>
+<nav class="unten-nav" id="untenNav"></nav>
+<dialog id="dlg"></dialog>
+<div class="toast" id="toast"></div>
+<script src="../lizenz.js" data-produkt="privat"></script>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const fmt = new Intl.NumberFormat('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const chf = (r) => fmt.format((r || 0) / 100);
+  const heute = () => new Date().toLocaleDateString('sv-SE');
+  const dk = (d) => (d ? d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4) : '');
+  const tageBis = (d) => Math.round((new Date(d + 'T12:00') - new Date(heute() + 'T12:00')) / 864e5);
+  const toast = (t) => { const e = $('toast'); e.textContent = t; e.classList.add('da'); clearTimeout(toast.z); toast.z = setTimeout(() => e.classList.remove('da'), 2800); };
+  const betragLesen = (t) => {
+    let s = String(t || '').trim().replace(/[’'\s]/g, '').replace(/^CHF/i, '').replace('−', '-');
+    if (/,\d{1,2}$/.test(s)) s = s.replace(/\./g, '').replace(',', '.');
+    s = s.replace(/,/g, '');
+    const n = Number(s); return Number.isFinite(n) ? Math.round(n * 100) : NaN;
+  };
+
+  /* ---------- Daten (auf diesem Gerät) ---------- */
+  const KEY = 'homebuero.v1';
+  const D = (() => { try { return { bewegungen: [], rechnungen: [], betreibungen: [], regeln: {}, abosStatus: {}, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch { return { bewegungen: [], rechnungen: [], betreibungen: [], regeln: {}, abosStatus: {} }; } })();
+  const sichern = () => { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch { toast('Speicher voll — bitte eine Sicherung herunterladen'); } };
+  const neueId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+  /* ---------- Kategorien für den Haushalt ---------- */
+  const KAT = [
+    ['wohnen', 'Wohnen und Nebenkosten', '#1C2A7B', /miete|mietzins|verwaltung|immobilien|nebenkosten|liegenschaft|ewz|ekz|stadtwerk|elektrizit|energie|serafe|billag/i],
+    ['krankenkasse', 'Krankenkasse', '#E5484D', /css|helsana|swica|sanitas|concordia|visana|kpt|assura|groupe mutuel|sympany|atupri|egk|ökk|krankenkasse|krankenversicherung/i],
+    ['versicherung', 'Versicherungen', '#F97316', /axa|mobiliar|zurich|helvetia|baloise|allianz|generali|vaudoise|smile|tcs|versicherung/i],
+    ['lebensmittel', 'Lebensmittel', '#0E9F6E', /migros|coop|denner|aldi|lidl|volg|spar|landi|manor food|globus delicatessa|bäckerei|metzgerei/i],
+    ['restaurant', 'Restaurant und Ausgang', '#F5B53D', /restaurant|café|cafe|bar |pizzeria|mcdonald|burger king|starbucks|kebab|take away|uber eats|just eat|eat\.ch|smood/i],
+    ['mobilitaet', 'ÖV und Mobilität', '#14B8A6', /sbb|zvv|bls|postauto|halbtax|ga |mobility|uber|bolt|publibike|lime/i],
+    ['auto', 'Auto', '#64748B', /shell|bp |avia|tamoil|socar|agrola|migrol|eni |esso|garage|amag|emil frey|parkhaus|parking|strassenverkehrsamt|vignette/i],
+    ['abos', 'Abos und Streaming', '#A855F7', /netflix|spotify|disney|apple\.com|itunes|google|youtube|amazon prime|prime video|dazn|sky|blue tv|zattoo|audible|chatgpt|openai|icloud|microsoft|adobe|fitness|gym|activ fitness|update fitness/i],
+    ['telefon', 'Telefon und Internet', '#3B55E6', /swisscom|sunrise|salt|upc|init7|wingo|yallo|quickline|digital republic|m-budget mobile/i],
+    ['steuern', 'Steuern und Gebühren', '#B7791F', /steueramt|kantonales steuer|gemeinde|estv|steuern|gebühr|busse|betreibungsamt/i],
+    ['gesundheit', 'Gesundheit', '#EC4899', /apotheke|arzt|praxis|zahnarzt|spital|klinik|drogerie|amavita|sunstore|optiker|fielmann/i],
+    ['shopping', 'Kleidung und Shopping', '#8FA6FF', /zalando|h&m|zara|manor|globus|digitec|galaxus|brack|interdiscount|mediamarkt|ikea|jumbo|hornbach|aliexpress|temu|shein|amazon/i],
+    ['freizeit', 'Freizeit und Ferien', '#06B6D4', /kino|pathé|ticketcorner|booking|airbnb|hotel|easyjet|swiss intern|edelweiss|ferien|reise|museum|zoo/i],
+    ['bargeld', 'Bargeld', '#94A3B8', /bancomat|geldautomat|atm|bargeld|bezug/i],
+    ['spenden', 'Spenden und Geschenke', '#84CC16', /spende|caritas|unicef|rotes kreuz|helvetas|glückskette/i],
+    ['uebrig', 'Übriges', '#7C8499', /^$/],
+  ];
+  const KAT_EIN = [['lohn', 'Lohn und Einkommen', '#0E9F6E'], ['ein-uebrig', 'Übrige Einnahmen', '#14B8A6']];
+  const katName = (id) => ([...KAT, ...KAT_EIN].find((k) => k[0] === id) || KAT[KAT.length - 1])[1];
+  const katFarbe = (id) => ([...KAT, ...KAT_EIN].find((k) => k[0] === id) || KAT[KAT.length - 1])[2];
+  const normPartner = (p) => String(p || '').toLowerCase().replace(/\b(ag|gmbh|sa|ltd|inc|schweiz|suisse|switzerland|ch)\b/g, '').replace(/[^a-zäöü0-9 ]/g, ' ').replace(/\s+/g, ' ').trim().split(' ').slice(0, 3).join(' ');
+  function kategorieRaten(b) {
+    const p = normPartner(b.partner || b.text);
+    if (p && D.regeln[p]) return D.regeln[p];
+    if (b.betragRappen > 0) return /lohn|salär|gehalt|salaire|ahv|rente|iv-stelle|arbeitslosen/i.test(`${b.partner} ${b.text}`) ? 'lohn' : 'ein-uebrig';
+    const t = `${b.partner} ${b.text}`;
+    const k = KAT.find((x) => x[3].test(t) && x[0] !== 'uebrig');
+    return k ? k[0] : 'uebrig';
+  }
+
+  /* ---------- Kontoauszüge lesen (camt.053 und CSV der Schweizer Banken) ---------- */
+  const datumLesen = (s) => {
+    s = String(s || '').trim();
+    let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+    m = s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{2,4})/); if (m) return `${m[3].length === 2 ? '20' + m[3] : m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+    return '';
+  };
+  function camtLesen(xml) {
+    const doc = new DOMParser().parseFromString(xml, 'application/xml');
+    const tag = (el, n) => el.getElementsByTagNameNS('*', n);
+    const tx = (el, ...pfad) => { let e = el; for (const n of pfad) e = e && tag(e, n)[0]; return e ? e.textContent.trim() : ''; };
+    return [...tag(doc, 'Ntry')].map((n) => {
+      const betrag = Math.round(Number(tx(n, 'Amt')) * 100) * (tx(n, 'CdtDbtInd') === 'DBIT' ? -1 : 1);
+      const partner = tx(n, 'RltdPties', betrag > 0 ? 'Dbtr' : 'Cdtr', 'Nm') || tx(n, 'RltdPties', 'Nm');
+      return { datum: datumLesen(tx(n, 'BookgDt', 'Dt') || tx(n, 'BookgDt', 'DtTm') || tx(n, 'ValDt', 'Dt')), betragRappen: betrag, partner, text: tx(n, 'RmtInf', 'Ustrd') || tx(n, 'AddtlTxInf') || tx(n, 'AddtlNtryInf') || partner };
+    }).filter((t) => t.datum && t.betragRappen);
+  }
+  function csvLesen(roh) {
+    const zeilen = roh.replace(/^﻿/, '').split(/\r?\n/).filter((z) => z.trim());
+    const probe = zeilen.slice(0, 15).join('\n');
+    const tr = (probe.match(/;/g) || []).length >= (probe.match(/,/g) || []).length / 2 ? ';' : ',';
+    const teilen = (z) => { const a = []; let f = '', q = false; for (const c of z) { if (c === '"') q = !q; else if (c === tr && !q) { a.push(f.trim()); f = ''; } else f += c; } a.push(f.trim()); return a; };
+    const ki = zeilen.findIndex((z) => /datum|date/i.test(z) && /(betrag|amount|gutschrift|belastung|soll|haben|credit|debit)/i.test(z));
+    if (ki < 0) throw new Error('In dieser Datei habe ich keine Spalten für Datum und Betrag gefunden.');
+    const kopf = teilen(zeilen[ki]).map((k) => k.toLowerCase());
+    const fi = (re) => kopf.findIndex((k) => re.test(k));
+    const iD = fi(/buchungsdatum|^datum|date|valuta/), iB = fi(/^betrag|amount|betrag in chf|^chf/), iH = fi(/gutschrift|haben|credit|eingang/), iS = fi(/belastung|^soll|debit|ausgang|lastschrift/);
+    const iT = fi(/buchungstext|beschreibung|mitteilung|text|details|description|avis/), iP = fi(/empfänger|auftraggeber|gegenpartei|name|partner/);
+    return zeilen.slice(ki + 1).map((z) => {
+      const f = teilen(z), zahl = (i) => (i >= 0 && f[i] ? betragLesen(f[i]) : NaN);
+      let b = zahl(iB);
+      if (!Number.isFinite(b)) { const h = zahl(iH), s = zahl(iS); b = Number.isFinite(h) && h ? Math.abs(h) : Number.isFinite(s) && s ? -Math.abs(s) : NaN; }
+      return { datum: datumLesen(f[iD]), betragRappen: b, partner: iP >= 0 ? f[iP] : '', text: iT >= 0 ? f[iT] : '' };
+    }).filter((t) => t.datum && Number.isFinite(t.betragRappen) && t.betragRappen);
+  }
+  async function auszugLaden() {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.multiple = true; inp.accept = '.xml,.csv,.txt,text/csv,text/xml';
+    inp.onchange = async () => {
+      let neu = 0, doppelt = 0, fehler = '';
+      const bekannt = new Set(D.bewegungen.map((b) => `${b.datum}|${b.betragRappen}|${normPartner(b.partner || b.text)}`));
+      for (const datei of inp.files) {
+        try {
+          const roh = await datei.text();
+          const liste = /<\?xml|<Document/i.test(roh.slice(0, 500)) ? camtLesen(roh) : csvLesen(roh);
+          for (const t of liste) {
+            const k = `${t.datum}|${t.betragRappen}|${normPartner(t.partner || t.text)}`;
+            if (bekannt.has(k)) { doppelt++; continue; }
+            bekannt.add(k);
+            const b = { id: neueId(), ...t, partner: (t.partner || '').slice(0, 80), text: (t.text || '').slice(0, 140) };
+            b.kategorie = kategorieRaten(b);
+            D.bewegungen.push(b); neu++;
+          }
+        } catch (f) { fehler = f.message; }
+      }
+      const bezahlt = rechnungenAbgleichen();
+      sichern(); zeichnen();
+      toast(fehler && !neu ? fehler : `${neu} Bewegungen übernommen${doppelt ? `, ${doppelt} schon vorhanden` : ''}${bezahlt ? `, ${bezahlt} Rechnungen als bezahlt erkannt` : ''}`);
+    };
+    inp.click();
+  }
+  // Offene Rechnungen mit gleichem Betrag als bezahlt erkennen
+  function rechnungenAbgleichen() {
+    let n = 0;
+    for (const r of D.rechnungen.filter((x) => x.status === 'offen')) {
+      const t = D.bewegungen.find((b) => b.betragRappen === -r.betragRappen && b.datum >= (r.erhalten || '0000') && !b.rechnungId);
+      if (t) { r.status = 'bezahlt'; r.bezahltAm = t.datum; t.rechnungId = r.id; n++; }
+    }
+    return n;
+  }
+
+  /* ---------- Abos erkennen ---------- */
+  function abosFinden() {
+    const gruppen = {};
+    // Einkäufe und Fahrten sind keine Abos, auch wenn sie regelmässig vorkommen
+    const NIE = ['lebensmittel', 'restaurant', 'mobilitaet', 'auto', 'bargeld', 'shopping', 'gesundheit', 'freizeit'];
+    for (const b of D.bewegungen) if (b.betragRappen < 0 && !NIE.includes(b.kategorie)) { const k = normPartner(b.partner || b.text); if (k) (gruppen[k] = gruppen[k] || []).push(b); }
+    const abos = [];
+    for (const [k, l] of Object.entries(gruppen)) {
+      if (l.length < 2) continue;
+      l.sort((a, b) => a.datum.localeCompare(b.datum));
+      const betraege = l.map((b) => -b.betragRappen), mittel = betraege.reduce((a, x) => a + x, 0) / betraege.length;
+      const gleich = betraege.filter((x) => Math.abs(x - mittel) <= mittel * 0.06).length >= l.length * 0.75;
+      const abst = l.slice(1).map((b, i) => (new Date(b.datum) - new Date(l[i].datum)) / 864e5).sort((a, b) => a - b);
+      const median = abst[Math.floor(abst.length / 2)];
+      const rhythmus = median >= 25 && median <= 36 ? ['monatlich', 12] : median >= 85 && median <= 98 ? ['vierteljährlich', 4] : median >= 170 && median <= 195 ? ['halbjährlich', 2] : median >= 340 && median <= 390 ? ['jährlich', 1] : median >= 6 && median <= 8 ? ['wöchentlich', 52] : null;
+      if (!gleich || !rhythmus) continue;
+      const letzter = l[l.length - 1];
+      const naechste = new Date(letzter.datum); naechste.setDate(naechste.getDate() + Math.round(median));
+      abos.push({ schluessel: k, name: letzter.partner || letzter.text, betrag: Math.round(-letzter.betragRappen), rhythmus: rhythmus[0], proJahr: Math.round(-letzter.betragRappen * rhythmus[1]),
+        anzahl: l.length, letzter: letzter.datum, naechste: naechste.toLocaleDateString('sv-SE'), kategorie: letzter.kategorie, status: D.abosStatus[k] || '',
+        fix: ['wohnen', 'krankenkasse', 'versicherung', 'steuern'].includes(letzter.kategorie) });
+    }
+    return abos.sort((a, b) => b.proJahr - a.proJahr);
+  }
+
+  /* ---------- Ansichten ---------- */
+  const ICON = {
+    start: '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
+    konto: '<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',
+    abos: '<svg viewBox="0 0 24 24"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>',
+    rechnungen: '<svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg>',
+    betreibung: '<svg viewBox="0 0 24 24"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></svg>',
+  };
+  const TABS = [['start', 'Übersicht'], ['konto', 'Konto'], ['abos', 'Abos'], ['rechnungen', 'Rechnungen'], ['betreibung', 'Betreibungen']];
+  let ansicht = 'start', zeitraum = 'jahr', filterKat = '', suche = '';
+  try { ansicht = localStorage.getItem('homebuero.ansicht') || 'start'; } catch {}
+
+  function zeichnen() {
+    $('tabs').innerHTML = TABS.map(([id, n]) => `<button class="${ansicht === id ? 'an' : ''}" data-tab="${id}">${n}</button>`).join('');
+    $('untenNav').innerHTML = TABS.map(([id, n]) => `<button class="${ansicht === id ? 'an' : ''}" data-tab="${id}">${ICON[id]}${id === 'betreibung' ? 'Betreib.' : n}</button>`).join('');
+    $('inhalt').innerHTML = { start, konto, abos: abosAnsicht, rechnungen: rechnungenAnsicht, betreibung: betreibungenAnsicht }[ansicht]();
+  }
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-tab]');
+    if (t) { ansicht = t.dataset.tab; try { localStorage.setItem('homebuero.ansicht', ansicht); } catch {} zeichnen(); window.scrollTo(0, 0); }
+  });
+
+  const imZeitraum = () => {
+    const h = heute();
+    const von = zeitraum === 'monat' ? h.slice(0, 7) + '-01' : zeitraum === '3m' ? new Date(Date.now() - 91 * 864e5).toLocaleDateString('sv-SE') : zeitraum === 'jahr' ? h.slice(0, 4) + '-01-01' : '0000';
+    return D.bewegungen.filter((b) => b.datum >= von);
+  };
+  const ZEITRAUM = [['monat', 'Dieser Monat'], ['3m', '3 Monate'], ['jahr', 'Dieses Jahr'], ['alles', 'Alles']];
+  const zeitWahl = () => `<div class="segment">${ZEITRAUM.map(([id, n]) => `<button class="${zeitraum === id ? 'an' : ''}" data-zeit="${id}">${n}</button>`).join('')}</div>`;
+  document.addEventListener('click', (e) => { const t = e.target.closest('[data-zeit]'); if (t) { zeitraum = t.dataset.zeit; zeichnen(); } });
+
+  function ring(teile) {
+    const total = teile.reduce((a, t) => a + t.w, 0);
+    if (!total) return '<p class="leer">Noch keine Ausgaben.</p>';
+    const R = 70, U = 2 * Math.PI * R; let s = 0;
+    const b = teile.map((t) => { const l = t.w / total * U; const x = `<circle r="${R}" cx="90" cy="90" fill="none" stroke="${t.f}" stroke-width="26" stroke-dasharray="${Math.max(0, l - 1.5)} ${U}" stroke-dashoffset="${-s}" transform="rotate(-90 90 90)"><title>${esc(t.n)}: ${chf(t.w)}</title></circle>`; s += l; return x; }).join('');
+    const kurz = total / 100 >= 1000 ? (total / 100000).toFixed(1) + 'k' : Math.round(total / 100);
+    return `<div class="ring"><svg viewBox="0 0 180 180">${b}<text x="90" y="88" text-anchor="middle" style="font:700 24px var(--display);fill:var(--tinte)">${kurz}</text><text x="90" y="106" text-anchor="middle" style="font:500 10px var(--mono);fill:var(--leise)">CHF</text></svg>
+      <div class="lg">${teile.map((t) => `<div><i style="background:${t.f}"></i><span>${esc(t.n)}</span><b>${Math.round(t.w / total * 100)} %</b></div>`).join('')}</div></div>`;
+  }
+
+  function start() {
+    if (!D.bewegungen.length && !D.rechnungen.length && !D.betreibungen.length) {
+      return `<div class="card start"><div class="gross">${ICON.start.replace('<svg', '<svg')}</div>
+        <h2>Willkommen in Ihrem Home-Büro</h2>
+        <p>Laden Sie einen Kontoauszug Ihrer Bank hoch (CSV oder camt.053 aus dem E-Banking). Sie sehen sofort, wofür Ihr Geld weggeht, welche Abos Sie haben und was noch offen ist.</p>
+        <div class="aktionen" style="justify-content:center"><button class="btn haupt" data-aktion="auszug">Kontoauszug hochladen</button><button class="btn" data-aktion="rechnung">Rechnung erfassen</button></div>
+        <p class="hinweis" style="margin-top:18px">Ihre Daten bleiben auf diesem Gerät. Nichts wird an Dritte weitergegeben.</p></div>`;
+    }
+    const l = imZeitraum();
+    const ein = l.filter((b) => b.betragRappen > 0).reduce((a, b) => a + b.betragRappen, 0);
+    const aus = -l.filter((b) => b.betragRappen < 0).reduce((a, b) => a + b.betragRappen, 0);
+    const kat = {};
+    for (const b of l) if (b.betragRappen < 0) kat[b.kategorie] = (kat[b.kategorie] || 0) - b.betragRappen;
+    const ks = Object.entries(kat).sort((a, b) => b[1] - a[1]);
+    const teile = ks.slice(0, 7).map(([id, w]) => ({ n: katName(id), w, f: katFarbe(id) }));
+    const rest = ks.slice(7).reduce((a, x) => a + x[1], 0); if (rest) teile.push({ n: 'Weitere', w: rest, f: '#C4C8D4' });
+    const groesste = l.filter((b) => b.betragRappen < 0).sort((a, b) => a.betragRappen - b.betragRappen).slice(0, 6);
+    const alleWiederkehrend = abosFinden();
+    const fixMonat = Math.round(alleWiederkehrend.filter((a) => a.fix).reduce((x, a) => x + a.proJahr, 0) / 12);
+    const abos = alleWiederkehrend.filter((a) => !a.fix && a.status !== 'gekuendigt');
+    const aboJahr = abos.reduce((a, x) => a + x.proJahr, 0);
+    const offen = D.rechnungen.filter((r) => r.status === 'offen').sort((a, b) => (a.faellig || '9').localeCompare(b.faellig || '9'));
+    const offenSumme = offen.reduce((a, r) => a + r.betragRappen, 0);
+    const betr = D.betreibungen.filter((b) => !['bezahlt', 'geloescht'].includes(b.status));
+    const dringend = [
+      ...offen.filter((r) => r.faellig && tageBis(r.faellig) <= 7).map((r) => ({ t: `${r.titel || r.glaeubiger}: ${chf(r.betragRappen)}`, d: r.faellig, k: 'rechnung' })),
+      ...betr.filter((b) => b.status === 'zahlungsbefehl' && b.zugestellt && tageBis(rvFrist(b)) >= 0).map((b) => ({ t: `Rechtsvorschlag ${b.glaeubiger} möglich bis`, d: rvFrist(b), k: 'betreibung' })),
+    ].sort((a, b) => a.d.localeCompare(b.d));
+    return `
+    <div class="kopf"><div><h1>Übersicht</h1><p class="unter">Ihr Geld, Ihre Abos und was noch zu tun ist</p></div>
+      <div class="aktionen">${zeitWahl()}<button class="btn haupt" data-aktion="auszug">Kontoauszug hochladen</button></div></div>
+    ${dringend.length ? `<div class="card" style="border-left:4px solid var(--rot);margin-bottom:14px"><h2>Jetzt wichtig</h2>${dringend.map((x) => `<div class="zeile zwei klick" data-tab="${x.k === 'rechnung' ? 'rechnungen' : 'betreibung'}"><b>${esc(x.t)}</b><span class="frist ${tageBis(x.d) < 0 ? 'minus' : ''}">${tageBis(x.d) < 0 ? `seit ${-tageBis(x.d)} Tagen fällig` : tageBis(x.d) === 0 ? 'heute' : `in ${tageBis(x.d)} Tagen`} · ${dk(x.d)}</span></div>`).join('')}</div>` : ''}
+    <div class="raster r4">
+      <div class="card zahl"><div class="l">Eingang</div><div class="w plus">${chf(ein)}</div><div class="k">Lohn und andere Einnahmen</div></div>
+      <div class="card zahl"><div class="l">Ausgaben</div><div class="w">${chf(aus)}</div><div class="k">${l.filter((b) => b.betragRappen < 0).length} Zahlungen</div></div>
+      <div class="card zahl"><div class="l">Übrig</div><div class="w ${ein - aus < 0 ? 'minus' : 'plus'}">${chf(ein - aus)}</div><div class="k">${ein ? `Sparquote ${Math.round((ein - aus) / ein * 100)} %` : 'Eingang minus Ausgaben'}</div></div>
+      <div class="card zahl"><div class="l">Abos</div><div class="w">${chf(aboJahr)}</div><div class="k">${abos.length} Abos pro Jahr${fixMonat ? ` · Fixkosten ${chf(fixMonat)}/Monat` : ''}</div></div>
+    </div>
+    <div class="raster r2 abstand">
+      <div class="card"><h2>Wofür Ihr Geld weggeht</h2>${ring(teile)}</div>
+      <div class="card"><h2>Grösste Ausgaben</h2>${groesste.length ? groesste.map((b) => `<div class="zeile"><span style="min-width:0"><b>${esc(b.partner || b.text)}</b><small>${dk(b.datum)} · ${esc(katName(b.kategorie))}</small></span><span class="betrag">${chf(-b.betragRappen)}</span></div>`).join('') : '<p class="leer">Noch keine Ausgaben.</p>'}</div>
+    </div>
+    <div class="raster r2 abstand">
+      <div class="card"><h2>Offene Rechnungen <span class="marke-s m-offen">${offen.length}</span></h2>${offen.slice(0, 5).map((r) => `<div class="zeile klick" data-rechnung="${r.id}"><span style="min-width:0"><b>${esc(r.titel || r.glaeubiger)}</b><small>${r.faellig ? 'fällig ' + dk(r.faellig) : 'ohne Frist'}</small></span><span class="betrag">${chf(r.betragRappen)}</span></div>`).join('') || '<p class="leer">Alles bezahlt.</p>'}
+        ${offen.length ? `<p class="hinweis abstand">Total offen: <b>CHF ${chf(offenSumme)}</b></p>` : ''}<button class="btn klein abstand" data-aktion="rechnung">+ Rechnung erfassen</button></div>
+      <div class="card"><h2>Teuerste Abos</h2>${abos.slice(0, 5).map((a) => `<div class="zeile klick" data-tab="abos"><span style="min-width:0"><b>${esc(a.name)}</b><small>${a.rhythmus} · ${chf(a.betrag)}</small></span><span class="betrag">${chf(a.proJahr)}<small>pro Jahr</small></span></div>`).join('') || '<p class="leer">Noch keine Abos erkannt. Laden Sie Auszüge von mindestens 2 bis 3 Monaten hoch.</p>'}</div>
+    </div>
+    ${betr.length ? `<div class="card abstand"><h2>Betreibungen <span class="marke-s m-rot">${betr.length} offen</span></h2><p class="hinweis">Total CHF ${chf(betr.reduce((a, b) => a + restBetrag(b), 0))} noch offen. <button class="btn klein" data-tab="betreibung">Ansehen</button></p></div>` : ''}`;
+  }
+
+  function konto() {
+    const q = suche.trim().toLowerCase();
+    const l = imZeitraum().filter((b) => (!filterKat || b.kategorie === filterKat) && (!q || `${b.partner} ${b.text} ${chf(Math.abs(b.betragRappen))}`.toLowerCase().includes(q)))
+      .sort((a, b) => b.datum.localeCompare(a.datum));
+    return `<div class="kopf"><div><h1>Konto</h1><p class="unter">${l.length} Bewegungen. Tippen zum Ändern der Kategorie.</p></div>
+      <div class="aktionen"><button class="btn haupt" data-aktion="auszug">Kontoauszug hochladen</button><button class="btn" data-aktion="sicherung">Sicherung</button></div></div>
+      <div class="filter">${zeitWahl()}<select data-filterkat><option value="">Alle Kategorien</option>${[...KAT, ...KAT_EIN].map((k) => `<option value="${k[0]}" ${filterKat === k[0] ? 'selected' : ''}>${k[1]}</option>`).join('')}</select><input type="search" placeholder="Suchen" value="${esc(suche)}" data-suche /></div>
+      <div class="card">${l.slice(0, 400).map((b) => `<div class="zeile klick" data-bewegung="${b.id}"><span style="min-width:0"><b>${esc(b.partner || b.text)}</b><small>${dk(b.datum)} · <span style="color:${katFarbe(b.kategorie)}">●</span> ${esc(katName(b.kategorie))}${b.text && b.partner ? ' · ' + esc(b.text) : ''}</small></span><span class="betrag ${b.betragRappen > 0 ? 'plus' : ''}">${b.betragRappen > 0 ? '+' : '−'} ${chf(Math.abs(b.betragRappen))}</span></div>`).join('') || '<p class="leer">Keine Bewegungen. Laden Sie einen Kontoauszug hoch.</p>'}</div>`;
+  }
+  document.addEventListener('change', (e) => { if (e.target.matches('[data-filterkat]')) { filterKat = e.target.value; zeichnen(); } });
+  document.addEventListener('input', (e) => {
+    if (!e.target.matches('[data-suche]')) return;
+    suche = e.target.value; const p = e.target.selectionStart; zeichnen();
+    const n = document.querySelector('[data-suche]'); n.focus(); n.setSelectionRange(p, p);
+  });
+
+  function bewegungBearbeiten(b) {
+    const dlg = $('dlg');
+    const liste = b.betragRappen > 0 ? KAT_EIN : KAT;
+    dlg.innerHTML = `<form class="dlg" method="dialog"><h3>${esc(b.partner || b.text)}</h3>
+      <p class="hinweis">${dk(b.datum)} · ${b.betragRappen > 0 ? '+' : '−'} CHF ${chf(Math.abs(b.betragRappen))}<br>${esc(b.text)}</p>
+      <label>Kategorie<select id="bKat">${liste.map((k) => `<option value="${k[0]}" ${b.kategorie === k[0] ? 'selected' : ''}>${k[1]}</option>`).join('')}</select></label>
+      <label style="display:flex;gap:8px;align-items:center;color:var(--tinte)"><input type="checkbox" id="bRegel" checked /> Für alle Zahlungen an „${esc(normPartner(b.partner || b.text))}“ merken</label>
+      <label>Notiz<input type="text" id="bNotiz" value="${esc(b.notiz || '')}" /></label>
+      <div class="fuss"><button type="button" class="btn rot" data-weg>Löschen</button><span class="aktionen"><button type="button" class="btn" data-zu>Abbrechen</button><button class="btn haupt">Speichern</button></span></div></form>`;
+    dlg.onclick = (e) => {
+      if (e.target === dlg || e.target.closest('[data-zu]')) dlg.close();
+      if (e.target.closest('[data-weg]') && confirm('Diese Bewegung löschen?')) { D.bewegungen = D.bewegungen.filter((x) => x !== b); sichern(); dlg.close(); zeichnen(); }
+    };
+    dlg.querySelector('form').onsubmit = (e) => {
+      e.preventDefault();
+      b.kategorie = $('bKat').value; b.notiz = $('bNotiz').value.trim();
+      if ($('bRegel').checked) {
+        const p = normPartner(b.partner || b.text);
+        D.regeln[p] = b.kategorie;
+        D.bewegungen.forEach((x) => { if (normPartner(x.partner || x.text) === p && Math.sign(x.betragRappen) === Math.sign(b.betragRappen)) x.kategorie = b.kategorie; });
+      }
+      sichern(); dlg.close(); zeichnen(); toast('Gespeichert');
+    };
+    dlg.showModal();
+  }
+  document.addEventListener('click', (e) => { const t = e.target.closest('[data-bewegung]'); if (t) bewegungBearbeiten(D.bewegungen.find((b) => b.id === t.dataset.bewegung)); });
+
+  function abosAnsicht() {
+    const alle = abosFinden(), fix = alle.filter((a) => a.fix), abos = alle.filter((a) => !a.fix);
+    const aktiv = abos.filter((a) => a.status !== 'gekuendigt');
+    const total = aktiv.reduce((a, x) => a + x.proJahr, 0);
+    return `<div class="kopf"><div><h1>Abos und Fixkosten</h1><p class="unter">Automatisch erkannt aus Ihren Kontoauszügen</p></div><div class="aktionen"><button class="btn haupt" data-aktion="auszug">Kontoauszug hochladen</button></div></div>
+      <div class="raster r4"><div class="card zahl"><div class="l">Pro Jahr</div><div class="w">${chf(total)}</div><div class="k">${aktiv.length} laufende Abos</div></div>
+        <div class="card zahl"><div class="l">Pro Monat</div><div class="w">${chf(Math.round(total / 12))}</div><div class="k">im Durchschnitt</div></div>
+        <div class="card zahl"><div class="l">Gekündigt</div><div class="w plus">${chf(abos.filter((a) => a.status === 'gekuendigt').reduce((a, x) => a + x.proJahr, 0))}</div><div class="k">gespart pro Jahr</div></div>
+        <div class="card zahl"><div class="l">Prüfen</div><div class="w">${abos.filter((a) => a.status === 'pruefen').length}</div><div class="k">zum Kündigen vorgemerkt</div></div></div>
+      <div class="card abstand">${abos.map((a) => `<div class="zeile"><span style="min-width:0"><b>${esc(a.name)}${a.status === 'gekuendigt' ? '<span class="marke-s m-ok">gekündigt</span>' : a.status === 'pruefen' ? '<span class="marke-s m-offen">kündigen?</span>' : ''}</b>
+        <small>${a.rhythmus} · ${chf(a.betrag)} · ${a.anzahl}× gesehen · nächste ca. ${dk(a.naechste)}</small>
+        <span class="aktionen" style="margin-top:6px"><button class="btn klein" data-abo="${esc(a.schluessel)}" data-status="${a.status === 'pruefen' ? '' : 'pruefen'}">${a.status === 'pruefen' ? 'Doch behalten' : 'Zum Kündigen vormerken'}</button><button class="btn klein" data-abo="${esc(a.schluessel)}" data-status="${a.status === 'gekuendigt' ? '' : 'gekuendigt'}">${a.status === 'gekuendigt' ? 'Läuft wieder' : 'Gekündigt'}</button></span></span>
+        <span class="betrag">${chf(a.proJahr)}<small>pro Jahr</small></span></div>`).join('') || '<p class="leer">Noch keine Abos erkannt. Dafür braucht es Kontoauszüge von mindestens 2 bis 3 Monaten.</p>'}</div>
+      ${fix.length ? `<div class="card abstand"><h2>Fixkosten <span class="hinweis">${chf(Math.round(fix.reduce((a, x) => a + x.proJahr, 0) / 12))} pro Monat</span></h2>${fix.map((a) => `<div class="zeile"><span style="min-width:0"><b>${esc(a.name)}</b><small>${a.rhythmus} · ${chf(a.betrag)} · ${esc(katName(a.kategorie))}</small></span><span class="betrag">${chf(a.proJahr)}<small>pro Jahr</small></span></div>`).join('')}</div>` : ''}
+      <p class="info-box">Tipp: Viele Abos verlängern sich automatisch. Merken Sie unbenutzte Abos zum Kündigen vor und kündigen Sie sie direkt beim Anbieter.</p>`;
+  }
+  document.addEventListener('click', (e) => { const t = e.target.closest('[data-abo]'); if (t) { D.abosStatus[t.dataset.abo] = t.dataset.status; sichern(); zeichnen(); } });
+
+  /* ---------- Rechnungen ---------- */
+  function rechnungenAnsicht() {
+    const l = [...D.rechnungen].sort((a, b) => (a.status === b.status ? (a.faellig || '9').localeCompare(b.faellig || '9') : a.status === 'offen' ? -1 : 1));
+    const offen = l.filter((r) => r.status === 'offen');
+    const ueber = offen.filter((r) => r.faellig && r.faellig < heute());
+    return `<div class="kopf"><div><h1>Rechnungen</h1><p class="unter">Was offen ist und was bezahlt ist, auch rückwirkend</p></div><div class="aktionen"><button class="btn haupt" data-aktion="rechnung">+ Rechnung erfassen</button></div></div>
+      <div class="raster r4"><div class="card zahl"><div class="l">Offen</div><div class="w">${chf(offen.reduce((a, r) => a + r.betragRappen, 0))}</div><div class="k">${offen.length} Rechnungen</div></div>
+        <div class="card zahl"><div class="l">Überfällig</div><div class="w ${ueber.length ? 'minus' : ''}">${chf(ueber.reduce((a, r) => a + r.betragRappen, 0))}</div><div class="k">${ueber.length} Rechnungen</div></div>
+        <div class="card zahl"><div class="l">Bezahlt ${new Date().getFullYear()}</div><div class="w plus">${chf(l.filter((r) => r.status === 'bezahlt' && (r.bezahltAm || '').startsWith(String(new Date().getFullYear()))).reduce((a, r) => a + r.betragRappen, 0))}</div><div class="k">dieses Jahr</div></div>
+        <div class="card zahl"><div class="l">Total erfasst</div><div class="w">${l.length}</div><div class="k">Rechnungen</div></div></div>
+      <div class="card abstand">${l.map((r) => { const t = r.faellig ? tageBis(r.faellig) : null; return `<div class="zeile klick" data-rechnung="${r.id}"><span style="min-width:0"><b>${esc(r.titel || r.glaeubiger)}${r.status === 'bezahlt' ? '<span class="marke-s m-ok">bezahlt</span>' : t !== null && t < 0 ? '<span class="marke-s m-rot">überfällig</span>' : '<span class="marke-s m-offen">offen</span>'}${r.raten ? '<span class="marke-s m-blau">Raten</span>' : ''}</b>
+        <small>${esc(r.glaeubiger || '')}${r.status === 'bezahlt' ? ` · bezahlt am ${dk(r.bezahltAm)}` : r.faellig ? ` · fällig ${dk(r.faellig)}${t !== null ? (t < 0 ? ` (seit ${-t} Tagen)` : ` (in ${t} Tagen)`) : ''}` : ''}</small></span><span class="betrag">${chf(r.betragRappen)}</span></div>`; }).join('') || '<p class="leer">Noch keine Rechnungen erfasst. Erfassen Sie Rechnungen, sobald sie ankommen, auch alte.</p>'}</div>`;
+  }
+  function rechnungBearbeiten(r) {
+    const neu = !r;
+    r = r || { id: neueId(), status: 'offen', erhalten: heute() };
+    const dlg = $('dlg');
+    dlg.innerHTML = `<form class="dlg" method="dialog"><h3>${neu ? 'Rechnung erfassen' : 'Rechnung'}</h3>
+      <label>Wofür<input type="text" id="rTitel" value="${esc(r.titel || '')}" placeholder="z. B. Krankenkasse November" /></label>
+      <div class="zwei"><label>Von (Gläubiger)<input type="text" id="rGl" value="${esc(r.glaeubiger || '')}" placeholder="z. B. CSS" /></label><label>Betrag CHF<input type="text" id="rBetrag" inputmode="decimal" value="${r.betragRappen ? chf(r.betragRappen).replace(/’/g, '') : ''}" required /></label></div>
+      <div class="zwei"><label>Erhalten am<input type="date" id="rErhalten" value="${r.erhalten || ''}" /></label><label>Fällig am<input type="date" id="rFaellig" value="${r.faellig || ''}" /></label></div>
+      <div class="zwei"><label>Status<select id="rStatus"><option value="offen" ${r.status === 'offen' ? 'selected' : ''}>Offen</option><option value="bezahlt" ${r.status === 'bezahlt' ? 'selected' : ''}>Bezahlt</option></select></label><label>Bezahlt am<input type="date" id="rBezahlt" value="${r.bezahltAm || ''}" /></label></div>
+      <label style="display:flex;gap:8px;align-items:center;color:var(--tinte)"><input type="checkbox" id="rRaten" ${r.raten ? 'checked' : ''} /> In Raten (Abzahlung vereinbart)</label>
+      <label>Notiz<textarea id="rNotiz" rows="2" placeholder="z. B. Referenznummer, Kundennummer">${esc(r.notiz || '')}</textarea></label>
+      <div class="fuss">${neu ? '<span></span>' : '<button type="button" class="btn rot" data-weg>Löschen</button>'}<span class="aktionen"><button type="button" class="btn" data-zu>Abbrechen</button><button class="btn haupt">Speichern</button></span></div></form>`;
+    dlg.onchange = (e) => { if (e.target.id === 'rStatus' && e.target.value === 'bezahlt' && !$('rBezahlt').value) $('rBezahlt').value = heute(); };
+    dlg.onclick = (e) => {
+      if (e.target === dlg || e.target.closest('[data-zu]')) dlg.close();
+      if (e.target.closest('[data-weg]') && confirm('Diese Rechnung löschen?')) { D.rechnungen = D.rechnungen.filter((x) => x.id !== r.id); sichern(); dlg.close(); zeichnen(); }
+    };
+    dlg.querySelector('form').onsubmit = (e) => {
+      e.preventDefault();
+      const b = betragLesen($('rBetrag').value);
+      if (!Number.isFinite(b) || b <= 0) { $('rBetrag').focus(); toast('Bitte einen Betrag eingeben'); return; }
+      Object.assign(r, { titel: $('rTitel').value.trim(), glaeubiger: $('rGl').value.trim(), betragRappen: b, erhalten: $('rErhalten').value, faellig: $('rFaellig').value,
+        status: $('rStatus').value, bezahltAm: $('rStatus').value === 'bezahlt' ? ($('rBezahlt').value || heute()) : '', raten: $('rRaten').checked, notiz: $('rNotiz').value.trim() });
+      if (neu) D.rechnungen.push(r);
+      sichern(); dlg.close(); zeichnen(); toast(neu ? 'Rechnung erfasst' : 'Gespeichert');
+    };
+    dlg.showModal();
+  }
+  document.addEventListener('click', (e) => { const t = e.target.closest('[data-rechnung]'); if (t) rechnungBearbeiten(D.rechnungen.find((r) => r.id === t.dataset.rechnung)); });
+
+  /* ---------- Betreibungen ---------- */
+  const STATUS = { zahlungsbefehl: 'Zahlungsbefehl erhalten', rechtsvorschlag: 'Rechtsvorschlag erhoben', abzahlung: 'Abzahlung vereinbart', pfaendung: 'Pfändung angekündigt', bezahlt: 'Bezahlt', geloescht: 'Im Register gelöscht' };
+  const rvFrist = (b) => { const d = new Date((b.zugestellt || heute()) + 'T12:00'); d.setDate(d.getDate() + 10); return d.toLocaleDateString('sv-SE'); };
+  const restBetrag = (b) => Math.max(0, (b.betragRappen || 0) - (b.zahlungen || []).reduce((a, z) => a + z.betragRappen, 0));
+  function betreibungenAnsicht() {
+    const l = [...D.betreibungen].sort((a, b) => (b.zugestellt || '').localeCompare(a.zugestellt || ''));
+    const offen = l.filter((b) => !['bezahlt', 'geloescht'].includes(b.status));
+    return `<div class="kopf"><div><h1>Betreibungen</h1><p class="unter">Fristen, Abzahlungen und Löschung im Blick behalten</p></div><div class="aktionen"><button class="btn haupt" data-aktion="betreibung">+ Betreibung erfassen</button></div></div>
+      <div class="raster r4"><div class="card zahl"><div class="l">Offen</div><div class="w ${offen.length ? 'minus' : ''}">${chf(offen.reduce((a, b) => a + restBetrag(b), 0))}</div><div class="k">${offen.length} Betreibungen</div></div>
+        <div class="card zahl"><div class="l">Abbezahlt</div><div class="w plus">${chf(l.reduce((a, b) => a + (b.zahlungen || []).reduce((x, z) => x + z.betragRappen, 0), 0))}</div><div class="k">bisher</div></div>
+        <div class="card zahl"><div class="l">Erledigt</div><div class="w">${l.length - offen.length}</div><div class="k">bezahlt oder gelöscht</div></div>
+        <div class="card zahl"><div class="l">Zu löschen</div><div class="w">${l.filter((b) => b.status === 'bezahlt').length}</div><div class="k">Löschung beantragen</div></div></div>
+      <div class="card abstand">${l.map((b) => { const rest = restBetrag(b), f = rvFrist(b), t = tageBis(f); return `<div class="zeile klick" data-betreibung="${b.id}"><span style="min-width:0"><b>${esc(b.glaeubiger)}<span class="marke-s ${['bezahlt', 'geloescht'].includes(b.status) ? 'm-ok' : 'm-rot'}">${STATUS[b.status]}</span></b>
+        <small>${b.nummer ? 'Nr. ' + esc(b.nummer) + ' · ' : ''}${esc(b.amt || '')}${b.zugestellt ? ' · zugestellt ' + dk(b.zugestellt) : ''}${b.status === 'zahlungsbefehl' && b.zugestellt ? ` · <span class="${t < 3 ? 'minus' : ''}">Rechtsvorschlag ${t >= 0 ? `noch ${t} Tage (bis ${dk(f)})` : 'Frist abgelaufen'}</span>` : ''}${b.rate ? ` · Rate ${chf(b.rate)}/Monat` : ''}</small>
+        ${b.betragRappen ? `<div class="spur"><i style="width:${Math.round((1 - rest / b.betragRappen) * 100)}%;background:var(--gruen)"></i></div>` : ''}</span>
+        <span class="betrag">${chf(rest)}<small>von ${chf(b.betragRappen)}</small></span></div>`; }).join('') || '<p class="leer">Keine Betreibungen erfasst. Gut so.</p>'}</div>
+      <div class="info-box"><b>Gut zu wissen</b><br>Gegen einen Zahlungsbefehl können Sie innert 10 Tagen ab Zustellung Rechtsvorschlag erheben, wenn die Forderung nicht stimmt. Wurde die Schuld bezahlt, können Sie beim Betreibungsamt die Löschung im Register beantragen (in der Regel, wenn der Gläubiger die Betreibung zurückzieht). Bei Geldsorgen hilft die kostenlose Schuldenberatung Ihres Kantons.</div>`;
+  }
+  function betreibungBearbeiten(b) {
+    const neu = !b;
+    b = b || { id: neueId(), status: 'zahlungsbefehl', zugestellt: heute(), zahlungen: [] };
+    const dlg = $('dlg');
+    dlg.innerHTML = `<form class="dlg" method="dialog"><h3>${neu ? 'Betreibung erfassen' : esc(b.glaeubiger)}</h3>
+      <div class="zwei"><label>Gläubiger<input type="text" id="tGl" value="${esc(b.glaeubiger || '')}" required /></label><label>Betrag CHF<input type="text" id="tBetrag" inputmode="decimal" value="${b.betragRappen ? chf(b.betragRappen).replace(/’/g, '') : ''}" /></label></div>
+      <div class="zwei"><label>Betreibungsamt<input type="text" id="tAmt" value="${esc(b.amt || '')}" /></label><label>Betreibungs-Nr.<input type="text" id="tNr" value="${esc(b.nummer || '')}" /></label></div>
+      <div class="zwei"><label>Zahlungsbefehl zugestellt am<input type="date" id="tZu" value="${b.zugestellt || ''}" /></label><label>Stand<select id="tStatus">${Object.entries(STATUS).map(([k, n]) => `<option value="${k}" ${b.status === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label></div>
+      <label>Monatliche Rate (bei Abzahlung) CHF<input type="text" id="tRate" inputmode="decimal" value="${b.rate ? chf(b.rate).replace(/’/g, '') : ''}" /></label>
+      ${neu ? '' : `<div><b style="font-size:14px">Zahlungen</b>${(b.zahlungen || []).map((z, i) => `<div class="zeile"><span>${dk(z.datum)}</span><span class="betrag">${chf(z.betragRappen)} <button type="button" class="btn klein rot" data-zweg="${i}">×</button></span></div>`).join('') || '<p class="hinweis">Noch keine Zahlungen.</p>'}
+        <div class="zwei" style="margin-top:8px"><input type="date" id="zDatum" value="${heute()}" /><input type="text" id="zBetrag" inputmode="decimal" placeholder="Betrag CHF" /></div><button type="button" class="btn klein" data-zahlung style="margin-top:6px">+ Zahlung eintragen</button></div>`}
+      <label>Notiz<textarea id="tNotiz" rows="2">${esc(b.notiz || '')}</textarea></label>
+      <div class="fuss">${neu ? '<span></span>' : '<button type="button" class="btn rot" data-weg>Löschen</button>'}<span class="aktionen"><button type="button" class="btn" data-zu>Abbrechen</button><button class="btn haupt">Speichern</button></span></div></form>`;
+    const lesen = () => {
+      const bt = betragLesen($('tBetrag').value), rt = betragLesen($('tRate').value);
+      Object.assign(b, { glaeubiger: $('tGl').value.trim(), betragRappen: Number.isFinite(bt) ? bt : 0, amt: $('tAmt').value.trim(), nummer: $('tNr').value.trim(),
+        zugestellt: $('tZu').value, status: $('tStatus').value, rate: Number.isFinite(rt) ? rt : 0, notiz: $('tNotiz').value.trim() });
+    };
+    dlg.onclick = (e) => {
+      if (e.target === dlg || e.target.closest('[data-zu]')) dlg.close();
+      if (e.target.closest('[data-weg]') && confirm('Diese Betreibung löschen?')) { D.betreibungen = D.betreibungen.filter((x) => x.id !== b.id); sichern(); dlg.close(); zeichnen(); }
+      const zw = e.target.closest('[data-zweg]');
+      if (zw) { lesen(); b.zahlungen.splice(Number(zw.dataset.zweg), 1); sichern(); betreibungBearbeiten(b); }
+      if (e.target.closest('[data-zahlung]')) {
+        lesen();
+        const z = betragLesen($('zBetrag').value);
+        if (!Number.isFinite(z) || z <= 0) { toast('Bitte einen Betrag eingeben'); return; }
+        b.zahlungen.push({ datum: $('zDatum').value || heute(), betragRappen: z });
+        if (restBetrag(b) === 0) b.status = 'bezahlt';
+        sichern(); betreibungBearbeiten(b); zeichnen();
+      }
+    };
+    dlg.querySelector('form').onsubmit = (e) => {
+      e.preventDefault(); lesen();
+      if (!b.glaeubiger) { $('tGl').focus(); return; }
+      if (neu) D.betreibungen.push(b);
+      sichern(); dlg.close(); zeichnen(); toast('Gespeichert');
+    };
+    if (!dlg.open) dlg.showModal();
+  }
+  document.addEventListener('click', (e) => { const t = e.target.closest('[data-betreibung]'); if (t) betreibungBearbeiten(D.betreibungen.find((b) => b.id === t.dataset.betreibung)); });
+
+  /* ---------- Sicherung ---------- */
+  function sicherung() {
+    const dlg = $('dlg');
+    dlg.innerHTML = `<div class="dlg"><h3>Sicherung</h3><p class="hinweis">Ihre Daten liegen nur auf diesem Gerät. Speichern Sie ab und zu eine Sicherung, zum Beispiel in iCloud Drive.</p>
+      <div class="aktionen"><button class="btn haupt" data-runter>Sicherung speichern</button><button class="btn" data-rauf>Sicherung laden</button></div>
+      <div class="fuss"><button class="btn rot" data-alleweg>Alle Daten löschen</button><button class="btn" data-zu>Schliessen</button></div></div>`;
+    dlg.onclick = (e) => {
+      if (e.target === dlg || e.target.closest('[data-zu]')) dlg.close();
+      if (e.target.closest('[data-runter]')) {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(D)], { type: 'application/json' }));
+        a.download = `Home-Buero Sicherung ${heute()}.json`; a.click();
+      }
+      if (e.target.closest('[data-rauf]')) {
+        const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json';
+        inp.onchange = async () => { try { const n = JSON.parse(await inp.files[0].text()); Object.assign(D, n); sichern(); dlg.close(); zeichnen(); toast('Sicherung geladen'); } catch { toast('Diese Datei kann ich nicht lesen'); } };
+        inp.click();
+      }
+      if (e.target.closest('[data-alleweg]') && confirm('Wirklich alle Daten auf diesem Gerät löschen? Das kann nicht rückgängig gemacht werden.')) {
+        Object.assign(D, { bewegungen: [], rechnungen: [], betreibungen: [], regeln: {}, abosStatus: {} }); sichern(); dlg.close(); zeichnen();
+      }
+    };
+    dlg.showModal();
+  }
+
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('[data-aktion]'); if (!a) return;
+    ({ auszug: auszugLaden, rechnung: () => rechnungBearbeiten(), betreibung: () => betreibungBearbeiten(), sicherung })[a.dataset.aktion]();
+  });
+  window.HomeBuero = { daten: D, abosFinden };
+  zeichnen();
+})();
+</script>
+</body>
+</html>
