@@ -135,8 +135,8 @@
 
     // Konto und Lizenz
     ['lizenz', 'Konto und Lizenz', 'Lizenz kaufen oder verlängern', 'lizenz kaufen bezahlen preis verlängern test abgelaufen paket wechseln upgrade', [
-      'Unten auf „Lizenz kaufen“ tippen oder auf nasuvia.ch/software bestellen.',
-      'Sie erhalten eine QR-Rechnung. Nach der Zahlung wird Ihre Lizenz freigeschaltet, alle Daten bleiben erhalten.'], 'https://www.nasuvia.ch/software/#preise'],
+      'Im Menü „Lizenz und Konto“ öffnen oder unten auf „Lizenz kaufen“ tippen. Paket wählen und bestellen.',
+      'Sie erhalten eine QR-Rechnung. Nach der Zahlung wird Ihre Lizenz freigeschaltet, alle Daten bleiben erhalten.'], WURZEL + 'lizenz/'],
     ['passwort', 'Konto und Lizenz', 'Passwort vergessen', 'passwort vergessen zurücksetzen login anmelden geht nicht', [
       'Beim Anmelden „Passwort vergessen?“ tippen und Ihre E-Mail eingeben.',
       'Im Link der E-Mail ein neues Passwort festlegen.'], B],

@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Lizenz und Konto</title>
+<meta name="theme-color" content="#F7F9FD" />
+<link rel="stylesheet" href="../schrift.css" />
+<script src="../konfig.js"></script>
+<script src="../lib/supabase.js"></script>
+<style>
+:root{--papier:#F7F9FD;--flaeche:#EEF1F8;--tinte:#0C1226;--text:#47506B;--leise:#7C8499;--blau:#1C2A7B;--elektrik:#3B55E6;--gruen:#0E9F6E;--rot:#E5484D;--linie:rgba(28,42,123,.14);--schatten:0 1px 2px rgba(12,18,38,.05),0 14px 34px -20px rgba(12,18,38,.3)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:16px/1.55 'League Spartan',-apple-system,system-ui,sans-serif;background:var(--papier);color:var(--tinte)}
+[hidden]{display:none!important}
+.wrap{max-width:980px;margin:0 auto;padding:0 18px 60px}
+header{padding:24px 0 6px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+header a{color:var(--elektrik);text-decoration:none;font-weight:600}
+h1{font-size:clamp(30px,6vw,42px);letter-spacing:-.03em;line-height:1.05;margin:12px 0 6px}
+.unter{color:var(--text)}
+.karte{background:#fff;border-radius:20px;padding:22px;box-shadow:var(--schatten)}
+.stand{margin:22px 0;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center}
+.stand .ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;color:#fff;font-size:24px;background:linear-gradient(135deg,var(--blau),var(--elektrik))}
+.stand .ic.ok{background:linear-gradient(135deg,#1FC48D,var(--gruen))}.stand .ic.ab{background:linear-gradient(135deg,#F28B8E,var(--rot))}
+.stand b{font-size:19px;display:block}.stand small{color:var(--text);display:block}
+.marke{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border-radius:100px;padding:5px 10px;background:var(--flaeche);color:var(--blau);white-space:nowrap}
+.umschalter{display:flex;justify-content:center;margin:28px 0 18px}
+.umschalter div{display:inline-flex;background:#fff;border-radius:100px;padding:5px;box-shadow:var(--schatten)}
+.umschalter button{border:0;background:none;border-radius:100px;padding:10px 18px;font:inherit;font-weight:500;color:var(--text);cursor:pointer}
+.umschalter button.an{background:var(--blau);color:#fff;font-weight:700}
+.pakete{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.paket{background:#fff;border-radius:20px;padding:20px;box-shadow:var(--schatten);display:flex;flex-direction:column;border:2px solid transparent;position:relative}
+.paket.top{border-color:var(--elektrik)}
+.paket.jetzt::after{content:'Ihr Paket';position:absolute;top:-11px;left:16px;background:var(--gruen);color:#fff;font-size:12px;font-weight:700;border-radius:100px;padding:3px 10px}
+.paket h3{font-size:19px}
+.paket .preis{font-size:32px;font-weight:700;letter-spacing:-.03em;margin:10px 0 0}
+.paket .preis span{font-size:15px;color:var(--text);font-weight:500}
+.paket ul{list-style:none;margin:12px 0 16px;display:grid;gap:6px;font-size:14px;color:var(--text);flex:1}
+.paket li::before{content:'✓ ';color:var(--gruen);font-weight:700}
+.btn{display:block;width:100%;border:0;border-radius:100px;padding:12px;font:inherit;font-weight:700;cursor:pointer;background:var(--flaeche);color:var(--blau);text-align:center;text-decoration:none}
+.btn.haupt{background:var(--blau);color:#fff}
+.btn:disabled{opacity:.5}
+@media(max-width:900px){.pakete{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.pakete{grid-template-columns:1fr}.stand{grid-template-columns:auto minmax(0,1fr)}.stand .marke{grid-column:2}}
+dialog{border:0;border-radius:22px;padding:0;width:min(460px,calc(100% - 24px));box-shadow:0 40px 100px -30px rgba(12,18,38,.5)}
+dialog::backdrop{background:rgba(12,18,38,.35)}
+.dlg{padding:24px;display:grid;gap:10px}
+.dlg h2{font-size:22px}
+.dlg label{display:grid;gap:4px;font-size:13px;color:var(--text)}
+.dlg input,.dlg select,.dlg textarea{font:inherit;font-size:16px;border:1px solid rgba(28,42,123,.26);border-radius:12px;padding:10px 12px}
+.summe{background:var(--flaeche);border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;font-weight:700}
+.meldung{min-height:1.2em;font-size:14px;color:#C53030}
+.fertig{text-align:center;padding:10px 0}
+.fertig .gross{width:60px;height:60px;border-radius:50%;background:rgba(14,159,110,.14);color:var(--gruen);display:grid;place-items:center;font-size:28px;margin:0 auto 10px}
+.unten{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:22px}
+.unten h3{font-size:17px;margin-bottom:6px}.unten p{color:var(--text);font-size:14.5px}
+.unten .btn{margin-top:12px}
+@media(max-width:700px){.unten{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><a href="../">← Zurück zum Programm</a><a href="../hilfe/">Anleitung</a></header>
+  <h1>Lizenz und Konto</h1>
+  <p class="unter" id="unter">Ihr Paket, Ihr Stand und die Lizenz bestellen.</p>
+
+  <div class="karte stand" id="stand"><div class="ic">…</div><div><b>Wird geladen …</b></div></div>
+
+  <div class="umschalter"><div><button data-z="monat">Monatlich</button><button data-z="jahr" class="an">Jährlich · 2 Monate gratis</button></div></div>
+  <div class="pakete" id="pakete"></div>
+  <p class="unter" style="text-align:center;margin-top:14px;font-size:14px">Alle Preise in CHF. Sie erhalten eine QR-Rechnung per E-Mail. Nach der Zahlung schalten wir Ihre Lizenz frei, alle Daten bleiben erhalten.</p>
+
+  <div class="unten">
+    <div class="karte"><h3>Ihre Daten gehören Ihnen</h3><p>Sie liegen verschlüsselt in Zürich. Auch ohne gültige Lizenz können Sie alles ansehen und herunterladen.</p><a class="btn" href="../?ansicht=mehr">Sicherung herunterladen</a></div>
+    <div class="karte"><h3>Fragen zur Lizenz?</h3><p>Wir helfen gerne: info@nasuvia.ch oder 079 821 84 08.</p><a class="btn" href="mailto:info@nasuvia.ch?subject=Frage%20zur%20Lizenz">E-Mail schreiben</a><button class="btn" id="abmelden" style="margin-top:8px">Abmelden</button></div>
+  </div>
+</div>
+
+<dialog id="dlg"><form class="dlg" id="form" method="dialog">
+  <div id="formInhalt">
+    <h2 id="dTitel">Lizenz bestellen</h2>
+    <p class="unter" style="font-size:14px;margin-bottom:6px">Wir schicken Ihnen die QR-Rechnung an die E-Mail Ihres Kontos.</p>
+    <label>Firma oder Name auf der Rechnung<input id="dFirma" required></label>
+    <label>Rechnungsadresse<textarea id="dAdresse" rows="2" placeholder="Strasse und Nr., PLZ und Ort" required></textarea></label>
+    <label>Telefon <span>(freiwillig)</span><input id="dTel" type="tel"></label>
+    <div class="summe"><span id="dPaket"></span><span id="dPreis"></span></div>
+    <p class="meldung" id="dMeldung"></p>
+    <button class="btn haupt" id="dSenden">Verbindlich bestellen</button>
+    <button type="button" class="btn" id="dZu" style="margin-top:6px">Abbrechen</button>
+  </div>
+  <div class="fertig" id="fertig" hidden><div class="gross">✓</div><h2>Danke für Ihre Bestellung</h2><p class="unter" style="margin:6px 0 14px">Sie erhalten die QR-Rechnung per E-Mail. Nach der Zahlung wird Ihre Lizenz freigeschaltet. Bis dahin können Sie normal weiterarbeiten.</p><button type="button" class="btn haupt" id="fZu">Schliessen</button></div>
+</form></dialog>
+
+<script>
+(function(){
+  var K = window.NASUVIA_KONFIG || {};
+  var $ = function(id){ return document.getElementById(id); };
+  var esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var dk = function(d){ return d ? d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4) : ''; };
+  var heute = new Date().toLocaleDateString('sv-SE');
+  var PAKETE = [
+    { id: 'privat', name: 'Home-Büro', monat: 3, jahr: 29, was: ['Kontoauszüge und Übersicht', 'Abos und Fixkosten', 'Rechnungen und Fristen', 'Betreibungen'] },
+    { id: 'rechnungen', name: 'Rechnungen', monat: 9, jahr: 90, was: ['QR-Rechnungen', 'Offerten, Gutschriften, Mahnungen', 'Abos und Vorlagen', 'Logo und Farben'] },
+    { id: 'buchhaltung', name: 'Buchhaltung', monat: 14, jahr: 140, was: ['Buchungen und Belege', 'Bankauszug importieren', 'MWST, Bilanz, Abschluss', 'Löhne'] },
+    { id: 'kombi', name: 'Kombi', monat: 19, jahr: 190, was: ['Rechnungen und Buchhaltung', 'Rechnungen werden automatisch gebucht', 'Home-Büro inklusive', 'Persönlicher Support'], top: true }
+  ];
+  var zyklus = 'jahr', lizenz = null, benutzer = null, gewaehlt = null;
+  var sb = window.supabase.createClient(K.url, K.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: K.speicher } });
+
+  function standZeichnen(){
+    if (!benutzer) {
+      $('stand').innerHTML = '<div class="ic">?</div><div><b>Nicht angemeldet</b><small>Melden Sie sich im Programm an, um Ihre Lizenz zu sehen.</small></div><a class="marke" href="../">Anmelden</a>';
+      return;
+    }
+    if (!lizenz) { $('stand').innerHTML = '<div class="ic ab">!</div><div><b>Keine Lizenz gefunden</b><small>' + esc(benutzer.email) + '</small></div>'; return; }
+    var l = lizenz, name = (PAKETE.find(function(p){ return p.id === l.paket; }) || {}).name || l.paket;
+    var gueltig = l.status !== 'gesperrt' && ((l.status === 'test' && l.test_bis >= heute) || (l.status === 'aktiv' && (l.gueltig_bis || '') >= heute));
+    var bis = l.status === 'test' ? l.test_bis : l.gueltig_bis;
+    var tage = bis ? Math.round((new Date(bis + 'T12:00') - new Date(heute + 'T12:00')) / 864e5) : 0;
+    var titel = l.status === 'gesperrt' ? 'Zugang gesperrt' : !gueltig ? (l.status === 'test' ? 'Gratis-Test abgelaufen' : 'Lizenz abgelaufen')
+      : l.status === 'test' ? 'Gratis-Test: noch ' + tage + (tage === 1 ? ' Tag' : ' Tage') : 'Lizenz aktiv';
+    $('stand').innerHTML = '<div class="ic ' + (gueltig ? (l.status === 'aktiv' ? 'ok' : '') : 'ab') + '">' + (gueltig ? (l.status === 'aktiv' ? '✓' : '⏳') : '!') + '</div>' +
+      '<div><b>' + esc(titel) + '</b><small>' + esc(name) + ' · ' + esc(benutzer.email) + (bis ? ' · ' + (gueltig ? 'bis ' : 'seit ') + dk(bis) : '') + '</small></div>' +
+      '<span class="marke">' + (l.status === 'aktiv' ? 'Bezahlt' : l.status === 'test' ? 'Test' : 'Gesperrt') + '</span>';
+  }
+  function paketeZeichnen(){
+    [].forEach.call(document.querySelectorAll('[data-z]'), function(b){ b.classList.toggle('an', b.dataset.z === zyklus); });
+    $('pakete').innerHTML = PAKETE.map(function(p){
+      var jetzt = lizenz && lizenz.paket === p.id;
+      return '<div class="paket' + (p.top ? ' top' : '') + (jetzt ? ' jetzt' : '') + '"><h3>' + p.name + '</h3>' +
+        '<div class="preis">' + (zyklus === 'jahr' ? p.jahr : p.monat) + ' <span>CHF / ' + (zyklus === 'jahr' ? 'Jahr' : 'Monat') + '</span></div>' +
+        '<ul>' + p.was.map(function(w){ return '<li>' + esc(w) + '</li>'; }).join('') + '</ul>' +
+        '<button class="btn' + (jetzt || p.top ? ' haupt' : '') + '" data-paket="' + p.id + '">' + (jetzt ? (lizenz.status === 'aktiv' ? 'Verlängern' : 'Lizenz kaufen') : 'Dieses Paket wählen') + '</button></div>';
+    }).join('');
+  }
+  document.addEventListener('click', function(e){
+    var z = e.target.closest('[data-z]'); if (z) { zyklus = z.dataset.z; paketeZeichnen(); }
+    var p = e.target.closest('[data-paket]');
+    if (p) {
+      if (!benutzer) { location.href = '../'; return; }
+      gewaehlt = PAKETE.find(function(x){ return x.id === p.dataset.paket; });
+      $('dTitel').textContent = gewaehlt.name + ' bestellen';
+      $('dPaket').textContent = gewaehlt.name + (zyklus === 'jahr' ? ', jährlich' : ', monatlich');
+      $('dPreis').textContent = 'CHF ' + (zyklus === 'jahr' ? gewaehlt.jahr + '/Jahr' : gewaehlt.monat + '/Monat');
+      $('dFirma').value = (lizenz && (lizenz.firma || lizenz.name)) || '';
+      $('dTel').value = (lizenz && lizenz.telefon) || '';
+      $('dMeldung').textContent = ''; $('formInhalt').hidden = false; $('fertig').hidden = true;
+      $('dlg').showModal();
+    }
+  });
+  $('dZu').onclick = function(){ $('dlg').close(); };
+  $('fZu').onclick = function(){ $('dlg').close(); };
+  $('abmelden').onclick = async function(){ await sb.auth.signOut({ scope: 'local' }); location.href = '../'; };
+  // Bestellung geht an Nasuvia: in die Anfragen und per E-Mail
+  $('form').addEventListener('submit', async function(e){
+    e.preventDefault();
+    var firma = $('dFirma').value.trim(), adresse = $('dAdresse').value.trim();
+    if (!firma || !adresse) { $('dMeldung').textContent = 'Bitte Name und Rechnungsadresse angeben.'; return; }
+    $('dSenden').disabled = true;
+    var d = new Date(), zz = function(n){ return ('0' + n).slice(-2); };
+    var nr = 'LIZ-' + String(d.getFullYear()).slice(2) + zz(d.getMonth() + 1) + zz(d.getDate()) + '-' + (100 + Math.floor(Math.random() * 900));
+    var preis = zyklus === 'jahr' ? gewaehlt.jahr : gewaehlt.monat;
+    var daten = { Paket: gewaehlt.name, Zahlungsweise: zyklus === 'jahr' ? 'Jährlich' : 'Monatlich', Preis: 'CHF ' + preis + (zyklus === 'jahr' ? ' pro Jahr' : ' pro Monat'),
+      'Rechnung an': firma, Adresse: adresse, 'E-Mail': benutzer.email, Telefon: $('dTel').value.trim(), Konto: benutzer.id,
+      'Stand jetzt': lizenz ? lizenz.status + ' / ' + lizenz.paket : '' };
+    var ok1 = await fetch('https://dyepnomhidubsfwyorke.supabase.co/rest/v1/anfragen', { method: 'POST',
+      headers: { apikey: 'sb_publishable_zEmC1R5vq234zR6ST7PTmA_uY7Z1-ph', 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ art: 'Lizenz-Bestellung: ' + gewaehlt.name, nummer: nr, name: firma, email: benutzer.email, telefon: daten.Telefon, daten: daten }) })
+      .then(function(r){ return r.ok; }).catch(function(){ return false; });
+    var ok2 = await fetch('https://formsubmit.co/ajax/info@nasuvia.ch', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(Object.assign({ _subject: 'Lizenz-Bestellung ' + nr + ': ' + gewaehlt.name, _template: 'table', _replyto: benutzer.email, Nummer: nr }, daten)) })
+      .then(function(r){ return r.ok; }).catch(function(){ return false; });
+    $('dSenden').disabled = false;
+    if (!ok1 && !ok2) { $('dMeldung').textContent = 'Das hat nicht geklappt. Bitte schreiben Sie an info@nasuvia.ch.'; return; }
+    $('formInhalt').hidden = true; $('fertig').hidden = false;
+  });
+
+  paketeZeichnen();
+  (async function(){
+    try {
+      var s = (await sb.auth.getSession()).data.session;
+      benutzer = s ? s.user : null;
+      if (benutzer) {
+        var r = await sb.from('lizenzen').select('*').eq('user_id', benutzer.id).maybeSingle();
+        lizenz = r.data || null;
+        if (lizenz) zyklus = lizenz.zyklus || 'jahr';
+      }
+    } catch (f) { benutzer = null; }
+    standZeichnen(); paketeZeichnen();
+  })();
+})();
+</script>
+</body>
+</html>

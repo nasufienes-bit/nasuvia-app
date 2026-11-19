@@ -9,7 +9,7 @@
   const NAME = { buchhaltung: 'die Buchhaltung', rechnungen: 'das Rechnungsprogramm', privat: 'das Home-Büro' }[PRODUKT];
   const ERLAUBT = { buchhaltung: ['buchhaltung', 'kombi'], rechnungen: ['rechnungen', 'kombi'], privat: ['privat', 'kombi'] };
   const PAKETE = { rechnungen: 'Rechnungen', buchhaltung: 'Buchhaltung', kombi: 'Kombi (Rechnungen, Buchhaltung, Home-Büro)', privat: 'Home-Büro' };
-  const KAUFEN = 'https://www.nasuvia.ch/software/#bestellen';
+  const KAUFEN = (() => { try { return new URL('lizenz/', new URL('.', skript.src)).href; } catch { return '/lizenz/'; } })();
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const heute = () => new Date().toLocaleDateString('sv-SE');
   const dk = (d) => (d ? d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4) : '');
@@ -109,12 +109,12 @@
   /* ---------- Lizenz prüfen ---------- */
   function pille(html, lesen) {
     const a = document.createElement('a');
-    a.className = 'lz-pille' + (lesen ? ' lesen' : ''); a.href = KAUFEN; a.target = '_blank'; a.rel = 'noopener'; a.innerHTML = html;
+    a.className = 'lz-pille' + (lesen ? ' lesen' : ''); a.href = KAUFEN; a.innerHTML = html;
     document.body.appendChild(a);
   }
   function sperre(titel, text, mitLesen) {
     zeigen(`${SYMBOL}<h2>${esc(titel)}</h2><p>${text}</p>
-      <a class="lz-knopf" href="${KAUFEN}" target="_blank" rel="noopener">Lizenz kaufen</a>
+      <a class="lz-knopf" href="${KAUFEN}">Lizenz kaufen</a>
       <a class="lz-knopf zweit" href="mailto:info@nasuvia.ch?subject=${encodeURIComponent('Lizenz: ' + titel)}">Frage per E-Mail</a>
       ${mitLesen ? '<button class="lz-link" data-lz-lesen>Daten nur ansehen und herunterladen</button>' : ''}
       <button class="lz-link" data-lz-abmelden>Abmelden</button>`);
