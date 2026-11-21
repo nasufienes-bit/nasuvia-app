@@ -1,2 +1,7 @@
+# Vorzeige-Phase: Bots dürfen die App lesen (z. B. damit eine KI sie bewerten kann).
+# Später wieder sperren mit:  User-agent: *  /  Disallow: /
 User-agent: *
-Disallow: /
+Allow: /
+Disallow: /treuhand/
+Disallow: /zeit/erfassen/
+Disallow: /buchen/
