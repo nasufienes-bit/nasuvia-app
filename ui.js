@@ -10,8 +10,15 @@
     dialog[open]{inset:auto 0 0 0;margin:0;width:100%!important;max-width:100%!important;max-height:92dvh;border-radius:22px 22px 0 0!important;padding-bottom:env(safe-area-inset-bottom,0px);animation:uiHoch .28s cubic-bezier(.2,.9,.3,1)}
   }
   @keyframes uiHoch{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
-  html.ui-dialog-offen,html.ui-dialog-offen body{overflow:hidden}`;
+  html.ui-dialog-offen,html.ui-dialog-offen body{overflow:hidden}
+  /* iPhone zoomt beim Tippen in Felder mit Schrift unter 16px: auf Touch-Geräten immer 16px */
+  @media (pointer:coarse){input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea{font-size:16px!important}}`;
   document.head.appendChild(stil);
+  // Zusätzlich auf iPhone/iPad: kein automatisches Hineinzoomen beim Ausfüllen (Zwei-Finger-Zoom bleibt möglich)
+  if (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+    const vp = document.querySelector('meta[name=viewport]');
+    if (vp && !/maximum-scale/.test(vp.content)) vp.content += ', maximum-scale=1';
+  }
 
   const P = HTMLDialogElement && HTMLDialogElement.prototype;
   if (!P || P.__ui) return;
