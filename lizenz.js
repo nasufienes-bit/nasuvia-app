@@ -48,9 +48,11 @@
   const decke = document.createElement('div');
   decke.className = 'lz-decke';
   decke.innerHTML = '<div class="lz-karte"><p>Wird geladen …</p></div>';
-  const zeigen = (html) => { decke.querySelector('.lz-karte').innerHTML = html; if (!decke.isConnected) document.body.appendChild(decke); };
+  // Erst anhängen, wenn die Seite einen <body> hat (lizenz.js steht teils im <head>)
+  const anhaengen = (el) => { if (document.body) document.body.appendChild(el); else document.addEventListener('DOMContentLoaded', () => document.body.appendChild(el), { once: true }); };
+  const zeigen = (html) => { decke.querySelector('.lz-karte').innerHTML = html; if (!decke.isConnected) anhaengen(decke); };
   const weg = () => decke.remove();
-  if (document.body) document.body.appendChild(decke); else document.addEventListener('DOMContentLoaded', () => document.body.appendChild(decke));
+  anhaengen(decke);
   const SYMBOL = '<img src="' + KAUFEN.replace(/lizenz\/$/, 'logo.png') + '" alt="Ordasio" style="height:34px;display:block">';
 
   /* ---------- Anmelden und Konto erstellen ---------- */
@@ -116,14 +118,14 @@
   function pille(html, lesen) {
     const a = document.createElement('a');
     a.className = 'lz-pille' + (lesen ? ' lesen' : ''); a.href = KAUFEN; a.innerHTML = html;
-    document.body.appendChild(a);
+    anhaengen(a);
   }
   function demoPille() {
     const a = document.createElement('a');
     a.className = 'lz-pille'; a.href = '#'; a.innerHTML = 'Demo-Ansicht · <b>Eigenes Konto</b>';
     a.title = 'Das ist ein Vorzeige-Konto. Eingaben sehen auch andere Besucher.';
     a.onclick = async (ev) => { ev.preventDefault(); demoAus(); await sb.auth.signOut({ scope: 'local' }); location.reload(); };
-    document.body.appendChild(a);
+    anhaengen(a);
   }
   function sperre(titel, text, mitLesen) {
     zeigen(`${SYMBOL}<h2>${esc(titel)}</h2><p>${text}</p>
