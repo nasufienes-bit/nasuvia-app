@@ -31,7 +31,7 @@
   ];
   // Eigene Kategorien: umbenennen, ausblenden, Farbe, neue hinzufügen (in den Einstellungen gespeichert)
   let KAT_AUS = KAT_AUS_STD, KAT_EIN = KAT_EIN_STD;
-  const FARBEN = ['#3B55E6', '#0E9F6E', '#F5B53D', '#E5484D', '#8FA6FF', '#1C2A7B', '#14B8A6', '#A855F7', '#F97316', '#64748B', '#EC4899', '#84CC16', '#06B6D4', '#B7791F', '#7C8499', '#94A3B8'];
+  const FARBEN = ['#0E7A55', '#0E9F6E', '#F5B53D', '#E5484D', '#6EE7A8', '#0B3B2E', '#14B8A6', '#A855F7', '#F97316', '#64748B', '#EC4899', '#84CC16', '#06B6D4', '#B7791F', '#7C8499', '#94A3B8'];
   function kategorienAnwenden() {
     const k = (Z.einst && Z.einst.kategorien) || {};
     const mischen = (std, eigene) => {
@@ -242,7 +242,7 @@
     const karteMonate = st.monate ? `<div class="card">
         <h2>Monate ${Z.jahr}</h2>
         <div class="balken">${balken}</div>
-        <div class="legende"><span><i style="background:var(--elektrik)"></i>Einnahmen</span><span><i style="background:rgba(28,42,123,.22)"></i>Ausgaben</span></div>
+        <div class="legende"><span><i style="background:var(--elektrik)"></i>Einnahmen</span><span><i style="background:rgba(11,59,46,.22)"></i>Ausgaben</span></div>
       </div>` : '';
     const karteMwst = st.mwst ? `<div class="card">
         <h2>MWST ${q}. Quartal ${jetztJahr}</h2>
@@ -283,7 +283,7 @@
       <div class="card">
         <h2>Monate ${Z.jahr}</h2>
         <div class="balken">${balken}</div>
-        <div class="legende"><span><i style="background:var(--elektrik)"></i>Einnahmen</span><span><i style="background:rgba(28,42,123,.22)"></i>Ausgaben</span></div>
+        <div class="legende"><span><i style="background:var(--elektrik)"></i>Einnahmen</span><span><i style="background:rgba(11,59,46,.22)"></i>Ausgaben</span></div>
       </div>
       <div class="card">
         <h2>MWST ${q}. Quartal ${jetztJahr}</h2>
@@ -359,7 +359,7 @@
         `<text x="${L + i * w + w / 2}" y="${H - 8}" class="dg-achse" text-anchor="middle">${MONATE[i].slice(0, 1)}</text>`;
     }).join('');
     return `<svg class="diagramm" viewBox="0 0 ${B} ${H}" role="img" aria-label="Vergleich">${gitter}${saeulen}</svg>
-      <div class="legende"><span><i style="background:var(--elektrik)"></i>${esc(namen[0])}</span><span><i style="background:rgba(28,42,123,.22)"></i>${esc(namen[1])}</span></div>`;
+      <div class="legende"><span><i style="background:var(--elektrik)"></i>${esc(namen[0])}</span><span><i style="background:rgba(11,59,46,.22)"></i>${esc(namen[1])}</span></div>`;
   }
   function ringDiagramm(teile) {
     const total = teile.reduce((a, t) => a + t.wert, 0);
@@ -598,7 +598,7 @@
           <div class="segment"><button type="button" class="${art === 'aus' ? 'an' : ''}" data-kart="aus">Ausgaben</button><button type="button" class="${art === 'ein' ? 'an' : ''}" data-kart="ein">Einnahmen</button></div>
           <p class="hinweis abstand">Umbenennen, Farbe wählen oder ausblenden. Ausgeblendete Kategorien bleiben bei alten Buchungen erhalten.</p>
           <div class="kat-edit">${arbeit[art].map((k, i) => `<div class="kat-edit-zeile ${k.versteckt ? 'aus' : ''}">
-            <input type="color" value="${k.farbe || '#3B55E6'}" data-kfarbe="${i}" aria-label="Farbe" />
+            <input type="color" value="${k.farbe || '#0E7A55'}" data-kfarbe="${i}" aria-label="Farbe" />
             <input type="text" value="${esc(k.name)}" data-kname="${i}" aria-label="Name" />
             <select class="auswahl-klein" data-ksatz="${i}" aria-label="MWST-Satz">${SAETZE.map((s2) => `<option value="${s2}" ${Number(k.satz) === s2 ? 'selected' : ''}>${s2 ? s2.toFixed(1) + ' %' : 'ohne'}</option>`).join('')}</select>
             <label class="haken klein"><input type="checkbox" data-ksicht="${i}" ${k.versteckt ? '' : 'checked'} />sichtbar</label>
@@ -832,13 +832,13 @@
     if (!m) return;
     const monat = Z.lohnMonat, r = lohnBerechnen(m, lohnEingabe(monat, m.id)), S = lohnSaetze();
     const F = (window.Marke && Marke.daten()) || {};
-    const firma = F.name || 'Nasuvia', farbe = F.farbe1 || '#1C2A7B';
+    const firma = F.name || 'Nasuvia', farbe = F.farbe1 || '#0B3B2E';
     const z = (t, b, neg) => `<tr><td>${t}</td><td class="b">${neg ? '−' : ''} ${chf(b)}</td></tr>`;
     const html = `<!doctype html><html lang="de-CH"><head><meta charset="utf-8"><title>Lohnabrechnung ${esc(m.name)} ${monat}</title>
-      <style>body{font:14px/1.5 -apple-system,system-ui,sans-serif;color:#0C1226;margin:0;padding:18mm}h1{font-size:26px;margin:24px 0 2px;color:${farbe}}
+      <style>body{font:14px/1.5 -apple-system,system-ui,sans-serif;color:#0A1F17;margin:0;padding:18mm}h1{font-size:26px;margin:24px 0 2px;color:${farbe}}
       .kopf{display:flex;justify-content:space-between;align-items:flex-start;border-top:6px solid ${farbe};padding-top:12px}.kopf img{max-height:46px;max-width:200px}
       .an{margin-top:26px;line-height:1.45}table{width:100%;border-collapse:collapse;margin-top:18px}td{padding:6px 0;border-bottom:1px solid #E3E6EF}td.b{text-align:right;font-variant-numeric:tabular-nums}
-      tr.s td{font-weight:700;border-top:2px solid #0C1226;border-bottom:0;padding-top:9px}tr.t td{font-weight:700;font-size:17px;color:${farbe}}.h{color:#7C8499;font-size:12px}
+      tr.s td{font-weight:700;border-top:2px solid #0A1F17;border-bottom:0;padding-top:9px}tr.t td{font-weight:700;font-size:17px;color:${farbe}}.h{color:#7C8499;font-size:12px}
       @media print{body{padding:12mm}}</style></head><body>
       <div class="kopf"><div>${F.logo ? `<img src="${F.logo}" alt="">` : `<b style="font-size:20px">${esc(firma)}</b>`}<div class="h">${esc([F.strasse, F.ort].filter(Boolean).join(', '))}</div></div><div class="h" style="text-align:right">Lohnabrechnung<br>${esc(monatName(monat))}</div></div>
       <div class="an"><b>${esc(m.name)}</b><br>${esc(m.strasse || '')}<br>${esc(m.ort || '')}${m.ahvNr ? `<br><span class="h">AHV-Nr. ${esc(m.ahvNr)}</span>` : ''}</div>

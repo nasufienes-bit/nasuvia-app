@@ -164,29 +164,29 @@
 
   const stil = document.createElement('style');
   stil.textContent = `
-  .su-knopf{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border:1px solid rgba(28,42,123,.16)!important;border-radius:100px!important;background:#fff!important;color:#47506B!important;font:500 .92rem 'League Spartan',-apple-system,system-ui,sans-serif;cursor:pointer;min-width:0}
+  .su-knopf{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border:1px solid rgba(11,59,46,.16)!important;border-radius:100px!important;background:#fff!important;color:#3F5A4F!important;font:500 .92rem 'League Spartan',-apple-system,system-ui,sans-serif;cursor:pointer;min-width:0}
   .su-knopf svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
-  .su-knopf kbd{font:500 11px 'JetBrains Mono',monospace;background:#EEF1F8;border-radius:5px;padding:2px 5px;color:#7C8499}
+  .su-knopf kbd{font:500 11px 'JetBrains Mono',monospace;background:#E8F4EE;border-radius:5px;padding:2px 5px;color:#7C8499}
   @media(max-width:640px){.su-knopf span,.su-knopf kbd{display:none}.su-knopf{padding:0 11px}}
   .su-hinten{position:fixed;inset:0;z-index:99990;background:rgba(12,18,38,.35);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;justify-content:center;align-items:flex-start;padding:max(60px,8vh) 14px 14px}
-  .su-box{width:min(620px,100%);background:#fff;border-radius:20px;box-shadow:0 40px 100px -30px rgba(12,18,38,.55);overflow:hidden;font-family:'League Spartan',-apple-system,system-ui,sans-serif;color:#0C1226}
-  .su-feld{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid rgba(28,42,123,.12)}
-  .su-feld svg{width:20px;height:20px;stroke:#3B55E6;fill:none;stroke-width:2.2;stroke-linecap:round;flex:none}
-  .su-feld input{flex:1;border:0;outline:0;font:inherit;font-size:18px;color:#0C1226;background:none;min-width:0}
-  .su-feld button{border:0;background:#EEF1F8;border-radius:8px;padding:5px 9px;font:500 12px inherit;color:#47506B;cursor:pointer}
+  .su-box{width:min(620px,100%);background:#fff;border-radius:20px;box-shadow:0 40px 100px -30px rgba(12,18,38,.55);overflow:hidden;font-family:'League Spartan',-apple-system,system-ui,sans-serif;color:#0A1F17}
+  .su-feld{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid rgba(11,59,46,.12)}
+  .su-feld svg{width:20px;height:20px;stroke:#0E7A55;fill:none;stroke-width:2.2;stroke-linecap:round;flex:none}
+  .su-feld input{flex:1;border:0;outline:0;font:inherit;font-size:18px;color:#0A1F17;background:none;min-width:0}
+  .su-feld button{border:0;background:#E8F4EE;border-radius:8px;padding:5px 9px;font:500 12px inherit;color:#3F5A4F;cursor:pointer}
   .su-liste{max-height:min(60vh,520px);overflow:auto;padding:8px}
   .su-treffer{display:block;width:100%;text-align:left;border:0;background:none;border-radius:14px;padding:11px 12px;cursor:pointer;font:inherit;color:inherit}
-  .su-treffer.an,.su-treffer:hover{background:rgba(59,85,230,.08)}
+  .su-treffer.an,.su-treffer:hover{background:rgba(14,122,85,.08)}
   .su-treffer b{display:block;font-size:15.5px}
   .su-treffer small{display:block;font-size:13px;color:#7C8499;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .su-treffer em{font-style:normal;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#3B55E6;margin-right:6px}
+  .su-treffer em{font-style:normal;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#0E7A55;margin-right:6px}
   .su-detail{padding:4px 12px 12px}
-  .su-detail ol{margin:6px 0 10px 20px;padding:0;display:grid;gap:6px;font-size:14.5px;color:#47506B;line-height:1.45}
+  .su-detail ol{margin:6px 0 10px 20px;padding:0;display:grid;gap:6px;font-size:14.5px;color:#3F5A4F;line-height:1.45}
   .su-aktionen{display:flex;gap:8px;flex-wrap:wrap}
-  .su-aktionen a{border-radius:100px;padding:9px 14px;font-weight:600;font-size:14px;text-decoration:none;background:#1C2A7B;color:#fff}
-  .su-aktionen a.zweit{background:#EEF1F8;color:#1C2A7B}
-  .su-fuss{padding:10px 18px;border-top:1px solid rgba(28,42,123,.1);font-size:12.5px;color:#7C8499;display:flex;justify-content:space-between;gap:10px}
-  .su-fuss a{color:#3B55E6;text-decoration:none}
+  .su-aktionen a{border-radius:100px;padding:9px 14px;font-weight:600;font-size:14px;text-decoration:none;background:#0B3B2E;color:#fff}
+  .su-aktionen a.zweit{background:#E8F4EE;color:#0B3B2E}
+  .su-fuss{padding:10px 18px;border-top:1px solid rgba(11,59,46,.1);font-size:12.5px;color:#7C8499;display:flex;justify-content:space-between;gap:10px}
+  .su-fuss a{color:#0E7A55;text-decoration:none}
   .su-leer{padding:24px 14px;text-align:center;color:#7C8499;font-size:14px}`;
   document.head.appendChild(stil);
 

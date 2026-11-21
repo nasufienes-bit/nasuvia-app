@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Rechnungen</title>
+<title>Rechnungen · Ordasio</title>
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="../icon-180.png" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-title" content="Rechnungen" />
-<meta name="theme-color" content="#F7F9FD" />
+<meta name="apple-mobile-web-app-title" content="Ordasio Rechnungen" />
+<meta name="theme-color" content="#F4FAF6" />
 <meta name="robots" content="noindex" />
 <script src="../konfig.js"></script>
 <script src="../lib/supabase.js"></script>
@@ -34,21 +34,21 @@
    in den Farben und Schriften der Nasuvia-Website.
    ============================================================ */
 :root {
-  --papier: #F7F9FD;
-  --flaeche: #EEF1F8;
+  --papier: #F4FAF6;
+  --flaeche: #E8F4EE;
   --karte: #FFFFFF;
-  --tinte: #0C1226;
-  --text: #47506B;
+  --tinte: #0A1F17;
+  --text: #3F5A4F;
   --leise: #7C8499;
-  --blau: #1C2A7B;
-  --elektrik: #3B55E6;
+  --blau: #0B3B2E;
+  --elektrik: #0E7A55;
   --gruen: #0E9F6E;
   --rot: #E5484D;
   --gelb: #B7791F;
-  --hairline: rgba(28, 42, 123, 0.14);
-  --hairline-strong: rgba(28, 42, 123, 0.26);
+  --hairline: rgba(11, 59, 46, 0.14);
+  --hairline-strong: rgba(11, 59, 46, 0.26);
   --schatten-karte: 0 1px 2px rgba(12, 18, 38, 0.05), 0 6px 18px -12px rgba(12, 18, 38, 0.18);
-  --schatten-blatt: 0 24px 70px -32px rgba(28, 42, 123, 0.32);
+  --schatten-blatt: 0 24px 70px -32px rgba(11, 59, 46, 0.32);
   --font-display: 'League Spartan', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
   --r-karte: 14px;
@@ -111,7 +111,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
   align-items: center; gap: 10px;
   padding: 5px 0;
 }
-.field-row + .field-row { border-top: 1px solid rgba(28, 42, 123, 0.07); }
+.field-row + .field-row { border-top: 1px solid rgba(11, 59, 46, 0.07); }
 .field-row > label { font-size: 13.5px; color: var(--text); }
 .field-row textarea { min-height: 62px; resize: vertical; line-height: 1.45; }
 
@@ -125,7 +125,7 @@ input[type="text"], input[type="date"], select, textarea {
 input::placeholder, textarea::placeholder { color: #A6AEC0; }
 input:focus, select:focus, textarea:focus {
   outline: none; border-color: var(--elektrik);
-  box-shadow: 0 0 0 3.5px rgba(59, 85, 230, 0.14);
+  box-shadow: 0 0 0 3.5px rgba(14, 122, 85, 0.14);
 }
 input.invalid { border-color: var(--rot); box-shadow: 0 0 0 3.5px rgba(229, 72, 77, 0.12); }
 select { appearance: none; cursor: pointer;
@@ -148,7 +148,7 @@ select { appearance: none; cursor: pointer;
   font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em;
 }
 .tag-ok { background: rgba(14, 159, 110, 0.12); color: #0A7150; }
-.tag-info { background: rgba(59, 85, 230, 0.1); color: var(--blau); }
+.tag-info { background: rgba(14, 122, 85, 0.1); color: var(--blau); }
 
 /* Freitext in Karten */
 .card > textarea {
@@ -160,10 +160,10 @@ select { appearance: none; cursor: pointer;
 /* Erstellen-Knopf */
 .btn-erstellen {
   background: var(--elektrik);
-  color: #fff; box-shadow: 0 10px 24px -10px rgba(59, 85, 230, .8);
+  color: #fff; box-shadow: 0 10px 24px -10px rgba(14, 122, 85, .8);
 }
 .btn-erstellen:hover:not(:disabled) { filter: brightness(1.06); }
-.btn-erstellen.bereit { background: var(--papier); color: var(--blau); box-shadow: none; border: 1px solid rgba(28, 42, 123, 0.16); }
+.btn-erstellen.bereit { background: var(--papier); color: var(--blau); box-shadow: none; border: 1px solid rgba(11, 59, 46, 0.16); }
 .actions-neben { display: flex; gap: 8px; margin-top: 2px; }
 .actions-neben .mini-btn { flex: 1; }
 
@@ -181,7 +181,7 @@ select { appearance: none; cursor: pointer;
 /* Entwürfe */
 .entwuerfe-card { display: none; }
 body.server .entwuerfe-card { display: block; }
-.entwurf-zeile { padding: 9px 0; border-bottom: 1px solid rgba(28, 42, 123, 0.07); }
+.entwurf-zeile { padding: 9px 0; border-bottom: 1px solid rgba(11, 59, 46, 0.07); }
 .entwurf-zeile .archiv-knoepfe { display: flex; gap: 5px; margin-top: 7px; }
 .entwurf-zeile .mini-btn { flex: 1; padding: 5px 4px; font-size: 11.5px; }
 .entwurf-zeile:last-child { border-bottom: 0; }
@@ -192,7 +192,7 @@ body.server .entwuerfe-card { display: block; }
 /* Archiv-Suche und Zusatzangaben */
 .archiv-suche {
   width: 100%; margin: 2px 0 8px; padding: 7px 10px; font: inherit; font-size: 12.5px;
-  border: 1px solid rgba(28, 42, 123, 0.16); border-radius: 8px; background: var(--papier); color: var(--tinte);
+  border: 1px solid rgba(11, 59, 46, 0.16); border-radius: 8px; background: var(--papier); color: var(--tinte);
 }
 .archiv-suche:focus { outline: none; border-color: var(--elektrik); box-shadow: 0 0 0 3px rgba(43, 74, 224, 0.13); }
 .archiv-knoepfe { display: flex; gap: 5px; flex-shrink: 0; }
@@ -213,7 +213,7 @@ body.server .statistik-card { display: block; }
 .stat-kachel strong { display: block; font-size: 17px; font-weight: 700; color: var(--blau); margin-top: 4px; font-variant-numeric: tabular-nums; }
 .stat-sub { display: block; font-size: 11px; color: var(--leise); margin-top: 1px; }
 .stat-zeilen { margin-top: 11px; }
-.stat-zeilen > div { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; font-size: 12.5px; border-bottom: 1px solid rgba(28, 42, 123, 0.07); }
+.stat-zeilen > div { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; font-size: 12.5px; border-bottom: 1px solid rgba(11, 59, 46, 0.07); }
 .stat-zeilen > div:last-child { border-bottom: 0; }
 .stat-zeilen strong { color: var(--tinte); font-weight: 600; font-variant-numeric: tabular-nums; }
 .stat-zeilen .warnzeile strong, .stat-zeilen div.warnzeile strong { color: #a5251f; }
@@ -221,10 +221,10 @@ body.server .statistik-card { display: block; }
 .stat-titel { font-family: var(--font-mono); font-size: 8.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--leise); margin: 14px 0 7px; }
 .stat-monat { display: grid; grid-template-columns: 42px minmax(0, 1fr) 62px; align-items: center; gap: 8px; margin-bottom: 6px; }
 .stat-monat-name { font-size: 11px; color: var(--leise); font-variant-numeric: tabular-nums; }
-.stat-balken { height: 7px; background: rgba(28, 42, 123, 0.09); border-radius: 4px; overflow: hidden; }
+.stat-balken { height: 7px; background: rgba(11, 59, 46, 0.09); border-radius: 4px; overflow: hidden; }
 .stat-balken i { display: block; height: 100%; background: linear-gradient(90deg, var(--blau), var(--elektrik)); border-radius: 4px; }
 .stat-monat-wert { font-size: 11px; text-align: right; color: var(--tinte); font-variant-numeric: tabular-nums; }
-.stat-kunde { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; padding: 5px 0; border-bottom: 1px solid rgba(28, 42, 123, 0.06); }
+.stat-kunde { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; padding: 5px 0; border-bottom: 1px solid rgba(11, 59, 46, 0.06); }
 .stat-kunde:last-child { border-bottom: 0; }
 .stat-kunde span:first-child { color: var(--tinte); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stat-kunde span:last-child { color: var(--leise); white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -233,7 +233,7 @@ body.server .statistik-card { display: block; }
 .archiv-card { max-height: 400px; display: flex; flex-direction: column; }
 .archiv-pfad { font-size: 11px; color: var(--leise); margin-bottom: 9px; }
 #archivListe { overflow-y: auto; flex: 1; margin: 0 -4px; padding: 0 4px; }
-.archiv-zeile { padding: 9px 0; border-bottom: 1px solid rgba(28, 42, 123, 0.07); }
+.archiv-zeile { padding: 9px 0; border-bottom: 1px solid rgba(11, 59, 46, 0.07); }
 .archiv-zeile:last-child { border-bottom: 0; }
 .archiv-info { min-width: 0; }
 .archiv-info strong {
@@ -290,11 +290,11 @@ body.server .archiv-card { display: flex; }
   display: flex; align-items: center; justify-content: center; gap: 7px;
   transition: background .15s, border-color .15s;
 }
-.add-btn:hover { background: rgba(59, 85, 230, 0.06); border-color: var(--elektrik); }
+.add-btn:hover { background: rgba(14, 122, 85, 0.06); border-color: var(--elektrik); }
 .add-btn svg { width: 13px; height: 13px; }
 
 /* Segmented control */
-.seg { display: flex; background: rgba(28, 42, 123, 0.07); border-radius: 10px; padding: 3px; gap: 3px; }
+.seg { display: flex; background: rgba(11, 59, 46, 0.07); border-radius: 10px; padding: 3px; gap: 3px; }
 .seg button {
   flex: 1; border: 0; background: transparent; cursor: pointer;
   padding: 7px 6px; border-radius: 8px; color: var(--text);
@@ -309,7 +309,7 @@ body.server .archiv-card { display: flex; }
 
 /* Summe */
 .summary-card { padding: 4px 16px 4px; }
-.sum-row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 13.5px; border-bottom: 1px solid rgba(28, 42, 123, 0.07); }
+.sum-row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 13.5px; border-bottom: 1px solid rgba(11, 59, 46, 0.07); }
 .sum-row .v { color: var(--tinte); font-weight: 600; font-variant-numeric: tabular-nums; }
 .sum-total {
   display: flex; justify-content: space-between; align-items: baseline;
@@ -341,7 +341,7 @@ body.server .archiv-card { display: flex; }
   display: flex; align-items: center; justify-content: center; gap: 9px;
 }
 .btn svg { width: 16px; height: 16px; }
-.btn-primary { background: var(--elektrik); color: #fff; box-shadow: 0 10px 24px -10px rgba(59, 85, 230, .8); }
+.btn-primary { background: var(--elektrik); color: #fff; box-shadow: 0 10px 24px -10px rgba(14, 122, 85, .8); }
 .btn-primary:hover:not(:disabled) { background: var(--blau); transform: translateY(-1px); }
 .btn-primary:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
 .btn-secondary { background: var(--karte); color: var(--tinte); border: 0; box-shadow: inset 0 0 0 1.5px var(--hairline); }
@@ -353,7 +353,7 @@ body.server .archiv-card { display: flex; }
 .preview {
   padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 12px;
   background:
-    radial-gradient(rgba(28, 42, 123, 0.06) 1px, transparent 1.6px) 0 0 / 22px 22px,
+    radial-gradient(rgba(11, 59, 46, 0.06) 1px, transparent 1.6px) 0 0 / 22px 22px,
     var(--papier);
   min-height: 100vh;
 }
@@ -373,7 +373,7 @@ body.server .archiv-card { display: flex; }
 .sheet .inner { padding: 10mm 16mm 0; position: relative; z-index: 1; max-height: 185mm; overflow: hidden; }
 .sheet .dots {
   position: absolute; top: 0; left: 0; right: 0; height: 70mm; z-index: 0;
-  background-image: radial-gradient(rgba(28, 42, 123, 0.08) 0.35mm, transparent 0.5mm);
+  background-image: radial-gradient(rgba(11, 59, 46, 0.08) 0.35mm, transparent 0.5mm);
   background-size: 6mm 6mm;
 }
 .sheet .dots::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,0) 30%, #fff 100%); }
@@ -413,11 +413,11 @@ body.server .archiv-card { display: flex; }
 .sheet.layout-minimal .dots { display: none; }
 .sheet.layout-minimal h2.titel { font-size: 17pt; font-weight: 600; letter-spacing: 0; }
 .sheet.layout-minimal h2.titel .dot { display: none; }
-.sheet.layout-minimal .sender, .sheet.layout-minimal td.pos { color: var(--text, #47506B); }
+.sheet.layout-minimal .sender, .sheet.layout-minimal td.pos { color: var(--text, #3F5A4F); }
 .seg.drei button { flex: 1; }
 .dok-hint { background: rgba(229,72,77,.08); color: #9B2C2F; border-radius: 10px; padding: 9px 11px; font-size: 13px; margin: 0 0 10px; display: flex; gap: 8px; align-items: center; justify-content: space-between; }
-.dok-hint.info { background: rgba(59,85,230,.08); color: var(--blau); }
-.marke-art { background: rgba(59,85,230,.1); color: var(--blau); }
+.dok-hint.info { background: rgba(14,122,85,.08); color: var(--blau); }
+.marke-art { background: rgba(14,122,85,.1); color: var(--blau); }
 .marke-mahn { background: rgba(229,72,77,.12); color: #B4282D; }
 .abo-zeile .faellig-heute { color: #B4282D; font-weight: 600; }
 .sheet .intro { margin-top: 2.5mm; font-size: 9.5pt; max-width: 130mm; }
@@ -1778,8 +1778,8 @@ img { -ms-interpolation-mode:bicubic; border:0; outline:none; text-decoration:no
 body, table, td, div, p, a { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
 a { text-decoration:none; }
 a[x-apple-data-detectors] { color:inherit !important; text-decoration:none !important; font-size:inherit !important; font-family:inherit !important; font-weight:inherit !important; line-height:inherit !important; }
-.al-mute a[x-apple-data-detectors] { color:#47506B !important; }
-.al-ink a[x-apple-data-detectors] { color:#0C1226 !important; }
+.al-mute a[x-apple-data-detectors] { color:#3F5A4F !important; }
+.al-ink a[x-apple-data-detectors] { color:#0A1F17 !important; }
 .al-white a[x-apple-data-detectors] { color:#FFFFFF !important; }
 u + #body a, #MessageViewBody a { color:inherit; text-decoration:none; font-size:inherit; font-family:inherit; font-weight:inherit; line-height:inherit; }
 @media only screen and (max-width:479px) {
@@ -1792,12 +1792,12 @@ u + #body a, #MessageViewBody a { color:inherit; text-decoration:none; font-size
   .amt { font-size:21px !important; line-height:27px !important; text-align:left !important; padding-top:6px !important; }
   .logo { width:116px !important; max-width:116px !important; }
 }
-[data-ogsc] .bg-page, [data-ogsb] .bg-page { background-color:#F7F9FD !important; }
+[data-ogsc] .bg-page, [data-ogsb] .bg-page { background-color:#F4FAF6 !important; }
 [data-ogsc] .bg-card, [data-ogsb] .bg-card { background-color:#FFFFFF !important; }
-[data-ogsc] .bg-soft, [data-ogsb] .bg-soft { background-color:#F2F5FD !important; }
-[data-ogsc] .t-ink, [data-ogsb] .t-ink { color:#0C1226 !important; }
-[data-ogsc] .t-mute, [data-ogsb] .t-mute { color:#47506B !important; }
-[data-ogsc] .t-blue, [data-ogsb] .t-blue { color:#1C2A7B !important; }
+[data-ogsc] .bg-soft, [data-ogsb] .bg-soft { background-color:#EEF7F2 !important; }
+[data-ogsc] .t-ink, [data-ogsb] .t-ink { color:#0A1F17 !important; }
+[data-ogsc] .t-mute, [data-ogsb] .t-mute { color:#3F5A4F !important; }
+[data-ogsc] .t-blue, [data-ogsb] .t-blue { color:#0B3B2E !important; }
 [data-ogsc] .t-white, [data-ogsb] .t-white { color:#FFFFFF !important; }
 [data-ogsc] .rule, [data-ogsb] .rule { background-color:#DFE1EC !important; }
 </style>
@@ -1809,13 +1809,13 @@ u + #body a, #MessageViewBody a { color:inherit; text-decoration:none; font-size
 </style>
 <![endif]-->
 </head>
-<body id="body" class="bg-page" style="margin:0; padding:0; width:100%; background-color:#F7F9FD; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
+<body id="body" class="bg-page" style="margin:0; padding:0; width:100%; background-color:#F4FAF6; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
 
-<div style="display:none; mso-hide:all; max-height:0; max-width:0; overflow:hidden; opacity:0; font-size:1px; line-height:1px; color:#F7F9FD;">Rechnung Nr. ${esc(r.nr)} &uuml;ber ${betrag} &middot; zahlbar bis ${datumDe(r.faellig)} &middot; PDF mit QR-Zahlteil im Anhang.&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;</div>
+<div style="display:none; mso-hide:all; max-height:0; max-width:0; overflow:hidden; opacity:0; font-size:1px; line-height:1px; color:#F4FAF6;">Rechnung Nr. ${esc(r.nr)} &uuml;ber ${betrag} &middot; zahlbar bis ${datumDe(r.faellig)} &middot; PDF mit QR-Zahlteil im Anhang.&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;</div>
 
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#F7F9FD" class="bg-page" style="width:100%; background-color:#F7F9FD;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#F4FAF6" class="bg-page" style="width:100%; background-color:#F4FAF6;">
 <tr>
-<td align="center" valign="top" bgcolor="#F7F9FD" class="bg-page px-out" style="padding:28px 12px 36px 12px; background-color:#F7F9FD;">
+<td align="center" valign="top" bgcolor="#F4FAF6" class="bg-page px-out" style="padding:28px 12px 36px 12px; background-color:#F4FAF6;">
 
 <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" align="center" style="width:600px;"><tr><td width="600" style="padding:0;"><![endif]-->
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" align="center" style="width:100%; max-width:600px;">
@@ -1830,9 +1830,9 @@ u + #body a, #MessageViewBody a { color:inherit; text-decoration:none; font-size
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;">
 <tr>
 <td align="left" valign="middle" style="padding:0;">
-<img src="${LOGO_CID}" width="132" alt="${esc(FIRMA.name)}" class="logo" style="display:block; width:100%; max-width:132px; height:auto; border:0; outline:none; text-decoration:none; font-size:17px; line-height:24px; font-weight:700; color:#0C1226; font-family:Arial, Helvetica, sans-serif;">
+<img src="${LOGO_CID}" width="132" alt="${esc(FIRMA.name)}" class="logo" style="display:block; width:100%; max-width:132px; height:auto; border:0; outline:none; text-decoration:none; font-size:17px; line-height:24px; font-weight:700; color:#0A1F17; font-family:Arial, Helvetica, sans-serif;">
 </td>
-<td align="right" valign="middle" class="mono mono-s t-mute" style="padding:0 0 0 12px; font-size:11px; line-height:16px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#47506B; font-family:${MONO};">WINTERTHUR</td>
+<td align="right" valign="middle" class="mono mono-s t-mute" style="padding:0 0 0 12px; font-size:11px; line-height:16px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#3F5A4F; font-family:${MONO};">WINTERTHUR</td>
 </tr>
 </table>
 </td>
@@ -1852,8 +1852,8 @@ u + #body a, #MessageViewBody a { color:inherit; text-decoration:none; font-size
 <td class="px" style="padding:24px 32px 0 32px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;">
 <tr>
-<td align="left" valign="top" class="mono mono-s t-blue" style="padding:0 8px 0 0; font-size:11px; line-height:16px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#1C2A7B; font-family:${MONO};">RECHNUNG NR. ${esc(r.nr)}</td>
-<td align="right" valign="top" class="mono mono-s t-mute al-mute" style="padding:0; font-size:11px; line-height:16px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#47506B; font-family:${MONO};">${datumDe(r.datum)}</td>
+<td align="left" valign="top" class="mono mono-s t-blue" style="padding:0 8px 0 0; font-size:11px; line-height:16px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#0B3B2E; font-family:${MONO};">RECHNUNG NR. ${esc(r.nr)}</td>
+<td align="right" valign="top" class="mono mono-s t-mute al-mute" style="padding:0; font-size:11px; line-height:16px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#3F5A4F; font-family:${MONO};">${datumDe(r.datum)}</td>
 </tr>
 </table>
 </td>
@@ -1861,15 +1861,15 @@ u + #body a, #MessageViewBody a { color:inherit; text-decoration:none; font-size
 
 <!-- Titel -->
 <tr>
-<td class="px h1 sans t-ink" style="padding:8px 32px 0 32px; font-size:36px; line-height:44px; mso-line-height-rule:exactly; font-weight:700; letter-spacing:-0.5px; color:#0C1226; font-family:${SANS};">Rechnung<span class="t-blue" style="color:#3B55E6;">.</span></td>
+<td class="px h1 sans t-ink" style="padding:8px 32px 0 32px; font-size:36px; line-height:44px; mso-line-height-rule:exactly; font-weight:700; letter-spacing:-0.5px; color:#0A1F17; font-family:${SANS};">Rechnung<span class="t-blue" style="color:#0E7A55;">.</span></td>
 </tr>
 
 <!-- Anschreiben -->
 <tr>
-<td class="px sans body-txt t-mute" style="padding:22px 32px 0 32px; font-size:16px; line-height:26px; mso-line-height-rule:exactly; color:#47506B; font-family:${SANS};">Guten Tag</td>
+<td class="px sans body-txt t-mute" style="padding:22px 32px 0 32px; font-size:16px; line-height:26px; mso-line-height-rule:exactly; color:#3F5A4F; font-family:${SANS};">Guten Tag</td>
 </tr>
 <tr>
-<td class="px sans body-txt t-mute al-mute" style="padding:12px 32px 0 32px; font-size:16px; line-height:26px; mso-line-height-rule:exactly; color:#47506B; font-family:${SANS};">Besten Dank f&uuml;r Ihren Auftrag. Zu den ausgef&uuml;hrten Arbeiten stellen wir Ihnen die Rechnung Nr.&nbsp;${esc(r.nr)} vom ${datumDe(r.datum)} zu. Die vollst&auml;ndige Rechnung liegt dieser E-Mail als PDF-Datei im Anhang bei.</td>
+<td class="px sans body-txt t-mute al-mute" style="padding:12px 32px 0 32px; font-size:16px; line-height:26px; mso-line-height-rule:exactly; color:#3F5A4F; font-family:${SANS};">Besten Dank f&uuml;r Ihren Auftrag. Zu den ausgef&uuml;hrten Arbeiten stellen wir Ihnen die Rechnung Nr.&nbsp;${esc(r.nr)} vom ${datumDe(r.datum)} zu. Die vollst&auml;ndige Rechnung liegt dieser E-Mail als PDF-Datei im Anhang bei.</td>
 </tr>
 
 <!-- Eckdaten -->
@@ -1878,20 +1878,20 @@ u + #body a, #MessageViewBody a { color:inherit; text-decoration:none; font-size
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;">
 <tr><td colspan="2" height="1" bgcolor="#DFE1EC" class="rule" style="height:1px; line-height:1px; font-size:1px; mso-line-height-rule:exactly; background-color:#DFE1EC;">&nbsp;</td></tr>
 <tr>
-<td align="left" valign="middle" width="42%" class="mono mono-s t-mute" style="width:42%; padding:13px 8px 13px 0; font-size:11px; line-height:16px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#47506B; font-family:${MONO};">RECHNUNGSNUMMER</td>
-<td align="right" valign="middle" class="sans val t-ink" style="padding:13px 0 13px 8px; font-size:16px; line-height:20px; mso-line-height-rule:exactly; font-weight:600; color:#0C1226; font-family:${SANS};">${esc(r.nr)}</td>
+<td align="left" valign="middle" width="42%" class="mono mono-s t-mute" style="width:42%; padding:13px 8px 13px 0; font-size:11px; line-height:16px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#3F5A4F; font-family:${MONO};">RECHNUNGSNUMMER</td>
+<td align="right" valign="middle" class="sans val t-ink" style="padding:13px 0 13px 8px; font-size:16px; line-height:20px; mso-line-height-rule:exactly; font-weight:600; color:#0A1F17; font-family:${SANS};">${esc(r.nr)}</td>
 </tr>
 <tr><td colspan="2" height="1" bgcolor="#DFE1EC" class="rule" style="height:1px; line-height:1px; font-size:1px; mso-line-height-rule:exactly; background-color:#DFE1EC;">&nbsp;</td></tr>
 <tr>
-<td align="left" valign="middle" width="42%" class="mono mono-s t-mute" style="width:42%; padding:13px 8px 13px 0; font-size:11px; line-height:16px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#47506B; font-family:${MONO};">RECHNUNGSDATUM</td>
-<td align="right" valign="middle" class="sans val t-ink al-ink" style="padding:13px 0 13px 8px; font-size:16px; line-height:20px; mso-line-height-rule:exactly; font-weight:600; color:#0C1226; font-family:${SANS};">${datumDe(r.datum)}</td>
+<td align="left" valign="middle" width="42%" class="mono mono-s t-mute" style="width:42%; padding:13px 8px 13px 0; font-size:11px; line-height:16px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#3F5A4F; font-family:${MONO};">RECHNUNGSDATUM</td>
+<td align="right" valign="middle" class="sans val t-ink al-ink" style="padding:13px 0 13px 8px; font-size:16px; line-height:20px; mso-line-height-rule:exactly; font-weight:600; color:#0A1F17; font-family:${SANS};">${datumDe(r.datum)}</td>
 </tr>
 <tr><td colspan="2" height="1" bgcolor="#DFE1EC" class="rule" style="height:1px; line-height:1px; font-size:1px; mso-line-height-rule:exactly; background-color:#DFE1EC;">&nbsp;</td></tr>
 <tr>
-<td align="left" valign="middle" width="42%" class="mono mono-s t-mute" style="width:42%; padding:13px 8px 13px 0; font-size:11px; line-height:16px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#47506B; font-family:${MONO};">ZAHLBAR BIS</td>
-<td align="right" valign="middle" class="sans val t-ink al-ink" style="padding:13px 0 13px 8px; font-size:16px; line-height:20px; mso-line-height-rule:exactly; font-weight:600; color:#0C1226; font-family:${SANS};">${datumDe(r.faellig)}</td>
+<td align="left" valign="middle" width="42%" class="mono mono-s t-mute" style="width:42%; padding:13px 8px 13px 0; font-size:11px; line-height:16px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#3F5A4F; font-family:${MONO};">ZAHLBAR BIS</td>
+<td align="right" valign="middle" class="sans val t-ink al-ink" style="padding:13px 0 13px 8px; font-size:16px; line-height:20px; mso-line-height-rule:exactly; font-weight:600; color:#0A1F17; font-family:${SANS};">${datumDe(r.faellig)}</td>
 </tr>
-${r.refTyp === 'QRR' ? '<tr><td colspan="2" height="1" bgcolor="#DFE1EC" class="rule" style="height:1px; line-height:1px; font-size:1px; mso-line-height-rule:exactly; background-color:#DFE1EC;">&nbsp;</td></tr><tr><td colspan="2" align="left" valign="top" class="mono mono-s t-mute" style="padding:13px 0 0 0; font-size:11px; line-height:16px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#47506B; font-family:' + MONO + ';">QR-REFERENZ</td></tr><tr><td colspan="2" align="left" valign="top" class="mono t-ink" style="padding:3px 0 13px 0; font-size:13px; line-height:19px; mso-line-height-rule:exactly; color:#0C1226; word-break:break-word; word-wrap:break-word; overflow-wrap:break-word; font-family:' + MONO + ';">' + refAnzeige(r.ref) + '</td></tr>' : ''}
+${r.refTyp === 'QRR' ? '<tr><td colspan="2" height="1" bgcolor="#DFE1EC" class="rule" style="height:1px; line-height:1px; font-size:1px; mso-line-height-rule:exactly; background-color:#DFE1EC;">&nbsp;</td></tr><tr><td colspan="2" align="left" valign="top" class="mono mono-s t-mute" style="padding:13px 0 0 0; font-size:11px; line-height:16px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#3F5A4F; font-family:' + MONO + ';">QR-REFERENZ</td></tr><tr><td colspan="2" align="left" valign="top" class="mono t-ink" style="padding:3px 0 13px 0; font-size:13px; line-height:19px; mso-line-height-rule:exactly; color:#0A1F17; word-break:break-word; word-wrap:break-word; overflow-wrap:break-word; font-family:' + MONO + ';">' + refAnzeige(r.ref) + '</td></tr>' : ''}
 <tr><td colspan="2" height="1" bgcolor="#DFE1EC" class="rule" style="height:1px; line-height:1px; font-size:1px; mso-line-height-rule:exactly; background-color:#DFE1EC;">&nbsp;</td></tr>
 </table>
 </td>
@@ -1900,7 +1900,7 @@ ${r.refTyp === 'QRR' ? '<tr><td colspan="2" height="1" bgcolor="#DFE1EC" class="
 <!-- Betragsbalken -->
 <tr>
 <td class="px" style="padding:20px 32px 0 32px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#1C2A7B" style="width:100%; background-color:#1C2A7B; background-image:linear-gradient(90deg,#1C2A7B 0%,#3B55E6 100%); border-radius:3px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0B3B2E" style="width:100%; background-color:#0B3B2E; background-image:linear-gradient(90deg,#0B3B2E 0%,#0E7A55 100%); border-radius:3px;">
 <tr>
 <td valign="middle" style="padding:18px 22px 18px 22px; font-size:0; line-height:0; mso-line-height-rule:exactly;">
 <!--[if mso]><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td width="55%" valign="middle" style="padding:0;"><![endif]--><div class="mono mono-s" style="display:inline-block; width:100%; max-width:250px; vertical-align:middle; text-align:left; font-size:11px; line-height:17px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#DDE3FB; font-family:${MONO};">RECHNUNGSBETRAG</div><!--[if mso]></td><td width="45%" valign="middle" align="right" style="padding:0;"><![endif]--><div class="sans amt t-white al-white" style="display:inline-block; width:100%; max-width:240px; vertical-align:middle; text-align:right; font-size:24px; line-height:30px; mso-line-height-rule:exactly; font-weight:700; letter-spacing:-0.3px; color:#FFFFFF; font-family:${SANS};">${betrag}</div><!--[if mso]></td></tr></table><![endif]-->
@@ -1913,11 +1913,11 @@ ${r.refTyp === 'QRR' ? '<tr><td colspan="2" height="1" bgcolor="#DFE1EC" class="
 <!-- Zahlungshinweis -->
 <tr>
 <td class="px" style="padding:18px 32px 0 32px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#F2F5FD" class="bg-soft" style="width:100%; background-color:#F2F5FD;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#EEF7F2" class="bg-soft" style="width:100%; background-color:#EEF7F2;">
 <tr>
-<td width="3" bgcolor="#3B55E6" valign="top" style="width:3px; min-width:3px; max-width:3px; background-color:#3B55E6; font-size:1px; line-height:1px; mso-line-height-rule:exactly;">&nbsp;</td>
-<td class="sans t-mute al-mute" valign="top" style="padding:16px 18px 17px 17px; font-size:15px; line-height:24px; mso-line-height-rule:exactly; color:#47506B; font-family:${SANS};">
-<span class="mono mono-s t-blue" style="font-size:11px; line-height:18px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#1C2A7B; font-family:${MONO};">ZAHLUNG</span><br>${esc(zahlungsHinweis)}
+<td width="3" bgcolor="#0E7A55" valign="top" style="width:3px; min-width:3px; max-width:3px; background-color:#0E7A55; font-size:1px; line-height:1px; mso-line-height-rule:exactly;">&nbsp;</td>
+<td class="sans t-mute al-mute" valign="top" style="padding:16px 18px 17px 17px; font-size:15px; line-height:24px; mso-line-height-rule:exactly; color:#3F5A4F; font-family:${SANS};">
+<span class="mono mono-s t-blue" style="font-size:11px; line-height:18px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#0B3B2E; font-family:${MONO};">ZAHLUNG</span><br>${esc(zahlungsHinweis)}
 </td>
 </tr>
 </table>
@@ -1926,17 +1926,17 @@ ${r.refTyp === 'QRR' ? '<tr><td colspan="2" height="1" bgcolor="#DFE1EC" class="
 
 <!-- QR-Hinweis -->
 <tr>
-<td class="px sans body-txt t-mute" style="padding:22px 32px 0 32px; font-size:16px; line-height:26px; mso-line-height-rule:exactly; color:#47506B; font-family:${SANS};">Am Fuss der Rechnung finden Sie den QR-Zahlteil: In der Banking-App scannen, und Konto, Betrag sowie Referenz sind ohne manuelle Erfassung &uuml;bernommen.${r.refTyp === 'QRR' ? ' Bitte f&uuml;hren Sie die Referenz bei einer manuellen Zahlung unver&auml;ndert mit, damit wir den Eingang eindeutig zuordnen k&ouml;nnen.' : ''}</td>
+<td class="px sans body-txt t-mute" style="padding:22px 32px 0 32px; font-size:16px; line-height:26px; mso-line-height-rule:exactly; color:#3F5A4F; font-family:${SANS};">Am Fuss der Rechnung finden Sie den QR-Zahlteil: In der Banking-App scannen, und Konto, Betrag sowie Referenz sind ohne manuelle Erfassung &uuml;bernommen.${r.refTyp === 'QRR' ? ' Bitte f&uuml;hren Sie die Referenz bei einer manuellen Zahlung unver&auml;ndert mit, damit wir den Eingang eindeutig zuordnen k&ouml;nnen.' : ''}</td>
 </tr>
 
 <!-- Kontakt -->
 <tr>
-<td class="px sans body-txt t-mute" style="padding:20px 32px 0 32px; font-size:16px; line-height:26px; mso-line-height-rule:exactly; color:#47506B; font-family:${SANS};">F&uuml;r Fragen zur Rechnung oder zu einzelnen Positionen erreichen Sie uns unter <a href="tel:${esc(FIRMA.tel.replace(/[^+0-9]/g, ''))}" class="t-blue" style="color:#1C2A7B; font-weight:600; text-decoration:none;">${esc(FIRMA.tel)}</a> oder <a href="mailto:${esc(FIRMA.mail)}" class="t-blue" style="color:#1C2A7B; font-weight:600; text-decoration:underline;">${esc(FIRMA.mail)}</a>.</td>
+<td class="px sans body-txt t-mute" style="padding:20px 32px 0 32px; font-size:16px; line-height:26px; mso-line-height-rule:exactly; color:#3F5A4F; font-family:${SANS};">F&uuml;r Fragen zur Rechnung oder zu einzelnen Positionen erreichen Sie uns unter <a href="tel:${esc(FIRMA.tel.replace(/[^+0-9]/g, ''))}" class="t-blue" style="color:#0B3B2E; font-weight:600; text-decoration:none;">${esc(FIRMA.tel)}</a> oder <a href="mailto:${esc(FIRMA.mail)}" class="t-blue" style="color:#0B3B2E; font-weight:600; text-decoration:underline;">${esc(FIRMA.mail)}</a>.</td>
 </tr>
 
 <!-- Gruss -->
 <tr>
-<td class="px sans body-txt t-mute" style="padding:22px 32px 0 32px; font-size:16px; line-height:26px; mso-line-height-rule:exactly; color:#47506B; font-family:${SANS};">Freundliche Gr&uuml;sse<br><span class="t-ink" style="color:#0C1226; font-weight:600;">${esc(FIRMA.name)}</span> &middot; ${esc(FIRMA.zusatz)}</td>
+<td class="px sans body-txt t-mute" style="padding:22px 32px 0 32px; font-size:16px; line-height:26px; mso-line-height-rule:exactly; color:#3F5A4F; font-family:${SANS};">Freundliche Gr&uuml;sse<br><span class="t-ink" style="color:#0A1F17; font-weight:600;">${esc(FIRMA.name)}</span> &middot; ${esc(FIRMA.zusatz)}</td>
 </tr>
 
 <!-- Hairline -->
@@ -1950,7 +1950,7 @@ ${r.refTyp === 'QRR' ? '<tr><td colspan="2" height="1" bgcolor="#DFE1EC" class="
 
 <!-- Beilagevermerk -->
 <tr>
-<td class="px mono mono-s t-mute" style="padding:14px 32px 26px 32px; font-size:11px; line-height:17px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#47506B; font-family:${MONO};">BEILAGE &middot; RECHNUNG NR. ${esc(r.nr)} ALS PDF</td>
+<td class="px mono mono-s t-mute" style="padding:14px 32px 26px 32px; font-size:11px; line-height:17px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#3F5A4F; font-family:${MONO};">BEILAGE &middot; RECHNUNG NR. ${esc(r.nr)} ALS PDF</td>
 </tr>
 
 </table>
@@ -1959,13 +1959,13 @@ ${r.refTyp === 'QRR' ? '<tr><td colspan="2" height="1" bgcolor="#DFE1EC" class="
 
 <!-- Fusszeile -->
 <tr>
-<td align="center" class="mono mono-s t-blue" style="padding:22px 12px 0 12px; font-size:11px; line-height:17px; mso-line-height-rule:exactly; letter-spacing:1.6px; color:#1C2A7B; font-family:${MONO};">GLASFASER? WIR ZIEHEN DURCH.</td>
+<td align="center" class="mono mono-s t-blue" style="padding:22px 12px 0 12px; font-size:11px; line-height:17px; mso-line-height-rule:exactly; letter-spacing:1.6px; color:#0B3B2E; font-family:${MONO};">GLASFASER? WIR ZIEHEN DURCH.</td>
 </tr>
 <tr>
-<td align="center" class="sans t-mute al-mute" style="padding:12px 12px 0 12px; font-size:14px; line-height:22px; mso-line-height-rule:exactly; color:#47506B; font-family:${SANS};">
-<span class="t-ink" style="color:#0C1226; font-weight:600;">${esc(FIRMA.name)}</span> &middot; ${esc(FIRMA.zusatz)}<br>
+<td align="center" class="sans t-mute al-mute" style="padding:12px 12px 0 12px; font-size:14px; line-height:22px; mso-line-height-rule:exactly; color:#3F5A4F; font-family:${SANS};">
+<span class="t-ink" style="color:#0A1F17; font-weight:600;">${esc(FIRMA.name)}</span> &middot; ${esc(FIRMA.zusatz)}<br>
 ${esc(FIRMA.strasse)} &middot; ${esc(FIRMA.ort)}<br>
-<a href="tel:${esc(FIRMA.tel.replace(/[^+0-9]/g, ''))}" style="color:#47506B; text-decoration:none;">${esc(FIRMA.tel)}</a> &middot; <a href="mailto:${esc(FIRMA.mail)}" style="color:#47506B; text-decoration:underline;">${esc(FIRMA.mail)}</a> &middot; <a href="https://${esc(FIRMA.web)}" style="color:#47506B; text-decoration:underline;">${esc(FIRMA.web)}</a>
+<a href="tel:${esc(FIRMA.tel.replace(/[^+0-9]/g, ''))}" style="color:#3F5A4F; text-decoration:none;">${esc(FIRMA.tel)}</a> &middot; <a href="mailto:${esc(FIRMA.mail)}" style="color:#3F5A4F; text-decoration:underline;">${esc(FIRMA.mail)}</a> &middot; <a href="https://${esc(FIRMA.web)}" style="color:#3F5A4F; text-decoration:underline;">${esc(FIRMA.web)}</a>
 </td>
 </tr>
 <tr>

@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Buchhaltung</title>
-<meta name="theme-color" content="#F7F9FD" />
+<title>Buchhaltung · Ordasio</title>
+<meta name="theme-color" content="#F4FAF6" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-<meta name="apple-mobile-web-app-title" content="Buchhaltung" />
+<meta name="apple-mobile-web-app-title" content="Ordasio" />
 <link rel="apple-touch-icon" href="icon-180.png" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="stylesheet" href="schrift.css" />
@@ -17,19 +17,19 @@
    Gleiche Farben, Schriften und Karten wie die Rechnungs-App.
    ============================================================ */
 :root {
-  --papier: #F7F9FD;
-  --flaeche: #EEF1F8;
+  --papier: #F4FAF6;
+  --flaeche: #E8F4EE;
   --karte: #FFFFFF;
-  --tinte: #0C1226;
-  --text: #47506B;
+  --tinte: #0A1F17;
+  --text: #3F5A4F;
   --leise: #7C8499;
-  --blau: #1C2A7B;
-  --elektrik: #3B55E6;
+  --blau: #0B3B2E;
+  --elektrik: #0E7A55;
   --gruen: #0E9F6E;
   --rot: #E5484D;
   --gelb: #B7791F;
-  --hairline: rgba(28, 42, 123, 0.14);
-  --hairline-strong: rgba(28, 42, 123, 0.26);
+  --hairline: rgba(11, 59, 46, 0.14);
+  --hairline-strong: rgba(11, 59, 46, 0.26);
   --schatten-karte: 0 1px 2px rgba(12, 18, 38, 0.05), 0 6px 18px -12px rgba(12, 18, 38, 0.18);
   --font-display: 'League Spartan', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
@@ -67,7 +67,7 @@ body.nv-mit-kopf .seite-nav { top: 64px; height: calc(100vh - 64px); padding-top
   font-size: 14.5px; color: var(--text); cursor: pointer; text-align: left;
 }
 .nav-knopf svg { width: 19px; height: 19px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-.nav-knopf:hover { background: rgba(28, 42, 123, .06); }
+.nav-knopf:hover { background: rgba(11, 59, 46, .06); }
 .nav-knopf.aktiv { background: var(--karte); color: var(--blau); font-weight: 600; box-shadow: var(--schatten-karte); }
 .nav-fuss { margin-top: auto; padding: 10px 12px; font-size: 12px; color: var(--leise); }
 
@@ -98,8 +98,8 @@ main { padding: 28px 34px 60px; max-width: 1120px; width: 100%; }
   white-space: nowrap; transition: transform .25s cubic-bezier(.3,1.5,.5,1), box-shadow .25s, background .2s;
 }
 .btn:hover { box-shadow: inset 0 0 0 1.5px var(--hairline-strong); transform: translateY(-1px); }
-.btn-haupt { background: var(--elektrik); color: #fff; box-shadow: 0 10px 24px -10px rgba(59, 85, 230, .8); }
-.btn-haupt:hover { box-shadow: 0 14px 28px -12px rgba(59, 85, 230, .9); }
+.btn-haupt { background: var(--elektrik); color: #fff; box-shadow: 0 10px 24px -10px rgba(14, 122, 85, .8); }
+.btn-haupt:hover { box-shadow: 0 14px 28px -12px rgba(14, 122, 85, .9); }
 .btn-rot { color: var(--rot); }
 .btn-klein { padding: 5px 12px; font-size: 13px; }
 .link { background: none; border: 0; color: var(--elektrik); cursor: pointer; font-size: 13.5px; padding: 0; }
@@ -109,7 +109,7 @@ input[type="text"], input[type="date"], input[type="search"], input[type="number
   width: 100%; background: var(--karte); border: 1px solid var(--hairline-strong);
   border-radius: var(--r-feld); padding: 8px 11px; color: var(--tinte); min-width: 0;
 }
-input:focus, select:focus, textarea:focus { outline: none; border-color: var(--elektrik); box-shadow: 0 0 0 3.5px rgba(59, 85, 230, .14); }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--elektrik); box-shadow: 0 0 0 3.5px rgba(14, 122, 85, .14); }
 select { appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 28px;
   background: var(--karte) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%233B55E6' fill='none' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center; }
 .auswahl-klein { width: auto; padding: 6px 28px 6px 12px; border-radius: 100px; font-size: 14px; }
@@ -127,10 +127,10 @@ select { appearance: none; -webkit-appearance: none; cursor: pointer; padding-ri
 .liste { display: flex; flex-direction: column; }
 .zeile {
   display: grid; grid-template-columns: 74px minmax(0, 1fr) auto; gap: 14px; align-items: center;
-  padding: 11px 4px; border-top: 1px solid rgba(28, 42, 123, .07); cursor: pointer;
+  padding: 11px 4px; border-top: 1px solid rgba(11, 59, 46, .07); cursor: pointer;
 }
 .zeile:first-child { border-top: 0; }
-.zeile:hover { background: rgba(59, 85, 230, .03); }
+.zeile:hover { background: rgba(14, 122, 85, .03); }
 .zeile .datum { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; color: var(--leise); }
 .zeile .titel { color: var(--tinte); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .zeile .info { font-size: 12.5px; color: var(--leise); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -139,14 +139,14 @@ select { appearance: none; -webkit-appearance: none; cursor: pointer; padding-ri
 .marke { display: inline-block; padding: 1px 8px; border-radius: 100px; font-size: 11px; font-weight: 600; }
 .marke-offen { background: rgba(183, 121, 31, .13); color: var(--gelb); }
 .marke-ok { background: rgba(14, 159, 110, .12); color: #0A7150; }
-.marke-info { background: rgba(59, 85, 230, .1); color: var(--blau); }
+.marke-info { background: rgba(14, 122, 85, .1); color: var(--blau); }
 .leer { text-align: center; padding: 36px 10px; color: var(--leise); font-size: 14px; }
 .filter { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
 .filter input[type="search"] { max-width: 240px; border-radius: 100px; padding: 6px 14px; }
 
 /* Tabellen (MWST, Abschluss) */
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
-td, th { padding: 9px 4px; border-top: 1px solid rgba(28, 42, 123, .07); text-align: left; vertical-align: top; }
+td, th { padding: 9px 4px; border-top: 1px solid rgba(11, 59, 46, .07); text-align: left; vertical-align: top; }
 th { font-family: var(--font-mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--leise); font-weight: 400; border-top: 0; }
 td.z { font-family: var(--font-mono); font-size: 12px; color: var(--elektrik); width: 52px; }
 td.b, th.b { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -158,7 +158,7 @@ tr.summe td { font-weight: 700; color: var(--tinte); border-top: 1.5px solid var
 .balken-paar { display: flex; gap: 2px; align-items: flex-end; height: 100%; width: 100%; justify-content: center; }
 .balken-paar i { display: block; width: 42%; max-width: 14px; border-radius: 4px 4px 0 0; min-height: 2px; }
 .balken-paar i.ein { background: var(--elektrik); }
-.balken-paar i.aus { background: rgba(28, 42, 123, .22); }
+.balken-paar i.aus { background: rgba(11, 59, 46, .22); }
 .balken-monat span { font-family: var(--font-mono); font-size: 9.5px; color: var(--leise); }
 .legende { display: flex; gap: 16px; font-size: 12.5px; color: var(--leise); margin-top: 10px; }
 .legende i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
@@ -183,7 +183,7 @@ tr.summe td { font-weight: 700; color: var(--tinte); border-top: 1.5px solid var
 .dg-null { stroke: var(--hairline-strong); stroke-width: 1.2; }
 .dg-achse { font: 500 10px var(--font-mono); fill: var(--leise); }
 .dg-jahr { fill: var(--elektrik); }
-.dg-vorjahr { fill: rgba(28, 42, 123, .2); }
+.dg-vorjahr { fill: rgba(11, 59, 46, .2); }
 .trend { display: inline-block; margin-top: 4px; font-size: 12.5px; font-weight: 600; }
 .trend.plus { color: var(--gruen); } .trend.minus { color: var(--rot); }
 .ring { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
@@ -274,7 +274,7 @@ dialog::backdrop { background: rgba(12, 18, 38, .35); }
     display: flex; position: fixed; right: 18px; bottom: calc(76px + var(--unten)); z-index: 21;
     width: 56px; height: 56px; border-radius: 50%; border: 0; align-items: center; justify-content: center;
     background: linear-gradient(135deg, var(--elektrik), var(--blau)); color: #fff; font-size: 30px; line-height: 1;
-    box-shadow: 0 10px 26px -6px rgba(28, 42, 123, .55); cursor: pointer;
+    box-shadow: 0 10px 26px -6px rgba(11, 59, 46, .55); cursor: pointer;
   }
   dialog { width: 100vw; max-width: 100vw; max-height: 92vh; margin: auto 0 0; border-radius: 20px 20px 0 0; }
   .dlg-fuss { padding-bottom: calc(18px + var(--unten)); }

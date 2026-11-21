@@ -17,24 +17,24 @@
 
   const stil = document.createElement('style');
   stil.textContent = `
-  .lz-decke{position:fixed;inset:0;z-index:100000;background:rgba(247,249,253,.97);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:grid;place-items:center;padding:18px;font-family:'League Spartan',-apple-system,system-ui,sans-serif;color:#0C1226;overflow:auto}
+  .lz-decke{position:fixed;inset:0;z-index:100000;background:rgba(247,249,253,.97);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:grid;place-items:center;padding:18px;font-family:'League Spartan',-apple-system,system-ui,sans-serif;color:#0A1F17;overflow:auto}
   .lz-karte{width:min(440px,100%);background:#fff;border-radius:24px;padding:26px;box-shadow:0 30px 80px -30px rgba(12,18,38,.45)}
   .lz-karte h2{font-size:1.6rem;line-height:1.15;margin:10px 0 6px;letter-spacing:-.02em}
-  .lz-karte p{color:#47506B;font-size:15px;line-height:1.5;margin:0 0 14px}
-  .lz-symbol{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#1C2A7B,#3B55E6);display:grid;place-items:center}
+  .lz-karte p{color:#3F5A4F;font-size:15px;line-height:1.5;margin:0 0 14px}
+  .lz-symbol{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#0B3B2E,#0E7A55);display:grid;place-items:center}
   .lz-symbol svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-  .lz-reiter{display:flex;background:#EEF1F8;border-radius:100px;padding:4px;margin:4px 0 16px}
-  .lz-reiter button{flex:1;border:0;background:none;border-radius:100px;padding:9px;font:inherit;font-weight:500;color:#47506B;cursor:pointer}
-  .lz-reiter button.an{background:#fff;color:#1C2A7B;font-weight:700;box-shadow:0 2px 8px rgba(12,18,38,.08)}
-  .lz-karte label{display:grid;gap:4px;font-size:13px;color:#47506B;margin-bottom:10px}
-  .lz-karte input,.lz-karte select{font:inherit;font-size:16px;border:1px solid rgba(28,42,123,.26);border-radius:12px;padding:11px 12px;background:#fff;color:#0C1226;width:100%}
-  .lz-knopf{display:block;width:100%;border:0;border-radius:100px;padding:13px;font:inherit;font-weight:700;font-size:16px;cursor:pointer;background:#1C2A7B;color:#fff;text-align:center;text-decoration:none;margin-top:6px}
-  .lz-knopf.zweit{background:#EEF1F8;color:#1C2A7B}
-  .lz-link{display:block;margin:12px auto 0;background:none;border:0;color:#3B55E6;font:inherit;font-size:14px;cursor:pointer}
+  .lz-reiter{display:flex;background:#E8F4EE;border-radius:100px;padding:4px;margin:4px 0 16px}
+  .lz-reiter button{flex:1;border:0;background:none;border-radius:100px;padding:9px;font:inherit;font-weight:500;color:#3F5A4F;cursor:pointer}
+  .lz-reiter button.an{background:#fff;color:#0B3B2E;font-weight:700;box-shadow:0 2px 8px rgba(12,18,38,.08)}
+  .lz-karte label{display:grid;gap:4px;font-size:13px;color:#3F5A4F;margin-bottom:10px}
+  .lz-karte input,.lz-karte select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);border-radius:12px;padding:11px 12px;background:#fff;color:#0A1F17;width:100%}
+  .lz-knopf{display:block;width:100%;border:0;border-radius:100px;padding:13px;font:inherit;font-weight:700;font-size:16px;cursor:pointer;background:#0B3B2E;color:#fff;text-align:center;text-decoration:none;margin-top:6px}
+  .lz-knopf.zweit{background:#E8F4EE;color:#0B3B2E}
+  .lz-link{display:block;margin:12px auto 0;background:none;border:0;color:#0E7A55;font:inherit;font-size:14px;cursor:pointer}
   .lz-meldung{min-height:1.3em;font-size:14px;color:#C53030;margin:4px 0 6px}
   .lz-meldung.ok{color:#0A7150}
-  .lz-pille{position:fixed;left:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:9000;background:#0C1226;color:#fff;border-radius:100px;padding:8px 14px;font:600 13px 'League Spartan',system-ui,sans-serif;box-shadow:0 10px 30px -10px rgba(12,18,38,.5);text-decoration:none}
-  .lz-pille b{color:#8FA6FF}
+  .lz-pille{position:fixed;left:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:9000;background:#0A1F17;color:#fff;border-radius:100px;padding:8px 14px;font:600 13px 'League Spartan',system-ui,sans-serif;box-shadow:0 10px 30px -10px rgba(12,18,38,.5);text-decoration:none}
+  .lz-pille b{color:#6EE7A8}
   .lz-pille.lesen{background:#B4282D}
   @media(max-width:820px){.lz-pille{bottom:calc(76px + env(safe-area-inset-bottom,0px))}}`;
   document.head.appendChild(stil);
@@ -45,7 +45,7 @@
   const zeigen = (html) => { decke.querySelector('.lz-karte').innerHTML = html; if (!decke.isConnected) document.body.appendChild(decke); };
   const weg = () => decke.remove();
   if (document.body) document.body.appendChild(decke); else document.addEventListener('DOMContentLoaded', () => document.body.appendChild(decke));
-  const SYMBOL = '<div class="lz-symbol"><svg viewBox="0 0 24 24"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg></div>';
+  const SYMBOL = '<img src="' + KAUFEN.replace(/lizenz\/$/, 'logo.png') + '" alt="Ordasio" style="height:34px;display:block">';
 
   /* ---------- Anmelden und Konto erstellen ---------- */
   function anmelden(modus = 'anmelden', meldung = '') {

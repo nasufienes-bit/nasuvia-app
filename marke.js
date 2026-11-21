@@ -68,34 +68,34 @@
 
   const stil = document.createElement('style');
   stil.textContent = `
-  .mk-dlg{border:0;border-radius:22px;padding:0;width:min(620px,calc(100% - 20px));max-height:calc(100vh - 30px);box-shadow:0 40px 100px -30px rgba(12,18,38,.5);font-family:inherit;color:#0C1226}
+  .mk-dlg{border:0;border-radius:22px;padding:0;width:min(620px,calc(100% - 20px));max-height:calc(100vh - 30px);box-shadow:0 40px 100px -30px rgba(12,18,38,.5);font-family:inherit;color:#0A1F17}
   .mk-dlg::backdrop{background:rgba(12,18,38,.35)}
   .mk-in{padding:22px;overflow:auto;max-height:calc(100vh - 30px)}
   .mk-dlg h3{font-size:1.35rem;margin:0 0 4px}
-  .mk-dlg p.mk-sub{color:#47506B;font-size:14px;margin:0 0 14px}
-  .mk-box{background:#F2F5FD;border-radius:16px;padding:14px;margin-bottom:14px}
+  .mk-dlg p.mk-sub{color:#3F5A4F;font-size:14px;margin:0 0 14px}
+  .mk-box{background:#EEF7F2;border-radius:16px;padding:14px;margin-bottom:14px}
   .mk-box b{display:block;font-size:14px;margin-bottom:8px}
   .mk-zeile{display:flex;gap:8px}
   .mk-zeile input{flex:1}
-  .mk-dlg input[type=text],.mk-dlg input[type=url]{width:100%;border:1px solid rgba(28,42,123,.26);border-radius:10px;padding:9px 11px;font:inherit;font-size:15px;background:#fff;color:#0C1226}
-  .mk-btn{border:0;border-radius:100px;padding:10px 16px;font:600 14px inherit;font-family:inherit;cursor:pointer;background:#fff;color:#1C2A7B;box-shadow:0 1px 2px rgba(12,18,38,.08),0 6px 16px -10px rgba(28,42,123,.5);white-space:nowrap}
-  .mk-btn.haupt{background:var(--mk1,#1C2A7B);color:#fff}
+  .mk-dlg input[type=text],.mk-dlg input[type=url]{width:100%;border:1px solid rgba(11,59,46,.26);border-radius:10px;padding:9px 11px;font:inherit;font-size:15px;background:#fff;color:#0A1F17}
+  .mk-btn{border:0;border-radius:100px;padding:10px 16px;font:600 14px inherit;font-family:inherit;cursor:pointer;background:#fff;color:#0B3B2E;box-shadow:0 1px 2px rgba(12,18,38,.08),0 6px 16px -10px rgba(11,59,46,.5);white-space:nowrap}
+  .mk-btn.haupt{background:var(--mk1,#0B3B2E);color:#fff}
   .mk-btn:disabled{opacity:.5}
-  .mk-vorschau{display:flex;align-items:center;gap:14px;background:#fff;border-radius:14px;padding:14px;border:1px solid rgba(28,42,123,.12);margin-bottom:14px;position:relative;overflow:hidden}
-  .mk-vorschau::before{content:"";position:absolute;left:0;right:0;top:0;height:5px;background:linear-gradient(90deg,var(--mk1,#1C2A7B),var(--mk2,#3B55E6))}
+  .mk-vorschau{display:flex;align-items:center;gap:14px;background:#fff;border-radius:14px;padding:14px;border:1px solid rgba(11,59,46,.12);margin-bottom:14px;position:relative;overflow:hidden}
+  .mk-vorschau::before{content:"";position:absolute;left:0;right:0;top:0;height:5px;background:linear-gradient(90deg,var(--mk1,#0B3B2E),var(--mk2,#0E7A55))}
   .mk-vorschau img{max-height:46px;max-width:170px;object-fit:contain}
-  .mk-vorschau .mk-leer{width:120px;height:40px;border:2px dashed rgba(28,42,123,.2);border-radius:8px;display:grid;place-items:center;font-size:12px;color:#7C8499}
-  .mk-vorschau strong{font-size:22px;color:var(--mk1,#1C2A7B);margin-left:auto}
-  .mk-vorschau strong i{color:var(--mk2,#3B55E6);font-style:normal}
+  .mk-vorschau .mk-leer{width:120px;height:40px;border:2px dashed rgba(11,59,46,.2);border-radius:8px;display:grid;place-items:center;font-size:12px;color:#7C8499}
+  .mk-vorschau strong{font-size:22px;color:var(--mk1,#0B3B2E);margin-left:auto}
+  .mk-vorschau strong i{color:var(--mk2,#0E7A55);font-style:normal}
   .mk-farben{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
   .mk-farben label{display:flex;gap:8px;align-items:center;font-size:14px}
   .mk-farben input[type=color]{width:42px;height:34px;border:0;padding:0;background:none;cursor:pointer}
   .mk-vorschlaege{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-  .mk-vorschlaege button{width:26px;height:26px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(28,42,123,.2);cursor:pointer}
+  .mk-vorschlaege button{width:26px;height:26px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(11,59,46,.2);cursor:pointer}
   .mk-raster{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .mk-raster label{font-size:12.5px;color:#47506B;display:grid;gap:4px}
+  .mk-raster label{font-size:12.5px;color:#3F5A4F;display:grid;gap:4px}
   .mk-fuss{display:flex;justify-content:space-between;gap:10px;margin-top:16px;flex-wrap:wrap}
-  .mk-meldung{font-size:13.5px;min-height:1.2em;margin-top:8px;color:#47506B}
+  .mk-meldung{font-size:13.5px;min-height:1.2em;margin-top:8px;color:#3F5A4F}
   .mk-meldung.fehler{color:#C53030}
   @media (max-width:560px){.mk-raster{grid-template-columns:1fr}.mk-zeile{flex-direction:column}}`;
   document.head.appendChild(stil);
@@ -106,7 +106,7 @@
     const dlg = document.createElement('dialog');
     dlg.className = 'mk-dlg';
     const zeichnen = () => {
-      dlg.style.setProperty('--mk1', d.farbe1 || '#1C2A7B'); dlg.style.setProperty('--mk2', d.farbe2 || '#3B55E6');
+      dlg.style.setProperty('--mk1', d.farbe1 || '#0B3B2E'); dlg.style.setProperty('--mk2', d.farbe2 || '#0E7A55');
       dlg.innerHTML = `<div class="mk-in">
         <h3>Firma und Design</h3>
         <p class="mk-sub">Ihr Logo, Ihre Farben und Ihre Angaben erscheinen auf Rechnungen, Offerten und im ganzen Programm.</p>
@@ -116,7 +116,7 @@
           <p class="mk-meldung" data-mk-meldung>Logo, Name und Farben werden von Ihrer Website gelesen. Sie können danach alles anpassen.</p></div>
         <div class="mk-box"><b>Oder selbst festlegen</b>
           <div class="mk-zeile" style="margin-bottom:12px"><button class="mk-btn" data-mk-logo>Logo hochladen</button>${d.logo ? '<button class="mk-btn" data-mk-logoweg>Logo entfernen</button>' : ''}</div>
-          <div class="mk-farben"><label><input type="color" data-mk-farbe="farbe1" value="${d.farbe1 || '#1C2A7B'}">Hauptfarbe</label><label><input type="color" data-mk-farbe="farbe2" value="${d.farbe2 || '#3B55E6'}">Akzentfarbe</label></div>
+          <div class="mk-farben"><label><input type="color" data-mk-farbe="farbe1" value="${d.farbe1 || '#0B3B2E'}">Hauptfarbe</label><label><input type="color" data-mk-farbe="farbe2" value="${d.farbe2 || '#0E7A55'}">Akzentfarbe</label></div>
           ${vorschlaege.length ? `<div class="mk-vorschlaege" title="Farben aus Ihrem Logo und Ihrer Website">${vorschlaege.map((f) => `<button style="background:${f}" data-mk-vorschlag="${f}" aria-label="Farbe ${f}"></button>`).join('')}</div>` : ''}</div>
         <div class="mk-raster">${FELDER.map(([k, n]) => `<label>${n}<input type="text" data-mk="${k}" value="${esc(d[k] || '')}"></label>`).join('')}</div>
         <div class="mk-fuss"><button class="mk-btn" data-mk-standard>Standard-Design</button><span style="display:flex;gap:8px"><button class="mk-btn" data-mk-zu>Abbrechen</button><button class="mk-btn haupt" data-mk-ok>Speichern</button></span></div>

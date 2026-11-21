@@ -1,11 +1,11 @@
 {
-  "name": "Buchhaltung",
-  "short_name": "Buchhaltung",
+  "name": "Ordasio",
+  "short_name": "Ordasio",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#F7F9FD",
-  "theme_color": "#F7F9FD",
+  "background_color": "#F4FAF6",
+  "theme_color": "#F4FAF6",
   "lang": "de-CH",
   "icons": [
     {
