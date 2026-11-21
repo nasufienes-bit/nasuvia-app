@@ -222,6 +222,10 @@
       'Zeiterfassung, „Aufträge“: mit „+ Ordner“ Ordner anlegen (z. B. FTTH, darin Zürich) und darin mit „+ Auftrag“ die Adressen.',
       'Mitarbeiter sehen die gleichen Ordner auf dem Handy, machen Fotos und melden „In Arbeit“ oder „Erledigt“.',
       'Einen Mitarbeiter als „Projektleiter“ einstellen: Er sieht alle Fotos, prüft sie und setzt „Kontrolliert“.'], Z + '?tab=auftraege'],
+    ['ze-zuweisen', 'Zeiterfassung', 'Aufträge Mitarbeitern zuweisen', 'zuweisen zugewiesen mitarbeiter auftrag sehen wer bestimmten', [
+      'Auftrag öffnen und unter „Wer sieht diesen Auftrag?“ die Mitarbeiter anhaken. Niemand angehakt heisst: alle sehen ihn.',
+      'Ganzer Ordner auf einmal: in den Ordner gehen, „Ordner zuweisen“ tippen und Mitarbeiter wählen.',
+      'Mit dem Filter „Zugewiesen: …“ sehen Sie, welche Aufträge wer hat. Projektleiter sehen immer alle.'], Z + '?tab=auftraege'],
     ['ze-standort', 'Zeiterfassung', 'Standort beim Ein- und Ausstempeln', 'standort gps ort live verfolgung ortung', [
       'Beim Mitarbeiter „Standort beim Ein- und Ausstempeln mitschicken“ anhaken. Bitte nur mit seinem Wissen.',
       'Gespeichert wird nur der Ort beim Start und beim Stopp, keine dauernde Verfolgung. Bei den Einträgen erscheint „📍 Ort“.'], Z + '?tab=mitarbeiter'],

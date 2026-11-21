@@ -344,6 +344,10 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       // Adresse aus dem Auftrag übernehmen, wenn leer
       const r = s.id ? await sb.from('ze_einsaetze').update(zeile).eq('id', s.id) : await sb.from('ze_einsaetze').insert(zeile);
       if (r.error) { toast(fehlerText(r.error), 6000); return; }
+      // Ist der Auftrag nur bestimmten Mitarbeitern zugewiesen, bekommt ihn der eingeplante Mitarbeiter automatisch dazu
+      const af = auftrag(zeile.auftrag_id);
+      if (af && (af.zugewiesen || []).length && !af.zugewiesen.includes(zeile.mitarbeiter_id)) await sb.from('ze_auftraege').update({ zugewiesen: [...af.zugewiesen, zeile.mitarbeiter_id] }).eq('id', af.id);
+      await stammLaden();
       dlg.close(); await eintraegeLaden(); zeichnen(); toast(s.id ? 'Gespeichert' : 'Einsatz geplant');
     };
   }
@@ -388,9 +392,12 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 
   /* ---------- Aufträge ---------- */
   const STATUS_AF = { offen: ['Offen', 'm-grau'], in_arbeit: ['In Arbeit', 'm-blau'], erledigt: ['Erledigt', 'm-offen'], kontrolliert: ['Kontrolliert', 'm-ok'] };
+  const wer = (a) => (a.zugewiesen && a.zugewiesen.length ? a.zugewiesen.map(maName).join(', ') : 'Alle Mitarbeiter');
+  const zuwahl = (gewaehlt = []) => `<div style="display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px">${Z.mitarbeiter.filter((m) => m.aktiv || gewaehlt.includes(m.id)).map((m) => `<label style="display:flex;gap:6px;align-items:center;font-size:14px;color:var(--tinte)"><input type="checkbox" name="zu" value="${m.id}" ${gewaehlt.includes(m.id) ? 'checked' : ''}>${esc(m.name)}${m.rolle === 'projektleiter' ? ' <small class="hinweis">(PL)</small>' : ''}</label>`).join('') || '<span class="hinweis">Noch keine Mitarbeiter erfasst.</span>'}</div>
+      <p class="hinweis" style="margin-top:4px">Niemand angehakt = alle Mitarbeiter sehen den Auftrag. Projektleiter sehen immer alle.</p>`;
   const ordnerTeile = (o) => String(o || '').split('/').map((x) => x.trim()).filter(Boolean);
   function auftraege() {
-    const sicht = Z.auftraege.filter((a) => (Z.afArchiv ? !a.aktiv : a.aktiv));
+    const sicht = Z.auftraege.filter((a) => (Z.afArchiv ? !a.aktiv : a.aktiv) && (!Z.afWer || (Z.afWer === 'alle' ? !(a.zugewiesen || []).length : (a.zugewiesen || []).includes(Z.afWer))));
     const pfad = ordnerTeile(Z.afOrdner || ''), tiefe = pfad.length, praefix = pfad.join('/');
     const imPfad = sicht.filter((a) => { const o = ordnerTeile(a.ordner); return o.slice(0, tiefe).join('/') === praefix; });
     const unter = {}; for (const a of imPfad) { const o = ordnerTeile(a.ordner); if (o.length > tiefe) (unter[o[tiefe]] = unter[o[tiefe]] || []).push(a); }
@@ -399,10 +406,12 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     return `<div class="kopf"><div><h1>Aufträge</h1><p class="unter">In Ordnern wie auf dem Computer, z. B. FTTH › Zürich › Adresse. Mit Fotos, Stunden und Material.</p></div>
         <div class="aktionen"><button class="btn" data-a="afArchiv">${Z.afArchiv ? 'Offene zeigen' : `Archiv (${Z.auftraege.filter((a) => !a.aktiv).length})`}</button><button class="btn" data-a="korb">Zuletzt gelöscht</button><button class="btn" data-a="ordnerNeu">+ Ordner</button><button class="btn haupt" data-a="afNeu">+ Auftrag</button></div></div>
       <div class="card">
-        <div class="aktionen" style="margin-bottom:8px;font-size:14px"><button class="btn klein" data-af-ordner="">🏠 Alle</button>${pfad.map((n, i) => `<span>›</span><button class="btn klein" data-af-ordner="${esc(pfad.slice(0, i + 1).join('/'))}">${esc(n)}</button>`).join('')}</div>
+        <div class="aktionen" style="margin-bottom:8px;font-size:14px"><button class="btn klein" data-af-ordner="">🏠 Alle</button>${pfad.map((n, i) => `<span>›</span><button class="btn klein" data-af-ordner="${esc(pfad.slice(0, i + 1).join('/'))}">${esc(n)}</button>`).join('')}
+          <span style="flex:1"></span><select data-f="afWer" aria-label="Nach Mitarbeiter filtern" style="font-size:14px"><option value="">Alle Aufträge</option><option value="alle" ${Z.afWer === 'alle' ? 'selected' : ''}>Für alle sichtbar</option>${Z.mitarbeiter.filter((m) => m.aktiv).map((m) => `<option value="${m.id}" ${Z.afWer === m.id ? 'selected' : ''}>Zugewiesen: ${esc(m.name)}</option>`).join('')}</select>
+          ${imPfad.length ? `<button class="btn klein" data-a="ordnerZuweisen">${tiefe ? 'Ordner zuweisen' : 'Alle zuweisen'}</button>` : ''}</div>
         ${Object.keys(unter).sort((a, b) => a.localeCompare(b)).map((n) => { const l = unter[n], o = offenStd(l); return `<div class="zeile klick" data-af-ordner="${esc([...pfad, n].join('/'))}"><div style="min-width:0"><b>📁 ${esc(n)}</b><small>${l.length} ${l.length === 1 ? 'Auftrag' : 'Aufträge'} · ${l.filter((a) => a.status === 'erledigt' || a.status === 'kontrolliert').length} erledigt</small></div><div class="aktionen">${o ? `<span class="marke-s m-offen">${std(o)} offen</span>` : ''}<span style="color:var(--leise)">›</span></div></div>`; }).join('')}
         ${hier.map((a) => { const l = Z.eintraege.filter((e) => e.auftrag_id === a.id); const offen = l.filter((e) => !e.verrechnet).reduce((s, e) => s + e.minuten, 0);
-          return `<div class="zeile klick" data-af="${a.id}"><div style="min-width:0"><b>${esc(a.name)}<span class="marke-s ${STATUS_AF[a.status || 'offen'][1]}">${STATUS_AF[a.status || 'offen'][0]}</span>${a.aktiv ? '' : '<span class="marke-s m-grau">archiviert</span>'}</b><small>${esc([a.kunde, a.adresse].filter(Boolean).join(' · ') || 'Ohne Kunde')} · total ${std(l.reduce((s, e) => s + e.minuten, 0))} Std.</small></div>
+          return `<div class="zeile klick" data-af="${a.id}"><div style="min-width:0"><b>${esc(a.name)}<span class="marke-s ${STATUS_AF[a.status || 'offen'][1]}">${STATUS_AF[a.status || 'offen'][0]}</span>${a.aktiv ? '' : '<span class="marke-s m-grau">archiviert</span>'}</b><small>👤 ${esc(wer(a))} · ${esc([a.kunde, a.adresse].filter(Boolean).join(' · ') || 'Ohne Kunde')} · total ${std(l.reduce((s, e) => s + e.minuten, 0))} Std.</small></div>
             <div class="aktionen">${offen ? `<button class="btn klein" data-af-offen="${a.id}">${std(offen)} offen</button>` : ''}</div></div>`; }).join('')}
         ${!Object.keys(unter).length && !hier.length ? `<p class="leer">${tiefe ? 'Dieser Ordner ist noch leer. Legen Sie mit „+ Auftrag“ den ersten Auftrag darin an.' : 'Noch keine Aufträge. Erstellen Sie Ordner, zum Beispiel „FTTH“, darin „Zürich“, und darin die Adressen als Aufträge.'}</p>` : ''}
       </div>
@@ -461,6 +470,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       <div class="zwei"><label>Kunde<input type="text" name="kunde" value="${esc(a.kunde || '')}" maxlength="120"></label><label>Adresse<input type="text" name="adresse" value="${esc(a.adresse || '')}" maxlength="200" placeholder="Strasse, PLZ Ort"></label></div>
       <div class="zwei"><label>Status<select name="status">${Object.entries(STATUS_AF).map(([k, [n]]) => `<option value="${k}" ${k === (a.status || 'offen') ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
       ${a.id ? `<label style="display:flex;gap:8px;align-items:center;font-size:14px;color:var(--tinte);align-self:end;padding-bottom:9px"><input type="checkbox" name="aktiv" ${a.aktiv ? 'checked' : ''}> Offen (ohne Haken: archiviert)</label>` : '<span></span>'}</div>
+      <div><span class="hinweis">Wer sieht diesen Auftrag?</span>${zuwahl(a.zugewiesen || [])}</div>
       <label>Infos für Mitarbeiter und Projektleiter<textarea name="notiz" rows="3" maxlength="2000" placeholder="z. B. Zugang über Hinterhof, Kontakt Hauswart 079 …">${esc(a.notiz || '')}</textarea></label>
       ${a.id ? `<div><b style="font-size:14px">Fotos</b> <span class="hinweis" id="afFotoInfo"></span><div id="afFotos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-top:8px"><p class="leer">Wird geladen …</p></div>
         <label class="btn klein" style="margin-top:8px;cursor:pointer">+ Foto hinzufügen<input type="file" accept="image/*" capture="environment" multiple data-af-foto="${a.id}" hidden></label></div>
@@ -473,7 +483,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       ev.preventDefault();
       const d = new FormData(f);
       const zeile = { name: String(d.get('name')).trim(), kunde: String(d.get('kunde') || '').trim(), adresse: String(d.get('adresse') || '').trim(), status: d.get('status') || 'offen',
-        notiz: String(d.get('notiz') || '').trim(), ordner: ordnerTeile(d.get('ordner')).join('/') };
+        notiz: String(d.get('notiz') || '').trim(), ordner: ordnerTeile(d.get('ordner')).join('/'), zugewiesen: d.getAll('zu') };
       if (a.id) zeile.aktiv = d.get('aktiv') === 'on';
       const r = a.id ? await sb.from('ze_auftraege').update(zeile).eq('id', a.id) : await sb.from('ze_auftraege').insert(zeile);
       if (r.error) { toast(fehlerText(r.error), 6000); return; }
@@ -653,6 +663,22 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       case 'korb': Korb.oeffnen(sb, KORB, async () => { await stammLaden(); await eintraegeLaden(); zeichnen(); }); break;
       case 'startAnpassen': startAnpassen(); break;
       case 'afArchiv': Z.afArchiv = !Z.afArchiv; zeichnen(); break;
+      case 'ordnerZuweisen': {
+        const pfad = ordnerTeile(Z.afOrdner || ''), p = pfad.join('/');
+        const l = Z.auftraege.filter((x) => (Z.afArchiv ? !x.aktiv : x.aktiv) && ordnerTeile(x.ordner).slice(0, pfad.length).join('/') === p);
+        const f = dialog(`<h3>${pfad.length ? `Ordner „${esc(pfad.join(' › '))}“ zuweisen` : 'Alle Aufträge zuweisen'}</h3>
+          <p class="hinweis">Gilt für ${l.length} ${l.length === 1 ? 'Auftrag' : 'Aufträge'} in diesem Ordner und allen Unterordnern.</p>
+          <div><span class="hinweis">Wer soll sie sehen?</span>${zuwahl([])}</div>
+          <div class="fuss"><span></span><span class="aktionen"><button type="button" class="btn" data-a="zu">Abbrechen</button><button class="btn haupt">Zuweisen</button></span></div>`);
+        f.onsubmit = async (e2) => {
+          e2.preventDefault();
+          const zu = new FormData(f).getAll('zu');
+          const { error } = await sb.from('ze_auftraege').update({ zugewiesen: zu }).in('id', l.map((x) => x.id));
+          if (error) { toast(fehlerText(error)); return; }
+          dlg.close(); await stammLaden(); zeichnen(); toast(zu.length ? `${l.length} Aufträge zugewiesen an ${zu.map(maName).join(', ')}` : `${l.length} Aufträge für alle sichtbar`);
+        };
+        break;
+      }
       case 'ordnerNeu': { const n = prompt('Name des neuen Ordners' + (Z.afOrdner ? ` in „${Z.afOrdner.split('/').join(' › ')}“` : '')); if (n && n.trim()) { Z.afOrdner = [...ordnerTeile(Z.afOrdner), n.trim().replace(/\//g, '-')].join('/'); zeichnen(); toast('Ordner geöffnet. Jetzt den ersten Auftrag anlegen.'); } break; }
       case 'afEinsatz': { const id = form.dataset.formAf; dlg.close(); setTimeout(() => einsatzDialog({ auftrag_id: id, adresse: (auftrag(id) || {}).adresse || '' }), 50); break; }
       case 'rapport': rapport(); break;
