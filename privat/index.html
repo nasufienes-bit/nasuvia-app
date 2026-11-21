@@ -109,6 +109,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 <div class="toast" id="toast"></div>
 <script src="../lizenz.js" data-produkt="privat"></script>
 <script src="../suche.js"></script>
+<script src="../auszug.js"></script>
 <script src="mehr.js"></script>
 <script src="../ui.js"></script>
 <script src="../navi.js" data-hier="privat" data-einfuegen=".kopfzeile .wrap"></script>
@@ -217,14 +218,15 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     }).filter((t) => t.datum && Number.isFinite(t.betragRappen) && t.betragRappen);
   }
   async function auszugLaden() {
-    const inp = document.createElement('input'); inp.type = 'file'; inp.multiple = true; inp.accept = '.xml,.csv,.txt,text/csv,text/xml';
+    const inp = document.createElement('input'); inp.type = 'file'; inp.multiple = true; // alle Dateien wählbar (auf dem iPhone sonst ausgegraut)
     inp.onchange = async () => {
-      let neu = 0, doppelt = 0, fehler = '';
+      let neu = 0, doppelt = 0, fehler = '', istPdf = false;
       const bekannt = new Set(D.bewegungen.map((b) => `${b.datum}|${b.betragRappen}|${normPartner(b.partner || b.text)}`));
       for (const datei of inp.files) {
         try {
-          const roh = await datei.text();
-          const liste = /<\?xml|<Document/i.test(roh.slice(0, 500)) ? camtLesen(roh) : csvLesen(roh);
+          const v = await Auszug.vorbereiten(datei);
+          const liste = v.liste || (/<\?xml|<Document/i.test(v.roh.slice(0, 500)) ? camtLesen(v.roh) : csvLesen(v.roh));
+          if (v.pdf) istPdf = true;
           for (const t of liste) {
             const k = `${t.datum}|${t.betragRappen}|${normPartner(t.partner || t.text)}`;
             if (bekannt.has(k)) { doppelt++; continue; }
@@ -237,7 +239,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       }
       const bezahlt = rechnungenAbgleichen();
       sichern(); zeichnen();
-      toast(fehler && !neu ? fehler : `${neu} Bewegungen übernommen${doppelt ? `, ${doppelt} schon vorhanden` : ''}${bezahlt ? `, ${bezahlt} Rechnungen als bezahlt erkannt` : ''}`);
+      toast(fehler && !neu ? fehler : `${neu} Bewegungen übernommen${doppelt ? `, ${doppelt} schon vorhanden` : ''}${bezahlt ? `, ${bezahlt} Rechnungen als bezahlt erkannt` : ''}${istPdf && neu ? '. Aus PDF gelesen: bitte kurz prüfen.' : ''}`);
     };
     inp.click();
   }

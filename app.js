@@ -567,12 +567,12 @@
   }
   const importSchluessel = (t) => `${t.datum}|${t.betragRappen}|${(t.text || t.partner || '').slice(0, 40).toLowerCase()}`;
   async function bankImport() {
-    const datei = await dateiWaehlen('.xml,.csv,.txt,text/csv,text/xml,application/xml');
+    const datei = await dateiWaehlen(''); // alle Dateien: camt, CSV, Excel, PDF
     if (!datei) return;
     let liste;
     try {
-      const roh = await datei.text();
-      liste = /<\?xml|<Document/i.test(roh.slice(0, 500)) ? camtLesen(roh) : csvLesen(roh);
+      const v = await Auszug.vorbereiten(datei);
+      liste = v.liste || (/<\?xml|<Document/i.test(v.roh.slice(0, 500)) ? camtLesen(v.roh) : csvLesen(v.roh));
     } catch (f) { toast(f.message || 'Diese Datei kann ich nicht lesen'); return; }
     if (!liste.length) { toast('In dieser Datei habe ich keine Buchungen gefunden'); return; }
     const bekannt = new Set(Z.buchungen.map((b) => b.importSchluessel).filter(Boolean));
