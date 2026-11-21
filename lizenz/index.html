@@ -211,7 +211,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       location.href = '../start/';
     } catch (f) { alert('Das hat nicht ganz geklappt: ' + (f.message || f)); this.disabled = false; this.textContent = 'Alle Daten löschen …'; }
   };
-  $('abmelden').onclick = async function(){ await sb.auth.signOut({ scope: 'local' }); location.href = '../'; };
+  $('abmelden').onclick = async function(){ try { sessionStorage.setItem('nk.ohneDemo', '1'); } catch (e) {} await sb.auth.signOut({ scope: 'local' }); location.href = '../'; };
   // Bestellung geht an Nasuvia: in die Anfragen und per E-Mail
   $('form').addEventListener('submit', async function(e){
     e.preventDefault();

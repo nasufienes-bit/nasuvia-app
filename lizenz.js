@@ -14,6 +14,12 @@
   const heute = () => new Date().toLocaleDateString('sv-SE');
   const dk = (d) => (d ? d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4) : '');
   const sb = window.supabase.createClient(K.url, K.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: K.speicher, detectSessionInUrl: true } });
+  // Vorzeige-Modus (konfig.js → demo): ohne Anmeldung ins Demo-Konto. Wer sich bewusst abmeldet oder ?anmelden an die Adresse hängt, sieht wieder die Anmeldung.
+  const OHNE_DEMO = 'nk.ohneDemo';
+  try { if (/[?&]anmelden\b/.test(location.search)) sessionStorage.setItem(OHNE_DEMO, '1'); } catch {}
+  const demoErlaubt = () => { try { return !!K.demo && sessionStorage.getItem(OHNE_DEMO) !== '1'; } catch { return !!K.demo; } };
+  const demoAus = () => { try { sessionStorage.setItem(OHNE_DEMO, '1'); } catch {} };
+  const istDemo = (s) => !!(K.demo && s && s.user && s.user.email === K.demo.email);
 
   const stil = document.createElement('style');
   stil.textContent = `
@@ -74,7 +80,7 @@
       await sb.auth.resetPasswordForEmail(mail, { redirectTo: location.origin + location.pathname });
       anmelden('anmelden', '✓ Falls es ein Konto gibt, ist ein Link zum Zurücksetzen unterwegs.');
     }
-    if (t.hasAttribute('data-lz-abmelden')) { e.preventDefault(); await sb.auth.signOut({ scope: 'local' }); location.reload(); }
+    if (t.hasAttribute('data-lz-abmelden')) { e.preventDefault(); demoAus(); await sb.auth.signOut({ scope: 'local' }); location.reload(); }
     if (t.hasAttribute('data-lz-lesen')) { e.preventDefault(); weg(); pille('Nur Lesen: Lizenz abgelaufen · <b>Lizenz kaufen</b>', true); }
   });
   decke.addEventListener('submit', async (e) => {
@@ -112,6 +118,13 @@
     a.className = 'lz-pille' + (lesen ? ' lesen' : ''); a.href = KAUFEN; a.innerHTML = html;
     document.body.appendChild(a);
   }
+  function demoPille() {
+    const a = document.createElement('a');
+    a.className = 'lz-pille'; a.href = '#'; a.innerHTML = 'Demo-Ansicht · <b>Eigenes Konto</b>';
+    a.title = 'Das ist ein Vorzeige-Konto. Eingaben sehen auch andere Besucher.';
+    a.onclick = async (ev) => { ev.preventDefault(); demoAus(); await sb.auth.signOut({ scope: 'local' }); location.reload(); };
+    document.body.appendChild(a);
+  }
   function sperre(titel, text, mitLesen) {
     zeigen(`${SYMBOL}<h2>${esc(titel)}</h2><p>${text}</p>
       <a class="lz-knopf" href="${KAUFEN}">Lizenz kaufen</a>
@@ -121,7 +134,14 @@
   }
   async function pruefen() {
     const { data: { session } } = await sb.auth.getSession();
-    if (!session) { anmelden(/[?&#](paket|neu)=/.test(location.href) ? 'neu' : 'anmelden'); return; }
+    if (!session) {
+      const willNeu = /[?&#](paket|neu)=/.test(location.href);
+      if (demoErlaubt() && !willNeu) {
+        const { error } = await sb.auth.signInWithPassword(K.demo);
+        if (!error) { location.reload(); return; }
+      }
+      anmelden(willNeu ? 'neu' : 'anmelden'); return;
+    }
     const { data: l, error } = await sb.from('lizenzen').select('*').eq('user_id', session.user.id).maybeSingle();
     if (error || !l) { sperre('Lizenz nicht gefunden', 'Zu Ihrem Konto gibt es noch keine Lizenz. Bitte melden Sie sich bei uns.', false); return; }
     window.NASUVIA_LIZENZ = l;
@@ -136,6 +156,7 @@
       return;
     }
     weg();
+    if (istDemo(session)) { demoPille(); return; }
     const tage = Math.round((new Date((l.status === 'test' ? l.test_bis : l.gueltig_bis) + 'T12:00') - new Date(h + 'T12:00')) / 864e5);
     if (l.status === 'test') pille(`Gratis-Test: noch ${tage} ${tage === 1 ? 'Tag' : 'Tage'} · <b>Lizenz kaufen</b>`);
     else if (tage <= 21) pille(`Lizenz läuft am ${dk(l.gueltig_bis)} ab · <b>Verlängern</b>`);
@@ -144,6 +165,6 @@
     if (ereignis === 'PASSWORD_RECOVERY') zeigen(`${SYMBOL}<h2>Neues Passwort</h2><form data-lz-form="passwort"><label>Neues Passwort (mindestens 8 Zeichen)<input name="passwort" type="password" minlength="8" autocomplete="new-password" required></label><p class="lz-meldung" data-lz-meldung></p><button class="lz-knopf">Speichern</button></form>`);
     if (ereignis === 'SIGNED_OUT') location.reload();
   });
-  window.NasuviaLizenz = { pruefen, abmelden: async () => { await sb.auth.signOut({ scope: 'local' }); location.reload(); } };
+  window.NasuviaLizenz = { pruefen, abmelden: async () => { demoAus(); await sb.auth.signOut({ scope: 'local' }); location.reload(); } };
   if (!/type=recovery/.test(location.hash)) pruefen().catch(() => sperre('Keine Verbindung', 'Bitte prüfen Sie Ihre Internetverbindung und laden Sie die Seite neu.', false));
 })();
