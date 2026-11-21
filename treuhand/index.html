@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Treuhänder-Zugang</title>
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#F4FAF6" />
+<link rel="apple-touch-icon" href="../icon-180.png" />
+<link rel="stylesheet" href="../schrift.css" />
+<script src="../konfig.js"></script>
+<script src="../lib/supabase.js"></script>
+<style>
+:root{--papier:#F4FAF6;--flaeche:#E8F4EE;--karte:#fff;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--gruen:#0E9F6E;--rot:#E5484D;--linie:rgba(11,59,46,.14);--schatten:0 1px 2px rgba(12,18,38,.04),0 14px 34px -22px rgba(11,59,46,.4);--display:'League Spartan',-apple-system,system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace;--unten:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:15px/1.5 var(--display);background:var(--papier);color:var(--tinte);min-height:100vh;padding-bottom:calc(80px + var(--unten))}
+[hidden]{display:none!important}
+button{font:inherit;cursor:pointer}
+.kopfzeile{position:sticky;top:0;z-index:20;background:rgba(247,249,253,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--linie)}
+.kopfzeile .wrap{display:flex;align-items:center;gap:12px;height:62px}
+.kopfzeile .nv-knopf{margin-right:4px}
+.marke{display:flex;align-items:center;gap:8px;font-weight:700;font-size:19px;letter-spacing:-.02em;white-space:nowrap}
+.marke i{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--blau),var(--elektrik));display:grid;place-items:center}
+.marke i svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.tabs{margin-left:auto;display:flex;gap:2px}
+.tabs button{border:0;background:none;padding:8px 12px;border-radius:100px;color:var(--text);font-weight:500}
+.tabs button.an{background:#fff;color:var(--blau);font-weight:600;box-shadow:var(--schatten)}
+.wrap{max-width:1100px;margin:0 auto;padding:0 18px}
+main{padding:22px 0 30px}
+h1{font-size:30px;letter-spacing:-.02em;line-height:1.1}
+.unter{color:var(--text);margin-top:4px}
+.kopf{display:flex;justify-content:space-between;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:18px}
+.aktionen{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:0;border-radius:100px;padding:10px 16px;font-weight:600;background:#fff;color:var(--blau);box-shadow:var(--schatten);white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn.haupt{background:var(--blau);color:#fff}
+.btn.klein{padding:6px 11px;font-size:13px}
+.btn.rot{color:var(--rot)}
+.btn:disabled{opacity:.45;cursor:default}
+.raster{display:grid;gap:14px}
+.r4{grid-template-columns:repeat(4,minmax(0,1fr))}.r2{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:820px){.r4,.r2{grid-template-columns:1fr 1fr}.tabs{display:none}}
+@media(max-width:520px){.r2{grid-template-columns:1fr}}
+.card{background:var(--karte);border-radius:18px;padding:18px;box-shadow:var(--schatten)}
+.card h2{font-size:17px;margin-bottom:10px}
+.abstand{margin-top:14px}
+.zahl .l{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--leise)}
+.zahl .w{font-size:25px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.zahl .k{font-size:12.5px;color:var(--leise)}
+.leer{color:var(--leise);padding:10px 0}
+.hinweis{color:var(--text);font-size:13.5px}
+.zeile{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--linie)}
+.zeile:last-child{border-bottom:0}
+.zeile b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zeile small{color:var(--leise);font-size:12.5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zeile .betrag{font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.zeile.klick{cursor:pointer}
+.zeile.mit-wahl{grid-template-columns:auto minmax(0,1fr) auto}
+.zeile input[type=checkbox]{width:18px;height:18px;accent-color:var(--blau)}
+.tag-titel{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--leise);padding:14px 0 2px;display:flex;justify-content:space-between}
+.marke-s{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;border-radius:100px;padding:2px 8px;margin-left:6px;vertical-align:1px}
+.m-offen{background:rgba(245,181,61,.2);color:#8a5a00}.m-ok{background:rgba(14,159,110,.12);color:#0A7150}.m-blau{background:rgba(14,122,85,.1);color:var(--blau)}.m-grau{background:var(--flaeche);color:var(--leise)}
+.filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+select,input[type=text],input[type=date],input[type=month],input[type=time],input[type=number],input[type=search],textarea{font:inherit;border:1px solid rgba(11,59,46,.26);border-radius:10px;padding:8px 11px;background:#fff;color:var(--tinte);min-width:0}
+.woche{overflow-x:auto}
+.woche table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;min-width:640px}
+.woche th{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--leise);font-weight:500;text-align:right;padding:8px 6px;border-bottom:1px solid var(--linie)}
+.woche th:first-child,.woche td:first-child{text-align:left}
+.woche td{padding:10px 6px;border-bottom:1px solid var(--linie);text-align:right}
+.woche td.null{color:#C4C8D4}
+.woche tr:last-child td{border-bottom:0;font-weight:700}
+.woche .heute{background:rgba(14,122,85,.06)}
+.woche-nav{display:inline-flex;align-items:center;gap:6px}
+.woche-nav b{min-width:170px;text-align:center}
+dialog{border:0;border-radius:20px;padding:0;width:min(520px,calc(100% - 20px));box-shadow:0 40px 100px -30px rgba(12,18,38,.5)}
+dialog::backdrop{background:rgba(12,18,38,.35)}
+.dlg{padding:20px;display:grid;gap:10px;max-height:calc(100vh - 40px);overflow:auto}
+.dlg h3{font-size:20px}
+.dlg label{display:grid;gap:4px;font-size:13px;color:var(--text)}
+.dlg .zwei{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dlg .drei{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.dlg .fuss{display:flex;justify-content:space-between;gap:8px;margin-top:6px;flex-wrap:wrap}
+.link-feld{display:flex;gap:6px}
+.link-feld input{flex:1;font-family:var(--mono);font-size:12px}
+.unten-nav{display:none}
+@media(max-width:820px){.unten-nav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(247,249,253,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--linie);padding:6px 4px calc(6px + var(--unten))}
+.unten-nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--leise);padding:4px 0}
+.unten-nav button.an{color:var(--blau);font-weight:600}
+.unten-nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}}
+.toast{position:fixed;left:50%;bottom:calc(90px + var(--unten));transform:translate(-50%,20px);opacity:0;background:var(--tinte);color:#fff;border-radius:100px;padding:11px 18px;font-weight:600;transition:.3s;z-index:99;pointer-events:none;max-width:90vw;text-align:center}
+.toast.da{transform:translate(-50%,0);opacity:1}
+.start{text-align:center;padding:40px 18px}
+.start .gross{width:74px;height:74px;border-radius:22px;margin:0 auto 16px;background:linear-gradient(135deg,var(--blau),var(--elektrik));display:grid;place-items:center}
+.start .gross svg{width:38px;height:38px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.start h2{font-size:24px;margin-bottom:6px}
+.start p{max-width:540px;margin:0 auto 18px;color:var(--text)}
+.schritte{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;text-align:left;max-width:820px;margin:22px auto 0}
+.schritte div{background:#fff;border-radius:16px;padding:16px;box-shadow:var(--schatten);font-size:14px;color:var(--text)}
+.schritte b{display:block;color:var(--tinte);font-size:15px;margin-bottom:2px}
+@media(max-width:720px){.schritte{grid-template-columns:1fr}}
+.info-box{background:rgba(14,122,85,.07);border-radius:14px;padding:12px 14px;font-size:13.5px;color:var(--blau)}
+.auswahl-leiste{position:sticky;bottom:calc(76px + var(--unten));z-index:15;display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--tinte);color:#fff;border-radius:16px;padding:10px 12px;margin-top:12px;box-shadow:0 20px 40px -20px rgba(12,18,38,.6)}
+.auswahl-leiste .btn{box-shadow:none}
+@media(min-width:821px){.auswahl-leiste{bottom:16px}}
+[data-suche-hier]{display:flex;margin-left:8px}@media(max-width:820px){[data-suche-hier]{margin-left:auto}}
+@media(max-width:520px){.zahl .w{font-size:20px}.card{padding:14px}h1{font-size:26px}.dlg .drei{grid-template-columns:1fr 1fr}}
+/* Stundenrapport zum Drucken */
+#rapport{display:none}
+@media print{
+  body{background:#fff;padding:0}
+  body > *:not(#rapport){display:none!important}
+  #rapport{display:block;padding:10mm 4mm;font-size:11pt;color:#000}
+  #rapport h1{font-size:20pt;margin-bottom:2mm}
+  #rapport p{margin-bottom:4mm;color:#333}
+  #rapport table{width:100%;border-collapse:collapse}
+  #rapport th,#rapport td{border-bottom:1px solid #ccc;padding:2mm 1.5mm;text-align:left;vertical-align:top}
+  #rapport td.r,#rapport th.r{text-align:right}
+  #rapport tfoot td{font-weight:700;border-top:2px solid #000;border-bottom:0}
+  #rapport .unterschrift{display:flex;gap:20mm;margin-top:18mm}
+  #rapport .unterschrift div{flex:1;border-top:1px solid #000;padding-top:2mm;font-size:9pt}
+  .lz-pille,.nv-schwebend{display:none!important}
+}
+.tabelle{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:14px}
+.tabelle th{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--leise);font-weight:500;text-align:left;padding:8px 6px;border-bottom:1px solid var(--linie)}
+.tabelle td{padding:8px 6px;border-bottom:1px solid var(--linie);vertical-align:top}
+.tabelle .r{text-align:right;white-space:nowrap}
+.tabelle tr.summe td{font-weight:700;border-top:2px solid var(--tinte)}
+.scroll{overflow-x:auto}
+.login{max-width:420px;margin:40px auto}
+.login label{display:grid;gap:4px;font-size:13px;color:var(--text);margin-bottom:10px}
+.login input{width:100%;font-size:16px}
+.mandat{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.segment{display:inline-flex;background:var(--flaeche);border-radius:100px;padding:3px;gap:2px;max-width:100%;overflow-x:auto}
+.segment button{border:0;background:none;border-radius:100px;padding:7px 13px;color:var(--text);white-space:nowrap}
+.segment button.an{background:#fff;color:var(--blau);font-weight:600;box-shadow:0 2px 8px rgba(12,18,38,.08)}
+@media(min-width:821px){.segment{display:none}}
+.nur-lesen{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;background:rgba(14,122,85,.1);color:var(--blau);border-radius:100px;padding:3px 9px;margin-left:8px;vertical-align:4px}
+</style>
+</head>
+<body>
+<header class="kopfzeile"><div class="wrap">
+  <div class="marke"><i><svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V7z"/><path d="m9 12 2 2 4-4"/></svg></i>Treuhänder</div>
+  <nav class="tabs" id="tabs"></nav>
+</div></header>
+<main class="wrap" id="inhalt"><p class="leer">Wird geladen …</p></main>
+<div class="toast" id="toast"></div>
+<script src="../navi.js" data-hier="treuhand" data-einfuegen=".kopfzeile .wrap"></script>
+<script>
+(() => {
+  'use strict';
+  const K = window.NASUVIA_KONFIG || {};
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const fmt = new Intl.NumberFormat('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const chf = (r) => fmt.format((r || 0) / 100);
+  const dk = (d) => (d ? d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4) : '');
+  const toast = (t, ms = 2800) => { const e = $('toast'); e.textContent = t; e.classList.add('da'); clearTimeout(toast.z); toast.z = setTimeout(() => e.classList.remove('da'), ms); };
+  const KAT = { material: 'Material', fremd: 'Subunternehmer und Fremdarbeiten', werkzeug: 'Werkzeug und Kleingeräte', anschaffung: 'Anschaffungen', fahrzeug: 'Fahrzeug', telefon: 'Telefon und Internet',
+    software: 'Software und Abos', buero: 'Miete und Büro', werbung: 'Werbung und Website', spesen: 'Spesen und Verpflegung', weiterbildung: 'Weiterbildung', versicherung: 'Versicherungen',
+    bank: 'Bank- und Kartengebühren', gebuehren: 'Gebühren und Abgaben', loehne: 'Löhne', sozial: 'Sozialversicherungen und Vorsorge', fahrten: 'Fahrten (Kilometer)', uebrig: 'Übriges',
+    dienstleistung: 'Dienstleistungen', materialverkauf: 'Materialverkauf', 'uebrig-ein': 'Übrige Einnahmen' };
+  const Z = { mandate: [], kunde: null, buchungen: [], jahr: String(new Date().getFullYear()), ansicht: 'erfolg', eigeneKat: {} };
+  if (!K.produkt) { $('inhalt').innerHTML = '<div class="start"><h2>Treuhänder-Zugang</h2><p>Den Treuhänder-Zugang gibt es in der Verkaufsversion (Ordasio).</p></div>'; return; }
+  const sb = window.supabase.createClient(K.url, K.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: K.speicher, detectSessionInUrl: true } });
+  const katName = (b) => Z.eigeneKat[b.kategorie] || KAT[b.kategorie] || b.kategorie || 'Ohne Kategorie';
+  const netto = (b) => (b.betragRappen || 0) - (b.mwstRappen || 0);
+
+  /* ---------- Anmelden (ohne Lizenz: der Zugang ist für Treuhänder gratis) ---------- */
+  function login(meldung = '') {
+    $('tabs').innerHTML = '';
+    $('inhalt').innerHTML = `<div class="card login"><h2>Treuhänder-Zugang</h2>
+      <p class="hinweis" style="margin-bottom:12px">Hier sehen Sie die Buchhaltung Ihrer Kunden, die Ihnen den Zugang freigegeben haben. Nur lesen, gratis für Treuhänder.</p>
+      <form id="login"><label>E-Mail<input name="email" type="email" autocomplete="username" required></label><label>Passwort<input name="passwort" type="password" autocomplete="current-password" required minlength="6"></label>
+        <p class="hinweis" style="color:var(--rot);min-height:1.3em" id="meldung">${esc(meldung)}</p>
+        <div class="aktionen"><button class="btn haupt">Anmelden</button><button type="button" class="btn" data-a="neu">Konto erstellen</button></div></form>
+      <p class="hinweis abstand">Ihr Kunde gibt unter „Lizenz und Konto“ Ihre E-Mail-Adresse frei. Danach erscheint er hier.</p></div>`;
+  }
+  document.addEventListener('submit', async (ev) => {
+    if (ev.target.id !== 'login') return;
+    ev.preventDefault();
+    const d = Object.fromEntries(new FormData(ev.target));
+    const modus = ev.target.dataset.modus || 'anmelden';
+    const r = modus === 'neu'
+      ? await sb.auth.signUp({ email: d.email.trim(), password: d.passwort, options: { emailRedirectTo: location.origin + location.pathname, data: { name: d.email.trim(), firma: 'Treuhand', paket: 'kombi', zyklus: 'jahr' } } })
+      : await sb.auth.signInWithPassword({ email: d.email.trim(), password: d.passwort });
+    if (r.error) { $('meldung').textContent = /Invalid login/i.test(r.error.message) ? 'E-Mail oder Passwort stimmt nicht.' : /not confirmed/i.test(r.error.message) ? 'Bitte zuerst die E-Mail bestätigen.' : r.error.message; return; }
+    if (modus === 'neu' && !r.data.session) { login('✓ Bitte bestätigen Sie Ihre E-Mail über den Link, den wir Ihnen geschickt haben.'); $('meldung').style.color = 'var(--gruen)'; return; }
+    start();
+  });
+  document.addEventListener('click', (ev) => {
+    if (ev.target.closest('[data-a=neu]')) { const f = $('login'); f.dataset.modus = 'neu'; f.querySelector('.btn.haupt').textContent = 'Konto erstellen'; f.querySelector('[name=passwort]').minLength = 8; f.querySelector('[name=passwort]').autocomplete = 'new-password'; ev.target.closest('[data-a=neu]').remove(); }
+  });
+
+  /* ---------- Mandate ---------- */
+  async function start() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { login(); return; }
+    const { data, error } = await sb.rpc('tr_mandate');
+    if (error) { $('inhalt').innerHTML = `<div class="card"><p class="hinweis">${esc(error.message)}</p></div>`; return; }
+    Z.mandate = data;
+    const k = new URLSearchParams(location.search).get('kunde');
+    if (k && data.some((m) => m.kunde === k)) return mandatOeffnen(k);
+    liste(session.user.email);
+  }
+  function liste(email) {
+    Z.kunde = null; $('tabs').innerHTML = '';
+    $('inhalt').innerHTML = `<div class="kopf"><div><h1>Ihre Kunden</h1><p class="unter">Angemeldet als ${esc(email)}. Sie sehen nur Kunden, die diese E-Mail-Adresse freigegeben haben.</p></div>
+        <div class="aktionen"><button class="btn" data-abmelden>Abmelden</button></div></div>
+      <div class="card">${Z.mandate.length ? Z.mandate.map((m) => `<div class="zeile klick" data-kunde="${m.kunde}"><div style="min-width:0"><b>${esc(m.firma || m.email)}</b><small>${esc(m.email || '')} · freigegeben am ${dk(String(m.seit).slice(0, 10))}</small></div><div class="betrag">Öffnen →</div></div>`).join('')
+        : '<p class="leer">Noch keine Freigaben. Bitten Sie Ihre Kunden, in Ordasio unter „Lizenz und Konto“ Ihre E-Mail-Adresse freizugeben.</p>'}</div>`;
+  }
+  async function mandatOeffnen(kunde) {
+    Z.kunde = Z.mandate.find((m) => m.kunde === kunde);
+    $('inhalt').innerHTML = '<p class="leer">Daten werden geladen …</p>';
+    const alle = [];
+    for (let von = 0; ; von += 1000) {
+      const { data, error } = await sb.from('datensaetze').select('art,daten,geloescht').eq('user_id', kunde).in('art', ['buchungen', 'einstellungen']).eq('geloescht', false).range(von, von + 999);
+      if (error) { $('inhalt').innerHTML = `<div class="card"><p class="hinweis">${esc(error.message)}</p></div>`; return; }
+      alle.push(...data); if (data.length < 1000) break;
+    }
+    Z.buchungen = alle.filter((z) => z.art === 'buchungen').map((z) => z.daten).filter((b) => b && b.datum);
+    const einst = (alle.find((z) => z.art === 'einstellungen' && z.daten && z.daten.id === 'haupt') || {}).daten || {};
+    Z.eigeneKat = {};
+    for (const k of [...((einst.kategorien || {}).aus || []), ...((einst.kategorien || {}).ein || [])]) if (k && k.id && k.name) Z.eigeneKat[k.id] = k.name;
+    const jahre = [...new Set(Z.buchungen.map((b) => b.datum.slice(0, 4)))].sort().reverse();
+    if (jahre.length && !jahre.includes(Z.jahr)) Z.jahr = jahre[0];
+    zeichnen();
+  }
+
+  /* ---------- Ansichten (nur lesen) ---------- */
+  const imJahr = () => Z.buchungen.filter((b) => b.datum.slice(0, 4) === Z.jahr).sort((a, b) => (a.datum > b.datum ? 1 : -1));
+  function zeichnen() {
+    const T = [['erfolg', 'Erfolgsrechnung'], ['mwst', 'MWST'], ['buchungen', 'Buchungen']];
+    $('tabs').innerHTML = T.map(([id, n]) => `<button class="${Z.ansicht === id ? 'an' : ''}" data-ansicht="${id}">${n}</button>`).join('');
+    const jahre = [...new Set([...Z.buchungen.map((b) => b.datum.slice(0, 4)), Z.jahr])].sort().reverse();
+    $('inhalt').innerHTML = `<div class="kopf"><div><p class="hinweis"><a href="?" data-zurueck>← Alle Kunden</a></p><h1>${esc(Z.kunde.firma || Z.kunde.email)}<span class="nur-lesen">nur lesen</span></h1></div>
+        <div class="aktionen"><select data-jahr>${jahre.map((j) => `<option ${j === Z.jahr ? 'selected' : ''}>${j}</option>`).join('')}</select><button class="btn" data-csv>CSV</button><button class="btn" onclick="window.print()">Drucken</button></div></div>
+      <div class="segment" style="margin-bottom:12px">${T.map(([id, n]) => `<button class="${Z.ansicht === id ? 'an' : ''}" data-ansicht="${id}">${n}</button>`).join('')}</div>
+      ${({ erfolg, mwst, buchungen })[Z.ansicht]()}`;
+  }
+  function erfolg() {
+    const l = imJahr(), gr = (typ) => { const m = {}; for (const b of l.filter((x) => x.typ === typ)) { const k = katName(b); m[k] = (m[k] || 0) + netto(b); } return Object.entries(m).sort((a, b) => b[1] - a[1]); };
+    const ein = gr('einnahme'), aus = gr('ausgabe'), sE = ein.reduce((s, x) => s + x[1], 0), sA = aus.reduce((s, x) => s + x[1], 0);
+    const tab = (titel, l, s) => `<div class="card"><h2>${titel}</h2><table class="tabelle"><tbody>${l.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="r">${chf(v)}</td></tr>`).join('') || '<tr><td class="leer">Keine</td><td></td></tr>'}<tr class="summe"><td>Total</td><td class="r">${chf(s)}</td></tr></tbody></table></div>`;
+    return `<div class="raster r4"><div class="card zahl"><div class="l">Ertrag netto</div><div class="w">${chf(sE)}</div></div><div class="card zahl"><div class="l">Aufwand netto</div><div class="w">${chf(sA)}</div></div>
+      <div class="card zahl"><div class="l">${sE - sA >= 0 ? 'Gewinn' : 'Verlust'}</div><div class="w" style="color:${sE - sA >= 0 ? 'var(--gruen)' : 'var(--rot)'}">${chf(sE - sA)}</div></div><div class="card zahl"><div class="l">Buchungen</div><div class="w">${l.length}</div><div class="k">${l.filter((b) => b.typ === 'ausgabe' && !b.belegId).length} Ausgaben ohne Beleg</div></div></div>
+      <div class="raster r2 abstand">${tab('Ertrag', ein, sE)}${tab('Aufwand', aus, sA)}</div><p class="hinweis abstand">Beträge ohne MWST. Grundlage sind die Buchungen des Kunden, Stand jetzt.</p>`;
+  }
+  function mwst() {
+    const l = imJahr(), q = [1, 2, 3, 4].map((n) => { const x = l.filter((b) => Math.ceil(Number(b.datum.slice(5, 7)) / 3) === n);
+      return { n, umsatz: x.filter((b) => b.typ === 'einnahme').reduce((s, b) => s + (b.betragRappen || 0), 0), mwst: x.filter((b) => b.typ === 'einnahme').reduce((s, b) => s + (b.mwstRappen || 0), 0), vst: x.filter((b) => b.typ === 'ausgabe').reduce((s, b) => s + (b.mwstRappen || 0), 0) }; });
+    return `<div class="card scroll"><table class="tabelle"><thead><tr><th>Quartal</th><th class="r">Umsatz brutto</th><th class="r">MWST geschuldet</th><th class="r">Vorsteuer</th><th class="r">Zahllast</th></tr></thead><tbody>
+      ${q.map((x) => `<tr><td>${x.n}. Quartal ${Z.jahr}</td><td class="r">${chf(x.umsatz)}</td><td class="r">${chf(x.mwst)}</td><td class="r">${chf(x.vst)}</td><td class="r">${chf(x.mwst - x.vst)}</td></tr>`).join('')}
+      <tr class="summe"><td>Jahr</td><td class="r">${chf(q.reduce((s, x) => s + x.umsatz, 0))}</td><td class="r">${chf(q.reduce((s, x) => s + x.mwst, 0))}</td><td class="r">${chf(q.reduce((s, x) => s + x.vst, 0))}</td><td class="r">${chf(q.reduce((s, x) => s + x.mwst - x.vst, 0))}</td></tr></tbody></table></div>
+      <p class="hinweis abstand">Effektive Methode, nach Buchungsdatum.</p>`;
+  }
+  function buchungen() {
+    const l = imJahr();
+    return `<div class="card scroll"><table class="tabelle"><thead><tr><th>Datum</th><th>Text</th><th>Kategorie</th><th class="r">MWST</th><th class="r">Betrag</th><th>Beleg</th></tr></thead><tbody>
+      ${l.map((b) => `<tr><td>${dk(b.datum)}</td><td>${esc(b.text || '')}${b.partner ? `<br><small style="color:var(--leise)">${esc(b.partner)}</small>` : ''}</td><td>${esc(katName(b))}</td><td class="r">${b.mwstSatz ? b.mwstSatz + ' %' : ''}</td>
+        <td class="r" style="color:${b.typ === 'einnahme' ? 'var(--gruen)' : 'inherit'}">${b.typ === 'einnahme' ? '' : '−'}${chf(b.betragRappen)}</td><td>${b.belegId ? `<button class="btn klein" data-beleg="${esc(b.belegId)}">Öffnen</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="6" class="leer">Keine Buchungen in diesem Jahr.</td></tr>'}</tbody></table></div>`;
+  }
+  function csv() {
+    const zeilen = [['Datum', 'Typ', 'Text', 'Partner', 'Kategorie', 'Betrag brutto', 'MWST-Satz', 'MWST', 'Betrag netto', 'Zahlung', 'Beleg']].concat(imJahr().map((b) => [b.datum, b.typ, b.text || '', b.partner || '', katName(b),
+      ((b.typ === 'ausgabe' ? -1 : 1) * (b.betragRappen || 0) / 100).toFixed(2), b.mwstSatz || 0, ((b.mwstRappen || 0) / 100).toFixed(2), (netto(b) / 100).toFixed(2), b.zahlung || '', b.belegId ? 'ja' : 'nein']));
+    const text = '﻿' + zeilen.map((z) => z.map((x) => `"${String(x).replace(/"/g, '""')}"`).join(';')).join('\r\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' })); a.download = `${(Z.kunde.firma || 'Kunde').replace(/[^\wäöüÄÖÜ -]/g, '')} Buchungen ${Z.jahr}.csv`; a.click();
+  }
+
+  document.addEventListener('click', async (ev) => {
+    const t = ev.target;
+    const ku = t.closest('[data-kunde]'); if (ku) { history.replaceState(null, '', '?kunde=' + ku.dataset.kunde); mandatOeffnen(ku.dataset.kunde); return; }
+    if (t.closest('[data-zurueck]')) { ev.preventDefault(); history.replaceState(null, '', location.pathname); start(); return; }
+    if (t.closest('[data-abmelden]')) { await sb.auth.signOut({ scope: 'local' }); login(); return; }
+    const an = t.closest('[data-ansicht]'); if (an) { Z.ansicht = an.dataset.ansicht; zeichnen(); return; }
+    if (t.closest('[data-csv]')) { csv(); return; }
+    const be = t.closest('[data-beleg]');
+    if (be) {
+      const fenster = window.open('', '_blank');
+      const { data, error } = await sb.storage.from('belege').createSignedUrl(`${Z.kunde.kunde}/${be.dataset.beleg}`, 120);
+      if (error || !data) { if (fenster) fenster.close(); toast('Beleg nicht gefunden'); return; }
+      if (fenster) fenster.location = data.signedUrl; else location.href = data.signedUrl;
+    }
+  });
+  document.addEventListener('change', (ev) => { if (ev.target.matches('[data-jahr]')) { Z.jahr = ev.target.value; zeichnen(); } });
+  start();
+})();
+</script>
+</body>
+</html>

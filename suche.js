@@ -4,7 +4,7 @@
 (() => {
   const skript = document.currentScript || {};
   const WURZEL = (() => { try { return new URL('.', skript.src).href; } catch { return '/'; } })();
-  const B = WURZEL, R = WURZEL + 'rechnungen/', P = WURZEL + 'privat/', H = WURZEL + 'hilfe/', Z = WURZEL + 'zeit/';
+  const B = WURZEL, R = WURZEL + 'rechnungen/', P = WURZEL + 'privat/', H = WURZEL + 'hilfe/', Z = WURZEL + 'zeit/', T = WURZEL + 'termine/', L = WURZEL + 'lager/';
 
   // id, Bereich, Titel, Suchwörter, Anleitung (Schritte), Ziel im Programm
   const ARTIKEL = [
@@ -152,6 +152,55 @@
     ['ze-lohn', 'Zeiterfassung', 'Stunden in den Lohn übernehmen', 'stundenlohn lohn lohnlauf stunden übernehmen monat', [
       'Zeiterfassung, Übersicht, „Stunden in den Lohnlauf“, Monat wählen.',
       'Die Stunden landen bei den Mitarbeitern mit gleichem Namen und Stundenlohn unter „Löhne“.'], Z],
+
+    ['ze-plan', 'Zeiterfassung', 'Einsätze planen', 'einsatzplan planung einsatz termin kunde mitarbeiter wer wann wo sms adresse', [
+      'Zeiterfassung, Ansicht „Einsatzplan“, dann „+ Einsatz planen“: Mitarbeiter, Datum, Zeit, Auftrag und Adresse.',
+      'Der Mitarbeiter sieht den Einsatz auf seinem Handy mit Route und Telefonnummer und kann die Uhr direkt dort starten.',
+      'Mit „SMS an Kunde“ öffnet sich eine fertige Terminbestätigung für den Kunden.'], Z + '?tab=plan'],
+
+    // Termine
+    ['tb-start', 'Termine', 'Online-Terminbuchung einrichten', 'termin buchen online buchung kalender coiffeur therapie öffnungszeiten link', [
+      'Im Menü „Termine“ öffnen, Ansicht „Online-Buchung“.',
+      'Leistungen mit Dauer und Preis erfassen, Öffnungszeiten eintragen und „Online-Buchung eingeschaltet“ anhaken. Speichern.',
+      'Den Buchungslink auf Ihre Website, in Google, Instagram oder WhatsApp stellen. Ihre Kunden buchen selbst einen freien Termin.'], T + '?tab=einstellungen'],
+    ['tb-verwalten', 'Termine', 'Termine bestätigen, absagen, verrechnen', 'termin bestätigen absagen erinnerung sms rechnung kunde', [
+      'Neue Online-Buchungen sind gelb markiert. Antippen, dann „Bestätigen per SMS“ oder „Erinnerung per SMS“.',
+      'Nach dem Termin „Rechnung“: Die Rechnung öffnet sich mit der Leistung und dem Preis.',
+      'Kunden können über den Link in ihrer Bestätigung selbst absagen. Der Termin wird dann wieder frei.'], T],
+
+    // Lager
+    ['lg-start', 'Lager', 'Lager und Material erfassen', 'lager material artikel bestand einkauf verkauf lieferant', [
+      'Im Menü „Lager“ öffnen und „+ Artikel“: Bezeichnung, Einheit, Einkaufs- und Verkaufspreis, Anfangsbestand und Mindestbestand.',
+      'Mit „+“ buchen Sie einen Wareneingang, mit „−“ den Verbrauch. Der Bestand rechnet sich selbst.'], L],
+    ['lg-verrechnen', 'Lager', 'Material verrechnen und nachbestellen', 'material verrechnen rechnung nachbestellen bestellen mindestbestand bestellliste auftrag', [
+      '„Material verrechnen“: Mengen eintragen, der Bestand wird abgebucht und die Rechnung öffnet sich mit den Positionen.',
+      'Verbrauch für einen Auftrag erscheint automatisch auf der Rechnung, wenn Sie die Stunden dieses Auftrags verrechnen.',
+      'Ansicht „Nachbestellen“: alles unter dem Mindestbestand, nach Lieferant, mit Bestellung per E-Mail.'], L],
+
+    // Treuhänder
+    ['treuhand', 'Konto und Lizenz', 'Treuhänder Zugang geben', 'treuhänder treuhand buchhalter zugang freigeben lesen steuerberater', [
+      'Im Menü „Lizenz und Konto“ unter „Treuhänder-Zugang“ die E-Mail Ihres Treuhänders eingeben und „Freigeben“.',
+      'Ihr Treuhänder meldet sich unter Treuhänder-Zugang mit dieser E-Mail an und sieht Erfolgsrechnung, MWST, Buchungen und Belege. Ändern kann er nichts.',
+      'Mit „Entfernen“ ist der Zugang sofort wieder weg.'], WURZEL + 'lizenz/#treuhand'],
+    ['einrichtung', 'Konto und Lizenz', 'Einrichtung durch uns', 'einrichtung hilfe einrichten daten übernehmen import service schulung', [
+      'Beim Bestellen der Lizenz „Einrichtung durch uns“ ankreuzen (CHF 190 einmalig).',
+      'Wir übernehmen Ihre bisherigen Daten, richten Logo, Vorlagen und Kategorien ein und zeigen Ihnen alles in 30 Minuten.'], WURZEL + 'lizenz/'],
+
+    // Home-Büro: neue Bereiche
+    ['hb-budget', 'Home-Büro', 'Haushaltsbudget planen', 'budget haushalt sparen monat ausgaben planen familie', [
+      'Home-Büro, Ansicht „Budget“: pro Kategorie einen Monatsbetrag eintragen, oder „Vorschlag aus 3 Monaten“ tippen.',
+      'Der Balken zeigt, wie viel schon ausgegeben ist. Rot heisst: über dem Budget.'], P + '?tab=budget'],
+    ['hb-teilen', 'Home-Büro', 'Ausgaben in WG oder Familie teilen', 'teilen wg familie gemeinsam ausgaben schulden ausgleich wer schuldet', [
+      'Home-Büro, Ansicht „Teilen“: zuerst die Personen erfassen, dann jede gemeinsame Ausgabe mit „Bezahlt von“ und „Für wen“.',
+      'Unter „So wird ausgeglichen“ steht, wer wem wie viel überweist, mit möglichst wenigen Zahlungen. Per WhatsApp teilen.'], P + '?tab=teilen'],
+    ['hb-steuern', 'Home-Büro', 'Belege für die Steuererklärung sammeln', 'steuern steuererklärung abzüge arzt zahnarzt spenden 3a säule weiterbildung quittung', [
+      'Home-Büro, Ansicht „Steuern“: Abzüge mit Betrag und Foto der Quittung erfassen.',
+      'Vorschläge aus dem Kontoauszug (Arzt, Spenden, Säule 3a, Prämien) mit „Übernehmen“ hinzufügen.',
+      '„Übersicht drucken“ macht eine Liste nach Abzugsart mit allen Quittungen für die Steuererklärung.'], P + '?tab=steuern'],
+    ['hb-kk', 'Home-Büro', 'Krankenkasse vergleichen', 'krankenkasse prämie franchise vergleichen wechseln kündigen grundversicherung', [
+      'Home-Büro, Ansicht „Krankenkasse“: Ihre heutige Prämie und Franchise eintragen und Ihre ungefähren Gesundheitskosten wählen.',
+      'Angebote von priminfo.admin.ch erfassen. Der Vergleich zeigt die echten Jahreskosten inklusive Franchise und Selbstbehalt.',
+      'Wechsel auf 1. Januar: Die Kündigung muss bis 30. November bei der Kasse sein.'], P + '?tab=kk'],
 
     // Konto und Lizenz
     ['lizenz', 'Konto und Lizenz', 'Lizenz kaufen oder verlängern', 'lizenz kaufen bezahlen preis verlängern test abgelaufen paket wechseln upgrade', [

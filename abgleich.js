@@ -60,7 +60,7 @@
     let geholt = 0;
     let neuester = seit;
     for (let von = 0; ; von += 500) {
-      const { data, error } = await sb.from('datensaetze').select('id,art,daten,geaendert,geloescht,aktualisiert')
+      const { data, error } = await sb.from('datensaetze').select('id,art,daten,geaendert,geloescht,aktualisiert').eq('user_id', uid)
         .gt('aktualisiert', ab).order('aktualisiert').range(von, von + 499);
       if (error) throw error;
       for (const art of ARTEN) {
@@ -148,7 +148,7 @@
     // Rechnungen aus der Rechnungs-App (gleiche Tabelle, Art „rechnung“)
     async rechnungenHolen() {
       if (!benutzer) return [];
-      const { data, error } = await sb.from('datensaetze').select('daten,geloescht').eq('art', 'rechnung');
+      const { data, error } = await sb.from('datensaetze').select('daten,geloescht').eq('user_id', benutzer.id).eq('art', 'rechnung');
       if (error) throw error;
       return data.map((z) => ({ ...z.daten, geloescht: z.geloescht }));
     },

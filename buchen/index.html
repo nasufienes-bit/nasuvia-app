@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Termin buchen</title>
+<meta name="robots" content="noindex, nofollow" />
+<meta name="referrer" content="no-referrer" />
+<meta name="theme-color" content="#0B3B2E" />
+<link rel="stylesheet" href="../schrift.css" />
+<script src="../konfig.js"></script>
+<script src="../lib/supabase.js"></script>
+<style>
+:root{--papier:#F4FAF6;--flaeche:#E8F4EE;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--gruen:#0E9F6E;--rot:#E5484D;--linie:rgba(11,59,46,.14);--schatten:0 1px 2px rgba(12,18,38,.04),0 14px 34px -22px rgba(11,59,46,.4);--display:'League Spartan',-apple-system,system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:16px/1.5 var(--display);background:var(--papier);color:var(--tinte);min-height:100vh;padding-bottom:40px}
+[hidden]{display:none!important}
+button{font:inherit;cursor:pointer}
+.wrap{max-width:620px;margin:0 auto;padding:0 16px}
+.oben{background:linear-gradient(160deg,#0B3B2E,#0E7A55);color:#fff;padding:calc(26px + env(safe-area-inset-top,0px)) 0 64px}
+.oben small{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.7)}
+.oben h1{font-size:30px;letter-spacing:-.02em;line-height:1.1;margin:4px 0 6px}
+.oben p{color:rgba(255,255,255,.85);font-size:15px}
+.oben a{color:#fff}
+.karte{background:#fff;border-radius:20px;padding:18px;box-shadow:var(--schatten);margin-top:14px}
+.hoch{margin-top:-46px}
+h2{font-size:18px;margin-bottom:10px;display:flex;gap:8px;align-items:center}
+h2 i{font-style:normal;width:26px;height:26px;border-radius:50%;background:var(--flaeche);color:var(--blau);display:grid;place-items:center;font-size:14px;font-weight:700;flex:none}
+.wahl{display:grid;gap:8px}
+.wahl button{border:1.5px solid var(--linie);background:#fff;border-radius:14px;padding:12px 14px;text-align:left;display:flex;justify-content:space-between;gap:10px;color:var(--tinte)}
+.wahl button small{color:var(--leise);display:block;font-size:13px}
+.wahl button.an{border-color:var(--elektrik);background:rgba(14,122,85,.06)}
+.tage{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
+.tage::-webkit-scrollbar{display:none}
+.tage button{flex:none;border:1.5px solid var(--linie);background:#fff;border-radius:14px;width:64px;padding:8px 0;text-align:center;color:var(--tinte)}
+.tage button b{display:block;font-size:20px;line-height:1.1}
+.tage button small{display:block;font-size:11px;color:var(--leise);text-transform:uppercase;letter-spacing:.06em}
+.tage button.an{border-color:var(--elektrik);background:var(--blau);color:#fff}
+.tage button.an small{color:rgba(255,255,255,.8)}
+.tage button:disabled{opacity:.35;cursor:default}
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;margin-top:12px}
+.slots button{border:1.5px solid var(--linie);background:#fff;border-radius:12px;padding:10px 0;font-weight:600;color:var(--blau);font-variant-numeric:tabular-nums}
+.slots button.an{background:var(--blau);color:#fff;border-color:var(--blau)}
+label{display:grid;gap:4px;font-size:13px;color:var(--text);margin-bottom:10px}
+input,textarea{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);border-radius:12px;padding:11px 12px;background:#fff;color:var(--tinte);width:100%}
+.gross{display:block;width:100%;border:0;border-radius:16px;padding:16px;font-weight:700;font-size:18px;background:var(--blau);color:#fff;text-align:center;text-decoration:none}
+.gross:disabled{opacity:.5}
+.gross.leicht{background:var(--flaeche);color:var(--blau);font-size:16px;padding:13px;margin-top:8px}
+.leer,.hinweis{color:var(--text);font-size:14px}
+.zusammen{background:var(--flaeche);border-radius:14px;padding:12px 14px;margin-bottom:12px;color:var(--blau);font-weight:600}
+.fehler{color:var(--rot);font-size:14px;min-height:1.3em;margin-bottom:8px}
+.fertig{text-align:center}
+.fertig .haken{width:72px;height:72px;border-radius:50%;background:rgba(14,159,110,.14);color:var(--gruen);display:grid;place-items:center;margin:0 auto 12px;font-size:34px}
+.fuss{text-align:center;color:var(--leise);font-size:12px;margin-top:22px}
+</style>
+</head>
+<body>
+<div id="app"><div class="wrap" style="padding-top:60px"><p class="hinweis">Wird geladen …</p></div></div>
+<script>
+(() => {
+  'use strict';
+  const K = window.NASUVIA_KONFIG || {};
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const fmt = new Intl.NumberFormat('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const chf = (r) => fmt.format((r || 0) / 100);
+  const isoZ = (d) => d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Zurich' });
+  const dk = (d) => d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4);
+  const WT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'], WT_LANG = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+  const MON = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+  const plusTage = (d, n) => { const x = new Date(d + 'T12:00'); x.setDate(x.getDate() + n); return x.toLocaleDateString('sv-SE'); };
+  const uhr = (ts) => new Date(ts).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Zurich' });
+  function zuerich(datum, zeit) {
+    const [j, m, t] = datum.split('-').map(Number), [h, mi] = zeit.split(':').map(Number);
+    const geraten = Date.UTC(j, m - 1, t, h, mi);
+    const teile = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Zurich', hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' }).formatToParts(new Date(geraten)).map((p) => [p.type, p.value]));
+    return new Date(geraten - (Date.UTC(+teile.year, +teile.month - 1, +teile.day, +teile.hour, +teile.minute) - geraten));
+  }
+  const minuten = (z) => { const [h, m] = z.split(':').map(Number); return h * 60 + m; };
+  const zeitText = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+
+  const q = new URLSearchParams(location.search);
+  const token = q.get('b') || '';
+  const Z = { a: null, dienst: null, tag: null, slot: null, fertig: null };
+  if (!token || !K.url) { fehlerSeite('Dieser Buchungslink ist unvollständig.'); return; }
+  const sb = window.supabase.createClient(K.url, K.key, { auth: { persistSession: false, autoRefreshToken: false } });
+
+  function fehlerSeite(t) { $('app').innerHTML = `<div class="wrap" style="padding-top:60px;text-align:center"><h1 style="font-size:24px;margin-bottom:8px">Termin buchen</h1><p class="hinweis">${esc(t)}</p></div>`; }
+
+  async function laden() {
+    const { data, error } = await sb.rpc('tb_angebot', { p_token: token });
+    if (error) { fehlerSeite('Keine Verbindung. Bitte laden Sie die Seite neu.'); return; }
+    if (data.fehler) { fehlerSeite(data.fehler); return; }
+    Z.a = data;
+    if (!Z.dienst && data.dienste.length === 1) Z.dienst = data.dienste[0];
+    document.title = 'Termin buchen · ' + (data.firma || '');
+    // Absage über den Link aus der Bestätigung
+    const ab = q.get('absage');
+    if (ab) { absageSeite(ab); return; }
+    zeichnen();
+  }
+
+  // Freie Zeiten: Öffnungszeiten im Raster, ohne belegte Zeiten, mit Vorlauf
+  function slots(tag) {
+    if (!Z.dienst) return [];
+    const a = Z.a, wtag = ((new Date(tag + 'T12:00').getDay() + 6) % 7) + 1;
+    const dauer = Number(Z.dienst.dauer) || 30, frueh = Date.now() + a.vorlauf_std * 3600e3;
+    const belegt = a.belegt.map(([b, e]) => [new Date(b).getTime(), new Date(e).getTime()]);
+    const l = [];
+    for (const [von, bis] of a.zeiten[wtag] || []) {
+      for (let m = minuten(von); m + dauer <= minuten(bis); m += a.raster) {
+        const b = zuerich(tag, zeitText(m)).getTime(), e = b + dauer * 60000;
+        if (b < frueh) continue;
+        if (belegt.some(([x, y]) => x < e && y > b)) continue;
+        l.push(zeitText(m));
+      }
+    }
+    return l;
+  }
+  function tage() {
+    const h = isoZ(new Date());
+    return [...Array(Math.min(Z.a.max_tage, 60) + 1)].map((_, i) => plusTage(h, i));
+  }
+
+  function zeichnen() {
+    const a = Z.a;
+    if (Z.fertig) { fertigSeite(); return; }
+    const alle = tage(), mitSlots = Z.dienst ? alle.filter((t) => slots(t).length) : [];
+    if (Z.dienst && (!Z.tag || !mitSlots.includes(Z.tag))) Z.tag = mitSlots[0] || null;
+    const s = Z.tag ? slots(Z.tag) : [];
+    $('app').innerHTML = `
+      <header class="oben"><div class="wrap"><small>Online-Termin</small><h1>${esc(a.firma || 'Termin buchen')}</h1>
+        <p>${esc(a.adresse)}${a.adresse && a.telefon ? ' · ' : ''}${a.telefon ? `<a href="tel:${esc(a.telefon.replace(/\s/g, ''))}">${esc(a.telefon)}</a>` : ''}</p>${a.text ? `<p style="margin-top:6px">${esc(a.text)}</p>` : ''}</div></header>
+      <main class="wrap">
+        <div class="karte hoch"><h2><i>1</i>Was möchten Sie buchen?</h2><div class="wahl">${a.dienste.map((d) => `<button data-dienst="${esc(d.id)}" class="${Z.dienst && Z.dienst.id === d.id ? 'an' : ''}"><span><b>${esc(d.name)}</b><small>${d.dauer} Minuten</small></span><span>${d.preis ? 'CHF ' + chf(d.preis) : ''}</span></button>`).join('')}</div></div>
+        ${Z.dienst ? `<div class="karte"><h2><i>2</i>Wann passt es Ihnen?</h2>
+          ${mitSlots.length ? `<div class="tage">${alle.map((t) => { const d = new Date(t + 'T12:00'); return `<button data-tag="${t}" class="${t === Z.tag ? 'an' : ''}" ${mitSlots.includes(t) ? '' : 'disabled'}><small>${WT[d.getDay()]}</small><b>${d.getDate()}</b><small>${MON[d.getMonth()]}</small></button>`; }).join('')}</div>
+            <div class="slots">${s.map((z) => `<button data-slot="${z}" class="${z === Z.slot ? 'an' : ''}">${z}</button>`).join('')}</div>` : '<p class="leer">Zurzeit sind keine freien Termine verfügbar. Bitte rufen Sie uns an.</p>'}</div>` : ''}
+        ${Z.slot ? `<div class="karte" id="formular"><h2><i>3</i>Ihre Angaben</h2>
+          <div class="zusammen">${esc(Z.dienst.name)} · ${WT_LANG[new Date(Z.tag + 'T12:00').getDay()]}, ${dk(Z.tag)} um ${Z.slot} Uhr</div>
+          <form id="form"><label>Vor- und Nachname<input name="name" autocomplete="name" required maxlength="120"></label>
+            <label>Telefon<input name="telefon" type="tel" autocomplete="tel" required maxlength="40" placeholder="079 123 45 67"></label>
+            <label>E-Mail (freiwillig)<input name="email" type="email" autocomplete="email" maxlength="160"></label>
+            <label>Bemerkung (freiwillig)<textarea name="notiz" rows="2" maxlength="500"></textarea></label>
+            <p class="fehler" id="fehler"></p>
+            <button class="gross" id="buchen">Termin verbindlich buchen</button>
+            <p class="hinweis" style="margin-top:10px;font-size:12.5px">Ihre Angaben sieht nur ${esc(a.firma || 'das Geschäft')}. Sie werden nur für diesen Termin verwendet.</p></form></div>` : ''}
+        <p class="fuss">Online-Termine mit Ordasio</p>
+      </main>`;
+  }
+
+  function fertigSeite() {
+    const f = Z.fertig, a = Z.a;
+    const absage = `${location.origin}${location.pathname}?b=${encodeURIComponent(token)}&absage=${f.id}.${f.code}`;
+    $('app').innerHTML = `<header class="oben"><div class="wrap"><small>Online-Termin</small><h1>${esc(a.firma)}</h1></div></header>
+      <main class="wrap"><div class="karte hoch fertig"><div class="haken">✓</div><h2 style="justify-content:center">Ihr Termin ist gebucht</h2>
+        <p class="zusammen">${esc(f.dienst)}<br>${WT_LANG[new Date(isoZ(new Date(f.beginn)) + 'T12:00').getDay()]}, ${dk(isoZ(new Date(f.beginn)))} um ${uhr(f.beginn)} Uhr</p>
+        <p class="hinweis" style="margin-bottom:14px">${esc(a.firma)} meldet sich, falls etwas nicht passt.${a.adresse ? ' Adresse: ' + esc(a.adresse) + '.' : ''}</p>
+        <button class="gross" data-a="ics">In meinen Kalender</button>
+        <p class="hinweis" style="margin-top:16px">Doch keine Zeit? Speichern Sie diesen Link zum Absagen:<br><a href="${esc(absage)}" style="word-break:break-all">${esc(absage)}</a></p></div></main>`;
+  }
+  function absageSeite(wert) {
+    const [id, code] = wert.split('.');
+    $('app').innerHTML = `<header class="oben"><div class="wrap"><small>Online-Termin</small><h1>${esc(Z.a.firma)}</h1></div></header>
+      <main class="wrap"><div class="karte hoch fertig"><h2 style="justify-content:center">Termin absagen?</h2><p class="hinweis" style="margin-bottom:14px">Der Termin wird freigegeben und kann von jemand anderem gebucht werden.</p>
+        <button class="gross" data-absagen="${esc(id)}" data-code="${esc(code)}">Ja, Termin absagen</button><a class="gross leicht" href="?b=${encodeURIComponent(token)}">Nein, zurück</a></div></main>`;
+  }
+  function ics() {
+    const f = Z.fertig, a = Z.a, z = (ts) => new Date(ts).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    const text = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Ordasio//Termine//DE', 'BEGIN:VEVENT', `UID:${f.id}@ordasio`, `DTSTAMP:${z(Date.now())}`, `DTSTART:${z(f.beginn)}`, `DTEND:${z(f.ende)}`,
+      `SUMMARY:${(f.dienst + ' · ' + a.firma).replace(/[,;]/g, ' ')}`, a.adresse ? `LOCATION:${a.adresse.replace(/[,;]/g, ' ')}` : '', 'END:VEVENT', 'END:VCALENDAR'].filter(Boolean).join('\r\n');
+    const l = document.createElement('a'); l.href = URL.createObjectURL(new Blob([text], { type: 'text/calendar' })); l.download = 'Termin.ics'; l.click();
+  }
+
+  document.addEventListener('click', async (ev) => {
+    const t = ev.target;
+    const d = t.closest('[data-dienst]'); if (d) { Z.dienst = Z.a.dienste.find((x) => x.id === d.dataset.dienst); Z.slot = null; zeichnen(); return; }
+    const tg = t.closest('[data-tag]'); if (tg) { Z.tag = tg.dataset.tag; Z.slot = null; zeichnen(); return; }
+    const sl = t.closest('[data-slot]'); if (sl) { Z.slot = sl.dataset.slot; zeichnen(); $('formular').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    if (t.closest('[data-a=ics]')) { ics(); return; }
+    const ab = t.closest('[data-absagen]');
+    if (ab) {
+      const { data, error } = await sb.rpc('tb_absagen', { p_token: token, p_id: ab.dataset.absagen, p_code: ab.dataset.code });
+      $('app').querySelector('.karte').innerHTML = error || !data ? '<h2 style="justify-content:center">Nicht möglich</h2><p class="hinweis">Dieser Termin ist schon abgesagt oder vorbei. Bitte rufen Sie an.</p>'
+        : '<div class="haken">✓</div><h2 style="justify-content:center">Termin abgesagt</h2><p class="hinweis">Danke für Ihre Nachricht.</p>';
+    }
+  });
+  document.addEventListener('submit', async (ev) => {
+    if (ev.target.id !== 'form') return;
+    ev.preventDefault();
+    const f = Object.fromEntries(new FormData(ev.target)), knopf = $('buchen');
+    knopf.disabled = true; knopf.textContent = 'Wird gebucht …'; $('fehler').textContent = '';
+    const { data, error } = await sb.rpc('tb_buchen', { p_token: token, p_dienst: Z.dienst.id, p_beginn: zuerich(Z.tag, Z.slot).toISOString(),
+      p_name: f.name, p_telefon: f.telefon, p_email: f.email || '', p_notiz: f.notiz || '' });
+    if (error) {
+      knopf.disabled = false; knopf.textContent = 'Termin verbindlich buchen';
+      $('fehler').textContent = String(error.message || 'Das hat nicht geklappt.');
+      if (/vergeben|kurzfristig/.test(error.message || '')) { const { data: neu } = await sb.rpc('tb_angebot', { p_token: token }); if (neu && !neu.fehler) { Z.a = neu; } }
+      return;
+    }
+    Z.fertig = data; zeichnen(); window.scrollTo(0, 0);
+  });
+  laden();
+})();
+</script>
+</body>
+</html>

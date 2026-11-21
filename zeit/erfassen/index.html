@@ -63,6 +63,13 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;background:var(--tinte);color:#fff;border-radius:100px;padding:12px 18px;font-weight:600;transition:.3s;z-index:99;pointer-events:none;max-width:90vw;text-align:center}
 .toast.da{transform:translate(-50%,0);opacity:1}
 .fuss{text-align:center;color:var(--leise);font-size:12px;margin-top:22px}
+.einsatz{border:1px solid var(--linie);border-radius:14px;padding:12px;margin-top:8px}
+.einsatz.fertig{opacity:.55}
+.einsatz b{display:block}
+.einsatz small{display:block;color:var(--text);font-size:13.5px;margin-top:2px}
+.einsatz .knoepfe{margin-top:10px;flex-wrap:wrap}
+.mini{border:0;border-radius:100px;padding:8px 12px;font-size:14px;font-weight:600;background:var(--flaeche);color:var(--blau);text-decoration:none;display:inline-flex;align-items:center}
+.mini.haupt{background:var(--blau);color:#fff}
 .loeschen{border:0;background:none;color:var(--rot);font-size:14px;margin-top:10px;width:100%;padding:8px}
 </style>
 </head>
@@ -135,6 +142,7 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
           : `<div class="zeit">${jetztZeit()}</div><p>${wt(heute())}, ${dk(heute())}</p>
             <button class="gross" data-a="start">▶ Arbeit starten</button><button class="gross leicht" data-a="neu">Stunden nachtragen</button>`}
         </div>`}
+        ${einsaetzeKarte()}
         <div class="karte">
           <div class="monat-nav"><button data-a="monatZurueck" aria-label="Monat zurück">‹</button><input type="month" id="monat" value="${Z.monat}" max="${heute().slice(0, 7)}" aria-label="Monat"><button data-a="monatVor" aria-label="Monat vor" ${Z.monat >= heute().slice(0, 7) ? 'disabled style="opacity:.35"' : ''}>›</button></div>
           <p class="hinweis" style="text-align:center">${MONATE[Number(Z.monat.slice(5, 7)) - 1]}: <b>${std(summe(imMonat))} Stunden</b> an ${tage.length} ${tage.length === 1 ? 'Tag' : 'Tagen'}</p>
@@ -144,6 +152,20 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
         <p class="fuss">Sie sehen nur Ihre eigenen Stunden. Tipp: Seite zum Home-Bildschirm hinzufügen, dann ist sie wie eine App.</p>
       </main>`;
     if (start && !Z.form) { clearInterval(Z.uhr); Z.uhr = setInterval(() => { const e = $('laeuft'); if (e) e.textContent = std((Date.now() - Number(lies(K_START))) / 60000); else clearInterval(Z.uhr); }, 15000); }
+  }
+
+  function einsaetzeKarte() {
+    const d = Z.daten, l = (d.einsaetze || []).filter((s) => s.datum >= heute() || !s.erledigt);
+    if (!l.length) return '';
+    const af = (id) => d.auftraege.find((a) => a.id === id);
+    const start = lies(K_START);
+    return `<div class="karte"><h2>Meine Einsätze</h2>${l.map((s) => `<div class="einsatz ${s.erledigt ? 'fertig' : ''}">
+      <b>${s.datum === heute() ? 'Heute' : s.datum === plusTage(heute(), 1) ? 'Morgen' : wt(s.datum) + ' ' + dk(s.datum)}${s.von ? ', ' + s.von + (s.bis ? '–' + s.bis : '') : ''}${s.erledigt ? ' · erledigt' : ''}</b>
+      <small>${esc([af(s.auftrag_id) ? af(s.auftrag_id).name + (af(s.auftrag_id).kunde ? ' · ' + af(s.auftrag_id).kunde : '') : '', s.adresse].filter(Boolean).join(' · ')) || 'Ohne Angaben'}</small>
+      ${s.notiz ? `<small>📝 ${esc(s.notiz)}</small>` : ''}
+      <div class="knoepfe">${s.adresse ? `<a class="mini" href="https://maps.apple.com/?q=${encodeURIComponent(s.adresse)}" target="_blank" rel="noopener">Route</a>` : ''}${s.kunde_telefon ? `<a class="mini" href="tel:${esc(s.kunde_telefon.replace(/\s/g, ''))}">Anrufen</a>` : ''}
+        ${!start && !s.erledigt && s.datum === heute() ? `<button class="mini haupt" data-hier-start="${s.id}">▶ Hier starten</button>` : ''}
+        <button class="mini" data-erledigt="${s.id}">${s.erledigt ? 'Doch nicht erledigt' : '✓ Erledigt'}</button></div></div>`).join('')}</div>`;
   }
 
   function formular() {
@@ -178,6 +200,12 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
 
   document.addEventListener('click', async (ev) => {
     const mo = ev.target.closest('[data-modus]'); if (mo) { const f = $('form'); if (f) { const d = Object.fromEntries(new FormData(f)); Object.assign(Z.form, d, { pause_min: d.pause ?? Z.form.pause_min, auftrag_id: d.auftrag ?? Z.form.auftrag_id }); } Z.modus = mo.dataset.modus; zeichnen(); vorschau(); return; }
+    const hs = ev.target.closest('[data-hier-start]');
+    if (hs) { const s = Z.daten.einsaetze.find((x) => x.id === hs.dataset.hierStart); setz(K_START, String(Date.now())); setz(K_START + '.auftrag', s.auftrag_id || ''); zeichnen(); toast('Uhr läuft für diesen Einsatz.'); return; }
+    const er = ev.target.closest('[data-erledigt]');
+    if (er) { const s = Z.daten.einsaetze.find((x) => x.id === er.dataset.erledigt);
+      const { error } = await sb.rpc('ze_einsatz_erledigt', { p_token: token, p_id: s.id, p_erledigt: !s.erledigt });
+      if (error) { toast(fehlerText(error)); return; } toast(s.erledigt ? 'Wieder offen' : '✓ Als erledigt gemeldet'); laden(); return; }
     const ein = ev.target.closest('[data-eintrag]');
     if (ein) {
       const e = Z.daten.eintraege.find((x) => x.id === ein.dataset.eintrag);
@@ -187,8 +215,8 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
     const a = ev.target.closest('[data-a]'); if (!a) return;
     switch (a.dataset.a) {
       case 'start': setz(K_START, String(Date.now())); zeichnen(); toast('Uhr läuft. Sie können das Handy weglegen.'); break;
-      case 'stopp': { const s = new Date(Number(lies(K_START))); formOeffnen({ datum: iso(s), von: s.toTimeString().slice(0, 5), bis: jetztZeit(), pause_min: '' }); break; }
-      case 'abbrechen': if (confirm('Laufende Uhr verwerfen? Es wird nichts gespeichert.')) { setz(K_START, null); zeichnen(); } break;
+      case 'stopp': { const s = new Date(Number(lies(K_START))); formOeffnen({ datum: iso(s), von: s.toTimeString().slice(0, 5), bis: jetztZeit(), pause_min: '', auftrag_id: lies(K_START + '.auftrag') || '' }); break; }
+      case 'abbrechen': if (confirm('Laufende Uhr verwerfen? Es wird nichts gespeichert.')) { setz(K_START, null); setz(K_START + '.auftrag', null); zeichnen(); } break;
       case 'neu': formOeffnen({ datum: heute(), von: '07:00', bis: '', pause_min: '' }); break;
       case 'zurueck': Z.form = null; zeichnen(); break;
       case 'loeschen': {
@@ -223,7 +251,7 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
     const { data, error } = await sb.rpc('ze_melden', { p_token: token, p_eintrag: eintrag });
     knopf.disabled = false; knopf.textContent = 'Speichern';
     if (error) { toast(fehlerText(error), 4500); return; }
-    if (!Z.form.id) setz(K_START, null);
+    if (!Z.form.id) { setz(K_START, null); setz(K_START + '.auftrag', null); }
     Z.form = null; Z.monat = d.datum.slice(0, 7);
     toast(`✓ ${std(data.minuten)} Stunden gespeichert`);
     laden();

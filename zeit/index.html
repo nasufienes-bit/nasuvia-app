@@ -83,7 +83,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 .link-feld{display:flex;gap:6px}
 .link-feld input{flex:1;font-family:var(--mono);font-size:12px}
 .unten-nav{display:none}
-@media(max-width:820px){.unten-nav{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(247,249,253,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--linie);padding:6px 4px calc(6px + var(--unten))}
+@media(max-width:820px){.unten-nav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(247,249,253,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--linie);padding:6px 4px calc(6px + var(--unten))}
 .unten-nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--leise);padding:4px 0}
 .unten-nav button.an{color:var(--blau);font-weight:600}
 .unten-nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}}
@@ -168,10 +168,11 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     eintraege: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
     mitarbeiter: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2a5 5 0 0 1 5.5 5.8"/>',
     auftraege: '<path d="M4 7h16v13H4z"/><path d="M9 7V4h6v3"/><path d="M4 12h16"/>',
+    plan: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
   };
-  const TABS = [['uebersicht', 'Übersicht'], ['eintraege', 'Einträge'], ['mitarbeiter', 'Mitarbeiter'], ['auftraege', 'Aufträge']];
+  const TABS = [['uebersicht', 'Übersicht'], ['plan', 'Einsatzplan'], ['eintraege', 'Einträge'], ['mitarbeiter', 'Mitarbeiter'], ['auftraege', 'Aufträge']];
   const Z = { tab: 'uebersicht', woche: montag(heute()), monat: heute().slice(0, 7), fMa: '', fAuftrag: '', fStatus: 'offen', wahl: new Set(),
-    mitarbeiter: [], auftraege: [], eintraege: [], bereit: false };
+    mitarbeiter: [], auftraege: [], eintraege: [], einsaetze: [], planWoche: montag(heute()), bereit: false };
   try { const t = sessionStorage.getItem('ze.tab'); if (TABS.some(([id]) => id === t)) Z.tab = t; } catch {}
   const q = new URLSearchParams(location.search);
   if (TABS.some(([id]) => id === q.get('tab'))) Z.tab = q.get('tab');
@@ -208,6 +209,9 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       if (data.length < 1000) break;
     }
     Z.eintraege = alle;
+    const es = await sb.from('ze_einsaetze').select('*').gte('datum', plusTage(Z.planWoche, -7)).lte('datum', plusTage(Z.planWoche, 13)).order('datum').order('von', { nullsFirst: false });
+    if (es.error) throw es.error;
+    Z.einsaetze = es.data;
   }
   async function allesLaden() {
     try { await stammLaden(); await eintraegeLaden(); Z.bereit = true; zeichnen(); }
@@ -223,7 +227,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     navZeichnen();
     if (!Z.bereit) return;
     if (!Z.mitarbeiter.length && Z.tab !== 'auftraege') { $('inhalt').innerHTML = startSeite(); return; }
-    $('inhalt').innerHTML = ({ uebersicht, eintraege, mitarbeiter, auftraege })[Z.tab]();
+    $('inhalt').innerHTML = ({ uebersicht, eintraege, mitarbeiter, auftraege, plan })[Z.tab]();
   }
 
   function startSeite() {
@@ -275,6 +279,52 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       ${mitWahl ? `<input type="checkbox" data-wahl="${e.id}" ${Z.wahl.has(e.id) ? 'checked' : ''} aria-label="Auswählen">` : ''}
       <div style="min-width:0"><b>${esc(maName(e.mitarbeiter_id))}${mitWahl ? '' : ` <span style="font-weight:400;color:var(--leise)">· ${wt(e.datum)} ${dk(e.datum)}</span>`}${e.verrechnet ? '<span class="marke-s m-ok">verrechnet</span>' : ''}</b><small>${esc(t.join(' · ')) || 'Ohne Angaben'}</small></div>
       <div class="betrag">${std(e.minuten)}</div></div>`;
+  }
+
+  /* ---------- Einsatzplan: wer geht wann zu welchem Kunden ---------- */
+  const smsText = (s) => { const a = auftrag(s.auftrag_id); const firma = (window.NASUVIA_LIZENZ && (window.NASUVIA_LIZENZ.firma || window.NASUVIA_LIZENZ.name)) || 'wir';
+    return `Guten Tag, wir bestätigen Ihren Termin am ${wt(s.datum)} ${dk(s.datum)}${s.von ? ' um ' + s.von.slice(0, 5) + ' Uhr' : ''}${a ? ' (' + a.name + ')' : ''}. ${maName(s.mitarbeiter_id).split(' ')[0]} kommt bei Ihnen vorbei. Freundliche Grüsse, ${firma}`; };
+  function plan() {
+    const tage = [...Array(7)].map((_, i) => plusTage(Z.planWoche, i));
+    return `<div class="kopf"><div><h1>Einsatzplan</h1><p class="unter">Wer geht wann zu welchem Kunden. Ihre Mitarbeiter sehen ihre Einsätze auf dem Handy.</p></div>
+        <div class="aktionen"><button class="btn haupt" data-a="einsatzNeu">+ Einsatz planen</button></div></div>
+      <div class="card">
+        <div class="kopf" style="margin-bottom:6px"><h2 style="margin:0">${dkurz(tage[0])} bis ${dk(tage[6])}</h2>
+          <div class="woche-nav"><button class="btn klein" data-a="planZurueck" aria-label="Woche zurück">‹</button><button class="btn klein" data-a="planHeute">Diese Woche</button><button class="btn klein" data-a="planVor" aria-label="Woche vor">›</button></div></div>
+        ${tage.map((t) => { const l = Z.einsaetze.filter((s) => s.datum === t);
+          return `<div class="tag-titel" ${t === heute() ? 'style="color:var(--elektrik)"' : ''}><span>${wt(t)} ${dk(t)}${t === heute() ? ' · heute' : ''}</span><span>${l.length || ''}</span></div>` +
+            (l.length ? l.map((s) => `<div class="zeile klick" data-einsatz="${s.id}"><div style="min-width:0"><b>${s.von ? s.von.slice(0, 5) + (s.bis ? '–' + s.bis.slice(0, 5) : '') + ' · ' : ''}${esc(maName(s.mitarbeiter_id))}${s.erledigt ? '<span class="marke-s m-ok">erledigt</span>' : ''}</b>
+              <small>${esc([auftragText(s.auftrag_id), s.adresse, s.notiz].filter(Boolean).join(' · ')) || 'Ohne Angaben'}</small></div>
+              <div class="aktionen">${s.kunde_telefon ? `<a class="btn klein" href="sms:${esc(s.kunde_telefon.replace(/\s/g, ''))}?&body=${encodeURIComponent(smsText(s))}" data-stopp>SMS an Kunde</a>` : ''}</div></div>`).join('')
+            : '<p class="leer" style="padding:4px 0 8px;font-size:13px">Nichts geplant</p>'); }).join('')}
+      </div>
+      <p class="hinweis abstand">Mit „SMS an Kunde“ öffnet sich auf dem Handy eine fertige Terminbestätigung. Sie müssen nur noch auf Senden tippen.</p>`;
+  }
+  function einsatzDialog(s = {}) {
+    const aktive = Z.mitarbeiter.filter((m) => m.aktiv || m.id === s.mitarbeiter_id);
+    if (!aktive.length) { toast('Zuerst einen Mitarbeiter erfassen'); return; }
+    const f = dialog(`<h3>${s.id ? 'Einsatz bearbeiten' : 'Einsatz planen'}</h3>
+      <div class="zwei"><label>Mitarbeiter<select name="ma" required>${aktive.map((m) => `<option value="${m.id}" ${m.id === s.mitarbeiter_id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label>
+      <label>Datum<input type="date" name="datum" value="${s.datum || heute()}" required></label></div>
+      <div class="zwei"><label>Von<input type="time" name="von" value="${(s.von || '').slice(0, 5)}"></label><label>Bis (ungefähr)<input type="time" name="bis" value="${(s.bis || '').slice(0, 5)}"></label></div>
+      <label>Auftrag<select name="auftrag"><option value="">Ohne Auftrag</option>${Z.auftraege.filter((a) => a.aktiv || a.id === s.auftrag_id).map((a) => `<option value="${a.id}" ${a.id === s.auftrag_id ? 'selected' : ''}>${esc(a.name)}${a.kunde ? ' · ' + esc(a.kunde) : ''}</option>`).join('')}</select></label>
+      <label>Adresse<input type="text" name="adresse" value="${esc(s.adresse || '')}" maxlength="200" placeholder="Strasse, PLZ Ort"></label>
+      <label>Telefon des Kunden (für die SMS)<input type="tel" name="tel" value="${esc(s.kunde_telefon || '')}" maxlength="40" placeholder="079 123 45 67"></label>
+      <label>Notiz für den Mitarbeiter<input type="text" name="notiz" value="${esc(s.notiz || '')}" maxlength="500" placeholder="z. B. Schlüssel beim Nachbarn"></label>
+      ${s.id ? `<label style="display:flex;gap:8px;align-items:center;font-size:14px;color:var(--tinte)"><input type="checkbox" name="erledigt" ${s.erledigt ? 'checked' : ''}> Erledigt</label>` : ''}
+      <div class="fuss">${s.id ? '<button type="button" class="btn rot" data-a="einsatzLoeschen">Löschen</button>' : '<span></span>'}<span class="aktionen"><button type="button" class="btn" data-a="zu">Abbrechen</button><button class="btn haupt">Speichern</button></span></div>`);
+    f.dataset.einsatz = s.id || '';
+    f.onsubmit = async (ev) => {
+      ev.preventDefault();
+      const d = new FormData(f);
+      const zeile = { mitarbeiter_id: d.get('ma'), datum: d.get('datum'), von: d.get('von') || null, bis: d.get('bis') || null, auftrag_id: d.get('auftrag') || null,
+        adresse: String(d.get('adresse') || '').trim(), kunde_telefon: String(d.get('tel') || '').trim(), notiz: String(d.get('notiz') || '').trim() };
+      if (s.id) zeile.erledigt = d.get('erledigt') === 'on';
+      // Adresse aus dem Auftrag übernehmen, wenn leer
+      const r = s.id ? await sb.from('ze_einsaetze').update(zeile).eq('id', s.id) : await sb.from('ze_einsaetze').insert(zeile);
+      if (r.error) { toast(fehlerText(r.error), 6000); return; }
+      dlg.close(); await eintraegeLaden(); zeichnen(); toast(s.id ? 'Gespeichert' : 'Einsatz geplant');
+    };
   }
 
   /* ---------- Einträge: Monat mit Filter ---------- */
@@ -430,9 +480,19 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const km = l.reduce((s, e) => s + Number(e.km || 0), 0);
     if (km) positionen.push({ text: `Fahrspesen ${km} km`, menge: String(km), preis: '0.70' });
     const af = [...new Set(l.map((e) => e.auftrag_id).filter(Boolean))].map(auftrag).filter(Boolean);
-    if (!confirm(`${positionen.length} ${positionen.length === 1 ? 'Position' : 'Positionen'} (${std(l.reduce((s, e) => s + e.minuten, 0))} Std.) in eine neue Rechnung übernehmen?\n\nDie Einträge werden als verrechnet markiert.${ohneAnsatz.length ? `\n\nOhne Ansatz: ${ohneAnsatz.join(', ')}. Den Preis tragen Sie in der Rechnung ein.` : ''}`)) return;
+    // Material aus dem Lager, das für diese Aufträge verbraucht und noch nicht verrechnet wurde
+    let material = [];
+    if (af.length) {
+      const r = await sb.from('lg_bewegungen').select('id,menge,artikel_id,lg_artikel(name,nummer,verkauf_rappen,einheit)').in('auftrag_id', af.map((a) => a.id)).eq('art', 'ausgang').eq('verrechnet', false);
+      if (!r.error) material = r.data || [];
+      const proArtikel = new Map();
+      for (const m of material) { const x = proArtikel.get(m.artikel_id) || { a: m.lg_artikel || {}, menge: 0 }; x.menge += Math.abs(Number(m.menge)); proArtikel.set(m.artikel_id, x); }
+      for (const { a, menge } of proArtikel.values()) positionen.push({ text: (a.name || 'Material') + (a.nummer ? ` (${a.nummer})` : ''), menge: String(Math.round(menge * 100) / 100), preis: a.verkauf_rappen ? (a.verkauf_rappen / 100).toFixed(2) : '' });
+    }
+    if (!confirm(`${positionen.length} ${positionen.length === 1 ? 'Position' : 'Positionen'} (${std(l.reduce((s, e) => s + e.minuten, 0))} Std.) in eine neue Rechnung übernehmen?\n\n${material.length ? `\nDazu ${material.length} Material-Bezüge aus dem Lager.` : ''}\n\nDie Einträge werden als verrechnet markiert.${ohneAnsatz.length ? `\n\nOhne Ansatz: ${ohneAnsatz.join(', ')}. Den Preis tragen Sie in der Rechnung ein.` : ''}`)) return;
     const { error } = await sb.from('ze_eintraege').update({ verrechnet: true }).in('id', l.map((e) => e.id));
     if (error) { toast(fehlerText(error), 6000); return; }
+    if (material.length) await sb.from('lg_bewegungen').update({ verrechnet: true }).in('id', material.map((m) => m.id));
     try { sessionStorage.setItem('ordasio.zeit.rechnung', JSON.stringify({ positionen, projekt: af.map((a) => a.name).join(', '), kunde: af.length === 1 ? af[0].kunde : '' })); } catch {}
     location.href = '../rechnungen/';
   }
@@ -497,6 +557,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       const l = Z.eintraege.filter((e) => e.auftrag_id === Z.fAuftrag && !e.verrechnet); if (l.length) Z.monat = l[0].datum.slice(0, 7);
       Z.wahl = new Set(l.filter((e) => e.datum.slice(0, 7) === Z.monat).map((e) => e.id)); zeichnen(); return; }
     const mw = t.closest('[data-ma-woche]'); if (mw) { Z.tab = 'eintraege'; Z.fMa = mw.dataset.maWoche; Z.fStatus = 'alle'; Z.monat = Z.woche.slice(0, 7); zeichnen(); return; }
+    if (t.closest('[data-stopp]')) return;
+    const es = t.closest('[data-einsatz]'); if (es) { einsatzDialog(Z.einsaetze.find((s) => s.id === es.dataset.einsatz)); return; }
     const ein = t.closest('[data-eintrag]'); if (ein && !t.matches('input')) { eintragDialog(Z.eintraege.find((e) => e.id === ein.dataset.eintrag)); return; }
     const m = t.closest('[data-ma]'); if (m) { maDialog(ma(m.dataset.ma)); return; }
     const af = t.closest('[data-af]'); if (af) { afDialog(auftrag(af.dataset.af)); return; }
@@ -508,6 +570,16 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       case 'maNeu': maDialog(); break;
       case 'afNeu': afDialog(); break;
       case 'eintragNeu': eintragDialog(); break;
+      case 'einsatzNeu': einsatzDialog(); break;
+      case 'planZurueck': Z.planWoche = plusTage(Z.planWoche, -7); await eintraegeLaden(); zeichnen(); break;
+      case 'planVor': Z.planWoche = plusTage(Z.planWoche, 7); await eintraegeLaden(); zeichnen(); break;
+      case 'planHeute': Z.planWoche = montag(heute()); await eintraegeLaden(); zeichnen(); break;
+      case 'einsatzLoeschen': {
+        if (!confirm('Diesen Einsatz löschen?')) break;
+        const { error } = await sb.from('ze_einsaetze').delete().eq('id', form.dataset.einsatz);
+        if (error) { toast(fehlerText(error)); break; }
+        dlg.close(); await eintraegeLaden(); zeichnen(); toast('Gelöscht'); break;
+      }
       case 'lohn': lohnDialog(); break;
       case 'rapport': rapport(); break;
       case 'csv': csv(); break;

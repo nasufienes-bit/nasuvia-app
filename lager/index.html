@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Lager und Material</title>
+<meta name="theme-color" content="#F4FAF6" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Lager" />
+<link rel="apple-touch-icon" href="../icon-180.png" />
+<link rel="stylesheet" href="../schrift.css" />
+<script src="../konfig.js"></script>
+<script src="../lib/supabase.js"></script>
+<style>
+:root{--papier:#F4FAF6;--flaeche:#E8F4EE;--karte:#fff;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--gruen:#0E9F6E;--rot:#E5484D;--linie:rgba(11,59,46,.14);--schatten:0 1px 2px rgba(12,18,38,.04),0 14px 34px -22px rgba(11,59,46,.4);--display:'League Spartan',-apple-system,system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace;--unten:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:15px/1.5 var(--display);background:var(--papier);color:var(--tinte);min-height:100vh;padding-bottom:calc(80px + var(--unten))}
+[hidden]{display:none!important}
+button{font:inherit;cursor:pointer}
+.kopfzeile{position:sticky;top:0;z-index:20;background:rgba(247,249,253,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--linie)}
+.kopfzeile .wrap{display:flex;align-items:center;gap:12px;height:62px}
+.kopfzeile .nv-knopf{margin-right:4px}
+.marke{display:flex;align-items:center;gap:8px;font-weight:700;font-size:19px;letter-spacing:-.02em;white-space:nowrap}
+.marke i{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--blau),var(--elektrik));display:grid;place-items:center}
+.marke i svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.tabs{margin-left:auto;display:flex;gap:2px}
+.tabs button{border:0;background:none;padding:8px 12px;border-radius:100px;color:var(--text);font-weight:500}
+.tabs button.an{background:#fff;color:var(--blau);font-weight:600;box-shadow:var(--schatten)}
+.wrap{max-width:1100px;margin:0 auto;padding:0 18px}
+main{padding:22px 0 30px}
+h1{font-size:30px;letter-spacing:-.02em;line-height:1.1}
+.unter{color:var(--text);margin-top:4px}
+.kopf{display:flex;justify-content:space-between;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:18px}
+.aktionen{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:0;border-radius:100px;padding:10px 16px;font-weight:600;background:#fff;color:var(--blau);box-shadow:var(--schatten);white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn.haupt{background:var(--blau);color:#fff}
+.btn.klein{padding:6px 11px;font-size:13px}
+.btn.rot{color:var(--rot)}
+.btn:disabled{opacity:.45;cursor:default}
+.raster{display:grid;gap:14px}
+.r4{grid-template-columns:repeat(4,minmax(0,1fr))}.r2{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:820px){.r4,.r2{grid-template-columns:1fr 1fr}.tabs{display:none}}
+@media(max-width:520px){.r2{grid-template-columns:1fr}}
+.card{background:var(--karte);border-radius:18px;padding:18px;box-shadow:var(--schatten)}
+.card h2{font-size:17px;margin-bottom:10px}
+.abstand{margin-top:14px}
+.zahl .l{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--leise)}
+.zahl .w{font-size:25px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.zahl .k{font-size:12.5px;color:var(--leise)}
+.leer{color:var(--leise);padding:10px 0}
+.hinweis{color:var(--text);font-size:13.5px}
+.zeile{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--linie)}
+.zeile:last-child{border-bottom:0}
+.zeile b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zeile small{color:var(--leise);font-size:12.5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zeile .betrag{font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.zeile.klick{cursor:pointer}
+.zeile.mit-wahl{grid-template-columns:auto minmax(0,1fr) auto}
+.zeile input[type=checkbox]{width:18px;height:18px;accent-color:var(--blau)}
+.tag-titel{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--leise);padding:14px 0 2px;display:flex;justify-content:space-between}
+.marke-s{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;border-radius:100px;padding:2px 8px;margin-left:6px;vertical-align:1px}
+.m-offen{background:rgba(245,181,61,.2);color:#8a5a00}.m-ok{background:rgba(14,159,110,.12);color:#0A7150}.m-blau{background:rgba(14,122,85,.1);color:var(--blau)}.m-grau{background:var(--flaeche);color:var(--leise)}
+.filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+select,input[type=text],input[type=date],input[type=month],input[type=time],input[type=number],input[type=search],textarea{font:inherit;border:1px solid rgba(11,59,46,.26);border-radius:10px;padding:8px 11px;background:#fff;color:var(--tinte);min-width:0}
+.woche{overflow-x:auto}
+.woche table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;min-width:640px}
+.woche th{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--leise);font-weight:500;text-align:right;padding:8px 6px;border-bottom:1px solid var(--linie)}
+.woche th:first-child,.woche td:first-child{text-align:left}
+.woche td{padding:10px 6px;border-bottom:1px solid var(--linie);text-align:right}
+.woche td.null{color:#C4C8D4}
+.woche tr:last-child td{border-bottom:0;font-weight:700}
+.woche .heute{background:rgba(14,122,85,.06)}
+.woche-nav{display:inline-flex;align-items:center;gap:6px}
+.woche-nav b{min-width:170px;text-align:center}
+dialog{border:0;border-radius:20px;padding:0;width:min(520px,calc(100% - 20px));box-shadow:0 40px 100px -30px rgba(12,18,38,.5)}
+dialog::backdrop{background:rgba(12,18,38,.35)}
+.dlg{padding:20px;display:grid;gap:10px;max-height:calc(100vh - 40px);overflow:auto}
+.dlg h3{font-size:20px}
+.dlg label{display:grid;gap:4px;font-size:13px;color:var(--text)}
+.dlg .zwei{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dlg .drei{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.dlg .fuss{display:flex;justify-content:space-between;gap:8px;margin-top:6px;flex-wrap:wrap}
+.link-feld{display:flex;gap:6px}
+.link-feld input{flex:1;font-family:var(--mono);font-size:12px}
+.unten-nav{display:none}
+@media(max-width:820px){.unten-nav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(247,249,253,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--linie);padding:6px 4px calc(6px + var(--unten))}
+.unten-nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--leise);padding:4px 0}
+.unten-nav button.an{color:var(--blau);font-weight:600}
+.unten-nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}}
+.toast{position:fixed;left:50%;bottom:calc(90px + var(--unten));transform:translate(-50%,20px);opacity:0;background:var(--tinte);color:#fff;border-radius:100px;padding:11px 18px;font-weight:600;transition:.3s;z-index:99;pointer-events:none;max-width:90vw;text-align:center}
+.toast.da{transform:translate(-50%,0);opacity:1}
+.start{text-align:center;padding:40px 18px}
+.start .gross{width:74px;height:74px;border-radius:22px;margin:0 auto 16px;background:linear-gradient(135deg,var(--blau),var(--elektrik));display:grid;place-items:center}
+.start .gross svg{width:38px;height:38px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.start h2{font-size:24px;margin-bottom:6px}
+.start p{max-width:540px;margin:0 auto 18px;color:var(--text)}
+.schritte{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;text-align:left;max-width:820px;margin:22px auto 0}
+.schritte div{background:#fff;border-radius:16px;padding:16px;box-shadow:var(--schatten);font-size:14px;color:var(--text)}
+.schritte b{display:block;color:var(--tinte);font-size:15px;margin-bottom:2px}
+@media(max-width:720px){.schritte{grid-template-columns:1fr}}
+.info-box{background:rgba(14,122,85,.07);border-radius:14px;padding:12px 14px;font-size:13.5px;color:var(--blau)}
+.auswahl-leiste{position:sticky;bottom:calc(76px + var(--unten));z-index:15;display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--tinte);color:#fff;border-radius:16px;padding:10px 12px;margin-top:12px;box-shadow:0 20px 40px -20px rgba(12,18,38,.6)}
+.auswahl-leiste .btn{box-shadow:none}
+@media(min-width:821px){.auswahl-leiste{bottom:16px}}
+[data-suche-hier]{display:flex;margin-left:8px}@media(max-width:820px){[data-suche-hier]{margin-left:auto}}
+@media(max-width:520px){.zahl .w{font-size:20px}.card{padding:14px}h1{font-size:26px}.dlg .drei{grid-template-columns:1fr 1fr}}
+/* Stundenrapport zum Drucken */
+#rapport{display:none}
+@media print{
+  body{background:#fff;padding:0}
+  body > *:not(#rapport){display:none!important}
+  #rapport{display:block;padding:10mm 4mm;font-size:11pt;color:#000}
+  #rapport h1{font-size:20pt;margin-bottom:2mm}
+  #rapport p{margin-bottom:4mm;color:#333}
+  #rapport table{width:100%;border-collapse:collapse}
+  #rapport th,#rapport td{border-bottom:1px solid #ccc;padding:2mm 1.5mm;text-align:left;vertical-align:top}
+  #rapport td.r,#rapport th.r{text-align:right}
+  #rapport tfoot td{font-weight:700;border-top:2px solid #000;border-bottom:0}
+  #rapport .unterschrift{display:flex;gap:20mm;margin-top:18mm}
+  #rapport .unterschrift div{flex:1;border-top:1px solid #000;padding-top:2mm;font-size:9pt}
+  .lz-pille,.nv-schwebend{display:none!important}
+}
+.plus{color:var(--gruen)}
+.warn{color:var(--rot);font-weight:700}
+.korb{display:grid;gap:8px;max-height:46vh;overflow:auto}
+.korb .zeile{grid-template-columns:minmax(0,1fr) 92px}
+.korb input{width:100%;text-align:right}
+</style>
+</head>
+<body>
+<header class="kopfzeile"><div class="wrap">
+  <div class="marke"><i><svg viewBox="0 0 24 24"><path d="M3 8 12 3l9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></i>Lager</div>
+  <nav class="tabs" id="tabs"></nav>
+  <span data-suche-hier></span>
+</div></header>
+<main class="wrap" id="inhalt"><p class="leer">Wird geladen …</p></main>
+<nav class="unten-nav" id="untenNav" style="grid-template-columns:repeat(3,1fr)"></nav>
+<dialog id="dlg"></dialog>
+<div class="toast" id="toast"></div>
+<div id="rapport"></div>
+<script src="../lizenz.js" data-produkt="lager"></script>
+<script src="../suche.js"></script>
+<script src="../navi.js" data-hier="lager" data-einfuegen=".kopfzeile .wrap"></script>
+<script>
+(() => {
+  'use strict';
+  const K = window.NASUVIA_KONFIG || {};
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const fmt = new Intl.NumberFormat('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const chf = (r) => fmt.format((r || 0) / 100);
+  const zahl = (n) => { n = Number(n) || 0; return Number.isInteger(n) ? n.toLocaleString('de-CH') : n.toLocaleString('de-CH', { maximumFractionDigits: 2 }); };
+  const heute = () => new Date().toLocaleDateString('sv-SE');
+  const dk = (d) => (d ? d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4) : '');
+  const betragLesen = (t) => { const n = Number(String(t || '').replace(/[’'\s]/g, '').replace(/^CHF/i, '').replace(',', '.')); return Number.isFinite(n) ? Math.round(n * 100) : 0; };
+  const mengeLesen = (t) => { const n = Number(String(t || '').replace(/[’'\s]/g, '').replace(',', '.')); return Number.isFinite(n) ? n : 0; };
+  const toast = (t, ms = 2800) => { const e = $('toast'); e.textContent = t; e.classList.add('da'); clearTimeout(toast.z); toast.z = setTimeout(() => e.classList.remove('da'), ms); };
+  const fehlerText = (e) => String((e && e.message) || e || 'Unbekannter Fehler');
+  const ICON = {
+    artikel: '<path d="M3 8 12 3l9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
+    bewegungen: '<path d="M7 7h13l-3-3M17 17H4l3 3"/>',
+    bestellen: '<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h12L22 7H6.2"/>',
+  };
+  const TABS = [['artikel', 'Artikel'], ['bewegungen', 'Bewegungen'], ['bestellen', 'Nachbestellen']];
+  const ART = { eingang: 'Eingang', ausgang: 'Ausgang', korrektur: 'Korrektur' };
+  const Z = { tab: 'artikel', suche: '', fAuftrag: '', artikel: [], bewegungen: [], auftraege: [], bereit: false };
+  const q = new URLSearchParams(location.search);
+  if (TABS.some(([id]) => id === q.get('tab'))) Z.tab = q.get('tab');
+
+  if (!K.produkt) { $('inhalt').innerHTML = '<div class="start"><h2>Lager und Material</h2><p>Das Lager gibt es in der Verkaufsversion (Ordasio).</p></div>'; return; }
+  const sb = window.supabase.createClient(K.url, K.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: K.speicher } });
+  const art = (id) => Z.artikel.find((a) => a.id === id) || {};
+  const auftrag = (id) => Z.auftraege.find((a) => a.id === id);
+  const knapp = (a) => a.aktiv && Number(a.mindest) > 0 && Number(a.bestand) <= Number(a.mindest);
+
+  async function laden() {
+    try {
+      const [a, b, z] = await Promise.all([
+        sb.from('lg_artikel').select('*').order('aktiv', { ascending: false }).order('name'),
+        sb.from('lg_bewegungen').select('*').order('datum', { ascending: false }).order('erstellt', { ascending: false }).limit(1500),
+        sb.from('ze_auftraege').select('id,name,kunde,aktiv').order('aktiv', { ascending: false }).order('name'),
+      ]);
+      for (const r of [a, b, z]) if (r.error) throw r.error;
+      Z.artikel = a.data; Z.bewegungen = b.data; Z.auftraege = z.data; Z.bereit = true; zeichnen();
+    } catch (e) { $('inhalt').innerHTML = `<div class="card"><h2>Daten konnten nicht geladen werden</h2><p class="hinweis">${esc(fehlerText(e))}</p></div>`; }
+  }
+  function zeichnen() {
+    $('tabs').innerHTML = TABS.map(([id, n]) => `<button class="${Z.tab === id ? 'an' : ''}" data-tab="${id}">${n}</button>`).join('');
+    $('untenNav').innerHTML = TABS.map(([id, n]) => `<button class="${Z.tab === id ? 'an' : ''}" data-tab="${id}"><svg viewBox="0 0 24 24">${ICON[id]}</svg>${n}</button>`).join('');
+    if (!Z.bereit) return;
+    if (!Z.artikel.length) { $('inhalt').innerHTML = startSeite(); return; }
+    $('inhalt').innerHTML = ({ artikel: artikelAnsicht, bewegungen: bewegungenAnsicht, bestellen: bestellenAnsicht })[Z.tab]();
+  }
+  const startSeite = () => `<div class="start"><div class="gross"><svg viewBox="0 0 24 24">${ICON.artikel}</svg></div><h2>Immer wissen, was am Lager ist</h2>
+    <p>Erfassen Sie Ihr Material mit Einkaufs- und Verkaufspreis. Eingänge und Verbrauch führen den Bestand nach, Sie sehen sofort, was nachbestellt werden muss, und verrechnen Material mit einem Klick.</p>
+    <button class="btn haupt" data-a="artikelNeu">+ Ersten Artikel erfassen</button></div>`;
+
+  function artikelAnsicht() {
+    const s = Z.suche.toLowerCase();
+    const l = Z.artikel.filter((a) => !s || `${a.name} ${a.nummer} ${a.lieferant}`.toLowerCase().includes(s));
+    const wert = Z.artikel.filter((a) => a.aktiv).reduce((x, a) => x + Math.max(0, Number(a.bestand)) * a.einkauf_rappen, 0);
+    return `<div class="kopf"><div><h1>Artikel</h1><p class="unter">${Z.artikel.filter((a) => a.aktiv).length} Artikel · Lagerwert CHF ${chf(wert)} (Einkauf)</p></div>
+        <div class="aktionen"><button class="btn" data-a="verrechnen">Material verrechnen</button><button class="btn haupt" data-a="artikelNeu">+ Artikel</button></div></div>
+      <div class="raster r4">
+        <div class="card zahl"><div class="l">Artikel</div><div class="w">${Z.artikel.filter((a) => a.aktiv).length}</div><div class="k">aktiv</div></div>
+        <div class="card zahl"><div class="l">Lagerwert</div><div class="w">${chf(wert)}</div><div class="k">CHF zum Einkaufspreis</div></div>
+        <div class="card zahl"><div class="l">Knapp</div><div class="w ${Z.artikel.some(knapp) ? 'warn' : ''}">${Z.artikel.filter(knapp).length}</div><div class="k">unter Mindestbestand</div></div>
+        <div class="card zahl"><div class="l">Diesen Monat</div><div class="w">${Z.bewegungen.filter((b) => b.datum.slice(0, 7) === heute().slice(0, 7) && b.art === 'ausgang').length}</div><div class="k">Ausgänge</div></div>
+      </div>
+      <div class="filter abstand"><input type="search" data-f="suche" value="${esc(Z.suche)}" placeholder="Artikel suchen …" style="flex:1;max-width:360px"></div>
+      <div class="card">${l.length ? l.map((a) => `<div class="zeile klick" data-artikel="${a.id}"><div style="min-width:0"><b>${esc(a.name)}${a.aktiv ? '' : '<span class="marke-s m-grau">inaktiv</span>'}${knapp(a) ? '<span class="marke-s m-offen">nachbestellen</span>' : ''}</b>
+          <small>${esc([a.nummer, a.lieferant, a.verkauf_rappen ? 'Verkauf CHF ' + chf(a.verkauf_rappen) + '/' + a.einheit : ''].filter(Boolean).join(' · ')) || '&nbsp;'}</small></div>
+          <div class="aktionen"><button class="btn klein" data-schnell="eingang:${a.id}" aria-label="Eingang">+</button><button class="btn klein" data-schnell="ausgang:${a.id}" aria-label="Ausgang">−</button><span class="betrag ${Number(a.bestand) < 0 || knapp(a) ? 'warn' : ''}" style="min-width:76px">${zahl(a.bestand)} ${esc(a.einheit)}</span></div></div>`).join('')
+        : '<p class="leer">Nichts gefunden.</p>'}</div>`;
+  }
+  function bewegungenAnsicht() {
+    const l = Z.bewegungen.filter((b) => !Z.fAuftrag || b.auftrag_id === Z.fAuftrag);
+    const offenWert = l.filter((b) => b.art === 'ausgang' && b.auftrag_id && !b.verrechnet).reduce((x, b) => x + Math.round(Math.abs(b.menge) * (art(b.artikel_id).verkauf_rappen || 0)), 0);
+    return `<div class="kopf"><div><h1>Bewegungen</h1><p class="unter">Eingänge, Verbrauch und Korrekturen. Material für einen Auftrag wird mit dessen Stunden verrechnet.</p></div>
+        <div class="aktionen"><button class="btn haupt" data-a="bewegungNeu">+ Bewegung</button></div></div>
+      <div class="filter"><select data-f="fAuftrag"><option value="">Alle Aufträge</option>${Z.auftraege.map((a) => `<option value="${a.id}" ${Z.fAuftrag === a.id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select>
+        ${Z.fAuftrag && offenWert ? `<span class="hinweis" style="align-self:center">Noch nicht verrechnet: CHF ${chf(offenWert)}</span>` : ''}</div>
+      <div class="card">${l.length ? l.map((b) => { const a = art(b.artikel_id); return `<div class="zeile klick" data-bewegung="${b.id}"><div style="min-width:0"><b>${esc(a.name || 'Gelöschter Artikel')} <span style="font-weight:400;color:var(--leise)">· ${dk(b.datum)}</span>${b.verrechnet ? '<span class="marke-s m-ok">verrechnet</span>' : ''}</b>
+          <small>${esc([ART[b.art], auftrag(b.auftrag_id) ? auftrag(b.auftrag_id).name : '', b.notiz].filter(Boolean).join(' · '))}</small></div>
+          <div class="betrag ${b.menge < 0 ? '' : 'plus'}">${b.menge > 0 ? '+' : ''}${zahl(b.menge)} ${esc(a.einheit || '')}</div></div>`; }).join('') : '<p class="leer">Noch keine Bewegungen.</p>'}</div>`;
+  }
+  function bestellenAnsicht() {
+    const l = Z.artikel.filter(knapp);
+    const gruppen = {};
+    for (const a of l) (gruppen[a.lieferant || 'Ohne Lieferant'] = gruppen[a.lieferant || 'Ohne Lieferant'] || []).push(a);
+    return `<div class="kopf"><div><h1>Nachbestellen</h1><p class="unter">Artikel, deren Bestand den Mindestbestand erreicht hat, nach Lieferant.</p></div>
+        <div class="aktionen">${l.length ? '<button class="btn" data-a="bestellDruck">Bestellliste drucken</button>' : ''}</div></div>
+      ${l.length ? Object.entries(gruppen).map(([lf, arr]) => {
+        const text = `Guten Tag\n\nGerne bestellen wir:\n\n${arr.map((a) => `- ${vorschlag(a)} ${a.einheit} ${a.name}${a.nummer ? ' (Art.-Nr. ' + a.nummer + ')' : ''}`).join('\n')}\n\nFreundliche Grüsse`;
+        return `<div class="card abstand"><div class="kopf" style="margin-bottom:6px"><h2 style="margin:0">${esc(lf)}</h2><a class="btn klein" href="mailto:?subject=${encodeURIComponent('Bestellung')}&body=${encodeURIComponent(text)}">Per E-Mail bestellen</a></div>
+          ${arr.map((a) => `<div class="zeile klick" data-artikel="${a.id}"><div style="min-width:0"><b>${esc(a.name)}</b><small>Bestand ${zahl(a.bestand)} · Mindestens ${zahl(a.mindest)} ${esc(a.einheit)}</small></div><div class="betrag">${zahl(vorschlag(a))} ${esc(a.einheit)}</div></div>`).join('')}</div>`; }).join('')
+        : '<div class="card"><p class="leer">Alles genügend an Lager. 👍</p></div>'}
+      <p class="hinweis abstand">Vorschlag: so viel, dass der Bestand das Doppelte des Mindestbestands erreicht. Ist die Ware da, buchen Sie sie mit „+“ als Eingang.</p>`;
+  }
+  const vorschlag = (a) => Math.max(1, Math.ceil(Number(a.mindest) * 2 - Number(a.bestand)));
+
+  /* ---------- Dialoge ---------- */
+  const dlg = $('dlg');
+  const dialog = (html) => { dlg.innerHTML = `<form class="dlg" method="dialog">${html}</form>`; dlg.showModal(); return dlg.querySelector('form'); };
+  function artikelDialog(a = {}) {
+    const f = dialog(`<h3>${a.id ? 'Artikel bearbeiten' : 'Neuer Artikel'}</h3>
+      <label>Bezeichnung<input type="text" name="name" value="${esc(a.name || '')}" required maxlength="160" placeholder="z. B. Kabel T13 3x1.5 mm²"></label>
+      <div class="zwei"><label>Artikel-Nr.<input type="text" name="nummer" value="${esc(a.nummer || '')}" maxlength="60"></label><label>Einheit<input type="text" name="einheit" value="${esc(a.einheit || 'Stk.')}" maxlength="20" placeholder="Stk., m, kg"></label></div>
+      <div class="zwei"><label>Einkaufspreis (CHF)<input type="text" inputmode="decimal" name="ek" value="${a.einkauf_rappen ? chf(a.einkauf_rappen) : ''}"></label><label>Verkaufspreis (CHF)<input type="text" inputmode="decimal" name="vk" value="${a.verkauf_rappen ? chf(a.verkauf_rappen) : ''}"></label></div>
+      <div class="zwei">${a.id ? '' : '<label>Anfangsbestand<input type="text" inputmode="decimal" name="bestand" placeholder="0"></label>'}<label>Mindestbestand<input type="text" inputmode="decimal" name="mindest" value="${Number(a.mindest) || ''}" placeholder="0 = keine Warnung"></label></div>
+      <label>Lieferant<input type="text" name="lieferant" value="${esc(a.lieferant || '')}" maxlength="120" list="lieferanten"><datalist id="lieferanten">${[...new Set(Z.artikel.map((x) => x.lieferant).filter(Boolean))].map((x) => `<option value="${esc(x)}">`).join('')}</datalist></label>
+      ${a.id ? `<label style="display:flex;gap:8px;align-items:center;font-size:14px;color:var(--tinte)"><input type="checkbox" name="aktiv" ${a.aktiv ? 'checked' : ''}> Aktiv</label>` : ''}
+      <div class="fuss">${a.id ? '<button type="button" class="btn rot" data-a="artikelLoeschen">Löschen</button>' : '<span></span>'}<span class="aktionen"><button type="button" class="btn" data-a="zu">Abbrechen</button><button class="btn haupt">Speichern</button></span></div>`);
+    f.dataset.artikel = a.id || '';
+    f.onsubmit = async (ev) => {
+      ev.preventDefault();
+      const d = new FormData(f);
+      const zeile = { name: String(d.get('name')).trim(), nummer: String(d.get('nummer') || '').trim(), einheit: String(d.get('einheit') || 'Stk.').trim() || 'Stk.',
+        einkauf_rappen: betragLesen(d.get('ek')), verkauf_rappen: betragLesen(d.get('vk')), mindest: Math.max(0, mengeLesen(d.get('mindest'))), lieferant: String(d.get('lieferant') || '').trim() };
+      if (a.id) zeile.aktiv = d.get('aktiv') === 'on';
+      const r = a.id ? await sb.from('lg_artikel').update(zeile).eq('id', a.id).select().single() : await sb.from('lg_artikel').insert(zeile).select().single();
+      if (r.error) { toast(fehlerText(r.error), 6000); return; }
+      const start = mengeLesen(d.get('bestand'));
+      if (!a.id && start) await sb.from('lg_bewegungen').insert({ artikel_id: r.data.id, menge: start, art: 'korrektur', notiz: 'Anfangsbestand' });
+      dlg.close(); await laden(); toast('Gespeichert');
+    };
+  }
+  function bewegungDialog(vorgabe = {}) {
+    const aktive = Z.artikel.filter((a) => a.aktiv);
+    if (!aktive.length) { toast('Zuerst einen Artikel erfassen'); return; }
+    const f = dialog(`<h3>${vorgabe.art === 'eingang' ? 'Wareneingang' : vorgabe.art === 'ausgang' ? 'Material verbraucht' : 'Bewegung erfassen'}</h3>
+      <label>Artikel<select name="artikel" required>${aktive.map((a) => `<option value="${a.id}" ${a.id === vorgabe.artikel_id ? 'selected' : ''}>${esc(a.name)} (${zahl(a.bestand)} ${esc(a.einheit)})</option>`).join('')}</select></label>
+      <div class="zwei"><label>Art<select name="art">${Object.entries(ART).map(([k, n]) => `<option value="${k}" ${k === (vorgabe.art || 'ausgang') ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+      <label>Menge<input type="text" inputmode="decimal" name="menge" required placeholder="z. B. 25" autofocus></label></div>
+      <label>Datum<input type="date" name="datum" value="${heute()}" required></label>
+      <label>Für Auftrag (wird mit den Stunden verrechnet)<select name="auftrag"><option value="">Kein Auftrag</option>${Z.auftraege.filter((a) => a.aktiv).map((a) => `<option value="${a.id}">${esc(a.name)}${a.kunde ? ' · ' + esc(a.kunde) : ''}</option>`).join('')}</select></label>
+      <label>Notiz<input type="text" name="notiz" maxlength="300" placeholder="z. B. Lieferschein 4711"></label>
+      <p class="hinweis">Bei „Korrektur“ geben Sie den Unterschied ein, zum Beispiel −3 nach der Inventur.</p>
+      <div class="fuss"><span></span><span class="aktionen"><button type="button" class="btn" data-a="zu">Abbrechen</button><button class="btn haupt">Speichern</button></span></div>`);
+    f.onsubmit = async (ev) => {
+      ev.preventDefault();
+      const d = new FormData(f);
+      let menge = mengeLesen(d.get('menge'));
+      const a = d.get('art');
+      if (!menge) { toast('Bitte eine Menge eingeben'); return; }
+      if (a === 'eingang') menge = Math.abs(menge); else if (a === 'ausgang') menge = -Math.abs(menge);
+      const { error } = await sb.from('lg_bewegungen').insert({ artikel_id: d.get('artikel'), art: a, menge, datum: d.get('datum'), auftrag_id: d.get('auftrag') || null, notiz: String(d.get('notiz') || '').trim() });
+      if (error) { toast(fehlerText(error), 6000); return; }
+      dlg.close(); await laden(); toast('Gebucht');
+    };
+  }
+  // Material direkt verrechnen: Mengen wählen, Bestand wird abgebucht, Rechnung öffnet sich
+  function verrechnenDialog() {
+    const aktive = Z.artikel.filter((a) => a.aktiv);
+    const f = dialog(`<h3>Material verrechnen</h3><p class="hinweis">Mengen eintragen. Der Bestand wird abgebucht und eine neue Rechnung mit diesen Positionen geöffnet.</p>
+      <input type="search" data-korb-suche placeholder="Artikel suchen …">
+      <div class="korb">${aktive.map((a) => `<div class="zeile" data-korb-zeile="${esc((a.name + ' ' + a.nummer).toLowerCase())}"><div style="min-width:0"><b>${esc(a.name)}</b><small>CHF ${chf(a.verkauf_rappen)} / ${esc(a.einheit)} · Bestand ${zahl(a.bestand)}</small></div><input type="text" inputmode="decimal" data-korb="${a.id}" placeholder="0"></div>`).join('')}</div>
+      <label>Für Auftrag (optional)<select name="auftrag"><option value="">Kein Auftrag</option>${Z.auftraege.filter((a) => a.aktiv).map((a) => `<option value="${a.id}">${esc(a.name)}</option>`).join('')}</select></label>
+      <div class="fuss"><span></span><span class="aktionen"><button type="button" class="btn" data-a="zu">Abbrechen</button><button class="btn haupt">In Rechnung übernehmen</button></span></div>`);
+    f.querySelector('[data-korb-suche]').oninput = (e) => { const s = e.target.value.toLowerCase(); f.querySelectorAll('[data-korb-zeile]').forEach((z) => { z.hidden = s && !z.dataset.korbZeile.includes(s); }); };
+    f.onsubmit = async (ev) => {
+      ev.preventDefault();
+      const auftragId = new FormData(f).get('auftrag') || null;
+      const posten = [...f.querySelectorAll('[data-korb]')].map((i) => ({ a: art(i.dataset.korb), m: mengeLesen(i.value) })).filter((p) => p.m > 0);
+      if (!posten.length) { toast('Bitte bei mindestens einem Artikel eine Menge eintragen'); return; }
+      const { error } = await sb.from('lg_bewegungen').insert(posten.map((p) => ({ artikel_id: p.a.id, art: 'ausgang', menge: -p.m, auftrag_id: auftragId, verrechnet: true, notiz: 'Verrechnet' })));
+      if (error) { toast(fehlerText(error), 6000); return; }
+      const positionen = posten.map((p) => ({ text: p.a.name + (p.a.nummer ? ` (${p.a.nummer})` : ''), menge: String(p.m), preis: (p.a.verkauf_rappen / 100).toFixed(2) }));
+      try { sessionStorage.setItem('ordasio.zeit.rechnung', JSON.stringify({ positionen, projekt: auftragId && auftrag(auftragId) ? auftrag(auftragId).name : '', quelle: 'Lager' })); } catch {}
+      location.href = '../rechnungen/';
+    };
+  }
+  function bestellDruck() {
+    const l = Z.artikel.filter(knapp);
+    $('rapport').innerHTML = `<h1>Bestellliste</h1><p>${dk(heute())}</p><table><thead><tr><th>Lieferant</th><th>Artikel</th><th>Art.-Nr.</th><th class="r">Bestand</th><th class="r">Bestellen</th></tr></thead><tbody>
+      ${l.sort((a, b) => (a.lieferant || '').localeCompare(b.lieferant || '')).map((a) => `<tr><td>${esc(a.lieferant)}</td><td>${esc(a.name)}</td><td>${esc(a.nummer)}</td><td class="r">${zahl(a.bestand)}</td><td class="r">${zahl(vorschlag(a))} ${esc(a.einheit)}</td></tr>`).join('')}</tbody></table>`;
+    window.print();
+  }
+
+  document.addEventListener('click', async (ev) => {
+    const t = ev.target;
+    const tab = t.closest('[data-tab]'); if (tab) { Z.tab = tab.dataset.tab; zeichnen(); window.scrollTo(0, 0); return; }
+    const sn = t.closest('[data-schnell]'); if (sn) { const [a, id] = sn.dataset.schnell.split(':'); bewegungDialog({ art: a, artikel_id: id }); return; }
+    const ar = t.closest('[data-artikel]'); if (ar) { artikelDialog(art(ar.dataset.artikel)); return; }
+    const bw = t.closest('[data-bewegung]');
+    if (bw) {
+      const b = Z.bewegungen.find((x) => x.id === bw.dataset.bewegung);
+      if (!confirm(`Diese Bewegung (${zahl(b.menge)} ${art(b.artikel_id).einheit || ''} ${art(b.artikel_id).name || ''}) löschen? Der Bestand wird zurückgerechnet.`)) return;
+      const { error } = await sb.from('lg_bewegungen').delete().eq('id', b.id);
+      if (error) { toast(fehlerText(error)); return; }
+      await laden(); toast('Gelöscht'); return;
+    }
+    const a = t.closest('[data-a]'); if (!a) return;
+    const form = a.closest('form');
+    switch (a.dataset.a) {
+      case 'zu': dlg.close(); break;
+      case 'artikelNeu': artikelDialog(); break;
+      case 'bewegungNeu': bewegungDialog(); break;
+      case 'verrechnen': verrechnenDialog(); break;
+      case 'bestellDruck': bestellDruck(); break;
+      case 'artikelLoeschen': {
+        if (!confirm('Artikel mit allen Bewegungen löschen? Tipp: „inaktiv“ behält die Geschichte.')) break;
+        const { error } = await sb.from('lg_artikel').delete().eq('id', form.dataset.artikel);
+        if (error) { toast(fehlerText(error)); break; }
+        dlg.close(); await laden(); toast('Gelöscht'); break;
+      }
+    }
+  });
+  document.addEventListener('input', (ev) => { if (ev.target.dataset.f === 'suche') { Z.suche = ev.target.value; const pos = ev.target.selectionStart; zeichnen(); const n = document.querySelector('[data-f=suche]'); n.focus(); n.setSelectionRange(pos, pos); } });
+  document.addEventListener('change', (ev) => { if (ev.target.dataset.f === 'fAuftrag') { Z.fAuftrag = ev.target.value; zeichnen(); } });
+  zeichnen();
+  (async function warten(n = 0) { const { data: { session } } = await sb.auth.getSession(); if (session) laden(); else if (n < 600) setTimeout(() => warten(n + 1), 500); })();
+})();
+</script>
+</body>
+</html>

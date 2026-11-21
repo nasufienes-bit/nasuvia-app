@@ -2561,7 +2561,7 @@ Glasfaser? Wir ziehen durch.`;
     zeichnePositionen();
     await nummernPflegen({ setzen: true });
     aktualisiere({ sofort: true });
-    toast(vorgabe ? `${positionen.length} ${positionen.length === 1 ? 'Position' : 'Positionen'} aus der Zeiterfassung übernommen. Jetzt Kunde wählen.` : ($('rgNr').value ? `Neu: ${dokTitel()} Nr. ${$('rgNr').value}` : 'Neu: ' + dokTitel()), vorgabe ? 6000 : undefined);
+    toast(vorgabe ? `${positionen.length} ${positionen.length === 1 ? 'Position' : 'Positionen'} aus ${vorgabe.quelle === 'Lager' ? 'dem Lager' : vorgabe.quelle === 'Termine' ? 'den Terminen' : 'der Zeiterfassung'} übernommen. Jetzt Kunde wählen.` : ($('rgNr').value ? `Neu: ${dokTitel()} Nr. ${$('rgNr').value}` : 'Neu: ' + dokTitel()), vorgabe ? 6000 : undefined);
   }
   {
     let ze = null;

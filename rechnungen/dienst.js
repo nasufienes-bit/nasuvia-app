@@ -410,7 +410,7 @@
     const ab = seit ? new Date(Date.parse(seit) - 60000).toISOString() : '1970-01-01T00:00:00Z';
     let neuester = seit, geholt = 0;
     for (let von = 0; ; von += 500) {
-      const { data, error } = await sb.from('datensaetze').select('id,art,daten,geaendert,geloescht,aktualisiert')
+      const { data, error } = await sb.from('datensaetze').select('id,art,daten,geaendert,geloescht,aktualisiert').eq('user_id', benutzer.id)
         .in('art', Object.values(ARTEN)).gt('aktualisiert', ab).order('aktualisiert').range(von, von + 499);
       if (error) throw error;
       for (const [art, speicher] of Object.entries(VON_ART)) {
