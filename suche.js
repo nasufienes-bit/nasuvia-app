@@ -163,6 +163,11 @@
       'Im Menü „Termine“ öffnen, Ansicht „Online-Buchung“.',
       'Leistungen mit Dauer und Preis erfassen, Öffnungszeiten eintragen und „Online-Buchung eingeschaltet“ anhaken. Speichern.',
       'Den Buchungslink auf Ihre Website, in Google, Instagram oder WhatsApp stellen. Ihre Kunden buchen selbst einen freien Termin.'], T + '?tab=einstellungen'],
+    ['tb-verbreiten', 'Termine', 'Buchungslink auf Website, Google Maps, Instagram', 'website google maps instagram facebook whatsapp qr code einbinden verbinden link knopf button wix wordpress', [
+      'Termine, Ansicht „Online-Buchung“, Bereich „So finden Ihre Kunden Ihre Buchung“.',
+      'Website: fertigen Knopf oder die eingebettete Buchung kopieren und im Baukasten einfügen (Anleitung für Wix, WordPress, Jimdo, Squarespace).',
+      'Google Maps: Link im Google-Unternehmensprofil unter „Kontakt“ bei den Terminlinks einfügen. Dann erscheint „Termin buchen“.',
+      'Instagram, Facebook, WhatsApp und QR-Aufsteller für die Theke: jeweils Schritt für Schritt erklärt.'], T + '?tab=einstellungen'],
     ['tb-verwalten', 'Termine', 'Termine bestätigen, absagen, verrechnen', 'termin bestätigen absagen erinnerung sms rechnung kunde', [
       'Neue Online-Buchungen sind gelb markiert. Antippen, dann „Bestätigen per SMS“ oder „Erinnerung per SMS“.',
       'Nach dem Termin „Rechnung“: Die Rechnung öffnet sich mit der Leistung und dem Preis.',

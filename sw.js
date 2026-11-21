@@ -1,7 +1,7 @@
 // Hält die App offline verfügbar. Bei jeder neuen Fassung VERSION erhöhen.
-const VERSION = 'app-1795250418';
+const VERSION = 'app-1795251247';
 const DATEIEN = ['./', 'index.html', 'app.js', 'navi.js', 'speicher.js', 'abgleich.js', 'konfig.js', 'lizenz.js', 'marke.js', 'privat/', 'privat/index.html', 'zeit/', 'zeit/index.html', 'zeit/erfassen/', 'zeit/erfassen/index.html', 'termine/', 'termine/index.html', 'lager/', 'lager/index.html', 'treuhand/', 'treuhand/index.html', 'lizenz/', 'lizenz/index.html', 'hilfe/', 'hilfe/index.html', 'suche.js', 'lib/supabase.js', 'schrift.css', 'logo.png', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'manifest.webmanifest',
-  'lib/html2canvas.min.js', 'lib/jspdf.umd.min.js', 'rechnungen/', 'rechnungen/index.html', 'rechnungen/dienst.js', 'rechnungen/manifest.webmanifest'];
+  'lib/html2canvas.min.js', 'lib/jspdf.umd.min.js', 'lib/qrcode.js', 'rechnungen/', 'rechnungen/index.html', 'rechnungen/dienst.js', 'rechnungen/manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(DATEIEN)).then(() => self.skipWaiting()));

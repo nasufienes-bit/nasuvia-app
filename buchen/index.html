@@ -52,6 +52,9 @@ input,textarea{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);b
 .fertig{text-align:center}
 .fertig .haken{width:72px;height:72px;border-radius:50%;background:rgba(14,159,110,.14);color:var(--gruen);display:grid;place-items:center;margin:0 auto 12px;font-size:34px}
 .fuss{text-align:center;color:var(--leise);font-size:12px;margin-top:22px}
+body.eingebettet{background:transparent;padding-bottom:10px}
+body.eingebettet .oben{padding:18px 0 54px;border-radius:18px}
+body.eingebettet .oben h1{font-size:22px}
 </style>
 </head>
 <body>
@@ -81,6 +84,7 @@ input,textarea{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);b
 
   const q = new URLSearchParams(location.search);
   const token = q.get('b') || '';
+  if (q.get('einbetten') === '1' || window.self !== window.top) document.body.classList.add('eingebettet');
   const Z = { a: null, dienst: null, tag: null, slot: null, fertig: null };
   if (!token || !K.url) { fehlerSeite('Dieser Buchungslink ist unvollständig.'); return; }
   const sb = window.supabase.createClient(K.url, K.key, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -152,6 +156,7 @@ input,textarea{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);b
   function fertigSeite() {
     const f = Z.fertig, a = Z.a;
     const absage = `${location.origin}${location.pathname}?b=${encodeURIComponent(token)}&absage=${f.id}.${f.code}`;
+    if (document.body.classList.contains('eingebettet')) { try { window.top.scrollTo(0, 0); } catch {} }
     $('app').innerHTML = `<header class="oben"><div class="wrap"><small>Online-Termin</small><h1>${esc(a.firma)}</h1></div></header>
       <main class="wrap"><div class="karte hoch fertig"><div class="haken">✓</div><h2 style="justify-content:center">Ihr Termin ist gebucht</h2>
         <p class="zusammen">${esc(f.dienst)}<br>${WT_LANG[new Date(isoZ(new Date(f.beginn)) + 'T12:00').getDay()]}, ${dk(isoZ(new Date(f.beginn)))} um ${uhr(f.beginn)} Uhr</p>

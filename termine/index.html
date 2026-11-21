@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="../schrift.css" />
 <script src="../konfig.js"></script>
 <script src="../lib/supabase.js"></script>
+<script src="../lib/qrcode.js"></script>
 <style>
 :root{--papier:#F4FAF6;--flaeche:#E8F4EE;--karte:#fff;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--gruen:#0E9F6E;--rot:#E5484D;--linie:rgba(11,59,46,.14);--schatten:0 1px 2px rgba(12,18,38,.04),0 14px 34px -22px rgba(11,59,46,.4);--display:'League Spartan',-apple-system,system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace;--unten:env(safe-area-inset-bottom,0px)}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -129,6 +130,32 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 @media(max-width:600px){.tagzeit{grid-template-columns:1fr 1fr}.tagzeit b{grid-column:1/-1}.dienst{grid-template-columns:1fr 1fr}.dienst input:first-child{grid-column:1/-1}}
 .schalter{display:flex;gap:10px;align-items:center;font-weight:600}
 .schalter input{width:20px;height:20px;accent-color:var(--blau)}
+.verbreiten details{border-top:1px solid var(--linie)}
+.verbreiten details:first-of-type{border-top:0}
+.verbreiten summary{cursor:pointer;list-style:none;padding:14px 0;display:flex;align-items:center;gap:12px;font-weight:600}
+.verbreiten summary::-webkit-details-marker{display:none}
+.verbreiten summary::after{content:"+";margin-left:auto;color:var(--elektrik);font-size:22px;line-height:1;transition:transform .2s}
+.verbreiten details[open] summary::after{transform:rotate(45deg)}
+.verbreiten summary .ic{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:none;color:#fff;font-size:17px}
+.verbreiten summary small{display:block;font-weight:400;color:var(--leise);font-size:12.5px}
+.verbreiten .inhalt{padding:0 0 16px 48px;color:var(--text);font-size:14.5px}
+.verbreiten ol{margin:6px 0 10px 18px;display:grid;gap:6px}
+.verbreiten b{color:var(--tinte)}
+.code{position:relative;margin:8px 0 12px}
+.code textarea{width:100%;font:12px/1.5 var(--mono);background:#0A1F17;color:#E8F4EE;border:0;border-radius:12px;padding:12px;resize:vertical;min-height:84px}
+.code button{position:absolute;right:8px;top:8px}
+.vorschau-knopf{display:inline-block;background:var(--elektrik);color:#fff;padding:12px 22px;border-radius:999px;font-weight:600;text-decoration:none;margin:4px 0 10px}
+.qr-box{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.qr-box .qr{width:150px;height:150px;background:#fff;border:1px solid var(--linie);border-radius:14px;padding:8px}
+.qr-box .qr svg{width:100%;height:100%}
+.unterreiter{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px}
+.unterreiter button{border:1px solid var(--linie);background:#fff;border-radius:100px;padding:5px 12px;font-size:13px;color:var(--text)}
+.unterreiter button.an{background:var(--blau);color:#fff;border-color:var(--blau)}
+@media(max-width:600px){.verbreiten .inhalt{padding-left:0}}
+#aufsteller{display:none}
+@media print{body > *:not(#aufsteller){display:none!important}body > #aufsteller{display:flex!important;flex-direction:column;align-items:center;justify-content:center;text-align:center;height:180mm;font-family:var(--display);color:#0A1F17}
+  #aufsteller h1{font-size:30pt;margin-bottom:4mm}#aufsteller p{font-size:15pt;color:#3F5A4F}#aufsteller .qr{width:90mm;height:90mm;margin:10mm 0}#aufsteller .qr svg{width:100%;height:100%}#aufsteller small{font-size:10pt;color:#7C8499;word-break:break-all;max-width:120mm}
+  .lz-pille,.nv-schwebend{display:none!important}@page{size:A5 portrait;margin:12mm}}
 .m-rot{background:rgba(229,72,77,.12);color:#B4282D}
 </style>
 </head>
@@ -142,6 +169,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 <nav class="unten-nav" id="untenNav" style="grid-template-columns:repeat(2,1fr)"></nav>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast"></div>
+<div id="aufsteller"></div>
 <script src="../lizenz.js" data-produkt="termine"></script>
 <script src="../suche.js"></script>
 <script src="../navi.js" data-hier="termine" data-einfuegen=".kopfzeile .wrap"></script>
@@ -204,6 +232,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     $('untenNav').innerHTML = TABS.map(([id, n]) => `<button class="${Z.tab === id ? 'an' : ''}" data-tab="${id}"><svg viewBox="0 0 24 24">${ICON[id]}</svg>${n}</button>`).join('');
     if (!Z.bereit) return;
     $('inhalt').innerHTML = Z.tab === 'kalender' ? kalender() : einstellungen();
+    if (Z.tab === 'einstellungen') qrZeigen();
   }
 
   function kalender() {
@@ -236,6 +265,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       <div class="card"><label class="schalter"><input type="checkbox" name="aktiv" ${k.aktiv ? 'checked' : ''}> Online-Buchung eingeschaltet</label>
         ${k.aktiv ? `<div class="link-feld abstand"><input type="text" readonly value="${esc(buchungsLink())}" aria-label="Buchungslink"><button type="button" class="btn" data-kopieren="${esc(buchungsLink())}">Kopieren</button><a class="btn" href="${esc(buchungsLink())}" target="_blank" rel="noopener">Ansehen</a></div>
           <p class="hinweis abstand">Diesen Link auf Ihre Website, in Google, Instagram oder WhatsApp stellen.</p>` : '<p class="hinweis abstand">Einschalten, speichern, und Sie bekommen Ihren persönlichen Buchungslink.</p>'}</div>
+      ${k.aktiv ? verbreiten() : ''}
       <div class="card abstand"><h2>Angaben für Ihre Kunden</h2>
         <div class="raster r2"><label class="hinweis" style="display:grid;gap:4px">Firmenname<input type="text" name="firma" value="${esc(k.firma)}" maxlength="120"></label><label class="hinweis" style="display:grid;gap:4px">Telefon<input type="text" name="telefon" value="${esc(k.telefon)}" maxlength="40"></label></div>
         <label class="hinweis abstand" style="display:grid;gap:4px">Adresse<input type="text" name="adresse" value="${esc(k.adresse)}" maxlength="200" placeholder="Strasse, PLZ Ort"></label>
@@ -251,6 +281,60 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       <div class="aktionen abstand"><button class="btn haupt">Speichern</button></div>
       </form>`;
   }
+  /* ---------- Buchungslink verbreiten: Website, Google, Instagram, Facebook, WhatsApp, QR ---------- */
+  let webBaukasten = 'wix';
+  const knopfCode = (l) => `<a href="${l}" target="_blank" rel="noopener" style="display:inline-block;background:#0E7A55;color:#ffffff;padding:14px 28px;border-radius:999px;font:600 16px -apple-system,system-ui,sans-serif;text-decoration:none">Termin online buchen</a>`;
+  const einbettCode = (l) => `<iframe src="${l}&einbetten=1" title="Termin online buchen" style="width:100%;height:920px;border:0;border-radius:16px" loading="lazy"></iframe>`;
+  const codeFeld = (id, inhalt) => `<div class="code"><textarea readonly id="${id}" rows="3" aria-label="Code">${esc(inhalt)}</textarea><button type="button" class="btn klein" data-kopieren-feld="${id}">Kopieren</button></div>`;
+  const BAUKASTEN = {
+    wix: ['Wix', ['Im Wix-Editor links auf <b>„+ Hinzufügen“</b> tippen.', 'Knopf: <b>„Button“</b> wählen, auf die Seite ziehen, dann <b>„Link“</b> → <b>„Webadresse“</b> und Ihren Buchungslink einfügen. Text: „Termin online buchen“.', 'Eingebettet: <b>„Einbetten“</b> → <b>„HTML einbetten“</b>, dann <b>„Code eingeben“</b> und den Einbettungs-Code unten einfügen. Das Feld gross ziehen.', 'Oben rechts <b>„Veröffentlichen“</b>.']],
+    wordpress: ['WordPress', ['Seite bearbeiten und mit <b>„+“</b> einen Block hinzufügen.', 'Knopf: Block <b>„Buttons“</b>, Text eingeben und mit dem Link-Symbol den Buchungslink setzen.', 'Eingebettet: Block <b>„Individuelles HTML“</b> und den Einbettungs-Code einfügen.', '<b>„Aktualisieren“</b> tippen.']],
+    jimdo: ['Jimdo', ['Im Bearbeitungsmodus auf <b>„+ Element hinzufügen“</b>.', 'Knopf: <b>„Button“</b>, beim Link „Externe Seite“ den Buchungslink einfügen.', 'Eingebettet: Element <b>„Widget/HTML“</b> und den Einbettungs-Code einfügen.', 'Speichern.']],
+    squarespace: ['Squarespace', ['Seite bearbeiten, Abschnitt wählen und <b>„Block hinzufügen“</b>.', 'Knopf: <b>„Button“</b>, als Link den Buchungslink einfügen.', 'Eingebettet: Block <b>„Code“</b> und den Einbettungs-Code einfügen.', '<b>„Speichern“</b>.']],
+    andere: ['Andere', ['In jedem Baukasten gibt es einen <b>Knopf</b> oder <b>Button</b> mit einem Feld für eine <b>Webadresse</b>. Dort den Buchungslink einfügen.', 'Wenn Sie eine Webagentur haben: Schicken Sie ihr einfach den Code unten.']],
+  };
+  function verbreiten() {
+    const l = buchungsLink(), f = firma() || 'uns';
+    const wa = `Termine bei ${f} können Sie jetzt online buchen: ${l}`;
+    const b = BAUKASTEN[webBaukasten];
+    const teil = (farbe, sym, titel, unter, inhalt) => `<details><summary><span class="ic" style="background:${farbe}">${sym}</span><span>${titel}<small>${unter}</small></span></summary><div class="inhalt">${inhalt}</div></details>`;
+    return `<div class="card abstand verbreiten"><h2>So finden Ihre Kunden Ihre Buchung</h2>
+      <p class="hinweis" style="margin-bottom:6px">Stellen Sie Ihren Buchungslink überall hin, wo Ihre Kunden Sie suchen. Alle Buchungen landen hier, egal woher sie kommen.</p>
+      ${teil('#0E7A55', '🌐', 'Eigene Website', 'Knopf oder Buchung direkt in der Seite', `
+        <div class="unterreiter">${Object.entries(BAUKASTEN).map(([id, [n]]) => `<button type="button" class="${id === webBaukasten ? 'an' : ''}" data-baukasten="${id}">${n}</button>`).join('')}</div>
+        <ol>${b[1].map((s) => `<li>${s}</li>`).join('')}</ol>
+        <p><b>Ihr Buchungslink</b></p>${codeFeld('cLink', l)}
+        <p><b>Knopf</b>, so sieht er aus: <br><a class="vorschau-knopf" href="${esc(l)}" target="_blank" rel="noopener">Termin online buchen</a></p>${codeFeld('cKnopf', knopfCode(l))}
+        <p><b>Buchung direkt in der Seite</b> (die Kunden bleiben auf Ihrer Website):</p>${codeFeld('cEinbett', einbettCode(l))}`)}
+      ${teil('#4285F4', 'G', 'Google Maps und Google-Suche', 'Knopf „Termin buchen“ in Ihrem Google-Profil', `
+        <ol><li>Auf <a href="https://business.google.com" target="_blank" rel="noopener">business.google.com</a> mit dem Google-Konto Ihres Geschäfts anmelden. Oder auf Google nach Ihrem Geschäftsnamen suchen, dann erscheint Ihr Profil zum Bearbeiten.</li>
+          <li><b>„Profil bearbeiten“</b> tippen, dann den Bereich <b>„Kontakt“</b> öffnen.</li>
+          <li>Beim Feld für <b>Links für Terminvereinbarungen</b> (Terminbuchung) Ihren Buchungslink einfügen und speichern.</li>
+          <li>Nach der Prüfung durch Google erscheint bei Ihrem Eintrag in Maps und in der Suche der Knopf <b>„Termin buchen“</b>.</li></ol>
+        ${codeFeld('cLinkG', l)}<p class="hinweis">Noch kein Google-Profil? Auf business.google.com kostenlos erstellen. Die Bezeichnungen bei Google können je nach Version leicht abweichen.</p>`)}
+      ${teil('linear-gradient(135deg,#F58529,#DD2A7B,#8134AF)', '📷', 'Instagram', 'Link in der Bio und in Storys', `
+        <ol><li>Profil öffnen, <b>„Profil bearbeiten“</b> → <b>„Links“</b> → <b>„Externen Link hinzufügen“</b>.</li>
+          <li>Buchungslink einfügen, als Titel <b>„Termin buchen“</b>. Speichern.</li>
+          <li>In Storys: Sticker <b>„Link“</b> wählen und den Buchungslink einfügen. Als Highlight speichern, dann ist er immer sichtbar.</li></ol>${codeFeld('cLinkI', l)}`)}
+      ${teil('#1877F2', 'f', 'Facebook-Seite', 'Knopf „Jetzt buchen“', `
+        <ol><li>Ihre Facebook-Seite öffnen und auf <b>„Button hinzufügen“</b> (oder den bestehenden Button → <b>„Bearbeiten“</b>) tippen.</li>
+          <li><b>„Jetzt buchen“</b> wählen, dann <b>„Link zu Website“</b> und den Buchungslink einfügen. Speichern.</li></ol>${codeFeld('cLinkF', l)}`)}
+      ${teil('#25D366', '💬', 'WhatsApp', 'Profil, Begrüssung und Schnellantwort', `
+        <ol><li><b>WhatsApp Business:</b> Einstellungen → <b>Unternehmenstools</b> → <b>Unternehmensprofil</b> → Feld <b>Website</b>: Buchungslink einfügen.</li>
+          <li>Unter <b>Begrüssungsnachricht</b> und <b>Abwesenheitsnachricht</b> den Text unten einfügen. Wer Ihnen schreibt, bekommt den Link sofort.</li>
+          <li>Unter <b>Schnellantworten</b> eine Antwort mit dem Kürzel <b>/termin</b> anlegen. Im Chat „/termin“ tippen und der Text ist da.</li>
+          <li>Auch im normalen WhatsApp: Text als Status posten oder Kunden direkt schicken.</li></ol>
+        ${codeFeld('cWa', wa)}<a class="btn klein" href="https://wa.me/?text=${encodeURIComponent(wa)}" target="_blank" rel="noopener">Jetzt in WhatsApp teilen</a>`)}
+      ${teil('#0B3B2E', '▦', 'QR-Code, Visitenkarte, E-Mail', 'Aufsteller für die Theke, Signatur', `
+        <div class="qr-box"><div class="qr" id="qrVorschau"></div><div><p>Kunden scannen den Code mit der Handy-Kamera und buchen sofort.</p>
+          <div class="aktionen" style="margin-top:8px"><button type="button" class="btn klein haupt" data-a="aufsteller">Aufsteller drucken (A5)</button><button type="button" class="btn klein" data-a="qrLaden">QR-Code herunterladen</button></div></div></div>
+        <p style="margin-top:12px"><b>E-Mail-Signatur:</b> diesen Satz unter Ihre E-Mails setzen.</p>${codeFeld('cSig', 'Termin online buchen: ' + l)}
+        <p class="hinweis">Für Visitenkarte oder Flyer: QR-Code herunterladen und der Druckerei schicken.</p>`)}
+    </div>`;
+  }
+  async function qrSvg(text) { try { return await window.__QRCode.toString(text, { type: 'svg', margin: 1, color: { dark: '#0A1F17', light: '#ffffff' } }); } catch { return ''; } }
+  async function qrZeigen() { const e = $('qrVorschau'); if (e && Z.konfig && Z.konfig.aktiv) e.innerHTML = await qrSvg(buchungsLink()); }
+
   const dienstZeile = (d) => `<div class="dienst" data-dienst="${esc(d.id)}"><input type="text" data-d="name" value="${esc(d.name)}" placeholder="z. B. Haarschnitt" maxlength="120" aria-label="Leistung"><input type="number" data-d="dauer" value="${d.dauer || 30}" min="5" max="600" step="5" aria-label="Dauer in Minuten" title="Minuten"><input type="text" inputmode="decimal" data-d="preis" value="${d.preis ? chf(d.preis) : ''}" placeholder="Preis CHF" aria-label="Preis"><button type="button" class="btn klein rot" data-dienst-weg aria-label="Entfernen">✕</button></div>`;
 
   /* ---------- Termine bearbeiten ---------- */
@@ -314,6 +398,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const tab = t.closest('[data-tab]'); if (tab) { Z.tab = tab.dataset.tab; zeichnen(); window.scrollTo(0, 0); return; }
     const kop = t.closest('[data-kopieren]'); if (kop) { try { await navigator.clipboard.writeText(kop.dataset.kopieren); toast('Link kopiert'); } catch {} return; }
     const sn = t.closest('[data-status-nach]'); if (sn) { const id = dlg.querySelector('form').dataset.termin; setTimeout(() => { dlg.close(); statusSetzen(id, sn.dataset.statusNach); }, 300); return; }
+    const kf = t.closest('[data-kopieren-feld]'); if (kf) { const f = $(kf.dataset.kopierenFeld); try { await navigator.clipboard.writeText(f.value); toast('Kopiert'); } catch { f.select(); document.execCommand('copy'); toast('Kopiert'); } return; }
+    const bk = t.closest('[data-baukasten]'); if (bk) { webBaukasten = bk.dataset.baukasten; const offen = [...document.querySelectorAll('.verbreiten details')].map((d) => d.open); zeichnen(); document.querySelectorAll('.verbreiten details').forEach((d, i) => { d.open = offen[i]; }); return; }
     const dw = t.closest('[data-dienst-weg]'); if (dw) { dw.closest('[data-dienst]').remove(); return; }
     const te = t.closest('[data-termin]'); if (te && !t.closest('dialog')) { terminDialog(Z.termine.find((x) => x.id === te.dataset.termin)); return; }
     const a = t.closest('[data-a]'); if (!a) return;
@@ -321,6 +407,15 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     switch (a.dataset.a) {
       case 'zu': dlg.close(); break;
       case 'terminNeu': terminDialog(); break;
+      case 'aufsteller': {
+        const k = Z.konfig;
+        $('aufsteller').innerHTML = `<h1>${esc(firma())}</h1><p>Termin online buchen</p><div class="qr">${await qrSvg(buchungsLink())}</div><p>Kamera aufs Handy, scannen, fertig.</p>${k.telefon ? `<p>Oder anrufen: ${esc(k.telefon)}</p>` : ''}<small>${esc(buchungsLink())}</small>`;
+        window.print(); break;
+      }
+      case 'qrLaden': {
+        const url = await window.__QRCode.toDataURL(buchungsLink(), { width: 1200, margin: 2 });
+        const l = document.createElement('a'); l.href = url; l.download = 'QR-Code Termin buchen.png'; l.click(); break;
+      }
       case 'alte': Z.alte = !Z.alte; laden(); break;
       case 'dienstNeu': $('dienste').insertAdjacentHTML('beforeend', dienstZeile({ id: 'd' + Date.now().toString(36), name: '', dauer: 30, preis: 0 })); $('dienste').lastElementChild.querySelector('input').focus(); break;
       case 'linkTeilen': {
