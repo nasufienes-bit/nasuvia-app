@@ -141,13 +141,14 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
     const imMonat = E.filter((e) => e.datum.slice(0, 7) === Z.monat);
     const tage = [...new Set(imMonat.map((e) => e.datum))];
     const af = (id) => d.auftraege.find((a) => a.id === id);
-    document.title = 'Meine Stunden · ' + d.name.split(' ')[0];
+    const zeitAn = d.zeit !== false;
+    document.title = (zeitAn ? 'Meine Stunden · ' : 'Meine Aufträge · ') + d.name.split(' ')[0];
     $('app').innerHTML = `
       <header class="oben"><div class="wrap"><small>${esc(d.firma || 'Zeiterfassung')}</small><h1>Hallo ${esc(d.name.split(' ')[0])}</h1>
-        <div class="summen"><div><b>${std(summe(E.filter((e) => e.datum === heute())))}</b><span>Heute</span></div><div><b>${std(summe(E.filter((e) => e.datum >= montag(heute()) && e.datum <= heute())))}</b><span>Diese Woche</span></div><div><b>${std(summe(E.filter((e) => e.datum.slice(0, 7) === heute().slice(0, 7))))}</b><span>${MONATE[new Date().getMonth()]}</span></div></div>
+        ${zeitAn ? `<div class="summen"><div><b>${std(summe(E.filter((e) => e.datum === heute())))}</b><span>Heute</span></div><div><b>${std(summe(E.filter((e) => e.datum >= montag(heute()) && e.datum <= heute())))}</b><span>Diese Woche</span></div><div><b>${std(summe(E.filter((e) => e.datum.slice(0, 7) === heute().slice(0, 7))))}</b><span>${MONATE[new Date().getMonth()]}</span></div></div>` : '<p style="margin-top:6px;color:rgba(255,255,255,.8)">Ihre Aufträge und Einsätze</p>'}
       </div></header>
       <main class="wrap">
-        ${!d.aktiv ? '<div class="karte hoch"><h2>Zurzeit pausiert</h2><p class="hinweis">Die Zeiterfassung Ihrer Firma ist gerade nicht aktiv. Ihre Stunden sind gespeichert. Bitte melden Sie sich im Büro.</p></div>' : Z.form ? formular() : `
+        ${!d.aktiv ? '<div class="karte hoch"><h2>Zurzeit pausiert</h2><p class="hinweis">Die Zeiterfassung Ihrer Firma ist gerade nicht aktiv. Ihre Stunden sind gespeichert. Bitte melden Sie sich im Büro.</p></div>' : !zeitAn ? '<div style="height:44px"></div>' : Z.form ? formular() : `
         <div class="karte hoch uhr">
           ${start ? `<div class="zeit" id="laeuft">${std((Date.now() - Number(start)) / 60000)}</div><p>Arbeit läuft seit ${new Date(Number(start)).toTimeString().slice(0, 5)} Uhr</p>
             <button class="gross stopp" data-a="stopp">Stoppen und speichern</button><button class="gross leicht" data-a="abbrechen">Uhr verwerfen</button>`
@@ -156,13 +157,13 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
         </div>`}
         ${einsaetzeKarte()}
         ${auftraegeKarte()}
-        <div class="karte">
+        ${zeitAn ? `        <div class="karte">
           <div class="monat-nav"><button data-a="monatZurueck" aria-label="Monat zurück">‹</button><input type="month" id="monat" value="${Z.monat}" max="${heute().slice(0, 7)}" aria-label="Monat"><button data-a="monatVor" aria-label="Monat vor" ${Z.monat >= heute().slice(0, 7) ? 'disabled style="opacity:.35"' : ''}>›</button></div>
           <p class="hinweis" style="text-align:center">${MONATE[Number(Z.monat.slice(5, 7)) - 1]}: <b>${std(summe(imMonat))} Stunden</b> an ${tage.length} ${tage.length === 1 ? 'Tag' : 'Tagen'}</p>
           <label style="margin:12px 0 0">Bestimmten Tag ansehen<input type="date" id="tag" max="${heute()}"></label>
           ${tage.length ? tage.map((t) => { const l = imMonat.filter((e) => e.datum === t); return `<div class="tag-titel" id="tag-${t}"><span>${wt(t).slice(0, 2)} ${dk(t)}</span><span>${std(summe(l))}</span></div>` + l.map((e) => `<div class="zeile" data-eintrag="${e.id}"><div><b>${e.von ? `${e.von}–${e.bis}` : 'Dauer'}${e.verrechnet ? '<span class="marke-s">verrechnet</span>' : ''}</b><small>${esc([af(e.auftrag_id) ? af(e.auftrag_id).name : '', e.taetigkeit, e.pause_min ? e.pause_min + ' Min. Pause' : '', Number(e.km) ? e.km + ' km' : ''].filter(Boolean).join(' · ')) || 'Ohne Beschreibung'}</small></div><div class="std">${std(e.minuten)}</div></div>`).join(''); }).join('') : '<p class="leer">In diesem Monat ist noch nichts erfasst.</p>'}
-        </div>
-        <p class="fuss">Sie sehen nur Ihre eigenen Stunden. Tipp: Seite zum Home-Bildschirm hinzufügen, dann ist sie wie eine App.</p>
+        </div>` : ''}
+        <p class="fuss">${zeitAn ? 'Sie sehen nur Ihre eigenen Stunden.' : 'Sie sehen nur die Aufträge, die Ihnen zugewiesen sind.'} Tipp: Seite zum Home-Bildschirm hinzufügen, dann ist sie wie eine App.</p>
       </main>`;
     if (start && !Z.form) { clearInterval(Z.uhr); Z.uhr = setInterval(() => { const e = $('laeuft'); if (e) e.textContent = std((Date.now() - Number(lies(K_START))) / 60000); else clearInterval(Z.uhr); }, 15000); }
   }
@@ -177,7 +178,7 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
       <small>${esc([af(s.auftrag_id) ? af(s.auftrag_id).name + (af(s.auftrag_id).kunde ? ' · ' + af(s.auftrag_id).kunde : '') : '', s.adresse].filter(Boolean).join(' · ')) || 'Ohne Angaben'}</small>
       ${s.notiz ? `<small>📝 ${esc(s.notiz)}</small>` : ''}
       <div class="knoepfe">${s.adresse ? `<a class="mini" href="https://maps.apple.com/?q=${encodeURIComponent(s.adresse)}" target="_blank" rel="noopener">Route</a>` : ''}${s.kunde_telefon ? `<a class="mini" href="tel:${esc(s.kunde_telefon.replace(/\s/g, ''))}">Anrufen</a>` : ''}
-        ${!start && !s.erledigt && s.datum === heute() ? `<button class="mini haupt" data-hier-start="${s.id}">▶ Hier starten</button>` : ''}
+        ${Z.daten.zeit !== false && !start && !s.erledigt && s.datum === heute() ? `<button class="mini haupt" data-hier-start="${s.id}">▶ Hier starten</button>` : ''}
         <button class="mini" data-erledigt="${s.id}">${s.erledigt ? 'Doch nicht erledigt' : '✓ Erledigt'}</button></div></div>`).join('')}</div>`;
   }
 
@@ -207,9 +208,9 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
       <h2 style="margin-bottom:2px">${esc(a.name)}<span class="status ${a.status}">${STATUS[a.status] || 'Offen'}</span></h2>
       <p class="hinweis">${esc([a.kunde, a.adresse].filter(Boolean).join(' · '))}</p>
       ${a.notiz ? `<p class="hinweis" style="margin-top:6px">📝 ${esc(a.notiz)}</p>` : ''}
-      <div class="knoepfe" style="margin-top:10px;flex-wrap:wrap">${a.adresse ? `<a class="mini" href="https://maps.apple.com/?q=${encodeURIComponent(a.adresse)}" target="_blank" rel="noopener">Route</a>` : ''}${!start ? `<button class="mini haupt" data-auftrag-start="${a.id}">▶ Zeit starten</button>` : ''}</div>
-      <p class="hinweis" style="margin:12px 0 6px">Stand melden</p>
-      <div class="knoepfe" style="flex-wrap:wrap">${knopf('in_arbeit', 'In Arbeit')}${knopf('erledigt', '✓ Erledigt')}${pl ? knopf('kontrolliert', '✓✓ Kontrolliert') : ''}</div>
+      <div class="knoepfe" style="margin-top:10px;flex-wrap:wrap">${a.adresse ? `<a class="mini" href="https://maps.apple.com/?q=${encodeURIComponent(a.adresse)}" target="_blank" rel="noopener">Route</a>` : ''}${Z.daten.zeit !== false && !start ? `<button class="mini haupt" data-auftrag-start="${a.id}">▶ Zeit starten</button>` : ''}</div>
+      ${pl ? `<p class="hinweis" style="margin:12px 0 6px">Stand setzen</p>
+      <div class="knoepfe" style="flex-wrap:wrap">${knopf('offen', 'Offen')}${knopf('in_arbeit', 'In Arbeit')}${knopf('erledigt', '✓ Erledigt')}${knopf('kontrolliert', '✓✓ Kontrolliert')}</div>` : ''}
       <p class="hinweis" style="margin:14px 0 0">Fotos${pl ? ' (alle Mitarbeiter)' : ' (Ihre eigenen)'}</p>
       <div class="fotos" id="fotos"><p class="leer">Wird geladen …</p></div>
       <label class="gross" style="margin-top:10px;display:block;text-align:center;cursor:pointer">📷 Foto aufnehmen<input type="file" accept="image/*" capture="environment" multiple hidden data-foto-hoch="${a.id}"></label>

@@ -220,12 +220,15 @@
       'Anhaken, was erscheinen soll, und speichern.'], B],
     ['ze-auftraege-ordner', 'Zeiterfassung', 'Aufträge in Ordnern mit Fotos', 'auftrag ordner ftth zürich adresse foto bilder projektleiter kontrolle status erledigt', [
       'Zeiterfassung, „Aufträge“: mit „+ Ordner“ Ordner anlegen (z. B. FTTH, darin Zürich) und darin mit „+ Auftrag“ die Adressen.',
-      'Mitarbeiter sehen die gleichen Ordner auf dem Handy, machen Fotos und melden „In Arbeit“ oder „Erledigt“.',
+      'Mitarbeiter sehen die gleichen Ordner auf dem Handy und laden Fotos hoch. Den Stand (In Arbeit, Erledigt, Kontrolliert) setzen nur Sie oder ein Projektleiter.',
       'Einen Mitarbeiter als „Projektleiter“ einstellen: Er sieht alle Fotos, prüft sie und setzt „Kontrolliert“.'], Z + '?tab=auftraege'],
     ['ze-zuweisen', 'Zeiterfassung', 'Aufträge Mitarbeitern zuweisen', 'zuweisen zugewiesen mitarbeiter auftrag sehen wer bestimmten', [
       'Auftrag öffnen und unter „Wer sieht diesen Auftrag?“ die Mitarbeiter anhaken. Niemand angehakt heisst: alle sehen ihn.',
       'Ganzer Ordner auf einmal: in den Ordner gehen, „Ordner zuweisen“ tippen und Mitarbeiter wählen.',
       'Mit dem Filter „Zugewiesen: …“ sehen Sie, welche Aufträge wer hat. Projektleiter sehen immer alle.'], Z + '?tab=auftraege'],
+    ['ze-ohne-zeit', 'Zeiterfassung', 'Ohne Zeiterfassung arbeiten', 'ohne zeiterfassung stunden ausschalten nur aufträge fotos', [
+      'Zeiterfassung, „Mitarbeiter“: den Haken „Mitarbeiter erfassen ihre Arbeitszeit“ entfernen.',
+      'Ihre Mitarbeiter sehen dann auf dem Handy nur ihre Aufträge und Einsätze und laden Fotos hoch, ohne Stunden zu erfassen.'], Z + '?tab=mitarbeiter'],
     ['ze-standort', 'Zeiterfassung', 'Standort beim Ein- und Ausstempeln', 'standort gps ort live verfolgung ortung', [
       'Beim Mitarbeiter „Standort beim Ein- und Ausstempeln mitschicken“ anhaken. Bitte nur mit seinem Wissen.',
       'Gespeichert wird nur der Ort beim Start und beim Stopp, keine dauernde Verfolgung. Bei den Einträgen erscheint „📍 Ort“.'], Z + '?tab=mitarbeiter'],

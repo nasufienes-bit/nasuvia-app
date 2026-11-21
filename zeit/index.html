@@ -197,6 +197,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       sb.from('ze_auftraege').select('*').is('geloescht_am', null).order('aktiv', { ascending: false }).order('name'),
     ]);
     if (m.error) throw m.error; if (a.error) throw a.error;
+    const k = await sb.from('ze_konfig').select('*').maybeSingle();
+    Z.zeitAn = !k.data || k.data.zeit_erfassen !== false;
     Z.mitarbeiter = m.data; Z.auftraege = a.data;
   }
   // Einträge: ganzes Jahr rund um den gewählten Monat und die gewählte Woche (reicht für Übersicht, Monat und offene Posten)
@@ -266,7 +268,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const zelle = (min, kl = '') => `<td class="${min ? '' : 'null'} ${kl}">${min ? std(min) : '–'}</td>`;
     const kw = (() => { const d = new Date(Z.woche + 'T12:00'); d.setDate(d.getDate() + 3); const j = new Date(d.getFullYear(), 0, 4); return 1 + Math.round(((d - j) / 864e5 - 3 + ((j.getDay() + 6) % 7)) / 7); })();
     const neueste = Z.eintraege.slice().sort((a, b) => (b.erstellt > a.erstellt ? 1 : -1)).slice(0, 6);
-    return `<div class="kopf"><div><h1>Übersicht</h1><p class="unter">Wer hat wann wie lange gearbeitet.</p></div>
+    const zeitHinweis = Z.zeitAn === false ? '<div class="info-box" style="margin-bottom:14px">Die Arbeitszeit wird zurzeit nicht erfasst. Ihre Mitarbeiter sehen nur Aufträge, Einsätze und Fotos. Einschalten unter „Mitarbeiter“.</div>' : '';
+    return zeitHinweis + `<div class="kopf"><div><h1>Übersicht</h1><p class="unter">Wer hat wann wie lange gearbeitet.</p></div>
         <div class="aktionen"><button class="btn" data-a="startAnpassen">Übersicht anpassen</button><button class="btn" data-a="eintragNeu">+ Eintrag</button><button class="btn" data-a="lohn">Stunden in den Lohnlauf</button></div></div>
       ${ST().zahlen ? `<div class="raster r4">
         <div class="card zahl"><div class="l">Diese Woche</div><div class="w">${std(summe(inWoche))}</div><div class="k">Stunden, alle Mitarbeiter</div></div>
@@ -384,6 +387,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const monat = heute().slice(0, 7);
     return `<div class="kopf"><div><h1>Mitarbeiter</h1><p class="unter">Jeder bekommt einen persönlichen Link zum Erfassen. Kein Konto, kein Passwort.</p></div>
         <div class="aktionen"><button class="btn" data-a="korb">Zuletzt gelöscht</button><button class="btn haupt" data-a="maNeu">+ Mitarbeiter</button></div></div>
+      <div class="card" style="margin-bottom:14px"><label style="display:flex;gap:12px;align-items:flex-start;cursor:pointer"><input type="checkbox" data-zeit-an ${Z.zeitAn !== false ? 'checked' : ''} style="width:20px;height:20px;margin-top:2px;accent-color:var(--blau)">
+        <span><b>Mitarbeiter erfassen ihre Arbeitszeit</b><br><small class="hinweis">Ausgeschaltet sehen Ihre Mitarbeiter auf dem Handy nur ihre Aufträge und Einsätze und laden Fotos hoch, ohne Stunden zu erfassen.</small></span></label></div>
       <div class="card">${Z.mitarbeiter.map((m) => { const min = Z.eintraege.filter((e) => e.mitarbeiter_id === m.id && e.datum.slice(0, 7) === monat).reduce((s, e) => s + e.minuten, 0);
         return `<div class="zeile klick" data-ma="${m.id}"><div style="min-width:0"><b>${esc(m.name)}${m.aktiv ? '' : '<span class="marke-s m-grau">inaktiv</span>'}</b><small>${m.rolle === 'projektleiter' ? '<b style="display:inline;color:var(--elektrik)">Projektleiter</b> · ' : ''}${m.standort ? '📍 · ' : ''}${m.stundenlohn_rappen ? `Lohn CHF ${chf(m.stundenlohn_rappen)}/Std.` : 'Kein Stundenlohn'} · ${m.ansatz_rappen ? `Ansatz CHF ${chf(m.ansatz_rappen)}/Std.` : 'Kein Ansatz'}</small></div>
           <div class="aktionen">${m.aktiv ? `<button class="btn klein" data-link="${m.id}">Link senden</button>` : ''}<span class="betrag" style="min-width:56px">${std(min)}</span></div></div>`; }).join('')}</div>
@@ -714,6 +719,12 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     }
   });
   document.addEventListener('change', async (ev) => {
+    if (ev.target.matches && ev.target.matches('[data-zeit-an]')) {
+      const an = ev.target.checked, uid = (await sb.auth.getUser()).data.user.id;
+      const { error } = await sb.from('ze_konfig').upsert({ user_id: uid, zeit_erfassen: an, geaendert: new Date().toISOString() });
+      if (error) { toast(fehlerText(error)); ev.target.checked = !an; return; }
+      Z.zeitAn = an; toast(an ? 'Arbeitszeit wird erfasst' : 'Ohne Zeiterfassung: Mitarbeiter sehen nur Aufträge und Fotos'); return;
+    }
     const fi = ev.target.closest && ev.target.closest('[data-af-foto]');
     if (fi && fi.files.length) {
       const uid = (await sb.auth.getUser()).data.user.id, auftragId = fi.dataset.afFoto;
