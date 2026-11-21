@@ -49,6 +49,33 @@
   const neueId = () => (crypto.randomUUID ? crypto.randomUUID()
     : 'id-' + Date.now().toString(36) + Math.random().toString(36).slice(2));
 
+  // Rückgängig: vor jeder Änderung den alten Stand merken; Änderungen kurz hintereinander zählen als ein Schritt
+  let schrittListe = null, schrittTimer = null;
+  async function merken(speicher, ids, art = 'speichern') {
+    if (!window.Speicher || !window.Speicher.rueckgaengigAktiv) return;
+    if (!schrittListe) schrittListe = new Map();
+    for (const id of ids) {
+      const k = speicher + '|' + id;
+      if (!schrittListe.has(k)) schrittListe.set(k, { speicher, id, art, vorher: id ? await holen(speicher, id) : null });
+    }
+    clearTimeout(schrittTimer);
+    schrittTimer = setTimeout(schrittAbschliessen, 350);
+  }
+  function schrittAbschliessen() {
+    const liste = schrittListe ? [...schrittListe.values()] : []; schrittListe = null;
+    if (!liste.length || !window.Speicher.nachAktion) return;
+    window.Speicher.nachAktion(liste, () => rueckgaengig(liste));
+  }
+  async function rueckgaengig(liste) {
+    const jetzt = new Date().toISOString();
+    for (const e of liste) {
+      if (e.vorher) await schreiben(e.speicher, [{ ...e.vorher, geaendert: jetzt, offen: true }]);
+      else { const neu = await holen(e.speicher, e.id); if (neu) await schreiben(e.speicher, [{ ...neu, ...(e.speicher === 'belege' ? { daten: null } : {}), geloescht: true, geaendert: jetzt, offen: true }]); }
+    }
+    gemeldet();
+    if (window.Speicher.nachRueckgaengig) await window.Speicher.nachRueckgaengig();
+  }
+
   window.Speicher = {
     neueId,
     // Nur gültige (nicht gelöschte) Datensätze
@@ -59,6 +86,7 @@
     holen,
     async speichern(speicher, eintrag) {
       const e = { ...eintrag, id: eintrag.id || neueId(), geaendert: new Date().toISOString(), offen: true };
+      await merken(speicher, [e.id]);
       await schreiben(speicher, [e]);
       gemeldet();
       return e;
@@ -66,6 +94,7 @@
     async mehrereSpeichern(speicher, liste) {
       const jetzt = new Date().toISOString();
       const fertig = liste.map((e) => ({ ...e, id: e.id || neueId(), geaendert: e.geaendert || jetzt, offen: true }));
+      await merken(speicher, fertig.map((e) => e.id));
       await schreiben(speicher, fertig);
       gemeldet();
       return fertig;
@@ -78,6 +107,7 @@
     async loeschen(speicher, id) {
       const e = await holen(speicher, id);
       if (!e) return;
+      await merken(speicher, [id], 'loeschen');
       const leer = speicher === 'belege' ? { daten: null } : {};
       await schreiben(speicher, [{ ...e, ...leer, geloescht: true, geaendert: new Date().toISOString(), offen: true }]);
       gemeldet();

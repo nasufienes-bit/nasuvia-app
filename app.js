@@ -1681,6 +1681,16 @@
   (async () => {
     await Speicher.dauerhaftAnfragen();
     await laden();
+    // Jede Änderung lässt sich mit „Rückgängig“ zurücknehmen
+    Speicher.nachRueckgaengig = async () => { await laden(); zeichnen(); };
+    Speicher.nachAktion = (liste, zurueck) => {
+      const n = liste.filter((e) => e.speicher === 'buchungen').length;
+      const weg = liste.filter((e) => e.speicher === 'buchungen' && e.art === 'loeschen').length;
+      const neu = liste.filter((e) => e.speicher === 'buchungen' && !e.vorher).length;
+      const text = weg ? (weg > 1 ? `${weg} Buchungen gelöscht` : 'Buchung gelöscht') : neu > 1 ? `${neu} Buchungen erfasst` : neu ? 'Buchung gespeichert' : n > 1 ? `${n} Buchungen geändert` : n ? 'Buchung geändert' : 'Gespeichert';
+      if (window.Rueckgaengig) Rueckgaengig.zeigen(text, zurueck);
+    };
+    setTimeout(() => { Speicher.rueckgaengigAktiv = true; }, 800);
     // Sprungziele aus Suche und Anleitung: ?ansicht=loehne, ?aktion=fahrt …
     const q = new URLSearchParams(location.search);
     if (q.get('ansicht') && ANSICHTEN.some(([id]) => id === q.get('ansicht'))) Z.ansicht = q.get('ansicht');

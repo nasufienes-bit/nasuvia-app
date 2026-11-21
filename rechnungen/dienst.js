@@ -694,6 +694,7 @@
         await speichern('rechnung', [{ ...r, geloescht: true, geloeschtAm: jetzt() }]);
         if (window.__nasuvia && window.__nasuvia.listenNeu) window.__nasuvia.listenNeu();
         zeichnen();
+        if (window.Rueckgaengig) Rueckgaengig.zeigen(`Rechnung Nr. ${r.nr} gelöscht`, async () => { await speichern('rechnung', [{ ...r, geloescht: false, geloeschtAm: '' }]); if (window.__nasuvia && window.__nasuvia.listenNeu) window.__nasuvia.listenNeu(); zeichnen(); });
       } else if (a === 'zurueck') {
         const gleich = (await gueltig('rechnung')).find((x) => String(x.nr) === String(r.nr));
         if (gleich && !confirm(`Es gibt schon eine Rechnung mit der Nummer ${r.nr} (${gleich.kunde}). Trotzdem wiederherstellen?`)) return;
@@ -709,6 +710,7 @@
         await speichern('rechnung', [{ ...r, bezahlt: !r.bezahlt, bezahltAm: r.bezahlt ? '' : heute() }]);
         if (window.__nasuvia && window.__nasuvia.listenNeu) window.__nasuvia.listenNeu();
         zeichnen();
+        if (window.Rueckgaengig) Rueckgaengig.zeigen(r.bezahlt ? `Nr. ${r.nr} wieder offen` : `Nr. ${r.nr} als bezahlt markiert`, async () => { await speichern('rechnung', [{ ...r }]); if (window.__nasuvia && window.__nasuvia.listenNeu) window.__nasuvia.listenNeu(); zeichnen(); });
       }
     };
     zeichnen();

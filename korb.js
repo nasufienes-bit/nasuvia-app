@@ -6,9 +6,42 @@
   const dk = (d) => (d ? d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4) : '');
   async function loeschen(sb, tabelle, id, titel, extra = {}) {
     if (!confirm(`„${titel}“ löschen?\n\nSie finden es ${TAGE} Tage lang unter „Zuletzt gelöscht“ und können es dort wiederherstellen.`)) return false;
-    const { error } = await sb.from(tabelle).update({ geloescht_am: new Date().toISOString(), ...extra }).in('id', [].concat(id));
+    const ids = [].concat(id);
+    const { error } = await sb.from(tabelle).update({ geloescht_am: new Date().toISOString(), ...extra }).in('id', ids);
     if (error) { alert(error.message); return false; }
+    // Sofort rückgängig machbar (alte Werte von extra, z. B. aktiv, werden mitgerettet)
+    if (window.Rueckgaengig) window.Rueckgaengig.zeigen(`„${titel}“ gelöscht`, async () => {
+      const zurueck = { geloescht_am: null }; if ('aktiv' in extra) zurueck.aktiv = true;
+      const r = await sb.from(tabelle).update(zurueck).in('id', ids); if (r.error) throw r.error;
+      if (window.Korb.neuLaden) await window.Korb.neuLaden();
+    });
     return true;
+  }
+  // Ändern mit Rückgängig: alte Werte der geänderten Felder werden vorher gelesen
+  async function aendern(sb, tabelle, id, werte, text = 'Gespeichert', schluessel = 'id') {
+    const ids = [].concat(id), felder = Object.keys(werte);
+    const alt = await sb.from(tabelle).select([schluessel, ...felder].join(',')).in(schluessel, ids);
+    const r = await sb.from(tabelle).update(werte).in(schluessel, ids).select('*');
+    if (r.error) return { error: r.error, data: null };
+    if (window.Rueckgaengig && !alt.error && alt.data && alt.data.length) window.Rueckgaengig.zeigen(text, async () => {
+      for (const zeile of alt.data) { const { [schluessel]: k, ...vorher } = zeile; const x = await sb.from(tabelle).update(vorher).eq(schluessel, k); if (x.error) throw x.error; }
+      if (window.Korb.neuLaden) await window.Korb.neuLaden();
+    });
+    return { error: null, data: ids.length === 1 ? (r.data || [])[0] || null : r.data };
+  }
+  // Neu anlegen mit Rückgängig (in Tabellen ohne „Zuletzt gelöscht“ wird wieder entfernt)
+  const OHNE_KORB = ['lg_bewegungen', 'tb_konfig', 'ze_konfig'];
+  async function neu(sb, tabelle, zeilen, text = 'Gespeichert') {
+    const liste = [].concat(zeilen);
+    const r = await sb.from(tabelle).insert(liste).select('*');
+    if (r.error) return { error: r.error, data: null };
+    const ids = (r.data || []).map((x) => x.id);
+    if (window.Rueckgaengig && ids.length) window.Rueckgaengig.zeigen(text, async () => {
+      const x = OHNE_KORB.includes(tabelle) ? await sb.from(tabelle).delete().in('id', ids) : await sb.from(tabelle).update({ geloescht_am: new Date().toISOString() }).in('id', ids);
+      if (x.error) throw x.error;
+      if (window.Korb.neuLaden) await window.Korb.neuLaden();
+    });
+    return { error: null, data: Array.isArray(zeilen) ? r.data : (r.data || [])[0] || null };
   }
   async function aufraeumen(sb, tabellen) {
     const grenze = new Date(Date.now() - TAGE * 864e5).toISOString();
@@ -50,5 +83,5 @@
     await zeichnen();
     d.showModal();
   }
-  window.Korb = { loeschen, aufraeumen, oeffnen };
+  window.Korb = Object.assign(window.Korb || {}, { loeschen, aufraeumen, oeffnen, aendern, neu });
 })();

@@ -118,7 +118,7 @@
         : '<p class="leer">Niemand schuldet Ihnen etwas. Oder Sie haben es noch nicht erfasst.</p>'}</div>`;
   }
   function gutDialog(g) {
-    const neu = !g; g = g || { id: H.neueId(), datum: H.heute(), zahlungen: [] };
+    const neu = !g; g = g || { id: H.neueId(), datum: H.heute(), zahlungen: [] }; H._g = g;
     const o = offenG(g);
     const text = `Hallo ${(g.person || '').split(' ')[0]}, kleine Erinnerung: Es sind noch CHF ${H.chf(o)} offen${g.grund ? ' (' + g.grund + ')' : ''}. Danke dir!`;
     const f = formular(neu ? 'Guthaben erfassen' : H.esc(g.person),
@@ -130,7 +130,7 @@
         const z = H.betragLesen(fd.get('zahlung')); if (z > 0) g.zahlungen.push({ datum: H.heute(), betragRappen: z });
         if (neu) D().guthaben.push(g); H.sichern(); H.toast('Gespeichert'); },
       { loeschen: neu ? null : () => H.wegwerfen('guthaben', g, g.person),
-        extra: neu ? '' : `<div><b style="font-size:14px">Rückzahlungen</b>${(g.zahlungen || []).map((z) => `<div class="zeile"><span>${H.dk(z.datum)}</span><span class="betrag">${H.chf(z.betragRappen)}</span></div>`).join('') || '<p class="leer">Noch keine.</p>'}
+        extra: neu ? '' : `<div><b style="font-size:14px">Rückzahlungen</b>${(g.zahlungen || []).map((z, i) => `<div class="zeile"><span>${H.dk(z.datum)}</span><span class="betrag">${H.chf(z.betragRappen)} <button type="button" class="btn klein rot" data-gz="${i}" aria-label="Rückzahlung löschen">×</button></span></div>`).join('') || '<p class="leer">Noch keine.</p>'}
           ${feld('Neue Rückzahlung CHF', '<input type="text" inputmode="decimal" name="zahlung" placeholder="0.00">')}</div>
           ${o ? `<div class="aktionen"><a class="btn klein" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">Freundlich erinnern (WhatsApp)</a><a class="btn klein" href="sms:?&body=${encodeURIComponent(text)}">Per SMS</a></div>` : ''}` });
     return f;
@@ -156,12 +156,12 @@
         : '<div class="card start" style="grid-column:1/-1"><div style="font-size:46px">🏝️</div><h2>Worauf sparen Sie?</h2><p>Legen Sie ein Ziel fest, zum Beispiel Ferien oder ein Auto. Jede Einzahlung bringt Sie sichtbar näher.</p><button class="btn haupt" data-hbm="sparziel">Erstes Sparziel</button></div>'}</div>`;
   }
   function sparDialog(z) {
-    const neu = !z; z = z || { id: H.neueId(), emoji: '🏝️', einzahlungen: [], farbe: FARBEN[2] };
+    const neu = !z; z = z || { id: H.neueId(), emoji: '🏝️', einzahlungen: [], farbe: FARBEN[2] }; H._z = z;
     formular(neu ? 'Neues Sparziel' : H.esc(z.name),
       zwei(feld('Wofür', `<input type="text" name="name" value="${H.esc(z.name || '')}" required maxlength="60" placeholder="z. B. Ferien Griechenland">`), feld('Symbol', `<select name="emoji">${['🏝️', '🚗', '🏠', '💍', '🎓', '🛡️', '📱', '🚲', '✈️', '🎁', '🎯'].map((e) => `<option ${e === z.emoji ? 'selected' : ''}>${e}</option>`).join('')}</select>`)) +
       zwei(feld('Ziel CHF', betragFeld('ziel', z.ziel)), feld('Bis wann (freiwillig)', `<input type="date" name="bis" value="${z.bis || ''}">`)) +
       `<div><span class="hinweis">Farbe</span><div style="display:flex;gap:8px;margin-top:6px">${FARBEN.map((c) => `<label style="display:block"><input type="radio" name="farbe" value="${c}" ${c === z.farbe ? 'checked' : ''} style="display:none"><span style="display:block;width:26px;height:26px;border-radius:50%;background:${c};outline:${c === z.farbe ? '3px solid #0A1F17' : '0'};outline-offset:2px;cursor:pointer" onclick="this.parentElement.parentElement.querySelectorAll('span').forEach(s=>s.style.outline='0');this.style.outline='3px solid #0A1F17'"></span></label>`).join('')}</div></div>` +
-      (neu ? '' : `<div><b style="font-size:14px">Einzahlungen</b>${(z.einzahlungen || []).slice().reverse().map((e) => `<div class="zeile"><span>${H.dk(e.datum)}</span><span class="betrag">${H.chf(e.betragRappen)}</span></div>`).join('') || '<p class="leer">Noch keine.</p>'}</div>`),
+      (neu ? '' : `<div><b style="font-size:14px">Einzahlungen</b>${(z.einzahlungen || []).map((e, i) => [e, i]).reverse().map(([e, i]) => `<div class="zeile"><span>${H.dk(e.datum)}</span><span class="betrag">${H.chf(e.betragRappen)} <button type="button" class="btn klein rot" data-ez="${i}" aria-label="Einzahlung löschen">×</button></span></div>`).join('') || '<p class="leer">Noch keine.</p>'}</div>`),
       (fd) => { const ziel = H.betragLesen(fd.get('ziel')); if (!(ziel > 0)) { H.toast('Bitte ein Ziel eingeben'); return false; }
         Object.assign(z, { name: String(fd.get('name')).trim(), emoji: fd.get('emoji'), ziel, bis: fd.get('bis'), farbe: fd.get('farbe') || z.farbe });
         if (neu) D().sparziele.push(z); H.sichern(); H.toast('Gespeichert'); },
@@ -404,6 +404,8 @@
       })[was]?.();
       return;
     }
+    const gz = t.closest('[data-gz]'); if (gz && H._g) { H._g.zahlungen.splice(Number(gz.dataset.gz), 1); H.sichern(); H.toast('Rückzahlung gelöscht'); gutDialog(H._g); return; }
+    const ez = t.closest('[data-ez]'); if (ez && H._z) { H._z.einzahlungen.splice(Number(ez.dataset.ez), 1); H.sichern(); H.toast('Einzahlung gelöscht'); sparDialog(H._z); return; }
     const bar = t.closest('[data-bar]'); if (bar && !t.closest('dialog')) { barDialog(null, D().bargeld.find((x) => x.id === bar.dataset.bar)); return; }
     const fx = t.closest('[data-fix]'); if (fx && !t.closest('dialog')) { fixDialog(D().fix.find((x) => x.id === fx.dataset.fix)); return; }
     const gu = t.closest('[data-gut]'); if (gu && !t.closest('dialog')) { gutDialog(D().guthaben.find((x) => x.id === gu.dataset.gut)); return; }

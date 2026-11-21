@@ -214,6 +214,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   const firma = () => (Z.konfig && Z.konfig.firma) || (window.NASUVIA_LIZENZ && (window.NASUVIA_LIZENZ.firma || window.NASUVIA_LIZENZ.name)) || '';
 
   async function laden() {
+    Korb.neuLaden = laden;
     Korb.aufraeumen(sb, [{ tabelle: 'tb_termine' }]);
     try {
       let k = await sb.from('tb_konfig').select('*').maybeSingle();
@@ -374,12 +375,12 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       if (t.id) zeile.status = d.get('status'); else zeile.status = 'bestaetigt';
       const ueber = Z.termine.find((x) => x.id !== t.id && x.status !== 'abgesagt' && new Date(x.beginn) < new Date(zeile.ende) && new Date(x.ende) > beginn);
       if (ueber && !confirm(`Zu dieser Zeit ist schon ${ueber.name} eingetragen. Trotzdem speichern?`)) return;
-      const r = t.id ? await sb.from('tb_termine').update(zeile).eq('id', t.id) : await sb.from('tb_termine').insert(zeile);
+      const r = t.id ? await Korb.aendern(sb, 'tb_termine', t.id, zeile, 'Termin geändert') : await Korb.neu(sb, 'tb_termine', zeile, 'Termin eingetragen');
       if (r.error) { toast(fehlerText(r.error), 6000); return; }
       dlg.close(); await laden(); toast('Gespeichert');
     };
   }
-  async function statusSetzen(id, status) { const { error } = await sb.from('tb_termine').update({ status }).eq('id', id); if (error) toast(fehlerText(error)); else { await laden(); } }
+  async function statusSetzen(id, status) { const { error } = await Korb.aendern(sb, 'tb_termine', id, { status }, 'Status: ' + (STATUS[status] || [status])[0]); if (error) toast(fehlerText(error)); else { await laden(); } }
 
   async function konfigSpeichern(f) {
     const d = new FormData(f), zeiten = {};
@@ -391,7 +392,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     if (d.get('aktiv') === 'on' && !Object.values(zeiten).some((z) => z.length)) { toast('Bitte Öffnungszeiten eintragen'); return; }
     const zeile = { aktiv: d.get('aktiv') === 'on', firma: String(d.get('firma') || '').trim(), telefon: String(d.get('telefon') || '').trim(), adresse: String(d.get('adresse') || '').trim(), text: String(d.get('text') || '').trim(),
       dienste, zeiten, raster: Number(d.get('raster')), vorlauf_std: Number(d.get('vorlauf')), max_tage: Number(d.get('maxtage')) };
-    const r = await sb.from('tb_konfig').update(zeile).eq('user_id', Z.konfig.user_id).select().single();
+    const r = await Korb.aendern(sb, 'tb_konfig', Z.konfig.user_id, zeile, zeile.aktiv ? 'Gespeichert, Buchung ist eingeschaltet' : 'Gespeichert', 'user_id');
     if (r.error) { toast(fehlerText(r.error), 6000); return; }
     Z.konfig = r.data; zeichnen(); toast(zeile.aktiv ? 'Gespeichert. Ihr Buchungslink ist bereit.' : 'Gespeichert');
   }

@@ -236,6 +236,10 @@
     ['ze-standort', 'Zeiterfassung', 'Standort beim Ein- und Ausstempeln', 'standort gps ort live verfolgung ortung', [
       'Beim Mitarbeiter „Standort beim Ein- und Ausstempeln mitschicken“ anhaken. Bitte nur mit seinem Wissen.',
       'Gespeichert wird nur der Ort beim Start und beim Stopp, keine dauernde Verfolgung. Bei den Einträgen erscheint „📍 Ort“.'], Z + '?tab=mitarbeiter'],
+    ['rueckgaengig', 'Erste Schritte', 'Rückgängig machen', 'rückgängig zurück undo versehentlich falsch fehler wiederherstellen', [
+      'Nach fast jeder Änderung erscheint unten kurz „↶ Rückgängig“. Ein Tipp stellt den alten Stand wieder her.',
+      'Gelöschtes finden Sie zusätzlich 30 Tage lang unter „Zuletzt gelöscht“.',
+      'Alle Daten löschen: unter „Lizenz und Konto“. Nur das lässt sich nicht rückgängig machen.'], B],
     ['geloescht', 'Konto und Lizenz', 'Zuletzt gelöscht und Archiv', 'gelöscht wiederherstellen papierkorb archiv archivieren rückgängig', [
       'Gelöschtes bleibt 30 Tage unter „Zuletzt gelöscht“ und lässt sich dort wiederherstellen.',
       'Aufträge archivieren: im Auftrag den Haken „Offen“ entfernen. Mit „Archiv“ sehen Sie sie wieder.'], Z],

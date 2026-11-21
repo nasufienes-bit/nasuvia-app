@@ -94,6 +94,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 
   <div class="unten">
     <div class="karte"><h3>Ihre Daten gehören Ihnen</h3><p>Sie liegen verschlüsselt in Zürich. Auch ohne gültige Lizenz können Sie alles ansehen und herunterladen.</p><a class="btn" href="../?ansicht=mehr">Sicherung herunterladen</a></div>
+    <div class="karte" style="border:1px solid rgba(229,72,77,.25)"><h3>Alle meine Daten löschen</h3><p>Löscht Rechnungen, Buchungen, Belege, Mitarbeiter, Aufträge, Fotos, Termine, Lager und Home-Büro auf diesem Gerät und auf dem Server. Ihr Konto und Ihre Lizenz bleiben. <b>Das lässt sich nicht rückgängig machen.</b> Laden Sie vorher eine Sicherung herunter.</p><button class="btn" id="alleDatenWeg" style="color:#B4282D">Alle Daten löschen …</button></div>
     <div class="karte"><h3>Fragen zur Lizenz?</h3><p>Wir helfen gerne: info@nasuvia.ch oder 079 821 84 08.</p><a class="btn" href="mailto:info@nasuvia.ch?subject=Frage%20zur%20Lizenz">E-Mail schreiben</a><button class="btn" id="abmelden" style="margin-top:8px">Abmelden</button></div>
   </div>
 </div>
@@ -184,6 +185,32 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   $('dEinrichtung').addEventListener('change', summeZeigen);
   $('dZu').onclick = function(){ $('dlg').close(); };
   $('fZu').onclick = function(){ $('dlg').close(); };
+  // Alle Daten löschen: Dateien im Speicher, Datenbank, dieses Gerät
+  async function ordnerLeeren(bucket, pfad, tiefe) {
+    var r = await sb.storage.from(bucket).list(pfad, { limit: 1000 });
+    var dateien = [], ordner = [];
+    (r.data || []).forEach(function(x){ if (x.id) dateien.push(pfad + '/' + x.name); else ordner.push(pfad + '/' + x.name); });
+    if (dateien.length) await sb.storage.from(bucket).remove(dateien);
+    if (tiefe > 0) for (var i = 0; i < ordner.length; i++) await ordnerLeeren(bucket, ordner[i], tiefe - 1);
+  }
+  $('alleDatenWeg').onclick = async function(){
+    if (!benutzer) { location.href = '../'; return; }
+    if (!confirm('Wirklich ALLE Ihre Daten löschen? Rechnungen, Buchungen, Belege, Mitarbeiter, Aufträge, Fotos, Termine, Lager und Home-Büro.\n\nDas lässt sich nicht rückgängig machen.')) return;
+    var ok = prompt('Zur Sicherheit: Bitte LÖSCHEN in Grossbuchstaben eingeben.');
+    if (ok !== 'LÖSCHEN') { alert('Nichts gelöscht.'); return; }
+    this.disabled = true; this.textContent = 'Wird gelöscht …';
+    try {
+      await ordnerLeeren('belege', benutzer.id, 2);
+      await ordnerLeeren('auftrag-fotos', benutzer.id, 2);
+      var r = await sb.rpc('konto_daten_loeschen', { p_bestaetigung: 'LÖSCHEN' });
+      if (r.error) throw r.error;
+      // Dieses Gerät: lokale Daten aller Bereiche, die Anmeldung bleibt
+      Object.keys(localStorage).forEach(function(k){ if (/^(nasuvia\.|homebuero|nb\.|ordasio\.|ze\.|nr\.)/.test(k) && k !== K.speicher) localStorage.removeItem(k); });
+      ['nasuvia-buchhaltung', 'nasuvia-rechnungen', 'homebuero-dateien'].forEach(function(n){ try { indexedDB.deleteDatabase(n); } catch (e) {} });
+      alert('Alle Ihre Daten sind gelöscht. Sie können jederzeit neu beginnen.');
+      location.href = '../start/';
+    } catch (f) { alert('Das hat nicht ganz geklappt: ' + (f.message || f)); this.disabled = false; this.textContent = 'Alle Daten löschen …'; }
+  };
   $('abmelden').onclick = async function(){ await sb.auth.signOut({ scope: 'local' }); location.href = '../'; };
   // Bestellung geht an Nasuvia: in die Anfragen und per E-Mail
   $('form').addEventListener('submit', async function(e){

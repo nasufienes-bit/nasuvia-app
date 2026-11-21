@@ -51,3 +51,43 @@
     for (const d of document.querySelectorAll('dialog[open]')) if (!d.querySelector(':scope > .ui-zu') && !d.hasAttribute('data-ohne-x')) d.showModal();
   }).observe(document.documentElement, { childList: true, subtree: true });
 })();
+
+// Rückgängig: nach einer Änderung erscheint unten kurz „Rückgängig“. Ein Tipp stellt den alten Stand wieder her.
+(() => {
+  if (window.Rueckgaengig) return;
+  const stil = document.createElement('style');
+  stil.textContent = `
+  .rg-leiste{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translate(-50%,30px);opacity:0;z-index:2147483000;display:flex;align-items:center;gap:14px;background:#0A1F17;color:#fff;border-radius:100px;padding:10px 10px 10px 20px;font:600 15px 'League Spartan',-apple-system,system-ui,sans-serif;box-shadow:0 20px 50px -20px rgba(12,18,38,.7);transition:transform .3s,opacity .3s;pointer-events:none;max-width:calc(100vw - 24px)}
+  .rg-leiste.da{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+  .rg-leiste span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rg-leiste button{border:0;border-radius:100px;padding:9px 16px;background:#6EE7A8;color:#0A1F17;font:700 15px inherit;font-family:inherit;cursor:pointer;white-space:nowrap}
+  @media(min-width:821px){.rg-leiste{bottom:28px}}`;
+  document.head.appendChild(stil);
+  let leiste, timer, aktuell = null;
+  // Solange die Rückgängig-Leiste sichtbar ist, werden andere kurze Meldungen der Seite ausgeblendet (sonst liegen sie übereinander)
+  let aktivBis = 0;
+  new MutationObserver((liste) => {
+    if (Date.now() > aktivBis) return;
+    for (const m of liste) { const el = m.target; if (el.classList && (el.id === 'toast' || el.classList.contains('toast')) && /\b(da|zeigen)\b/.test(el.className)) el.classList.remove('da', 'zeigen'); }
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'], subtree: true });
+  function zeigen(text, rueckgaengig, ms = 9000) {
+    aktivBis = Date.now() + ms;
+    if (!leiste) { leiste = document.createElement('div'); leiste.className = 'rg-leiste'; leiste.setAttribute('role', 'status'); (document.body || document.documentElement).appendChild(leiste); }
+    aktuell = rueckgaengig;
+    leiste.innerHTML = `<span></span><button type="button">↶ Rückgängig</button>`;
+    leiste.querySelector('span').textContent = text;
+    leiste.querySelector('button').onclick = async () => {
+      const f = aktuell; aktuell = null; leiste.classList.remove('da'); aktivBis = 0;
+      if (!f) return;
+      try { await f(); zeigenKurz('Rückgängig gemacht'); } catch (e) { zeigenKurz('Konnte nicht rückgängig gemacht werden'); }
+    };
+    requestAnimationFrame(() => leiste.classList.add('da'));
+    clearTimeout(timer); timer = setTimeout(() => { leiste.classList.remove('da'); aktuell = null; }, ms);
+  }
+  function zeigenKurz(text) {
+    if (!leiste) return;
+    leiste.innerHTML = `<span></span>`; leiste.querySelector('span').textContent = '✓ ' + text;
+    leiste.classList.add('da'); clearTimeout(timer); timer = setTimeout(() => leiste.classList.remove('da'), 2200);
+  }
+  window.Rueckgaengig = { zeigen };
+})();

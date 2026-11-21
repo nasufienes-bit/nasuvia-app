@@ -226,6 +226,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     { tabelle: 'ze_einsaetze', art: 'Einsatz', titel: (r) => `${maName(r.mitarbeiter_id)} · ${dk(r.datum)}${r.adresse ? ' · ' + r.adresse : ''}` },
   ];
   async function allesLaden() {
+    Korb.neuLaden = async () => { await stammLaden(); await eintraegeLaden(); zeichnen(); };
     Korb.aufraeumen(sb, KORB);
     try { await stammLaden(); await eintraegeLaden(); Z.bereit = true; zeichnen(); }
     catch (e) { $('inhalt').innerHTML = `<div class="card"><h2>Daten konnten nicht geladen werden</h2><p class="hinweis">${esc(fehlerText(e))}</p><button class="btn abstand" data-a="neuLaden">Nochmals versuchen</button></div>`; }
@@ -345,7 +346,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
         adresse: String(d.get('adresse') || '').trim(), kunde_telefon: String(d.get('tel') || '').trim(), notiz: String(d.get('notiz') || '').trim() };
       if (s.id) zeile.erledigt = d.get('erledigt') === 'on';
       // Adresse aus dem Auftrag übernehmen, wenn leer
-      const r = s.id ? await sb.from('ze_einsaetze').update(zeile).eq('id', s.id) : await sb.from('ze_einsaetze').insert(zeile);
+      const r = s.id ? await Korb.aendern(sb, 'ze_einsaetze', s.id, zeile, 'Einsatz geändert') : await Korb.neu(sb, 'ze_einsaetze', zeile, 'Einsatz geplant');
       if (r.error) { toast(fehlerText(r.error), 6000); return; }
       // Ist der Auftrag nur bestimmten Mitarbeitern zugewiesen, bekommt ihn der eingeplante Mitarbeiter automatisch dazu
       const af = auftrag(zeile.auftrag_id);
@@ -445,7 +446,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       const d = new FormData(f);
       const zeile = { name: String(d.get('name')).trim(), stundenlohn_rappen: betragLesen(d.get('lohn')), ansatz_rappen: betragLesen(d.get('ansatz')), rolle: d.get('rolle') || 'mitarbeiter', darf_anlegen: d.get('anlegen') === 'on', standort: d.get('standort') === 'on' };
       if (m.id) zeile.aktiv = d.get('aktiv') === 'on';
-      const r = m.id ? await sb.from('ze_mitarbeiter').update(zeile).eq('id', m.id).select().single() : await sb.from('ze_mitarbeiter').insert(zeile).select().single();
+      const r = m.id ? await Korb.aendern(sb, 'ze_mitarbeiter', m.id, zeile, 'Mitarbeiter geändert') : await Korb.neu(sb, 'ze_mitarbeiter', zeile, 'Mitarbeiter erfasst');
       if (r.error) { toast(fehlerText(r.error), 6000); return; }
       dlg.close(); await stammLaden(); zeichnen();
       if (!m.id) linkDialog(r.data); else toast('Gespeichert');
@@ -490,7 +491,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       const zeile = { name: String(d.get('name')).trim(), kunde: String(d.get('kunde') || '').trim(), adresse: String(d.get('adresse') || '').trim(), status: d.get('status') || 'offen',
         notiz: String(d.get('notiz') || '').trim(), ordner: ordnerTeile(d.get('ordner')).join('/'), zugewiesen: d.getAll('zu') };
       if (a.id) zeile.aktiv = d.get('aktiv') === 'on';
-      const r = a.id ? await sb.from('ze_auftraege').update(zeile).eq('id', a.id) : await sb.from('ze_auftraege').insert(zeile);
+      const r = a.id ? await Korb.aendern(sb, 'ze_auftraege', a.id, zeile, 'Auftrag geändert') : await Korb.neu(sb, 'ze_auftraege', zeile, 'Auftrag angelegt');
       if (r.error) { toast(fehlerText(r.error), 6000); return; }
       Z.afOrdner = zeile.ordner;
       dlg.close(); await stammLaden(); zeichnen(); toast('Gespeichert');
@@ -532,7 +533,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       if (!(minuten >= 1 && minuten <= 1440)) { toast('Bitte Von und Bis oder eine Dauer eingeben'); return; }
       const zeile = { mitarbeiter_id: d.get('ma'), datum: d.get('datum'), von: von && bis ? von : null, bis: von && bis ? bis : null, pause_min: von && bis ? pause : 0, minuten,
         auftrag_id: d.get('auftrag') || null, taetigkeit: String(d.get('taetigkeit') || '').trim(), km: Number(String(d.get('km') || '0').replace(',', '.')) || 0, verrechnet: d.get('verrechnet') === 'on' };
-      const r = e.id ? await sb.from('ze_eintraege').update(zeile).eq('id', e.id) : await sb.from('ze_eintraege').insert({ ...zeile, user_id: (await sb.auth.getUser()).data.user.id });
+      const r = e.id ? await Korb.aendern(sb, 'ze_eintraege', e.id, zeile, 'Eintrag geändert') : await Korb.neu(sb, 'ze_eintraege', { ...zeile, user_id: (await sb.auth.getUser()).data.user.id }, 'Eintrag gespeichert');
       if (r.error) { toast(fehlerText(r.error), 6000); return; }
       dlg.close(); await eintraegeLaden(); zeichnen(); toast('Gespeichert');
     };
@@ -641,7 +642,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const mw = t.closest('[data-ma-woche]'); if (mw) { Z.tab = 'eintraege'; Z.fMa = mw.dataset.maWoche; Z.fStatus = 'alle'; Z.monat = Z.woche.slice(0, 7); zeichnen(); return; }
     if (t.closest('[data-stopp]')) return;
     const ao = t.closest('[data-af-ordner]'); if (ao && !t.closest('dialog')) { Z.afOrdner = ao.dataset.afOrdner; zeichnen(); return; }
-    const fp = t.closest('[data-foto-pruefen]'); if (fp) { await sb.from('ze_fotos').update({ geprueft: fp.dataset.wert === '1' }).eq('id', fp.dataset.fotoPruefen); fotosZeigen(dlg.querySelector('form').dataset.formAf); return; }
+    const fp = t.closest('[data-foto-pruefen]'); if (fp) { await Korb.aendern(sb, 'ze_fotos', fp.dataset.fotoPruefen, { geprueft: fp.dataset.wert === '1' }, fp.dataset.wert === '1' ? 'Foto geprüft' : 'Prüfung entfernt'); fotosZeigen(dlg.querySelector('form').dataset.formAf); return; }
     const fw = t.closest('[data-foto-weg]'); if (fw) { if (await Korb.loeschen(sb, 'ze_fotos', fw.dataset.fotoWeg, 'Foto')) fotosZeigen(dlg.querySelector('form').dataset.formAf); return; }
     const es = t.closest('[data-einsatz]'); if (es && !t.closest('dialog')) { einsatzDialog(Z.einsaetze.find((s) => s.id === es.dataset.einsatz)); return; }
     const ein = t.closest('[data-eintrag]'); if (ein && !t.closest('dialog') && !t.matches('input')) { eintragDialog(Z.eintraege.find((e) => e.id === ein.dataset.eintrag)); return; }
@@ -678,7 +679,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
         f.onsubmit = async (e2) => {
           e2.preventDefault();
           const zu = new FormData(f).getAll('zu');
-          const { error } = await sb.from('ze_auftraege').update({ zugewiesen: zu }).in('id', l.map((x) => x.id));
+          const { error } = await Korb.aendern(sb, 'ze_auftraege', l.map((x) => x.id), { zugewiesen: zu }, 'Aufträge zugewiesen');
           if (error) { toast(fehlerText(error)); return; }
           dlg.close(); await stammLaden(); zeichnen(); toast(zu.length ? `${l.length} Aufträge zugewiesen an ${zu.map(maName).join(', ')}` : `${l.length} Aufträge für alle sichtbar`);
         };
@@ -695,7 +696,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       case 'alleWaehlen': { const l = gefiltert(); Z.wahl = a.checked ? new Set(l.map((e) => e.id)) : new Set(); zeichnen(); break; }
       case 'verrechnet': {
         const ids = [...Z.wahl], alle = Z.eintraege.filter((e) => Z.wahl.has(e.id)).every((e) => e.verrechnet);
-        const { error } = await sb.from('ze_eintraege').update({ verrechnet: !alle }).in('id', ids);
+        const { error } = await Korb.aendern(sb, 'ze_eintraege', ids, { verrechnet: !alle }, alle ? 'Wieder offen' : 'Als verrechnet markiert');
         if (error) { toast(fehlerText(error)); break; }
         Z.wahl.clear(); await eintraegeLaden(); zeichnen(); toast(alle ? 'Wieder als offen markiert' : 'Als verrechnet markiert'); break;
       }
@@ -723,7 +724,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       const an = ev.target.checked, uid = (await sb.auth.getUser()).data.user.id;
       const { error } = await sb.from('ze_konfig').upsert({ user_id: uid, zeit_erfassen: an, geaendert: new Date().toISOString() });
       if (error) { toast(fehlerText(error)); ev.target.checked = !an; return; }
-      Z.zeitAn = an; toast(an ? 'Arbeitszeit wird erfasst' : 'Ohne Zeiterfassung: Mitarbeiter sehen nur Aufträge und Fotos'); return;
+      Z.zeitAn = an;
+      if (window.Rueckgaengig) Rueckgaengig.zeigen(an ? 'Arbeitszeit wird erfasst' : 'Ohne Zeiterfassung', async () => { await sb.from('ze_konfig').upsert({ user_id: uid, zeit_erfassen: !an, geaendert: new Date().toISOString() }); Z.zeitAn = !an; zeichnen(); }); return;
     }
     const fi = ev.target.closest && ev.target.closest('[data-af-foto]');
     if (fi && fi.files.length) {

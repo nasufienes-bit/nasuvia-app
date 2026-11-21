@@ -2543,8 +2543,9 @@ Glasfaser? Wir ziehen durch.`;
     if (e.key === 'Enter') { e.preventDefault(); $('entwurfSpeichern').click(); }
   });
   $('btnNeu').addEventListener('click', async () => {
-    if (!confirm('Neue Rechnung beginnen? Positionen und Nummer werden geleert.')) return;
+    const vorher = zustand(), vorherBearbeitet = bearbeitet, vorherEntwurf = entwurfId;
     await neuBeginnen();
+    if (window.Rueckgaengig) Rueckgaengig.zeigen('Neue Rechnung begonnen', () => { zustandLaden(vorher); bearbeitet = vorherBearbeitet; entwurfId = vorherEntwurf; zeigeBearbeitung(); aktualisiere({ sofort: true }); standJetztSichern(); });
   });
   // Neue, leere Rechnung; optional mit Positionen (z. B. aus der Zeiterfassung)
   async function neuBeginnen(vorgabe) {
@@ -2747,9 +2748,11 @@ Glasfaser? Wir ziehen durch.`;
     if (kunden.length <= 1) { toast('Der letzte Kunde bleibt bestehen'); return; }
     const k = aktKunde();
     if (!confirm(`Kunde „${k.name}" löschen?`)) return;
+    const stelle = kunden.findIndex((x) => x.id === k.id);
     kunden = kunden.filter((x) => x.id !== k.id);
     sichere(KEY_KUNDEN, kunden); fuelleKunden(kunden[0].id); aktualisiere({ sofort: true }); standJetztSichern();
-    toast('Kunde gelöscht');
+    if (window.Rueckgaengig) Rueckgaengig.zeigen(`Kunde „${k.name}“ gelöscht`, () => { kunden.splice(Math.max(0, stelle), 0, k); sichere(KEY_KUNDEN, kunden); fuelleKunden(k.id); aktualisiere({ sofort: true }); standJetztSichern(); });
+    else toast('Kunde gelöscht');
   });
   kundeSelect.addEventListener('change', aktualisiere);
 
@@ -2787,9 +2790,11 @@ Glasfaser? Wir ziehen durch.`;
     if (empfaengerListe.length <= 1) { toast('Der letzte Empfänger bleibt bestehen'); return; }
     const e = aktEmpfaenger();
     if (!confirm(`Empfänger „${e.bez || e.name}" löschen?`)) return;
+    const stelle = empfaengerListe.findIndex((x) => x.id === e.id);
     empfaengerListe = empfaengerListe.filter((x) => x.id !== e.id);
     sichere(KEY_EMPF, empfaengerListe); fuelleEmpfaenger(empfaengerListe[0].id); aktualisiere({ sofort: true }); standJetztSichern();
-    toast('Empfänger gelöscht');
+    if (window.Rueckgaengig) Rueckgaengig.zeigen(`Empfänger „${e.bez || e.name}“ gelöscht`, () => { empfaengerListe.splice(Math.max(0, stelle), 0, e); sichere(KEY_EMPF, empfaengerListe); fuelleEmpfaenger(e.id); aktualisiere({ sofort: true }); standJetztSichern(); });
+    else toast('Empfänger gelöscht');
   });
   empfSelect.addEventListener('change', aktualisiere);
   // IBAN direkt in der Karte änderbar

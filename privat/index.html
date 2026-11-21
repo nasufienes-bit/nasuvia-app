@@ -124,7 +124,11 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   const heute = () => new Date().toLocaleDateString('sv-SE');
   const dk = (d) => (d ? d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4) : '');
   const tageBis = (d) => Math.round((new Date(d + 'T12:00') - new Date(heute() + 'T12:00')) / 864e5);
-  const toast = (t) => { const e = $('toast'); e.textContent = t; e.classList.add('da'); clearTimeout(toast.z); toast.z = setTimeout(() => e.classList.remove('da'), 2800); };
+  let rgVorher = null, rgTimer = null, rgText = 'Gespeichert';
+  const toast = (t) => {
+    if (rgVorher !== null && !/^Rückgängig/.test(t)) { rgText = t; return; }   // Meldung kommt in die Rückgängig-Leiste
+    const e = $('toast'); e.textContent = t; e.classList.add('da'); clearTimeout(toast.z); toast.z = setTimeout(() => e.classList.remove('da'), 2800);
+  };
   const betragLesen = (t) => {
     let s = String(t || '').trim().replace(/[’'\s]/g, '').replace(/^CHF/i, '').replace('−', '-');
     if (/,\d{1,2}$/.test(s)) s = s.replace(/\./g, '').replace(',', '.');
@@ -135,7 +139,28 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   /* ---------- Daten (auf diesem Gerät) ---------- */
   const KEY = 'homebuero.v1';
   const D = (() => { try { return { bewegungen: [], rechnungen: [], betreibungen: [], regeln: {}, abosStatus: {}, steuern: [], steuerVon: {}, budget: {}, teilen: { personen: [], ausgaben: [] }, kk: { aktuell: {}, angebote: [], kosten: 500 }, bargeld: [], guthaben: [], fix: [], sparziele: [], kalender: [], ordner: [], dokumente: [], papierkorb: [], start: {}, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch { return { bewegungen: [], rechnungen: [], betreibungen: [], regeln: {}, abosStatus: {} }; } })();
-  const sichern = () => { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch { toast('Speicher voll — bitte eine Sicherung herunterladen'); } };
+  // Jede Änderung lässt sich rückgängig machen: der vorherige Stand wird gemerkt
+  let letzterStand = (() => { try { return localStorage.getItem(KEY) || JSON.stringify(D); } catch { return JSON.stringify(D); } })();
+  const sichern = () => {
+    const neu = JSON.stringify(D);
+    if (neu === letzterStand) return;
+    try { localStorage.setItem(KEY, neu); } catch { toast('Speicher voll — bitte eine Sicherung herunterladen'); return; }
+    if (rgVorher === null) rgVorher = letzterStand;
+    letzterStand = neu;
+    clearTimeout(rgTimer);
+    rgTimer = setTimeout(() => {
+      const vorher = rgVorher, text = rgText; rgVorher = null; rgText = 'Gespeichert';
+      if (!window.Rueckgaengig || !vorher) return;
+      Rueckgaengig.zeigen(text, () => {
+        const alt = JSON.parse(vorher);
+        for (const k of Object.keys(D)) delete D[k];
+        Object.assign(D, alt);
+        try { localStorage.setItem(KEY, vorher); } catch {}
+        letzterStand = vorher;
+        zeichnen();
+      });
+    }, 80);
+  };
   const neueId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   // Löschen heisst: 30 Tage in „Zuletzt gelöscht“, danach endgültig weg
   const ORT = { bewegungen: 'Kontobewegung', rechnungen: 'Rechnung', betreibungen: 'Betreibung', steuern: 'Steuerabzug', 'teilen.ausgaben': 'Gemeinsame Ausgabe', 'kk.angebote': 'Krankenkassen-Angebot',

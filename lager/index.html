@@ -176,6 +176,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   const knapp = (a) => a.aktiv && Number(a.mindest) > 0 && Number(a.bestand) <= Number(a.mindest);
 
   async function laden() {
+    Korb.neuLaden = laden;
     Korb.aufraeumen(sb, [{ tabelle: 'lg_artikel' }]);
     try {
       const [a, b, z] = await Promise.all([
@@ -261,7 +262,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       const zeile = { name: String(d.get('name')).trim(), nummer: String(d.get('nummer') || '').trim(), einheit: String(d.get('einheit') || 'Stk.').trim() || 'Stk.',
         einkauf_rappen: betragLesen(d.get('ek')), verkauf_rappen: betragLesen(d.get('vk')), mindest: Math.max(0, mengeLesen(d.get('mindest'))), lieferant: String(d.get('lieferant') || '').trim() };
       if (a.id) zeile.aktiv = d.get('aktiv') === 'on';
-      const r = a.id ? await sb.from('lg_artikel').update(zeile).eq('id', a.id).select().single() : await sb.from('lg_artikel').insert(zeile).select().single();
+      const r = a.id ? await Korb.aendern(sb, 'lg_artikel', a.id, zeile, 'Artikel geändert') : await Korb.neu(sb, 'lg_artikel', zeile, 'Artikel erfasst');
       if (r.error) { toast(fehlerText(r.error), 6000); return; }
       const start = mengeLesen(d.get('bestand'));
       if (!a.id && start) await sb.from('lg_bewegungen').insert({ artikel_id: r.data.id, menge: start, art: 'korrektur', notiz: 'Anfangsbestand' });
@@ -287,7 +288,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       const a = d.get('art');
       if (!menge) { toast('Bitte eine Menge eingeben'); return; }
       if (a === 'eingang') menge = Math.abs(menge); else if (a === 'ausgang') menge = -Math.abs(menge);
-      const { error } = await sb.from('lg_bewegungen').insert({ artikel_id: d.get('artikel'), art: a, menge, datum: d.get('datum'), auftrag_id: d.get('auftrag') || null, notiz: String(d.get('notiz') || '').trim() });
+      const { error } = await Korb.neu(sb, 'lg_bewegungen', { artikel_id: d.get('artikel'), art: a, menge, datum: d.get('datum'), auftrag_id: d.get('auftrag') || null, notiz: String(d.get('notiz') || '').trim() }, 'Gebucht');
       if (error) { toast(fehlerText(error), 6000); return; }
       dlg.close(); await laden(); toast('Gebucht');
     };
@@ -331,6 +332,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       if (!confirm(`Diese Bewegung (${zahl(b.menge)} ${art(b.artikel_id).einheit || ''} ${art(b.artikel_id).name || ''}) löschen? Der Bestand wird zurückgerechnet.`)) return;
       const { error } = await sb.from('lg_bewegungen').delete().eq('id', b.id);
       if (error) { toast(fehlerText(error)); return; }
+      if (window.Rueckgaengig) Rueckgaengig.zeigen('Bewegung gelöscht', async () => { const { lg_artikel, ...zeile } = b; const x = await sb.from('lg_bewegungen').insert(zeile); if (x.error) throw x.error; await laden(); });
       await laden(); toast('Gelöscht'); return;
     }
     const a = t.closest('[data-a]'); if (!a) return;
