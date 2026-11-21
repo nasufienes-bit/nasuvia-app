@@ -207,6 +207,44 @@
       'Angebote von priminfo.admin.ch erfassen. Der Vergleich zeigt die echten Jahreskosten inklusive Franchise und Selbstbehalt.',
       'Wechsel auf 1. Januar: Die Kündigung muss bis 30. November bei der Kasse sein.'], P + '?tab=kk'],
 
+    ['logo-schrift', 'Erste Schritte', 'Logo-Grösse, Schriftfarbe und Schriftstil', 'logo grösse kleiner grösser zuschneiden hintergrund schrift farbe schriftart stil rechnung', [
+      'Rechnungen: „Firma und Design“ öffnen. Unter „Logo anpassen“ mit dem Regler die Grösse wählen.',
+      '„Ränder wegschneiden“, „Weissen Hintergrund entfernen“ und „Drehen“ bearbeiten das Logo. „Original“ macht alles rückgängig.',
+      'Unter „Schrift“ Farbe und einen von sechs Schriftstilen wählen. Speichern, die Rechnung passt sich sofort an.'], R + '?aktion=firma'],
+    ['kasse', 'Buchhaltung', 'Kasse und Bargeld', 'kasse bargeld bar kassenbuch bancomat abheben einzahlen', [
+      'Buchungen mit „Bezahlt mit: Bar“ landen automatisch in der Kasse.',
+      'Auf der Übersicht in der Karte „Kasse“: „Bargeld abgehoben“ oder „Aufs Konto einbezahlt“ erfassen.',
+      '„Kassenbuch“ zeigt alle Bar-Bewegungen und den Bestand. Dort tragen Sie auch den Anfangsbestand ein.'], B],
+    ['uebersicht-anpassen', 'Erste Schritte', 'Übersicht anpassen', 'übersicht startseite anpassen karten ausblenden einblenden dashboard', [
+      'Auf der Übersicht jedes Bereichs „Übersicht anpassen“ tippen.',
+      'Anhaken, was erscheinen soll, und speichern.'], B],
+    ['ze-auftraege-ordner', 'Zeiterfassung', 'Aufträge in Ordnern mit Fotos', 'auftrag ordner ftth zürich adresse foto bilder projektleiter kontrolle status erledigt', [
+      'Zeiterfassung, „Aufträge“: mit „+ Ordner“ Ordner anlegen (z. B. FTTH, darin Zürich) und darin mit „+ Auftrag“ die Adressen.',
+      'Mitarbeiter sehen die gleichen Ordner auf dem Handy, machen Fotos und melden „In Arbeit“ oder „Erledigt“.',
+      'Einen Mitarbeiter als „Projektleiter“ einstellen: Er sieht alle Fotos, prüft sie und setzt „Kontrolliert“.'], Z + '?tab=auftraege'],
+    ['ze-standort', 'Zeiterfassung', 'Standort beim Ein- und Ausstempeln', 'standort gps ort live verfolgung ortung', [
+      'Beim Mitarbeiter „Standort beim Ein- und Ausstempeln mitschicken“ anhaken. Bitte nur mit seinem Wissen.',
+      'Gespeichert wird nur der Ort beim Start und beim Stopp, keine dauernde Verfolgung. Bei den Einträgen erscheint „📍 Ort“.'], Z + '?tab=mitarbeiter'],
+    ['geloescht', 'Konto und Lizenz', 'Zuletzt gelöscht und Archiv', 'gelöscht wiederherstellen papierkorb archiv archivieren rückgängig', [
+      'Gelöschtes bleibt 30 Tage unter „Zuletzt gelöscht“ und lässt sich dort wiederherstellen.',
+      'Aufträge archivieren: im Auftrag den Haken „Offen“ entfernen. Mit „Archiv“ sehen Sie sie wieder.'], Z],
+    ['hb-bargeld', 'Home-Büro', 'Bargeld erfassen', 'bargeld bar portemonnaie abheben bancomat ausgabe', [
+      'Home-Büro, Geld, „Bargeld“: „+ Bar bezahlt“ oder „Abgehoben“. Bancomat-Bezüge aus dem Kontoauszug erscheinen von selbst.'], P + '?tab=bargeld'],
+    ['hb-fix', 'Home-Büro', 'Fixe Zahlungen mit Fälligkeit', 'miete fällig dauerauftrag lastschrift lsv ebill datum monatlich', [
+      'Home-Büro, Geld, „Fixe Zahlungen“: z. B. Miete am 25., monatlich, Dauerauftrag.',
+      'Selbst zu bezahlende Rechnungen erscheinen 3 Tage vorher unter „Jetzt wichtig“ und im Kalender.'], P + '?tab=fix'],
+    ['hb-guthaben', 'Home-Büro', 'Wer mir Geld schuldet', 'guthaben schulden geschuldet zurückzahlen ausgeliehen darlehen erinnern', [
+      'Home-Büro, Rechnungen, „Mir geschuldet“: Person, Betrag und Grund erfassen.',
+      'Rückzahlungen eintragen. Mit „Freundlich erinnern“ geht eine nette Nachricht per WhatsApp.'], P + '?tab=guthaben'],
+    ['hb-sparen', 'Home-Büro', 'Sparziele', 'sparen sparziel ferien auto ziel fortschritt', [
+      'Home-Büro, Planen, „Sparziele“: Ziel und Betrag festlegen, mit „+ Einzahlen“ Schritt für Schritt näherkommen.'], P + '?tab=sparen'],
+    ['hb-ordner', 'Home-Büro', 'Dokumente in Ordnern', 'ordner dokumente dateien ablage computer hochladen farbe', [
+      'Home-Büro, „Dokumente“: Ordner mit Farben anlegen, Dateien hochladen oder ganze Ordner vom Computer hineinziehen.'], P + '?tab=dokumente'],
+    ['hb-kalender', 'Home-Büro', 'Kalender', 'kalender termin frist eintrag erinnerung', [
+      'Home-Büro, Planen, „Kalender“: eigene Einträge plus alle Fristen aus Rechnungen, fixen Zahlungen und Betreibungen.'], P + '?tab=kalender'],
+    ['dienste', 'Konto und Lizenz', 'Website und Instagram von uns', 'website design instagram highlights service gestalten', [
+      'Unter „Lizenz und Konto“ einen Gratis-Entwurf für Ihre Website oder Instagram-Highlights anfragen.'], WURZEL + 'lizenz/'],
+
     // Konto und Lizenz
     ['lizenz', 'Konto und Lizenz', 'Lizenz kaufen oder verlängern', 'lizenz kaufen bezahlen preis verlängern test abgelaufen paket wechseln upgrade', [
       'Im Menü „Lizenz und Konto“ öffnen oder unten auf „Lizenz kaufen“ tippen. Paket wählen und bestellen.',

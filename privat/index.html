@@ -17,13 +17,13 @@
 body{font:15px/1.5 var(--display);background:var(--papier);color:var(--tinte);min-height:100vh;padding-bottom:calc(80px + var(--unten))}
 [hidden]{display:none!important}
 button{font:inherit;cursor:pointer}
-.kopfzeile{position:sticky;top:0;z-index:20;background:rgba(247,249,253,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--linie)}
+.kopfzeile{position:sticky;top:0;z-index:20;background:rgba(247,249,253,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);}
 .kopfzeile .wrap{display:flex;align-items:center;gap:12px;height:62px}
 .kopfzeile .nv-knopf{margin-right:4px}
 .marke{display:flex;align-items:center;gap:8px;font-weight:700;font-size:19px;letter-spacing:-.02em}
 .marke i{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--blau),var(--elektrik));display:grid;place-items:center}
 .marke i svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.tabs{margin-left:auto;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;max-width:calc(100% - 200px)}
+.tabs{margin-left:auto;display:flex;gap:2px}
 .tabs button{border:0;background:none;padding:8px 12px;border-radius:100px;color:var(--text);font-weight:500}
 .tabs button.an{background:#fff;color:var(--blau);font-weight:600;box-shadow:var(--schatten)}
 .wrap{max-width:1100px;margin:0 auto;padding:0 18px}
@@ -78,7 +78,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 .dlg .zwei{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .dlg .fuss{display:flex;justify-content:space-between;gap:8px;margin-top:6px;flex-wrap:wrap}
 .unten-nav{display:none}
-@media(max-width:820px){.unten-nav{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(68px,1fr);overflow-x:auto;scrollbar-width:none;position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(247,249,253,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--linie);padding:6px 4px calc(6px + var(--unten))}
+@media(max-width:820px){.unten-nav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(247,249,253,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--linie);padding:6px 4px calc(6px + var(--unten))}
 .unten-nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--leise);padding:4px 0}
 .unten-nav button.an{color:var(--blau);font-weight:600}
 .unten-nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}}
@@ -109,6 +109,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 <div class="toast" id="toast"></div>
 <script src="../lizenz.js" data-produkt="privat"></script>
 <script src="../suche.js"></script>
+<script src="mehr.js"></script>
+<script src="../ui.js"></script>
 <script src="../navi.js" data-hier="privat" data-einfuegen=".kopfzeile .wrap"></script>
 
 <script>
@@ -131,9 +133,21 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 
   /* ---------- Daten (auf diesem Gerät) ---------- */
   const KEY = 'homebuero.v1';
-  const D = (() => { try { return { bewegungen: [], rechnungen: [], betreibungen: [], regeln: {}, abosStatus: {}, steuern: [], steuerVon: {}, budget: {}, teilen: { personen: [], ausgaben: [] }, kk: { aktuell: {}, angebote: [], kosten: 500 }, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch { return { bewegungen: [], rechnungen: [], betreibungen: [], regeln: {}, abosStatus: {} }; } })();
+  const D = (() => { try { return { bewegungen: [], rechnungen: [], betreibungen: [], regeln: {}, abosStatus: {}, steuern: [], steuerVon: {}, budget: {}, teilen: { personen: [], ausgaben: [] }, kk: { aktuell: {}, angebote: [], kosten: 500 }, bargeld: [], guthaben: [], fix: [], sparziele: [], kalender: [], ordner: [], dokumente: [], papierkorb: [], start: {}, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch { return { bewegungen: [], rechnungen: [], betreibungen: [], regeln: {}, abosStatus: {} }; } })();
   const sichern = () => { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch { toast('Speicher voll — bitte eine Sicherung herunterladen'); } };
   const neueId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  // Löschen heisst: 30 Tage in „Zuletzt gelöscht“, danach endgültig weg
+  const ORT = { bewegungen: 'Kontobewegung', rechnungen: 'Rechnung', betreibungen: 'Betreibung', steuern: 'Steuerabzug', 'teilen.ausgaben': 'Gemeinsame Ausgabe', 'kk.angebote': 'Krankenkassen-Angebot',
+    bargeld: 'Bargeld', guthaben: 'Guthaben', fix: 'Fixe Zahlung', sparziele: 'Sparziel', kalender: 'Kalender-Eintrag', dokumente: 'Dokument', ordner: 'Ordner' };
+  const listeVon = (pfad) => pfad.split('.').reduce((o, k) => o[k], D);
+  const listeSetzen = (pfad, wert) => { const k = pfad.split('.'); const letzter = k.pop(); k.reduce((o, x) => o[x], D)[letzter] = wert; };
+  function wegwerfen(pfad, eintrag, titel) {
+    if (!confirm(`„${titel || ORT[pfad] || 'Eintrag'}“ löschen?\n\nSie finden es 30 Tage lang unter „Zuletzt gelöscht“ und können es dort wiederherstellen.`)) return false;
+    listeSetzen(pfad, listeVon(pfad).filter((x) => x !== eintrag && (!eintrag.id || x.id !== eintrag.id)));
+    D.papierkorb.unshift({ pid: neueId(), pfad, eintrag, titel: titel || eintrag.titel || eintrag.name || eintrag.glaeubiger || eintrag.text || ORT[pfad], am: new Date().toISOString() });
+    sichern(); toast('In „Zuletzt gelöscht“ verschoben'); return true;
+  }
+  { const grenze = Date.now() - 30 * 864e5; if (D.papierkorb.some((p) => Date.parse(p.am) < grenze)) { D.papierkorb = D.papierkorb.filter((p) => Date.parse(p.am) >= grenze); try { localStorage.setItem(KEY, JSON.stringify(D)); } catch {} } }
 
   /* ---------- Kategorien für den Haushalt ---------- */
   const KAT = [
@@ -269,21 +283,36 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     abos: '<svg viewBox="0 0 24 24"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>',
     rechnungen: '<svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg>',
     betreibung: '<svg viewBox="0 0 24 24"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></svg>',
+    geld: '<svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12.5" r="2.5"/><path d="M6 10v5M18 10v5"/></svg>',
+    schulden: '<svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg>',
+    planen: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>',
+    dokumente: '<svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
     budget: '<svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>',
     teilen: '<svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20a5.5 5.5 0 0 1 11 0M14 20a4 4 0 0 1 7.5-2"/></svg>',
     steuern: '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>',
     kk: '<svg viewBox="0 0 24 24"><path d="M12 21s-8-4.5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6.5-8 11-8 11z"/><path d="M12 9v5M9.5 11.5h5"/></svg>',
   };
-  const TABS = [['start', 'Übersicht'], ['konto', 'Konto'], ['abos', 'Abos'], ['rechnungen', 'Rechnungen'], ['betreibung', 'Betreibungen'], ['budget', 'Budget'], ['teilen', 'Teilen'], ['steuern', 'Steuern'], ['kk', 'Krankenkasse']];
+  const GRUPPEN = [
+    ['start', 'Übersicht', [['start', 'Übersicht']]],
+    ['geld', 'Geld', [['konto', 'Konto'], ['bargeld', 'Bargeld'], ['budget', 'Budget'], ['abos', 'Abos'], ['fix', 'Fixe Zahlungen']]],
+    ['schulden', 'Rechnungen', [['rechnungen', 'Rechnungen'], ['betreibung', 'Betreibungen'], ['guthaben', 'Mir geschuldet'], ['teilen', 'Teilen']]],
+    ['planen', 'Planen', [['kalender', 'Kalender'], ['sparen', 'Sparziele'], ['steuern', 'Steuern'], ['kk', 'Krankenkasse']]],
+    ['dokumente', 'Dokumente', [['dokumente', 'Ordner'], ['papierkorb', 'Zuletzt gelöscht']]],
+  ];
+  const TABS = GRUPPEN.flatMap((g) => g[2]);
+  const gruppeVon = (id) => GRUPPEN.find((g) => g[2].some(([x]) => x === id)) || GRUPPEN[0];
   let ansicht = 'start', zeitraum = 'jahr', filterKat = '', suche = '';
   try { ansicht = localStorage.getItem('homebuero.ansicht') || 'start'; } catch {}
   { const t = new URLSearchParams(location.search).get('tab'); if (t && TABS.some(([id]) => id === t)) ansicht = t; }
 
   function zeichnen() {
-    $('tabs').innerHTML = TABS.map(([id, n]) => `<button class="${ansicht === id ? 'an' : ''}" data-tab="${id}">${n}</button>`).join('');
-    $('untenNav').innerHTML = TABS.map(([id, n]) => `<button class="${ansicht === id ? 'an' : ''}" data-tab="${id}">${ICON[id]}${{ betreibung: 'Betreib.', kk: 'Kasse', rechnungen: 'Rechng.' }[id] || n}</button>`).join('');
+    const gr = gruppeVon(ansicht);
+    $('tabs').innerHTML = GRUPPEN.map(([g, n, l]) => `<button class="${gr[0] === g ? 'an' : ''}" data-tab="${g === gr[0] ? ansicht : l[0][0]}">${n}</button>`).join('');
+    $('untenNav').innerHTML = GRUPPEN.map(([g, n, l]) => `<button class="${gr[0] === g ? 'an' : ''}" data-tab="${g === gr[0] ? ansicht : l[0][0]}">${ICON[g] || ICON.start}${n}</button>`).join('');
     if (!TABS.some(([id]) => id === ansicht)) ansicht = 'start';
-    $('inhalt').innerHTML = { start, konto, abos: abosAnsicht, rechnungen: rechnungenAnsicht, betreibung: betreibungenAnsicht, budget: budgetAnsicht, teilen: teilenAnsicht, steuern: steuernAnsicht, kk: kkAnsicht }[ansicht]();
+    const ANS = { start, konto, abos: abosAnsicht, rechnungen: rechnungenAnsicht, betreibung: betreibungenAnsicht, budget: budgetAnsicht, teilen: teilenAnsicht, steuern: steuernAnsicht, kk: kkAnsicht, ...(window.HomeBuero && window.HomeBuero.ansichten || {}) };
+    const unter = gr[2].length > 1 ? `<div class="segment unterwahl" style="margin-bottom:16px">${gr[2].map(([id, n]) => `<button class="${ansicht === id ? 'an' : ''}" data-tab="${id}">${n}</button>`).join('')}</div>` : '';
+    $('inhalt').innerHTML = unter + (ANS[ansicht] ? ANS[ansicht]() : '<p class="leer">Wird geladen …</p>');
   }
   document.addEventListener('click', (e) => {
     const t = e.target.closest('[data-tab]');
@@ -310,11 +339,11 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   }
 
   function start() {
-    if (!D.bewegungen.length && !D.rechnungen.length && !D.betreibungen.length) {
+    if (!D.bewegungen.length && !D.rechnungen.length && !D.betreibungen.length && !D.bargeld.length && !D.guthaben.length && !D.fix.length && !D.sparziele.length && !D.kalender.length) {
       return `<div class="card start"><div class="gross">${ICON.start.replace('<svg', '<svg')}</div>
         <h2>Willkommen in Ihrem Home-Büro</h2>
         <p>Laden Sie einen Kontoauszug Ihrer Bank hoch (CSV oder camt.053 aus dem E-Banking). Sie sehen sofort, wofür Ihr Geld weggeht, welche Abos Sie haben und was noch offen ist.</p>
-        <div class="aktionen" style="justify-content:center"><button class="btn haupt" data-aktion="auszug">Kontoauszug hochladen</button><button class="btn" data-aktion="rechnung">Rechnung erfassen</button></div>
+        <div class="aktionen" style="justify-content:center"><button class="btn haupt" data-aktion="auszug">Kontoauszug hochladen</button><button class="btn" data-hbm="bankHilfe">So holen Sie den Auszug</button><button class="btn" data-aktion="rechnung">Rechnung erfassen</button></div>
         <p class="hinweis" style="margin-top:18px">Ihre Daten bleiben auf diesem Gerät. Nichts wird an Dritte weitergegeben.</p></div>`;
     }
     const l = imZeitraum();
@@ -334,29 +363,34 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const offenSumme = offen.reduce((a, r) => a + r.betragRappen, 0);
     const betr = D.betreibungen.filter((b) => !['bezahlt', 'geloescht'].includes(b.status));
     const dringend = [
-      ...offen.filter((r) => r.faellig && tageBis(r.faellig) <= 7).map((r) => ({ t: `${r.titel || r.glaeubiger}: ${chf(r.betragRappen)}`, d: r.faellig, k: 'rechnung' })),
+      ...offen.filter((r) => (r.faellig && tageBis(r.faellig) <= 7) || r.mahnstufe).map((r) => ({ t: `${r.mahnstufe ? ['', 'Erinnerung', '1. Mahnung', '2. Mahnung', 'Letzte Mahnung'][r.mahnstufe] + ' · ' : ''}${r.titel || r.glaeubiger}: ${chf(r.betragRappen + (r.gebuehr || 0))}`, d: r.faellig || heute(), k: 'rechnung' })),
+      ...((window.HomeBuero && window.HomeBuero.dringendExtra) ? window.HomeBuero.dringendExtra() : []),
       ...betr.filter((b) => b.status === 'zahlungsbefehl' && b.zugestellt && tageBis(rvFrist(b)) >= 0).map((b) => ({ t: `Rechtsvorschlag ${b.glaeubiger} möglich bis`, d: rvFrist(b), k: 'betreibung' })),
     ].sort((a, b) => a.d.localeCompare(b.d));
+    const S = { dringend: true, zahlen: true, ring: true, rechnungen: true, betreibungen: true, ...(window.HomeBuero && window.HomeBuero.startStandard || {}), ...D.start };
+    const zeig = (k, html) => (S[k] ? html : '');
+    const extra = window.HomeBuero && window.HomeBuero.startExtra ? window.HomeBuero.startExtra(S) : '';
     return `
     <div class="kopf"><div><h1>Übersicht</h1><p class="unter">Ihr Geld, Ihre Abos und was noch zu tun ist</p></div>
-      <div class="aktionen">${zeitWahl()}<button class="btn haupt" data-aktion="auszug">Kontoauszug hochladen</button></div></div>
-    ${dringend.length ? `<div class="card" style="border-left:4px solid var(--rot);margin-bottom:14px"><h2>Jetzt wichtig</h2>${dringend.map((x) => `<div class="zeile zwei klick" data-tab="${x.k === 'rechnung' ? 'rechnungen' : 'betreibung'}"><b>${esc(x.t)}</b><span class="frist ${tageBis(x.d) < 0 ? 'minus' : ''}">${tageBis(x.d) < 0 ? `seit ${-tageBis(x.d)} Tagen fällig` : tageBis(x.d) === 0 ? 'heute' : `in ${tageBis(x.d)} Tagen`} · ${dk(x.d)}</span></div>`).join('')}</div>` : ''}
-    <div class="raster r4">
+      <div class="aktionen">${zeitWahl()}<button class="btn" data-hbm="startAnpassen">Übersicht anpassen</button><button class="btn haupt" data-aktion="auszug">Kontoauszug hochladen</button></div></div>
+    ${S.dringend && dringend.length ? `<div class="card" style="border-left:4px solid var(--rot);margin-bottom:14px"><h2>Jetzt wichtig</h2>${dringend.map((x) => `<div class="zeile zwei klick" data-tab="${x.k === 'rechnung' ? 'rechnungen' : x.k === 'betreibung' ? 'betreibung' : x.k}"><b>${esc(x.t)}</b><span class="frist ${tageBis(x.d) < 0 ? 'minus' : ''}">${tageBis(x.d) < 0 ? `seit ${-tageBis(x.d)} Tagen fällig` : tageBis(x.d) === 0 ? 'heute' : `in ${tageBis(x.d)} Tagen`} · ${dk(x.d)}</span></div>`).join('')}</div>` : ''}
+    ${zeig('zahlen', `<div class="raster r4">
       <div class="card zahl"><div class="l">Eingang</div><div class="w plus">${chf(ein)}</div><div class="k">Lohn und andere Einnahmen</div></div>
       <div class="card zahl"><div class="l">Ausgaben</div><div class="w">${chf(aus)}</div><div class="k">${l.filter((b) => b.betragRappen < 0).length} Zahlungen</div></div>
       <div class="card zahl"><div class="l">Übrig</div><div class="w ${ein - aus < 0 ? 'minus' : 'plus'}">${chf(ein - aus)}</div><div class="k">${ein ? `Sparquote ${Math.round((ein - aus) / ein * 100)} %` : 'Eingang minus Ausgaben'}</div></div>
       <div class="card zahl"><div class="l">Abos</div><div class="w">${chf(aboJahr)}</div><div class="k">${abos.length} Abos pro Jahr${fixMonat ? ` · Fixkosten ${chf(fixMonat)}/Monat` : ''}</div></div>
-    </div>
-    <div class="raster r2 abstand">
+    </div>`)}
+    ${extra}
+    ${zeig('ring', `<div class="raster r2 abstand">
       <div class="card"><h2>Wofür Ihr Geld weggeht</h2>${ring(teile)}</div>
       <div class="card"><h2>Grösste Ausgaben</h2>${groesste.length ? groesste.map((b) => `<div class="zeile"><span style="min-width:0"><b>${esc(b.partner || b.text)}</b><small>${dk(b.datum)} · ${esc(katName(b.kategorie))}</small></span><span class="betrag">${chf(-b.betragRappen)}</span></div>`).join('') : '<p class="leer">Noch keine Ausgaben.</p>'}</div>
-    </div>
-    <div class="raster r2 abstand">
+    </div>`)}
+    ${zeig('rechnungen', `<div class="raster r2 abstand">
       <div class="card"><h2>Offene Rechnungen <span class="marke-s m-offen">${offen.length}</span></h2>${offen.slice(0, 5).map((r) => `<div class="zeile klick" data-rechnung="${r.id}"><span style="min-width:0"><b>${esc(r.titel || r.glaeubiger)}</b><small>${r.faellig ? 'fällig ' + dk(r.faellig) : 'ohne Frist'}</small></span><span class="betrag">${chf(r.betragRappen)}</span></div>`).join('') || '<p class="leer">Alles bezahlt.</p>'}
         ${offen.length ? `<p class="hinweis abstand">Total offen: <b>CHF ${chf(offenSumme)}</b></p>` : ''}<button class="btn klein abstand" data-aktion="rechnung">+ Rechnung erfassen</button></div>
       <div class="card"><h2>Teuerste Abos</h2>${abos.slice(0, 5).map((a) => `<div class="zeile klick" data-tab="abos"><span style="min-width:0"><b>${esc(a.name)}</b><small>${a.rhythmus} · ${chf(a.betrag)}</small></span><span class="betrag">${chf(a.proJahr)}<small>pro Jahr</small></span></div>`).join('') || '<p class="leer">Noch keine Abos erkannt. Laden Sie Auszüge von mindestens 2 bis 3 Monaten hoch.</p>'}</div>
-    </div>
-    ${betr.length ? `<div class="card abstand"><h2>Betreibungen <span class="marke-s m-rot">${betr.length} offen</span></h2><p class="hinweis">Total CHF ${chf(betr.reduce((a, b) => a + restBetrag(b), 0))} noch offen. <button class="btn klein" data-tab="betreibung">Ansehen</button></p></div>` : ''}`;
+    </div>`)}
+    ${S.betreibungen && betr.length ? `<div class="card abstand"><h2>Betreibungen <span class="marke-s m-rot">${betr.length} offen</span></h2><p class="hinweis">Total CHF ${chf(betr.reduce((a, b) => a + restBetrag(b), 0))} noch offen. <button class="btn klein" data-tab="betreibung">Ansehen</button></p></div>` : ''}`;
   }
 
   function konto() {
@@ -364,7 +398,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const l = imZeitraum().filter((b) => (!filterKat || b.kategorie === filterKat) && (!q || `${b.partner} ${b.text} ${chf(Math.abs(b.betragRappen))}`.toLowerCase().includes(q)))
       .sort((a, b) => b.datum.localeCompare(a.datum));
     return `<div class="kopf"><div><h1>Konto</h1><p class="unter">${l.length} Bewegungen. Tippen zum Ändern der Kategorie.</p></div>
-      <div class="aktionen"><button class="btn haupt" data-aktion="auszug">Kontoauszug hochladen</button><button class="btn" data-aktion="sicherung">Sicherung</button></div></div>
+      <div class="aktionen"><button class="btn" data-hbm="bankHilfe">So holen Sie den Auszug</button><button class="btn haupt" data-aktion="auszug">Kontoauszug hochladen</button><button class="btn" data-aktion="sicherung">Sicherung</button></div></div>
       <div class="filter">${zeitWahl()}<select data-filterkat><option value="">Alle Kategorien</option>${[...KAT, ...KAT_EIN].map((k) => `<option value="${k[0]}" ${filterKat === k[0] ? 'selected' : ''}>${k[1]}</option>`).join('')}</select><input type="search" placeholder="Suchen" value="${esc(suche)}" data-suche /></div>
       <div class="card">${l.slice(0, 400).map((b) => `<div class="zeile klick" data-bewegung="${b.id}"><span style="min-width:0"><b>${esc(b.partner || b.text)}</b><small>${dk(b.datum)} · <span style="color:${katFarbe(b.kategorie)}">●</span> ${esc(katName(b.kategorie))}${b.text && b.partner ? ' · ' + esc(b.text) : ''}</small></span><span class="betrag ${b.betragRappen > 0 ? 'plus' : ''}">${b.betragRappen > 0 ? '+' : '−'} ${chf(Math.abs(b.betragRappen))}</span></div>`).join('') || '<p class="leer">Keine Bewegungen. Laden Sie einen Kontoauszug hoch.</p>'}</div>`;
   }
@@ -386,7 +420,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       <div class="fuss"><button type="button" class="btn rot" data-weg>Löschen</button><span class="aktionen"><button type="button" class="btn" data-zu>Abbrechen</button><button class="btn haupt">Speichern</button></span></div></form>`;
     dlg.onclick = (e) => {
       if (e.target === dlg || e.target.closest('[data-zu]')) dlg.close();
-      if (e.target.closest('[data-weg]') && confirm('Diese Bewegung löschen?')) { D.bewegungen = D.bewegungen.filter((x) => x !== b); sichern(); dlg.close(); zeichnen(); }
+      if (e.target.closest('[data-weg]') && wegwerfen('bewegungen', b, b.partner || b.text)) { dlg.close(); zeichnen(); }
     };
     dlg.querySelector('form').onsubmit = (e) => {
       e.preventDefault();
@@ -431,7 +465,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
         <div class="card zahl"><div class="l">Bezahlt ${new Date().getFullYear()}</div><div class="w plus">${chf(l.filter((r) => r.status === 'bezahlt' && (r.bezahltAm || '').startsWith(String(new Date().getFullYear()))).reduce((a, r) => a + r.betragRappen, 0))}</div><div class="k">dieses Jahr</div></div>
         <div class="card zahl"><div class="l">Total erfasst</div><div class="w">${l.length}</div><div class="k">Rechnungen</div></div></div>
       <div class="card abstand">${l.map((r) => { const t = r.faellig ? tageBis(r.faellig) : null; return `<div class="zeile klick" data-rechnung="${r.id}"><span style="min-width:0"><b>${esc(r.titel || r.glaeubiger)}${r.status === 'bezahlt' ? '<span class="marke-s m-ok">bezahlt</span>' : t !== null && t < 0 ? '<span class="marke-s m-rot">überfällig</span>' : '<span class="marke-s m-offen">offen</span>'}${r.raten ? '<span class="marke-s m-blau">Raten</span>' : ''}</b>
-        <small>${esc(r.glaeubiger || '')}${r.status === 'bezahlt' ? ` · bezahlt am ${dk(r.bezahltAm)}` : r.faellig ? ` · fällig ${dk(r.faellig)}${t !== null ? (t < 0 ? ` (seit ${-t} Tagen)` : ` (in ${t} Tagen)`) : ''}` : ''}</small></span><span class="betrag">${chf(r.betragRappen)}</span></div>`; }).join('') || '<p class="leer">Noch keine Rechnungen erfasst. Erfassen Sie Rechnungen, sobald sie ankommen, auch alte.</p>'}</div>`;
+        <small>${r.mahnstufe && r.status === 'offen' ? `<span class="minus">${['', 'Zahlungserinnerung', '1. Mahnung', '2. Mahnung', 'Letzte Mahnung'][r.mahnstufe]}${r.gebuehr ? ' + ' + chf(r.gebuehr) + ' Gebühr' : ''}</span> · ` : ''}${r.datei ? '📎 ' : ''}${esc(r.glaeubiger || '')}${r.status === 'bezahlt' ? ` · bezahlt am ${dk(r.bezahltAm)}` : r.faellig ? ` · fällig ${dk(r.faellig)}${t !== null ? (t < 0 ? ` (seit ${-t} Tagen)` : ` (in ${t} Tagen)`) : ''}` : ''}</small></span><span class="betrag">${chf(r.betragRappen)}</span></div>`; }).join('') || '<p class="leer">Noch keine Rechnungen erfasst. Erfassen Sie Rechnungen, sobald sie ankommen, auch alte.</p>'}</div>`;
   }
   function rechnungBearbeiten(r) {
     const neu = !r;
@@ -442,17 +476,25 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       <div class="zwei"><label>Von (Gläubiger)<input type="text" id="rGl" value="${esc(r.glaeubiger || '')}" placeholder="z. B. CSS" /></label><label>Betrag CHF<input type="text" id="rBetrag" inputmode="decimal" value="${r.betragRappen ? chf(r.betragRappen).replace(/’/g, '') : ''}" required /></label></div>
       <div class="zwei"><label>Erhalten am<input type="date" id="rErhalten" value="${r.erhalten || ''}" /></label><label>Fällig am<input type="date" id="rFaellig" value="${r.faellig || ''}" /></label></div>
       <div class="zwei"><label>Status<select id="rStatus"><option value="offen" ${r.status === 'offen' ? 'selected' : ''}>Offen</option><option value="bezahlt" ${r.status === 'bezahlt' ? 'selected' : ''}>Bezahlt</option></select></label><label>Bezahlt am<input type="date" id="rBezahlt" value="${r.bezahltAm || ''}" /></label></div>
+      <div class="zwei"><label>Mahnung<select id="rMahn">${['Keine', 'Zahlungserinnerung', '1. Mahnung', '2. Mahnung', 'Letzte Mahnung / Inkasso'].map((n, i) => `<option value="${i}" ${Number(r.mahnstufe || 0) === i ? 'selected' : ''}>${n}</option>`).join('')}</select></label><label>Mahngebühr CHF<input type="text" id="rGebuehr" inputmode="decimal" value="${r.gebuehr ? chf(r.gebuehr).replace(/’/g, '') : ''}" placeholder="0.00" /></label></div>
       <label style="display:flex;gap:8px;align-items:center;color:var(--tinte)"><input type="checkbox" id="rRaten" ${r.raten ? 'checked' : ''} /> In Raten (Abzahlung vereinbart)</label>
+      <label>Foto oder PDF der Rechnung${r.datei ? ' (ersetzen)' : ''}<input type="file" id="rDatei" accept="image/*,application/pdf" /></label>
+      ${r.datei ? `<div class="aktionen">${r.datei.startsWith('data:image') ? `<img src="${r.datei}" alt="Rechnung" style="max-width:100%;max-height:220px;border-radius:12px">` : ''}<a class="btn klein" href="${r.datei}" download="Rechnung">Öffnen</a><button type="button" class="btn klein rot" data-datei-weg>Datei entfernen</button></div>` : ''}
       <label>Notiz<textarea id="rNotiz" rows="2" placeholder="z. B. Referenznummer, Kundennummer">${esc(r.notiz || '')}</textarea></label>
       <div class="fuss">${neu ? '<span></span>' : '<button type="button" class="btn rot" data-weg>Löschen</button>'}<span class="aktionen"><button type="button" class="btn" data-zu>Abbrechen</button><button class="btn haupt">Speichern</button></span></div></form>`;
     dlg.onchange = (e) => { if (e.target.id === 'rStatus' && e.target.value === 'bezahlt' && !$('rBezahlt').value) $('rBezahlt').value = heute(); };
     dlg.onclick = (e) => {
       if (e.target === dlg || e.target.closest('[data-zu]')) dlg.close();
-      if (e.target.closest('[data-weg]') && confirm('Diese Rechnung löschen?')) { D.rechnungen = D.rechnungen.filter((x) => x.id !== r.id); sichern(); dlg.close(); zeichnen(); }
+      if (e.target.closest('[data-weg]') && wegwerfen('rechnungen', r, r.titel || r.glaeubiger)) { dlg.close(); zeichnen(); }
+      if (e.target.closest('[data-datei-weg]')) { r.datei = ''; sichern(); rechnungBearbeiten(neu ? null : r); }
     };
-    dlg.querySelector('form').onsubmit = (e) => {
+    dlg.querySelector('form').onsubmit = async (e) => {
       e.preventDefault();
       const b = betragLesen($('rBetrag').value);
+      const datei = $('rDatei').files[0];
+      if (datei) r.datei = datei.type.startsWith('image/') ? await bildKlein(datei) : (datei.size < 1.5e6 ? await new Promise((ok) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(datei); }) : (toast('PDF zu gross (max. 1.5 MB)'), r.datei || ''));
+      const gb = betragLesen($('rGebuehr').value);
+      r.mahnstufe = Number($('rMahn').value) || 0; r.gebuehr = Number.isFinite(gb) && gb > 0 ? gb : 0;
       if (!Number.isFinite(b) || b <= 0) { $('rBetrag').focus(); toast('Bitte einen Betrag eingeben'); return; }
       Object.assign(r, { titel: $('rTitel').value.trim(), glaeubiger: $('rGl').value.trim(), betragRappen: b, erhalten: $('rErhalten').value, faellig: $('rFaellig').value,
         status: $('rStatus').value, bezahltAm: $('rStatus').value === 'bezahlt' ? ($('rBezahlt').value || heute()) : '', raten: $('rRaten').checked, notiz: $('rNotiz').value.trim() });
@@ -474,13 +516,16 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       <div class="raster r4"><div class="card zahl"><div class="l">Offen</div><div class="w ${offen.length ? 'minus' : ''}">${chf(offen.reduce((a, b) => a + restBetrag(b), 0))}</div><div class="k">${offen.length} Betreibungen</div></div>
         <div class="card zahl"><div class="l">Abbezahlt</div><div class="w plus">${chf(l.reduce((a, b) => a + (b.zahlungen || []).reduce((x, z) => x + z.betragRappen, 0), 0))}</div><div class="k">bisher</div></div>
         <div class="card zahl"><div class="l">Erledigt</div><div class="w">${l.length - offen.length}</div><div class="k">bezahlt oder gelöscht</div></div>
-        <div class="card zahl"><div class="l">Zu löschen</div><div class="w">${l.filter((b) => b.status === 'bezahlt').length}</div><div class="k">Löschung beantragen</div></div></div>
+        <div class="card zahl"><div class="l">Verlustscheine</div><div class="w ${l.some((b) => (b.flags || {}).verlustschein) ? 'minus' : ''}">${chf(l.filter((b) => (b.flags || {}).verlustschein && b.status !== 'geloescht').reduce((a, b) => a + restBetrag(b), 0))}</div><div class="k">${l.filter((b) => (b.flags || {}).verlustschein).length} Stück · ${l.filter((b) => b.status === 'bezahlt').length} zu löschen</div></div></div>
+      ${offen.length > 1 ? `<div class="card abstand"><h2>Offen pro Gläubiger</h2>${Object.entries(offen.reduce((m, b) => { m[b.glaeubiger] = (m[b.glaeubiger] || 0) + restBetrag(b); return m; }, {})).sort((a, b) => b[1] - a[1]).map(([g, w]) => `<div class="zeile"><span><b>${esc(g)}</b><small>${offen.filter((b) => b.glaeubiger === g).length} Betreibungen</small></span><span class="betrag minus">${chf(w)}</span></div>`).join('')}</div>` : ''}
       <div class="card abstand">${l.map((b) => { const rest = restBetrag(b), f = rvFrist(b), t = tageBis(f); return `<div class="zeile klick" data-betreibung="${b.id}"><span style="min-width:0"><b>${esc(b.glaeubiger)}<span class="marke-s ${['bezahlt', 'geloescht'].includes(b.status) ? 'm-ok' : 'm-rot'}">${STATUS[b.status]}</span></b>
-        <small>${b.nummer ? 'Nr. ' + esc(b.nummer) + ' · ' : ''}${esc(b.amt || '')}${b.zugestellt ? ' · zugestellt ' + dk(b.zugestellt) : ''}${b.status === 'zahlungsbefehl' && b.zugestellt ? ` · <span class="${t < 3 ? 'minus' : ''}">Rechtsvorschlag ${t >= 0 ? `noch ${t} Tage (bis ${dk(f)})` : 'Frist abgelaufen'}</span>` : ''}${b.rate ? ` · Rate ${chf(b.rate)}/Monat` : ''}</small>
+        <small>${Object.entries(b.flags || {}).filter(([k, v]) => v && !['bezahlt', 'geloescht'].includes(k)).map(([k]) => `<span class="marke-s ${k === 'verlustschein' ? 'm-rot' : 'm-offen'}" style="margin:0 4px 0 0">${{ rechtsvorschlag: 'Rechtsvorschlag', fortsetzung: 'Fortsetzung', pfaendung: 'Pfändung', verlustschein: 'Verlustschein', abzahlung: 'Abzahlung' }[k]}</span>`).join('')}${b.foto ? '📎 ' : ''}${b.nummer ? 'Nr. ' + esc(b.nummer) + ' · ' : ''}${esc(b.amt || '')}${b.zugestellt ? ' · zugestellt ' + dk(b.zugestellt) : ''}${b.status === 'zahlungsbefehl' && b.zugestellt ? ` · <span class="${t < 3 ? 'minus' : ''}">Rechtsvorschlag ${t >= 0 ? `noch ${t} Tage (bis ${dk(f)})` : 'Frist abgelaufen'}</span>` : ''}${b.rate ? ` · Rate ${chf(b.rate)}/Monat` : ''}</small>
         ${b.betragRappen ? `<div class="spur"><i style="width:${Math.round((1 - rest / b.betragRappen) * 100)}%;background:var(--gruen)"></i></div>` : ''}</span>
         <span class="betrag">${chf(rest)}<small>von ${chf(b.betragRappen)}</small></span></div>`; }).join('') || '<p class="leer">Keine Betreibungen erfasst. Gut so.</p>'}</div>
       <div class="info-box"><b>Gut zu wissen</b><br>Gegen einen Zahlungsbefehl können Sie innert 10 Tagen ab Zustellung Rechtsvorschlag erheben, wenn die Forderung nicht stimmt. Wurde die Schuld bezahlt, können Sie beim Betreibungsamt die Löschung im Register beantragen (in der Regel, wenn der Gläubiger die Betreibung zurückzieht). Bei Geldsorgen hilft die kostenlose Schuldenberatung Ihres Kantons.</div>`;
   }
+  let ocrHandler = null;
+  document.addEventListener('click', (e) => { if (ocrHandler && e.target.closest('#dlg [data-ocr]')) ocrHandler(e); });
   function betreibungBearbeiten(b) {
     const neu = !b;
     b = b || { id: neueId(), status: 'zahlungsbefehl', zugestellt: heute(), zahlungen: [] };
@@ -489,6 +534,10 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       <div class="zwei"><label>Gläubiger<input type="text" id="tGl" value="${esc(b.glaeubiger || '')}" required /></label><label>Betrag CHF<input type="text" id="tBetrag" inputmode="decimal" value="${b.betragRappen ? chf(b.betragRappen).replace(/’/g, '') : ''}" /></label></div>
       <div class="zwei"><label>Betreibungsamt<input type="text" id="tAmt" value="${esc(b.amt || '')}" /></label><label>Betreibungs-Nr.<input type="text" id="tNr" value="${esc(b.nummer || '')}" /></label></div>
       <div class="zwei"><label>Zahlungsbefehl zugestellt am<input type="date" id="tZu" value="${b.zugestellt || ''}" /></label><label>Stand<select id="tStatus">${Object.entries(STATUS).map(([k, n]) => `<option value="${k}" ${b.status === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label></div>
+      <div><span class="hinweis">Was trifft zu?</span><div style="display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px">${[['rechtsvorschlag', 'Rechtsvorschlag erhoben'], ['fortsetzung', 'Fortsetzungsbegehren'], ['pfaendung', 'Pfändung'], ['verlustschein', 'Verlustschein'], ['abzahlung', 'Abzahlung vereinbart'], ['bezahlt', 'Bezahlt'], ['geloescht', 'Im Register gelöscht']].map(([k, n]) => `<label style="display:flex;gap:6px;align-items:center;font-size:14px;color:var(--tinte)"><input type="checkbox" data-flag="${k}" ${(b.flags || {})[k] ? 'checked' : ''}>${n}</label>`).join('')}</div></div>
+      <label>Foto des Zahlungsbefehls oder Verlustscheins${b.foto ? ' (ersetzen)' : ''}<input type="file" id="tFoto" accept="image/*" capture="environment" /></label>
+      <div class="aktionen"><button type="button" class="btn klein" data-ocr>Text aus Foto lesen</button><span class="hinweis" id="tOcr"></span></div>
+      ${b.foto ? `<img src="${b.foto}" alt="Dokument" style="max-width:100%;max-height:240px;border-radius:12px">` : ''}
       <label>Monatliche Rate (bei Abzahlung) CHF<input type="text" id="tRate" inputmode="decimal" value="${b.rate ? chf(b.rate).replace(/’/g, '') : ''}" /></label>
       ${neu ? '' : `<div><b style="font-size:14px">Zahlungen</b>${(b.zahlungen || []).map((z, i) => `<div class="zeile"><span>${dk(z.datum)}</span><span class="betrag">${chf(z.betragRappen)} <button type="button" class="btn klein rot" data-zweg="${i}">×</button></span></div>`).join('') || '<p class="hinweis">Noch keine Zahlungen.</p>'}
         <div class="zwei" style="margin-top:8px"><input type="date" id="zDatum" value="${heute()}" /><input type="text" id="zBetrag" inputmode="decimal" placeholder="Betrag CHF" /></div><button type="button" class="btn klein" data-zahlung style="margin-top:6px">+ Zahlung eintragen</button></div>`}
@@ -498,10 +547,12 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       const bt = betragLesen($('tBetrag').value), rt = betragLesen($('tRate').value);
       Object.assign(b, { glaeubiger: $('tGl').value.trim(), betragRappen: Number.isFinite(bt) ? bt : 0, amt: $('tAmt').value.trim(), nummer: $('tNr').value.trim(),
         zugestellt: $('tZu').value, status: $('tStatus').value, rate: Number.isFinite(rt) ? rt : 0, notiz: $('tNotiz').value.trim() });
+      b.flags = Object.fromEntries([...dlg.querySelectorAll('[data-flag]')].map((x) => [x.dataset.flag, x.checked]));
+      if (b.flags.geloescht) b.status = 'geloescht'; else if (b.flags.bezahlt) b.status = 'bezahlt';
     };
     dlg.onclick = (e) => {
       if (e.target === dlg || e.target.closest('[data-zu]')) dlg.close();
-      if (e.target.closest('[data-weg]') && confirm('Diese Betreibung löschen?')) { D.betreibungen = D.betreibungen.filter((x) => x.id !== b.id); sichern(); dlg.close(); zeichnen(); }
+      if (e.target.closest('[data-weg]') && wegwerfen('betreibungen', b, b.glaeubiger)) { dlg.close(); zeichnen(); }
       const zw = e.target.closest('[data-zweg]');
       if (zw) { lesen(); b.zahlungen.splice(Number(zw.dataset.zweg), 1); sichern(); betreibungBearbeiten(b); }
       if (e.target.closest('[data-zahlung]')) {
@@ -513,10 +564,27 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
         sichern(); betreibungBearbeiten(b); zeichnen();
       }
     };
+    dlg.onchange = async (e) => {
+      if (e.target.id === 'tFoto' && e.target.files[0]) { lesen(); b.foto = await bildKlein(e.target.files[0]); sichern(); betreibungBearbeiten(neu ? (D.betreibungen.includes(b) ? b : (D.betreibungen.push(b), b)) : b); }
+    };
+    ocrHandler = async (e) => {
+      if (!b.foto) { toast('Zuerst ein Foto aufnehmen'); return; }
+      lesen(); $('tOcr').textContent = 'Text wird gelesen … (beim ersten Mal ca. 20 Sekunden)';
+      try {
+        const w = await window.HomeBuero.textLesen(b.foto);
+        const g = window.HomeBuero.betreibungAusText(w);
+        if (g.betrag && !b.betragRappen) $('tBetrag').value = (g.betrag / 100).toFixed(2);
+        if (g.nummer && !$('tNr').value) $('tNr').value = g.nummer;
+        if (g.glaeubiger && !$('tGl').value) $('tGl').value = g.glaeubiger;
+        if (g.amt && !$('tAmt').value) $('tAmt').value = g.amt;
+        if (g.verlustschein) { const x = dlg.querySelector('[data-flag=verlustschein]'); if (x) x.checked = true; }
+        $('tOcr').textContent = g.betrag || g.nummer ? '✓ Erkannt. Bitte prüfen und speichern.' : 'Nichts Sicheres erkannt. Bitte von Hand ergänzen.';
+      } catch { $('tOcr').textContent = 'Texterkennung nicht möglich. Bitte von Hand ausfüllen.'; }
+    };
     dlg.querySelector('form').onsubmit = (e) => {
       e.preventDefault(); lesen();
       if (!b.glaeubiger) { $('tGl').focus(); return; }
-      if (neu) D.betreibungen.push(b);
+      if (!D.betreibungen.includes(b)) D.betreibungen.push(b);
       sichern(); dlg.close(); zeichnen(); toast('Gespeichert');
     };
     if (!dlg.open) dlg.showModal();
@@ -575,7 +643,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       ${s.foto ? `<img src="${s.foto}" alt="Quittung" style="max-width:100%;border-radius:12px">` : ''}
       <div class="fuss">${s.id ? '<button type="button" class="btn rot" data-weg>Löschen</button>' : '<span></span>'}<span class="aktionen"><button type="button" class="btn" data-zu>Abbrechen</button><button class="btn haupt">Speichern</button></span></div></form>`;
     const f = dlg.querySelector('form');
-    f.onclick = (e) => { if (e.target.closest('[data-zu]')) dlg.close(); if (e.target.closest('[data-weg]') && confirm('Abzug löschen?')) { D.steuern = D.steuern.filter((x) => x.id !== s.id); sichern(); dlg.close(); zeichnen(); } };
+    f.onclick = (e) => { if (e.target.closest('[data-zu]')) dlg.close(); if (e.target.closest('[data-weg]') && wegwerfen('steuern', s, s.text)) { dlg.close(); zeichnen(); } };
     f.onsubmit = async (e) => {
       e.preventDefault();
       const d = new FormData(f), betrag = betragLesen(d.get('betrag'));
@@ -658,7 +726,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       <div><span class="hinweis">Für wen</span><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px">${P.map((p) => `<label style="display:flex;gap:6px;align-items:center;font-size:14px;color:var(--tinte)"><input type="checkbox" name="fuer" value="${esc(p)}" ${!a.fuer || !a.fuer.length || a.fuer.includes(p) ? 'checked' : ''}>${esc(p)}</label>`).join('')}</div></div>
       <div class="fuss">${a.id ? '<button type="button" class="btn rot" data-weg>Löschen</button>' : '<span></span>'}<span class="aktionen"><button type="button" class="btn" data-zu>Abbrechen</button><button class="btn haupt">Speichern</button></span></div></form>`;
     const f = dlg.querySelector('form');
-    f.onclick = (e) => { if (e.target.closest('[data-zu]')) dlg.close(); if (e.target.closest('[data-weg]') && confirm('Ausgabe löschen?')) { D.teilen.ausgaben = D.teilen.ausgaben.filter((x) => x.id !== a.id); sichern(); dlg.close(); zeichnen(); } };
+    f.onclick = (e) => { if (e.target.closest('[data-zu]')) dlg.close(); if (e.target.closest('[data-weg]') && wegwerfen('teilen.ausgaben', a, a.text)) { dlg.close(); zeichnen(); } };
     f.onsubmit = (e) => {
       e.preventDefault(); const d = new FormData(f), betrag = betragLesen(d.get('betrag'));
       if (!(betrag > 0)) { toast('Bitte einen Betrag eingeben'); return; }
@@ -701,7 +769,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       <div class="zwei"><label>Franchise<select name="franchise">${[300, 500, 1000, 1500, 2000, 2500].map((f) => `<option value="${f}" ${Number(o.franchise) === f ? 'selected' : ''}>${f}</option>`).join('')}</select></label><label>Prämie CHF pro Monat<input type="text" inputmode="decimal" name="praemie" value="${o.praemieRappen ? chf(o.praemieRappen) : ''}" required></label></div>
       <div class="fuss">${o.id ? '<button type="button" class="btn rot" data-weg>Löschen</button>' : '<span></span>'}<span class="aktionen"><button type="button" class="btn" data-zu>Abbrechen</button><button class="btn haupt">Speichern</button></span></div></form>`;
     const f = dlg.querySelector('form');
-    f.onclick = (e) => { if (e.target.closest('[data-zu]')) dlg.close(); if (e.target.closest('[data-weg]')) { D.kk.angebote = D.kk.angebote.filter((x) => x.id !== o.id); sichern(); dlg.close(); zeichnen(); } };
+    f.onclick = (e) => { if (e.target.closest('[data-zu]')) dlg.close(); if (e.target.closest('[data-weg]') && wegwerfen('kk.angebote', o, o.kasse)) { dlg.close(); zeichnen(); } };
     f.onsubmit = (e) => { e.preventDefault(); const d = new FormData(f); const p = betragLesen(d.get('praemie')); if (!(p > 0)) { toast('Bitte die Prämie eingeben'); return; }
       const neu = { ...o, id: o.id || neueId(), kasse: String(d.get('kasse')).trim(), modell: String(d.get('modell') || '').trim(), franchise: Number(d.get('franchise')), praemieRappen: p };
       D.kk.angebote = D.kk.angebote.filter((x) => x.id !== neu.id).concat(neu); sichern(); dlg.close(); zeichnen(); };
@@ -759,7 +827,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
         inp.click();
       }
       if (e.target.closest('[data-alleweg]') && confirm('Wirklich alle Daten auf diesem Gerät löschen? Das kann nicht rückgängig gemacht werden.')) {
-        Object.assign(D, { bewegungen: [], rechnungen: [], betreibungen: [], regeln: {}, abosStatus: {}, steuern: [], steuerVon: {}, budget: {}, teilen: { personen: [], ausgaben: [] }, kk: { aktuell: {}, angebote: [], kosten: 500 } }); sichern(); dlg.close(); zeichnen();
+        Object.assign(D, { bewegungen: [], rechnungen: [], betreibungen: [], regeln: {}, abosStatus: {}, steuern: [], steuerVon: {}, budget: {}, teilen: { personen: [], ausgaben: [] }, kk: { aktuell: {}, angebote: [], kosten: 500 }, bargeld: [], guthaben: [], fix: [], sparziele: [], kalender: [], ordner: [], dokumente: [], papierkorb: [], start: {} }); sichern(); dlg.close(); zeichnen();
       }
     };
     dlg.showModal();
@@ -769,7 +837,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const a = e.target.closest('[data-aktion]'); if (!a) return;
     ({ auszug: auszugLaden, rechnung: () => rechnungBearbeiten(), betreibung: () => betreibungBearbeiten(), sicherung })[a.dataset.aktion]();
   });
-  window.HomeBuero = { daten: D, abosFinden };
+  Object.assign(window.HomeBuero = window.HomeBuero || {}, { daten: D, abosFinden, sichern, zeichnen, toast, esc, chf, dk, heute, tageBis, betragLesen, neueId, katName, katFarbe, KAT, bildKlein, wegwerfen, listeVon, listeSetzen, ORT, restBetrag, ring, zeitWahl, imZeitraum, auszugLaden, setzeAnsicht: (a) => { ansicht = a; try { localStorage.setItem('homebuero.ansicht', a); } catch {} zeichnen(); window.scrollTo(0, 0); } });
   zeichnen();
 })();
 </script>

@@ -287,11 +287,18 @@
         ${ohneBeleg ? `<p class="hinweis" style="margin:-4px 0 8px"><span class="marke marke-offen">${ohneBeleg} ${ohneBeleg === 1 ? 'Ausgabe' : 'Ausgaben'} ohne Beleg</span></p>` : ''}
         ${zeilen(sortiert(liste).slice(0, 6)) || '<p class="leer">Noch nichts erfasst. Tippen Sie auf „+“, um die erste Buchung zu machen.</p>'}
       </div>` : '';
+    const ks = kasseStand();
+    const karteKasse = st.kasse ? `<div class="card">
+        <h2>Kasse (Bargeld)</h2>
+        <div class="wert ${ks.bestand < 0 ? 'minus' : ''}" style="font-size:1.8rem;font-weight:700">${chf(ks.bestand)} <span class="klein">CHF</span></div>
+        <p class="hinweis">Bar eingenommen ${chf(ks.ein)} · bar ausgegeben ${chf(ks.aus)} · vom Konto ${chf(ks.bezug)} · aufs Konto ${chf(ks.abgabe)}</p>
+        <div class="kopf-aktionen abstand" style="flex-wrap:wrap"><button class="btn" onclick="NB.kasse('bezug')">Bargeld abgehoben</button><button class="btn" onclick="NB.kasse('abgabe')">Aufs Konto einbezahlt</button><button class="btn" onclick="NB.kasse('buch')">Kassenbuch</button></div>
+      </div>` : '';
     const karteVerlauf = st.verlauf ? `<div class="card"><h2>Gewinn im Verlauf ${Z.jahr}</h2>${linienDiagramm([{ werte: kumuliert(Z.jahr), farbe: 'var(--elektrik)', name: Z.jahr }])}</div>` : '';
     return `
     <div class="kopf">
       <div><h1>${esc(Z.einst.begruessung || 'Übersicht')}</h1><p class="unter">Alle Beträge ohne MWST</p></div>
-      <div class="kopf-aktionen">${jahrWahl()}<button class="btn" onclick="NB.zwischenbilanz()">Zwischenbilanz</button><button class="btn" onclick="NB.fahrt()">Fahrt erfassen</button><a class="btn nv-weg" href="rechnungen/" style="text-decoration:none">Rechnung schreiben</a><button class="btn btn-haupt nur-pc" onclick="NB.neu()">+ Neue Buchung</button></div>
+      <div class="kopf-aktionen">${jahrWahl()}<button class="btn" onclick="NB.startAnpassen()">Übersicht anpassen</button><button class="btn" onclick="NB.zwischenbilanz()">Zwischenbilanz</button><button class="btn" onclick="NB.fahrt()">Fahrt erfassen</button><a class="btn nv-weg" href="rechnungen/" style="text-decoration:none">Rechnung schreiben</a><button class="btn btn-haupt nur-pc" onclick="NB.neu()">+ Neue Buchung</button></div>
     </div>
     ${k('ziel', ziel ? `<div class="card abstand-unten ziel-karte"><div class="ziel-kopf"><h2 style="margin:0">Jahresziel ${Z.jahr}</h2><span class="num">${chf(s.ein)} von ${chf(ziel)} CHF · ${zielPct} %</span></div><div class="spur gross"><i style="width:${zielPct}%"></i></div></div>` : '')}
     ${k('kennzahlen', `<div class="raster raster-4">`)}
@@ -301,7 +308,7 @@
       <div class="card kennzahl"><div class="label">Offene Rechnungen</div><div class="wert">${chf(offenSumme)}</div><div class="klein">${offen.length} ${offen.length === 1 ? 'Rechnung' : 'Rechnungen'} noch nicht bezahlt</div></div>${st.kennzahlen ? '' : 'KZ-->'}
     ${k('kennzahlen', '</div>')}
     ${paar(karteMonate, karteMwst)}
-    ${paar(karteVerlauf, '')}
+    ${paar(karteVerlauf, karteKasse)}
     ${paar(karteKat, karteZuletzt)}
     <!--ALT
       <div class="card">
@@ -335,8 +342,19 @@
 
   /* ================= Startseite wählen ================= */
   const START_KARTEN = [['kennzahlen', 'Kennzahlen (Einnahmen, Ausgaben, Gewinn, Offen)'], ['ziel', 'Jahresziel mit Fortschritt'], ['monate', 'Monate als Balken'],
-    ['mwst', 'MWST im laufenden Quartal'], ['verlauf', 'Gewinn im Verlauf'], ['kategorien', 'Ausgaben nach Kategorie'], ['zuletzt', 'Zuletzt erfasst']];
-  const startKarten = () => ({ kennzahlen: true, ziel: true, monate: true, mwst: true, verlauf: false, kategorien: true, zuletzt: true, ...(Z.einst.start || {}) });
+    ['mwst', 'MWST im laufenden Quartal'], ['verlauf', 'Gewinn im Verlauf'], ['kategorien', 'Ausgaben nach Kategorie'], ['zuletzt', 'Zuletzt erfasst'], ['kasse', 'Kasse (Bargeld)']];
+  // Kasse: Bar-Buchungen plus Bargeld vom Konto abgehoben oder aufs Konto einbezahlt
+  const kasse = () => ({ anfang: 0, bewegungen: [], ...(Z.einst.kasse || {}) });
+  function kasseStand() {
+    const k = kasse();
+    const bar = Z.buchungen.filter((b) => b.zahlung === 'Bar' && !b.geloescht);
+    const ein = bar.filter((b) => b.typ === 'einnahme').reduce((s, b) => s + (b.betragRappen || 0), 0);
+    const aus = bar.filter((b) => b.typ === 'ausgabe').reduce((s, b) => s + (b.betragRappen || 0), 0);
+    const bezug = k.bewegungen.filter((x) => x.art === 'bezug').reduce((s, x) => s + x.betrag, 0);
+    const abgabe = k.bewegungen.filter((x) => x.art === 'abgabe').reduce((s, x) => s + x.betrag, 0);
+    return { ein, aus, bezug, abgabe, bestand: (k.anfang || 0) + ein - aus + bezug - abgabe, bar };
+  }
+  const startKarten = () => ({ kennzahlen: true, ziel: true, monate: true, mwst: true, verlauf: false, kategorien: true, zuletzt: true, kasse: true, ...(Z.einst.start || {}) });
 
   /* ================= Diagramme ================= */
   const monatsWerte = (jahr, typ) => {
@@ -1595,7 +1613,51 @@
   }
 
   /* ================= Öffentliche Aktionen ================= */
+  function kleinerDialog(html, beiOk) {
+    const d = document.createElement('dialog');
+    d.innerHTML = `<form class="dlg-inhalt" style="padding:20px;display:grid;gap:10px;min-width:min(440px,90vw)">${html}<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px"><button type="button" class="btn" data-zu>Abbrechen</button>${beiOk ? '<button class="btn btn-haupt">Speichern</button>' : ''}</div></form>`;
+    document.body.appendChild(d);
+    d.querySelector('[data-zu]').onclick = () => d.close();
+    d.addEventListener('close', () => d.remove());
+    d.querySelector('form').onsubmit = async (e) => { e.preventDefault(); if (await beiOk(new FormData(e.target), d) !== false) d.close(); };
+    d.showModal();
+    return d;
+  }
+  async function kasseDialog(art) {
+    const k = kasse();
+    if (art === 'buch') {
+      const ks = kasseStand();
+      const zeilenK = [
+        ...ks.bar.map((b) => ({ datum: b.datum, text: (b.text || katName(b)) + (b.partner ? ' · ' + b.partner : ''), betrag: b.typ === 'einnahme' ? b.betragRappen : -b.betragRappen })),
+        ...k.bewegungen.map((x) => ({ datum: x.datum, text: x.art === 'bezug' ? 'Bargeld vom Konto' : 'Aufs Konto einbezahlt', betrag: x.art === 'bezug' ? x.betrag : -x.betrag, id: x.id })),
+      ].sort((a, b) => (a.datum < b.datum ? 1 : -1));
+      kleinerDialog(`<h3 style="margin:0">Kassenbuch</h3><p class="hinweis">Anfangsbestand: <input type="text" inputmode="decimal" name="anfang" value="${chf(k.anfang || 0)}" style="width:110px"> CHF · Bestand jetzt <b>${chf(ks.bestand)} CHF</b></p>
+        <div style="max-height:50vh;overflow:auto">${zeilenK.length ? zeilenK.map((z) => `<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--linie)"><span>${datumKurz(z.datum)} · ${esc(z.text)}${z.id ? ` <button type="button" class="link" data-kasse-weg="${z.id}">löschen</button>` : ''}</span><b class="num ${z.betrag < 0 ? 'minus' : 'plus'}">${chf(z.betrag)}</b></div>`).join('') : '<p class="leer">Noch keine Bargeld-Bewegungen. Buchungen mit „Bezahlt mit: Bar“ erscheinen hier automatisch.</p>'}</div>`,
+        async (fd) => { const a = betragLesen(fd.get('anfang')); await einstSpeichern({ kasse: { ...kasse(), anfang: Number.isFinite(a) ? a : 0 } }); zeichnen(); toast('Kassenbuch gespeichert'); });
+      return;
+    }
+    kleinerDialog(`<h3 style="margin:0">${art === 'bezug' ? 'Bargeld vom Konto abgehoben' : 'Bargeld aufs Konto einbezahlt'}</h3>
+      <div class="feld"><label>Betrag CHF</label><input type="text" inputmode="decimal" name="betrag" required autofocus></div>
+      <div class="feld"><label>Datum</label><input type="date" name="datum" value="${heute()}" required></div>
+      <p class="hinweis">Das ist keine Einnahme oder Ausgabe, nur eine Verschiebung zwischen Konto und Kasse.</p>`,
+      async (fd) => { const b = betragLesen(fd.get('betrag')); if (!(b > 0)) { toast('Bitte einen Betrag eingeben'); return false; }
+        const kk = kasse(); kk.bewegungen = [...kk.bewegungen, { id: Speicher.neueId(), art, betrag: b, datum: fd.get('datum') }];
+        await einstSpeichern({ kasse: kk }); zeichnen(); toast('In der Kasse erfasst'); });
+  }
+  document.addEventListener('click', async (e) => {
+    const w = e.target.closest('[data-kasse-weg]'); if (!w) return;
+    if (!confirm('Diese Bargeld-Bewegung löschen?')) return;
+    const kk = kasse(); kk.bewegungen = kk.bewegungen.filter((x) => x.id !== w.dataset.kasseWeg); await einstSpeichern({ kasse: kk });
+    w.closest('dialog').close(); zeichnen(); toast('Gelöscht');
+  });
+  function startAnpassen() {
+    kleinerDialog(`<h3 style="margin:0">Übersicht anpassen</h3><p class="hinweis">Wählen Sie, was auf Ihrer Startseite erscheint.</p>
+      <div style="display:grid;gap:8px">${START_KARTEN.map(([id, n]) => `<label class="haken"><input type="checkbox" name="${id}" ${startKarten()[id] ? 'checked' : ''} />${n}</label>`).join('')}</div>`,
+      async (fd) => { await einstSpeichern({ start: Object.fromEntries(START_KARTEN.map(([id]) => [id, fd.get(id) === 'on'])) }); zeichnen(); toast('Übersicht angepasst'); });
+  }
   window.NB = {
+    kasse: kasseDialog,
+    startAnpassen,
     neu: () => buchungBearbeiten(),
     rechnungenImport,
     bankImport,

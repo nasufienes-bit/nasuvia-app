@@ -73,6 +73,17 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   <div class="karte zusatz"><b>Einrichtung durch uns</b><span>CHF 190 einmalig: Daten übernehmen, Logo und Vorlagen einrichten, 30 Minuten Einführung. Beim Bestellen einfach ankreuzen.</span></div>
   <p class="unter" style="text-align:center;margin-top:14px;font-size:14px">Alle Preise in CHF. Sie erhalten eine QR-Rechnung per E-Mail. Nach der Zahlung schalten wir Ihre Lizenz frei, alle Daten bleiben erhalten.</p>
 
+  <div class="dienste" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:18px">
+    <div class="karte" style="background:linear-gradient(135deg,#0A1F17,#0B3B2E);color:#fff">
+      <h3 style="color:#fff">Ihre Website, von uns gestaltet</h3>
+      <p style="color:rgba(255,255,255,.82)">Modern, schnell und für das Handy gemacht: mit Online-Termin, Kontaktformular und Google-Profil. Wir erstellen den Entwurf <b style="color:#fff">kostenlos</b>. Gefällt er Ihnen, kostet die Website <b style="color:#fff">CHF 890 einmalig</b>, danach CHF 19 pro Monat für Betrieb und kleine Änderungen.</p>
+      <button class="btn haupt" data-dienst="Website" style="background:#fff;color:#0B3B2E">Gratis-Entwurf anfragen</button></div>
+    <div class="karte" style="background:linear-gradient(135deg,#7a1f3d,#e0703a);color:#fff">
+      <h3 style="color:#fff">Instagram-Highlights im Firmendesign</h3>
+      <p style="color:rgba(255,255,255,.85)">Acht Highlight-Cover und passende Bilder in Ihren Farben, dazu das Profilbild. So wirkt Ihr Profil sofort professionell. <b style="color:#fff">CHF 149</b>, fertig in wenigen Tagen.</p>
+      <button class="btn haupt" data-dienst="Instagram-Highlights" style="background:#fff;color:#7a1f3d">Anfragen</button></div>
+  </div>
+
   <div class="karte" id="treuhand" style="margin-top:18px">
     <h3>Treuhänder-Zugang</h3>
     <p>Geben Sie Ihrem Treuhänder Lesezugriff auf Ihre Buchhaltung: Erfolgsrechnung, MWST, Buchungen und Belege. Er kann nichts ändern. Sie können den Zugang jederzeit wieder entfernen.</p>
@@ -199,6 +210,21 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     $('formInhalt').hidden = true; $('fertig').hidden = false;
   });
 
+  // Service-Anfragen (Website, Instagram) gehen wie Bestellungen an Nasuvia
+  document.addEventListener('click', async function(e){
+    var d = e.target.closest('[data-dienst]'); if (!d) return;
+    if (!benutzer) { location.href = '../'; return; }
+    var dienst = d.dataset.dienst;
+    var web = prompt(dienst === 'Website' ? 'Haben Sie schon eine Website oder Instagram? (Adresse, freiwillig)' : 'Ihr Instagram-Name (z. B. @ihrefirma)', '');
+    if (web === null) return;
+    var wunsch = prompt('Was ist Ihnen wichtig? (z. B. Farben, Stil, Leistungen, freiwillig)', '') || '';
+    var daten = { Dienst: dienst, 'Website/Instagram': web, Wunsch: wunsch, Firma: (lizenz && (lizenz.firma || lizenz.name)) || '', 'E-Mail': benutzer.email, Telefon: (lizenz && lizenz.telefon) || '', Konto: benutzer.id };
+    var ok1 = await fetch('https://dyepnomhidubsfwyorke.supabase.co/rest/v1/anfragen', { method: 'POST', headers: { apikey: 'sb_publishable_zEmC1R5vq234zR6ST7PTmA_uY7Z1-ph', 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ art: 'Service-Anfrage: ' + dienst, name: daten.Firma || benutzer.email, email: benutzer.email, telefon: daten.Telefon, daten: daten }) }).then(function(r){ return r.ok; }).catch(function(){ return false; });
+    var ok2 = await fetch('https://formsubmit.co/ajax/info@nasuvia.ch', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(Object.assign({ _subject: 'Service-Anfrage: ' + dienst, _template: 'table', _replyto: benutzer.email }, daten)) }).then(function(r){ return r.ok; }).catch(function(){ return false; });
+    alert(ok1 || ok2 ? 'Danke! Wir melden uns innert 1 bis 2 Arbeitstagen bei Ihnen.' : 'Das hat nicht geklappt. Bitte schreiben Sie an info@nasuvia.ch.');
+  });
   async function treuhandZeichnen(){
     if (!benutzer) { $('treuhand').hidden = true; return; }
     var r = await sb.from('tr_freigaben').select('*').order('erstellt');
@@ -237,6 +263,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   })();
 })();
 </script>
+<script src="../ui.js"></script>
 <script src="../navi.js" data-hier="lizenz" data-einfuegen=".kopf-links"></script>
 </body>
 </html>

@@ -70,6 +70,16 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
 .einsatz .knoepfe{margin-top:10px;flex-wrap:wrap}
 .mini{border:0;border-radius:100px;padding:8px 12px;font-size:14px;font-weight:600;background:var(--flaeche);color:var(--blau);text-decoration:none;display:inline-flex;align-items:center}
 .mini.haupt{background:var(--blau);color:#fff}
+.ordner{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--linie);cursor:pointer}
+.ordner:last-child{border-bottom:0}
+.ordner b{flex:1}
+.status{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;border-radius:100px;padding:2px 8px;margin-left:6px;background:var(--flaeche);color:var(--blau)}
+.status.erledigt{background:rgba(245,181,61,.2);color:#8a5a00}.status.kontrolliert{background:rgba(14,159,110,.12);color:#0A7150}.status.in_arbeit{background:rgba(14,122,85,.12)}
+.fotos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.fotos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px}
+.fotos .ok{outline:3px solid var(--gruen)}
+.pfad{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px;font-size:14px}
+.pfad button{border:0;background:var(--flaeche);color:var(--blau);border-radius:100px;padding:6px 11px;font-size:13px}
 .loeschen{border:0;background:none;color:var(--rot);font-size:14px;margin-top:10px;width:100%;padding:8px}
 </style>
 </head>
@@ -120,6 +130,7 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
     if (data.fehler) { setz('ze.token', null); fehler('Link nicht mehr gültig', data.fehler); return; }
     Z.daten = data;
     zeichnen();
+    if (Z.auftrag && !Z.form) fotosLaden(Z.auftrag);
   }
 
   function zeichnen() {
@@ -143,6 +154,7 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
             <button class="gross" data-a="start">▶ Arbeit starten</button><button class="gross leicht" data-a="neu">Stunden nachtragen</button>`}
         </div>`}
         ${einsaetzeKarte()}
+        ${auftraegeKarte()}
         <div class="karte">
           <div class="monat-nav"><button data-a="monatZurueck" aria-label="Monat zurück">‹</button><input type="month" id="monat" value="${Z.monat}" max="${heute().slice(0, 7)}" aria-label="Monat"><button data-a="monatVor" aria-label="Monat vor" ${Z.monat >= heute().slice(0, 7) ? 'disabled style="opacity:.35"' : ''}>›</button></div>
           <p class="hinweis" style="text-align:center">${MONATE[Number(Z.monat.slice(5, 7)) - 1]}: <b>${std(summe(imMonat))} Stunden</b> an ${tage.length} ${tage.length === 1 ? 'Tag' : 'Tagen'}</p>
@@ -167,6 +179,56 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
         ${!start && !s.erledigt && s.datum === heute() ? `<button class="mini haupt" data-hier-start="${s.id}">▶ Hier starten</button>` : ''}
         <button class="mini" data-erledigt="${s.id}">${s.erledigt ? 'Doch nicht erledigt' : '✓ Erledigt'}</button></div></div>`).join('')}</div>`;
   }
+
+  /* ---------- Aufträge in Ordnern, mit Fotos ---------- */
+  const STATUS = { offen: 'Offen', in_arbeit: 'In Arbeit', erledigt: 'Erledigt', kontrolliert: 'Kontrolliert' };
+  const teile = (o) => String(o || '').split('/').map((x) => x.trim()).filter(Boolean);
+  function auftraegeKarte() {
+    const d = Z.daten, l = d.auftraege || [];
+    if (!l.length && !d.darf_anlegen) return '';
+    if (Z.auftrag) return auftragDetail(l.find((a) => a.id === Z.auftrag));
+    const pfad = teile(Z.ordner), tiefe = pfad.length, p = pfad.join('/');
+    const imPfad = l.filter((a) => teile(a.ordner).slice(0, tiefe).join('/') === p);
+    const unter = {}; for (const a of imPfad) { const o = teile(a.ordner); if (o.length > tiefe) (unter[o[tiefe]] = unter[o[tiefe]] || []).push(a); }
+    const hier = imPfad.filter((a) => teile(a.ordner).length === tiefe);
+    return `<div class="karte"><h2>Aufträge${d.rolle === 'projektleiter' ? ' <span class="status">Projektleiter</span>' : ''}</h2>
+      ${tiefe ? `<div class="pfad"><button data-ordner="">🏠</button>${pfad.map((n, i) => `<span>›</span><button data-ordner="${esc(pfad.slice(0, i + 1).join('/'))}">${esc(n)}</button>`).join('')}</div>` : ''}
+      ${Object.keys(unter).sort().map((n) => `<div class="ordner" data-ordner="${esc([...pfad, n].join('/'))}"><span style="font-size:24px">📁</span><b>${esc(n)}</b><small style="color:var(--leise)">${unter[n].length}</small><span>›</span></div>`).join('')}
+      ${hier.map((a) => `<div class="ordner" data-auftrag="${a.id}"><span style="font-size:22px">📍</span><b>${esc(a.name)}<span class="status ${a.status}">${STATUS[a.status] || 'Offen'}</span><small style="display:block;font-weight:400;color:var(--leise);font-size:13px">${esc([a.kunde, a.adresse].filter(Boolean).join(' · '))}${a.fotos ? ' · 📷 ' + a.fotos : ''}</small></b><span>›</span></div>`).join('')}
+      ${!Object.keys(unter).length && !hier.length ? '<p class="leer">Hier ist noch nichts.</p>' : ''}
+      ${d.darf_anlegen ? `<button class="gross leicht" data-a="auftragNeu">+ Auftrag${tiefe ? ' in diesem Ordner' : ''}</button>` : ''}</div>`;
+  }
+  function auftragDetail(a) {
+    if (!a) { Z.auftrag = null; return auftraegeKarte(); }
+    const pl = Z.daten.rolle === 'projektleiter', start = lies(K_START);
+    const knopf = (s, n) => `<button class="mini ${a.status === s ? 'haupt' : ''}" data-status="${s}">${n}</button>`;
+    return `<div class="karte"><div class="pfad"><button data-zurueck-ordner>‹ Zurück</button>${teile(a.ordner).map((n) => `<span>${esc(n)}</span>`).join('<span>›</span>')}</div>
+      <h2 style="margin-bottom:2px">${esc(a.name)}<span class="status ${a.status}">${STATUS[a.status] || 'Offen'}</span></h2>
+      <p class="hinweis">${esc([a.kunde, a.adresse].filter(Boolean).join(' · '))}</p>
+      ${a.notiz ? `<p class="hinweis" style="margin-top:6px">📝 ${esc(a.notiz)}</p>` : ''}
+      <div class="knoepfe" style="margin-top:10px;flex-wrap:wrap">${a.adresse ? `<a class="mini" href="https://maps.apple.com/?q=${encodeURIComponent(a.adresse)}" target="_blank" rel="noopener">Route</a>` : ''}${!start ? `<button class="mini haupt" data-auftrag-start="${a.id}">▶ Zeit starten</button>` : ''}</div>
+      <p class="hinweis" style="margin:12px 0 6px">Stand melden</p>
+      <div class="knoepfe" style="flex-wrap:wrap">${knopf('in_arbeit', 'In Arbeit')}${knopf('erledigt', '✓ Erledigt')}${pl ? knopf('kontrolliert', '✓✓ Kontrolliert') : ''}</div>
+      <p class="hinweis" style="margin:14px 0 0">Fotos${pl ? ' (alle Mitarbeiter)' : ' (Ihre eigenen)'}</p>
+      <div class="fotos" id="fotos"><p class="leer">Wird geladen …</p></div>
+      <label class="gross" style="margin-top:10px;display:block;text-align:center;cursor:pointer">📷 Foto aufnehmen<input type="file" accept="image/*" capture="environment" multiple hidden data-foto-hoch="${a.id}"></label>
+      <input type="text" id="fotoNotiz" placeholder="Notiz zum Foto (freiwillig)" style="margin-top:8px"></div>`;
+  }
+  async function fotosLaden(id) {
+    const box = $('fotos'); if (!box) return;
+    const { data, error } = await sb.functions.invoke('ze-foto', { body: { token, aktion: 'liste', auftrag_id: id } });
+    if (error || !data || data.fehler) { box.innerHTML = `<p class="leer">${esc((data && data.fehler) || 'Fotos konnten nicht geladen werden.')}</p>`; return; }
+    const pl = Z.daten.rolle === 'projektleiter';
+    box.innerHTML = data.fotos.length ? data.fotos.map((f) => `<div><a href="${f.url}" target="_blank" rel="noopener"><img src="${f.url}" alt="" class="${f.geprueft ? 'ok' : ''}"></a>
+      <small style="display:block;font-size:11px;color:var(--leise);overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${esc(f.von)}${f.notiz ? ' · ' + esc(f.notiz) : ''}</small>
+      ${pl ? `<button class="mini" style="padding:4px 8px;font-size:12px" data-pruefen="${f.id}" data-wert="${f.geprueft ? '0' : '1'}">${f.geprueft ? '✓ geprüft' : 'Prüfen'}</button>` : f.eigen && !f.geprueft ? `<button class="mini" style="padding:4px 8px;font-size:12px" data-foto-weg="${f.id}">Löschen</button>` : ''}</div>`).join('')
+      : '<p class="leer" style="grid-column:1/-1">Noch keine Fotos.</p>';
+  }
+  function fotoKlein(datei) {
+    return new Promise((ok) => { const img = new Image(); img.onload = () => { const s = Math.min(1, 1800 / Math.max(img.width, img.height)); const c = document.createElement('canvas'); c.width = img.width * s; c.height = img.height * s; c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); c.toBlob((b) => ok(b || datei), 'image/jpeg', .82); URL.revokeObjectURL(img.src); }; img.onerror = () => ok(datei); img.src = URL.createObjectURL(datei); });
+  }
+  // Standort nur, wenn der Arbeitgeber das eingeschaltet hat
+  const ortHolen = () => new Promise((ok) => { if (!Z.daten || !Z.daten.standort || !navigator.geolocation) return ok(null); navigator.geolocation.getCurrentPosition((p) => ok([+p.coords.latitude.toFixed(5), +p.coords.longitude.toFixed(5), Math.round(p.coords.accuracy)]), () => ok(null), { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }); });
 
   function formular() {
     const f = Z.form, d = Z.daten;
@@ -200,6 +262,14 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
 
   document.addEventListener('click', async (ev) => {
     const mo = ev.target.closest('[data-modus]'); if (mo) { const f = $('form'); if (f) { const d = Object.fromEntries(new FormData(f)); Object.assign(Z.form, d, { pause_min: d.pause ?? Z.form.pause_min, auftrag_id: d.auftrag ?? Z.form.auftrag_id }); } Z.modus = mo.dataset.modus; zeichnen(); vorschau(); return; }
+    const or = ev.target.closest('[data-ordner]'); if (or) { Z.ordner = or.dataset.ordner; Z.auftrag = null; zeichnen(); return; }
+    const au = ev.target.closest('[data-auftrag]'); if (au) { Z.auftrag = au.dataset.auftrag; zeichnen(); fotosLaden(Z.auftrag); document.querySelector('[data-zurueck-ordner]')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    if (ev.target.closest('[data-zurueck-ordner]')) { Z.auftrag = null; zeichnen(); return; }
+    const st = ev.target.closest('[data-status]');
+    if (st) { const { error } = await sb.rpc('ze_auftrag_status', { p_token: token, p_id: Z.auftrag, p_status: st.dataset.status }); if (error) { toast(fehlerText(error)); return; } toast('✓ Gemeldet'); await laden(); fotosLaden(Z.auftrag); return; }
+    const as = ev.target.closest('[data-auftrag-start]'); if (as) { setz(K_START, String(Date.now())); setz(K_START + '.auftrag', as.dataset.auftragStart); ortHolen().then((o) => { if (o) setz(K_START + '.ort', JSON.stringify(o)); }); zeichnen(); fotosLaden(Z.auftrag); toast('Uhr läuft für diesen Auftrag.'); return; }
+    const pr = ev.target.closest('[data-pruefen]'); if (pr) { await sb.functions.invoke('ze-foto', { body: { token, aktion: 'pruefen', foto_id: pr.dataset.pruefen, geprueft: pr.dataset.wert === '1' } }); fotosLaden(Z.auftrag); return; }
+    const fw = ev.target.closest('[data-foto-weg]'); if (fw) { if (!confirm('Dieses Foto löschen?')) return; await sb.functions.invoke('ze-foto', { body: { token, aktion: 'loeschen', foto_id: fw.dataset.fotoWeg } }); fotosLaden(Z.auftrag); return; }
     const hs = ev.target.closest('[data-hier-start]');
     if (hs) { const s = Z.daten.einsaetze.find((x) => x.id === hs.dataset.hierStart); setz(K_START, String(Date.now())); setz(K_START + '.auftrag', s.auftrag_id || ''); zeichnen(); toast('Uhr läuft für diesen Einsatz.'); return; }
     const er = ev.target.closest('[data-erledigt]');
@@ -214,8 +284,9 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
     }
     const a = ev.target.closest('[data-a]'); if (!a) return;
     switch (a.dataset.a) {
-      case 'start': setz(K_START, String(Date.now())); zeichnen(); toast('Uhr läuft. Sie können das Handy weglegen.'); break;
-      case 'stopp': { const s = new Date(Number(lies(K_START))); formOeffnen({ datum: iso(s), von: s.toTimeString().slice(0, 5), bis: jetztZeit(), pause_min: '', auftrag_id: lies(K_START + '.auftrag') || '' }); break; }
+      case 'start': setz(K_START, String(Date.now())); zeichnen(); toast('Uhr läuft. Sie können das Handy weglegen.'); ortHolen().then((o) => { if (o) setz(K_START + '.ort', JSON.stringify(o)); }); break;
+      case 'auftragNeu': auftragNeu(); break;
+      case 'stopp': { ortHolen().then((o) => { if (o) setz(K_START + '.ortEnde', JSON.stringify(o)); }); const s = new Date(Number(lies(K_START))); formOeffnen({ datum: iso(s), von: s.toTimeString().slice(0, 5), bis: jetztZeit(), pause_min: '', auftrag_id: lies(K_START + '.auftrag') || '' }); break; }
       case 'abbrechen': if (confirm('Laufende Uhr verwerfen? Es wird nichts gespeichert.')) { setz(K_START, null); setz(K_START + '.auftrag', null); zeichnen(); } break;
       case 'neu': formOeffnen({ datum: heute(), von: '07:00', bis: '', pause_min: '' }); break;
       case 'zurueck': Z.form = null; zeichnen(); break;
@@ -230,6 +301,29 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
     }
   });
   document.addEventListener('input', (ev) => { if (ev.target.closest('#form')) vorschau(); });
+  document.addEventListener('change', async (ev) => {
+    const fh = ev.target.closest && ev.target.closest('[data-foto-hoch]');
+    if (!fh || !fh.files.length) return;
+    const n = fh.files.length; let ok = 0;
+    toast(`${n} ${n === 1 ? 'Foto wird' : 'Fotos werden'} hochgeladen …`, 8000);
+    for (const datei of fh.files) {
+      const fd = new FormData(); fd.append('token', token); fd.append('aktion', 'hochladen'); fd.append('auftrag_id', fh.dataset.fotoHoch); fd.append('notiz', ($('fotoNotiz') || {}).value || '');
+      fd.append('foto', await fotoKlein(datei), 'foto.jpg');
+      const { data, error } = await sb.functions.invoke('ze-foto', { body: fd });
+      if (error || (data && data.fehler)) { toast((data && data.fehler) || 'Hochladen fehlgeschlagen', 4500); break; }
+      ok++;
+    }
+    if (ok) toast(`✓ ${ok} ${ok === 1 ? 'Foto' : 'Fotos'} gespeichert`);
+    fotosLaden(fh.dataset.fotoHoch);
+  });
+  async function auftragNeu() {
+    const name = prompt('Bezeichnung des Auftrags (z. B. Adresse)'); if (!name || !name.trim()) return;
+    const ordner = prompt('Ordner (Unterordner mit / trennen, z. B. FTTH / Zürich)', teile(Z.ordner).join(' / ')) ?? '';
+    const adresse = prompt('Adresse (freiwillig)', name) || '';
+    const { error } = await sb.rpc('ze_auftrag_anlegen', { p_token: token, p_ordner: ordner, p_name: name, p_kunde: '', p_adresse: adresse });
+    if (error) { toast(fehlerText(error), 4500); return; }
+    Z.ordner = teile(ordner).join('/'); toast('✓ Auftrag angelegt'); laden();
+  }
   document.addEventListener('change', async (ev) => {
     if (ev.target.id === 'monat' && ev.target.value) { Z.monat = ev.target.value; laden(); }
     if (ev.target.id === 'tag' && ev.target.value) {
@@ -247,11 +341,12 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
     if (!(m > 0 && m <= 1440)) { toast('Bitte gültige Zeiten eingeben'); return; }
     const knopf = $('speichern'); knopf.disabled = true; knopf.textContent = 'Wird gespeichert …';
     const eintrag = { id: Z.form.id || '', datum: d.datum, auftrag_id: d.auftrag || '', taetigkeit: (d.taetigkeit || '').trim(), km: String(d.km || '').replace(',', '.') };
+    try { const s = JSON.parse(lies(K_START + '.ort') || 'null'), e = JSON.parse(lies(K_START + '.ortEnde') || 'null'); if (!Z.form.id && (s || e)) eintrag.standort = { start: s, ende: e }; } catch {}
     if (Z.modus === 'zeit') Object.assign(eintrag, { von: d.von, bis: d.bis, pause_min: d.pause || '0' }); else Object.assign(eintrag, { minuten: String(m) });
     const { data, error } = await sb.rpc('ze_melden', { p_token: token, p_eintrag: eintrag });
     knopf.disabled = false; knopf.textContent = 'Speichern';
     if (error) { toast(fehlerText(error), 4500); return; }
-    if (!Z.form.id) { setz(K_START, null); setz(K_START + '.auftrag', null); }
+    if (!Z.form.id) { setz(K_START, null); setz(K_START + '.auftrag', null); setz(K_START + '.ort', null); setz(K_START + '.ortEnde', null); }
     Z.form = null; Z.monat = d.datum.slice(0, 7);
     toast(`✓ ${std(data.minuten)} Stunden gespeichert`);
     laden();

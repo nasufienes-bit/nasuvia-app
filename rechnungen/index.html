@@ -16,6 +16,7 @@
 <script src="../marke.js"></script>
 <script src="../lib/html2canvas.min.js"></script>
 <script src="../lib/jspdf.umd.min.js"></script>
+<script src="../ui.js"></script>
 <script src="../navi.js" data-hier="rechnungen" data-titel="Rechnungen"></script>
 <script src="dienst.js"></script>
 <script src="../suche.js"></script>
@@ -366,7 +367,7 @@ body.server .archiv-card { display: flex; }
 
 /* ============ RECHNUNGSBLATT (1:1 wie die PDFs) ============ */
 .sheet {
-  width: 210mm; height: 297mm; background: #fff; color: var(--text);
+  width: 210mm; height: 297mm; background: #fff; color: var(--text); font-family: var(--font-display);
   position: relative; font-size: 9.5pt; line-height: 1.5;
   -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }
@@ -1162,6 +1163,10 @@ const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
     const blatt = $('sheet');
     if (m.farbe1) blatt.style.setProperty('--blau', m.farbe1); else blatt.style.removeProperty('--blau');
     if (m.farbe2) blatt.style.setProperty('--elektrik', m.farbe2); else blatt.style.removeProperty('--elektrik');
+    // Logo-Grösse, Schriftfarbe und Schriftstil aus „Firma und Design“
+    $('sheetLogo').style.height = (Number(m.logoHoehe) || 9) + 'mm';
+    if (m.textFarbe) { blatt.style.setProperty('--tinte', m.textFarbe); blatt.style.setProperty('--text', m.textFarbe); } else { blatt.style.removeProperty('--tinte'); blatt.style.removeProperty('--text'); }
+    if (m.schrift && m.schrift !== 'modern' && window.Marke && Marke.schrift) blatt.style.setProperty('--font-display', Marke.schrift(m)); else blatt.style.removeProperty('--font-display');
   };
 
   /* ---------- Speicher ---------- */
