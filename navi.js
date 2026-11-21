@@ -29,6 +29,7 @@
     BEREICHE = [
       { id: 'buchhaltung', name: 'Buchhaltung', text: 'Einnahmen, Ausgaben, MWST, Löhne', href: WURZEL, icon: BEREICHE[3].icon },
       { id: 'rechnungen', name: 'Rechnungen', text: 'Rechnungen, Offerten, Mahnungen', href: WURZEL + 'rechnungen/', icon: BEREICHE[2].icon },
+      { id: 'zeit', name: 'Zeiterfassung', text: 'Stunden der Mitarbeiter, Rapporte', href: WURZEL + 'zeit/', icon: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/>' },
       { id: 'privat', name: 'Home-Büro', text: 'Privat: Konto, Abos, Rechnungen', href: WURZEL + 'privat/', icon: '<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>' },
       { id: 'hilfe', name: 'Anleitung', text: 'Schritt für Schritt, mit Suche', href: WURZEL + 'hilfe/', icon: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"/><path d="M12 17h.01"/>' }
     ];

@@ -6,8 +6,8 @@
   if (!K.produkt) return;
   const skript = document.currentScript || {};
   const PRODUKT = (skript.dataset && skript.dataset.produkt) || 'buchhaltung';
-  const NAME = { buchhaltung: 'die Buchhaltung', rechnungen: 'das Rechnungsprogramm', privat: 'das Home-Büro' }[PRODUKT];
-  const ERLAUBT = { buchhaltung: ['buchhaltung', 'kombi'], rechnungen: ['rechnungen', 'kombi'], privat: ['privat', 'kombi'] };
+  const NAME = { buchhaltung: 'die Buchhaltung', rechnungen: 'das Rechnungsprogramm', privat: 'das Home-Büro', zeit: 'die Zeiterfassung' }[PRODUKT];
+  const ERLAUBT = { buchhaltung: ['buchhaltung', 'kombi'], rechnungen: ['rechnungen', 'kombi'], privat: ['privat', 'kombi'], zeit: ['rechnungen', 'buchhaltung', 'kombi'] };
   const PAKETE = { rechnungen: 'Rechnungen', buchhaltung: 'Buchhaltung', kombi: 'Kombi (Rechnungen, Buchhaltung, Home-Büro)', privat: 'Home-Büro' };
   const KAUFEN = (() => { try { return new URL('lizenz/', new URL('.', skript.src)).href; } catch { return '/lizenz/'; } })();
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -128,7 +128,7 @@
     const h = heute();
     const gueltig = l.status !== 'gesperrt' && ((l.status === 'test' && l.test_bis >= h) || (l.status === 'aktiv' && (l.gueltig_bis || '') >= h));
     if (!ERLAUBT[PRODUKT].includes(l.paket)) {
-      sperre('Nicht in Ihrem Paket', `Ihr Paket „${esc(PAKETE[l.paket])}“ enthält ${NAME} nicht. Mit dem Kombi-Paket haben Sie alles.`, false); return;
+      sperre('Nicht in Ihrem Paket', `Ihr Paket „${esc(PAKETE[l.paket])}“ enthält ${NAME} nicht. ${PRODUKT === 'zeit' ? 'Die Zeiterfassung gibt es zu jedem Geschäftspaket (Rechnungen, Buchhaltung oder Kombi).' : 'Mit dem Kombi-Paket haben Sie alles.'}`, false); return;
     }
     if (!gueltig) {
       sperre(l.status === 'gesperrt' ? 'Zugang gesperrt' : l.status === 'test' ? 'Ihr Gratis-Test ist abgelaufen' : 'Ihre Lizenz ist abgelaufen',

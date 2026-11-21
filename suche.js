@@ -4,7 +4,7 @@
 (() => {
   const skript = document.currentScript || {};
   const WURZEL = (() => { try { return new URL('.', skript.src).href; } catch { return '/'; } })();
-  const B = WURZEL, R = WURZEL + 'rechnungen/', P = WURZEL + 'privat/', H = WURZEL + 'hilfe/';
+  const B = WURZEL, R = WURZEL + 'rechnungen/', P = WURZEL + 'privat/', H = WURZEL + 'hilfe/', Z = WURZEL + 'zeit/';
 
   // id, Bereich, Titel, Suchwörter, Anleitung (Schritte), Ziel im Programm
   const ARTIKEL = [
@@ -132,6 +132,26 @@
     ['hb-betreibung', 'Home-Büro', 'Betreibungen verfolgen', 'betreibung zahlungsbefehl rechtsvorschlag schulden abzahlung löschung register', [
       'Ansicht „Betreibungen“, dann „+ Betreibung erfassen“ mit Datum der Zustellung.',
       'Sie sehen die 10-Tage-Frist für den Rechtsvorschlag, Abzahlungen und den Restbetrag.'], P + '?tab=betreibung'],
+
+    // Zeiterfassung
+    ['ze-start', 'Zeiterfassung', 'Zeiterfassung: Mitarbeiter einrichten', 'zeiterfassung stunden mitarbeiter arbeitszeit rapport link handy', [
+      'Im Menü „Zeiterfassung“ öffnen und „+ Mitarbeiter“ tippen. Name, Stundenlohn und Ansatz für Kunden eingeben.',
+      'Danach erscheint der persönliche Link. Mit „Per WhatsApp senden“ geht er direkt aufs Handy des Mitarbeiters.',
+      'Der Mitarbeiter braucht kein Konto und kein Passwort. Er sieht nur die eigenen Stunden.'], Z + '?tab=mitarbeiter'],
+    ['ze-erfassen', 'Zeiterfassung', 'So erfassen Mitarbeiter ihre Stunden', 'stunden erfassen stempeln start stopp uhr nachtragen pause handy', [
+      'Link öffnen und „Arbeit starten“ tippen. Am Abend „Stoppen und speichern“, Auftrag und Tätigkeit wählen.',
+      'Vergessen? Mit „Stunden nachtragen“ geht es auch später, mit Von, Bis und Pause oder nur mit der Anzahl Stunden.',
+      'Unten sieht der Mitarbeiter jeden Monat und jeden einzelnen Tag nach.'], Z],
+    ['ze-auftraege', 'Zeiterfassung', 'Aufträge für die Zeiterfassung', 'auftrag projekt baustelle kunde stunden zuordnen', [
+      'Zeiterfassung, Ansicht „Aufträge“, dann „+ Auftrag“ mit Bezeichnung und Kunde.',
+      'Ihre Mitarbeiter wählen den Auftrag beim Erfassen. Abgeschlossene Aufträge verschwinden aus ihrer Auswahl.'], Z + '?tab=auftraege'],
+    ['ze-rechnung', 'Zeiterfassung', 'Stunden verrechnen und Rapport drucken', 'stunden verrechnen rechnung rapport stundenrapport drucken kunde unterschrift', [
+      'Ansicht „Aufträge“: bei einem Auftrag auf „offen“ tippen. Die offenen Stunden sind schon ausgewählt.',
+      '„In Rechnung übernehmen“: Die Rechnung öffnet sich mit allen Positionen, Sie wählen nur noch den Kunden.',
+      '„Stundenrapport drucken“ macht ein Blatt mit allen Stunden und Platz für die Unterschrift.'], Z + '?tab=eintraege'],
+    ['ze-lohn', 'Zeiterfassung', 'Stunden in den Lohn übernehmen', 'stundenlohn lohn lohnlauf stunden übernehmen monat', [
+      'Zeiterfassung, Übersicht, „Stunden in den Lohnlauf“, Monat wählen.',
+      'Die Stunden landen bei den Mitarbeitern mit gleichem Namen und Stundenlohn unter „Löhne“.'], Z],
 
     // Konto und Lizenz
     ['lizenz', 'Konto und Lizenz', 'Lizenz kaufen oder verlängern', 'lizenz kaufen bezahlen preis verlängern test abgelaufen paket wechseln upgrade', [

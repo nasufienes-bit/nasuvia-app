@@ -40,6 +40,7 @@ h1{font-size:clamp(30px,6vw,42px);letter-spacing:-.03em;line-height:1.05;margin:
 .btn{display:block;width:100%;border:0;border-radius:100px;padding:12px;font:inherit;font-weight:700;cursor:pointer;background:var(--flaeche);color:var(--blau);text-align:center;text-decoration:none}
 .btn.haupt{background:var(--blau);color:#fff}
 .btn:disabled{opacity:.5}
+.zusatz{margin-top:14px;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}.zusatz span{color:var(--text);font-size:14px}
 @media(max-width:900px){.pakete{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.pakete{grid-template-columns:1fr}.stand{grid-template-columns:auto minmax(0,1fr)}.stand .marke{grid-column:2}}
 dialog{border:0;border-radius:22px;padding:0;width:min(460px,calc(100% - 24px));box-shadow:0 40px 100px -30px rgba(12,18,38,.5)}
@@ -68,6 +69,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 
   <div class="umschalter"><div><button data-z="monat">Monatlich</button><button data-z="jahr" class="an">Jährlich · 2 Monate gratis</button></div></div>
   <div class="pakete" id="pakete"></div>
+  <div class="karte zusatz"><b>Zeiterfassung für Ihre Mitarbeiter</b><span>Zu jedem Geschäftspaket: CHF 5 pro Mitarbeiter und Monat oder CHF 50 pro Jahr. Im Gratis-Test unbegrenzt.</span></div>
   <p class="unter" style="text-align:center;margin-top:14px;font-size:14px">Alle Preise in CHF. Sie erhalten eine QR-Rechnung per E-Mail. Nach der Zahlung schalten wir Ihre Lizenz frei, alle Daten bleiben erhalten.</p>
 
   <div class="unten">
@@ -83,6 +85,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     <label>Firma oder Name auf der Rechnung<input id="dFirma" required></label>
     <label>Rechnungsadresse<textarea id="dAdresse" rows="2" placeholder="Strasse und Nr., PLZ und Ort" required></textarea></label>
     <label>Telefon <span>(freiwillig)</span><input id="dTel" type="tel"></label>
+    <label id="dZeitFeld">Zeiterfassung: Anzahl Mitarbeiter <span>(0 = ohne)</span><input id="dZeit" type="number" min="0" max="200" value="0" inputmode="numeric"></label>
     <div class="summe"><span id="dPaket"></span><span id="dPreis"></span></div>
     <p class="meldung" id="dMeldung"></p>
     <button class="btn haupt" id="dSenden">Verbindlich bestellen</button>
@@ -104,7 +107,14 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     { id: 'buchhaltung', name: 'Buchhaltung', monat: 14, jahr: 140, was: ['Buchungen und Belege', 'Bankauszug importieren', 'MWST, Bilanz, Abschluss', 'Löhne'] },
     { id: 'kombi', name: 'Kombi', monat: 19, jahr: 190, was: ['Rechnungen und Buchhaltung', 'Rechnungen werden automatisch gebucht', 'Home-Büro inklusive', 'Persönlicher Support'], top: true }
   ];
-  var zyklus = 'jahr', lizenz = null, benutzer = null, gewaehlt = null;
+  var zyklus = 'jahr', lizenz = null, benutzer = null, gewaehlt = null, zeitLeute = 0;
+  var ZEIT = { monat: 5, jahr: 50 };
+  function zeitAnzahl(){ return gewaehlt && gewaehlt.id !== 'privat' ? Math.max(0, Math.min(200, parseInt($('dZeit').value, 10) || 0)) : 0; }
+  function summeZeigen(){
+    var n = zeitAnzahl(), grund = zyklus === 'jahr' ? gewaehlt.jahr : gewaehlt.monat, z = n * ZEIT[zyklus];
+    $('dPaket').textContent = gewaehlt.name + (n ? ' + Zeiterfassung für ' + n : '') + (zyklus === 'jahr' ? ', jährlich' : ', monatlich');
+    $('dPreis').textContent = 'CHF ' + (grund + z) + (zyklus === 'jahr' ? '/Jahr' : '/Monat');
+  }
   var sb = window.supabase.createClient(K.url, K.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: K.speicher } });
 
   function standZeichnen(){
@@ -140,14 +150,16 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       if (!benutzer) { location.href = '../'; return; }
       gewaehlt = PAKETE.find(function(x){ return x.id === p.dataset.paket; });
       $('dTitel').textContent = gewaehlt.name + ' bestellen';
-      $('dPaket').textContent = gewaehlt.name + (zyklus === 'jahr' ? ', jährlich' : ', monatlich');
-      $('dPreis').textContent = 'CHF ' + (zyklus === 'jahr' ? gewaehlt.jahr + '/Jahr' : gewaehlt.monat + '/Monat');
+      $('dZeitFeld').hidden = gewaehlt.id === 'privat';
+      $('dZeit').value = String(Math.max(zeitLeute, (lizenz && lizenz.zeit_plaetze) || 0));
+      summeZeigen();
       $('dFirma').value = (lizenz && (lizenz.firma || lizenz.name)) || '';
       $('dTel').value = (lizenz && lizenz.telefon) || '';
       $('dMeldung').textContent = ''; $('formInhalt').hidden = false; $('fertig').hidden = true;
       $('dlg').showModal();
     }
   });
+  $('dZeit').addEventListener('input', summeZeigen);
   $('dZu').onclick = function(){ $('dlg').close(); };
   $('fZu').onclick = function(){ $('dlg').close(); };
   $('abmelden').onclick = async function(){ await sb.auth.signOut({ scope: 'local' }); location.href = '../'; };
@@ -159,8 +171,9 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     $('dSenden').disabled = true;
     var d = new Date(), zz = function(n){ return ('0' + n).slice(-2); };
     var nr = 'LIZ-' + String(d.getFullYear()).slice(2) + zz(d.getMonth() + 1) + zz(d.getDate()) + '-' + (100 + Math.floor(Math.random() * 900));
-    var preis = zyklus === 'jahr' ? gewaehlt.jahr : gewaehlt.monat;
-    var daten = { Paket: gewaehlt.name, Zahlungsweise: zyklus === 'jahr' ? 'Jährlich' : 'Monatlich', Preis: 'CHF ' + preis + (zyklus === 'jahr' ? ' pro Jahr' : ' pro Monat'),
+    var zeitN = zeitAnzahl();
+    var preis = (zyklus === 'jahr' ? gewaehlt.jahr : gewaehlt.monat) + zeitN * ZEIT[zyklus];
+    var daten = { Paket: gewaehlt.name, 'Zeiterfassung (Mitarbeiter)': String(zeitN), Zahlungsweise: zyklus === 'jahr' ? 'Jährlich' : 'Monatlich', Preis: 'CHF ' + preis + (zyklus === 'jahr' ? ' pro Jahr' : ' pro Monat'),
       'Rechnung an': firma, Adresse: adresse, 'E-Mail': benutzer.email, Telefon: $('dTel').value.trim(), Konto: benutzer.id,
       'Stand jetzt': lizenz ? lizenz.status + ' / ' + lizenz.paket : '' };
     var ok1 = await fetch('https://dyepnomhidubsfwyorke.supabase.co/rest/v1/anfragen', { method: 'POST',
@@ -184,6 +197,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
         var r = await sb.from('lizenzen').select('*').eq('user_id', benutzer.id).maybeSingle();
         lizenz = r.data || null;
         if (lizenz) zyklus = lizenz.zyklus || 'jahr';
+        try { var zm = await sb.from('ze_mitarbeiter').select('id', { count: 'exact', head: true }).eq('aktiv', true); zeitLeute = zm.count || 0; } catch (f2) { zeitLeute = 0; }
       }
     } catch (f) { benutzer = null; }
     standZeichnen(); paketeZeichnen();

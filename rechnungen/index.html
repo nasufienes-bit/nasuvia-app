@@ -2539,6 +2539,10 @@ Glasfaser? Wir ziehen durch.`;
   });
   $('btnNeu').addEventListener('click', async () => {
     if (!confirm('Neue Rechnung beginnen? Positionen und Nummer werden geleert.')) return;
+    await neuBeginnen();
+  });
+  // Neue, leere Rechnung; optional mit Positionen (z. B. aus der Zeiterfassung)
+  async function neuBeginnen(vorgabe) {
     bearbeitet = null; entwurfId = null; zeigeBearbeitung();
     positionen = [{ text: '', menge: '1', preis: '' }];
     $('rgNr').value = ''; $('referenz').value = '';
@@ -2549,11 +2553,21 @@ Glasfaser? Wir ziehen durch.`;
     textVorlage(dokArt); dokUi();
     faelligManuell = false;
     $('rgFaellig').value = plusTage(heuteIso(), $('frist').value);
+    if (vorgabe) {
+      dokArt = 'rechnung'; textVorlage(dokArt); dokUi();
+      positionen = vorgabe.positionen.map((p) => ({ text: String(p.text || ''), menge: String(p.menge || '1'), preis: String(p.preis || '') }));
+      if (vorgabe.projekt && zusatz.projekt) { zusatz.projekt.wert = vorgabe.projekt; zusatz.projekt.an = true; zusatzZeichnen(); }
+    }
     zeichnePositionen();
     await nummernPflegen({ setzen: true });
     aktualisiere({ sofort: true });
-    toast($('rgNr').value ? `Neu: ${dokTitel()} Nr. ${$('rgNr').value}` : 'Neu: ' + dokTitel());
-  });
+    toast(vorgabe ? `${positionen.length} ${positionen.length === 1 ? 'Position' : 'Positionen'} aus der Zeiterfassung übernommen. Jetzt Kunde wählen.` : ($('rgNr').value ? `Neu: ${dokTitel()} Nr. ${$('rgNr').value}` : 'Neu: ' + dokTitel()), vorgabe ? 6000 : undefined);
+  }
+  {
+    let ze = null;
+    try { ze = JSON.parse(sessionStorage.getItem('ordasio.zeit.rechnung') || 'null'); sessionStorage.removeItem('ordasio.zeit.rechnung'); } catch {}
+    if (ze && Array.isArray(ze.positionen) && ze.positionen.length) setTimeout(() => neuBeginnen(ze), 700);
+  }
   $('btnHilfe').addEventListener('click', () => $('hilfeDlg').showModal());
   $('hilfeSchliessen').addEventListener('click', () => $('hilfeDlg').close());
   $('btnExport').addEventListener('click', async () => {

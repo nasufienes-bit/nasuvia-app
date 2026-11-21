@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Meine Stunden</title>
+<meta name="robots" content="noindex, nofollow" />
+<meta name="referrer" content="no-referrer" />
+<meta name="theme-color" content="#0B3B2E" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Meine Stunden" />
+<link rel="apple-touch-icon" href="../../icon-180.png" />
+<link rel="stylesheet" href="../../schrift.css" />
+<script src="../../konfig.js"></script>
+<script src="../../lib/supabase.js"></script>
+<style>
+:root{--papier:#F4FAF6;--flaeche:#E8F4EE;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--gruen:#0E9F6E;--rot:#E5484D;--linie:rgba(11,59,46,.14);--schatten:0 1px 2px rgba(12,18,38,.04),0 14px 34px -22px rgba(11,59,46,.4);--display:'League Spartan',-apple-system,system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:16px/1.5 var(--display);background:var(--papier);color:var(--tinte);min-height:100vh;padding-bottom:calc(30px + env(safe-area-inset-bottom,0px))}
+[hidden]{display:none!important}
+button{font:inherit;cursor:pointer}
+.wrap{max-width:560px;margin:0 auto;padding:0 16px}
+.oben{background:linear-gradient(160deg,#0B3B2E,#0E7A55);color:#fff;padding:calc(18px + env(safe-area-inset-top,0px)) 0 70px}
+.oben small{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.7)}
+.oben h1{font-size:28px;letter-spacing:-.02em;line-height:1.1;margin-top:4px}
+.summen{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
+.summen div{background:rgba(255,255,255,.12);border-radius:14px;padding:10px 12px}
+.summen b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.summen span{font-size:12px;color:rgba(255,255,255,.75)}
+.karte{background:#fff;border-radius:20px;padding:18px;box-shadow:var(--schatten);margin-top:14px}
+.karte h2{font-size:18px;margin-bottom:10px}
+.hoch{margin-top:-52px}
+.uhr{text-align:center}
+.uhr .zeit{font-size:44px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1.1}
+.uhr p{color:var(--text);font-size:14px;margin:4px 0 14px}
+.gross{display:block;width:100%;border:0;border-radius:16px;padding:16px;font-weight:700;font-size:18px;background:var(--blau);color:#fff}
+.gross.stopp{background:var(--rot)}
+.gross.leicht{background:var(--flaeche);color:var(--blau);font-size:16px;padding:13px;margin-top:8px}
+label{display:grid;gap:4px;font-size:13px;color:var(--text);margin-bottom:10px}
+input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);border-radius:12px;padding:11px 12px;background:#fff;color:var(--tinte);width:100%;min-width:0}
+.drei{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.zwei{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.segment{display:flex;background:var(--flaeche);border-radius:100px;padding:3px;margin-bottom:12px}
+.segment button{flex:1;border:0;background:none;border-radius:100px;padding:8px;color:var(--text);font-size:14px}
+.segment button.an{background:#fff;color:var(--blau);font-weight:600;box-shadow:0 2px 8px rgba(12,18,38,.08)}
+.knoepfe{display:flex;gap:8px}
+.knoepfe .gross{flex:1}
+.vorschau{background:var(--flaeche);border-radius:12px;padding:10px 12px;font-size:14px;color:var(--blau);margin-bottom:10px;font-weight:600}
+.tag-titel{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--leise);padding:14px 0 2px;display:flex;justify-content:space-between}
+.zeile{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--linie);cursor:pointer}
+.zeile:last-child{border-bottom:0}
+.zeile b{display:block}
+.zeile small{color:var(--leise);font-size:13px;display:block}
+.zeile .std{font-weight:700;font-variant-numeric:tabular-nums}
+.marke-s{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;border-radius:100px;padding:2px 8px;margin-left:6px;vertical-align:1px;background:rgba(14,159,110,.12);color:#0A7150}
+.leer{color:var(--leise);padding:8px 0}
+.monat-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.monat-nav button{border:0;background:var(--flaeche);color:var(--blau);border-radius:12px;width:42px;height:42px;font-size:20px}
+.monat-nav input{max-width:190px;text-align:center}
+.hinweis{color:var(--text);font-size:13.5px}
+.fehler{text-align:center;padding:60px 20px}
+.fehler h1{font-size:24px;margin-bottom:8px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;background:var(--tinte);color:#fff;border-radius:100px;padding:12px 18px;font-weight:600;transition:.3s;z-index:99;pointer-events:none;max-width:90vw;text-align:center}
+.toast.da{transform:translate(-50%,0);opacity:1}
+.fuss{text-align:center;color:var(--leise);font-size:12px;margin-top:22px}
+.loeschen{border:0;background:none;color:var(--rot);font-size:14px;margin-top:10px;width:100%;padding:8px}
+</style>
+</head>
+<body>
+<div id="app"><div class="fehler"><p class="hinweis">Wird geladen …</p></div></div>
+<div class="toast" id="toast"></div>
+<script>
+(() => {
+  'use strict';
+  const K = window.NASUVIA_KONFIG || {};
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const iso = (d) => d.toLocaleDateString('sv-SE');
+  const heute = () => iso(new Date());
+  const dk = (d) => (d ? d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4) : '');
+  const WT = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+  const wt = (d) => WT[new Date(d + 'T12:00').getDay()];
+  const std = (min) => { min = Math.round(min || 0); return Math.floor(min / 60) + ':' + String(min % 60).padStart(2, '0'); };
+  const plusTage = (d, n) => { const x = new Date(d + 'T12:00'); x.setDate(x.getDate() + n); return iso(x); };
+  const montag = (d) => { const x = new Date(d + 'T12:00'); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return iso(x); };
+  const monatsEnde = (m) => { const [j, mo] = m.split('-').map(Number); return iso(new Date(j, mo, 0, 12)); };
+  const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+  const jetztZeit = () => new Date().toTimeString().slice(0, 5);
+  const toast = (t, ms = 2600) => { const e = $('toast'); e.textContent = t; e.classList.add('da'); clearTimeout(toast.z); toast.z = setTimeout(() => e.classList.remove('da'), ms); };
+  const fehlerText = (e) => String((e && e.message) || e || 'Unbekannter Fehler');
+  const lies = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+  const setz = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} };
+
+  // Der Link enthält den persönlichen Schlüssel. Auf dem Gerät gemerkt, damit es auch als App vom Home-Bildschirm klappt.
+  const q = new URLSearchParams(location.search);
+  let token = q.get('t') || lies('ze.token') || '';
+  if (q.get('t')) setz('ze.token', q.get('t'));
+  if (!q.get('t') && token) history.replaceState(null, '', '?t=' + token);
+  const K_START = 'ze.start.' + token.slice(0, 12);
+
+  const Z = { monat: heute().slice(0, 7), daten: null, form: null, modus: 'zeit' };
+  if (!token || !K.url) { fehler('Kein gültiger Link', 'Bitte öffnen Sie den Link, den Sie von Ihrem Arbeitgeber bekommen haben.'); return; }
+  const sb = window.supabase.createClient(K.url, K.key, { auth: { persistSession: false, autoRefreshToken: false } });
+
+  function fehler(titel, text) { $('app').innerHTML = `<div class="fehler"><h1>${esc(titel)}</h1><p class="hinweis">${esc(text)}</p></div>`; }
+
+  async function laden() {
+    // Immer die letzten 7 Tage dazu (für „Diese Woche“), dazu der gewählte Monat
+    const von = [Z.monat + '-01', montag(heute())].sort()[0];
+    const bis = [monatsEnde(Z.monat), heute()].sort().pop();
+    const { data, error } = await sb.rpc('ze_ich', { p_token: token, p_von: von, p_bis: plusTage(bis, 1) });
+    if (error) { fehler('Keine Verbindung', 'Bitte prüfen Sie Ihre Internetverbindung und laden Sie die Seite neu.'); return; }
+    if (data.fehler) { setz('ze.token', null); fehler('Link nicht mehr gültig', data.fehler); return; }
+    Z.daten = data;
+    zeichnen();
+  }
+
+  function zeichnen() {
+    const d = Z.daten, E = d.eintraege;
+    const summe = (l) => l.reduce((s, e) => s + e.minuten, 0);
+    const start = lies(K_START);
+    const imMonat = E.filter((e) => e.datum.slice(0, 7) === Z.monat);
+    const tage = [...new Set(imMonat.map((e) => e.datum))];
+    const af = (id) => d.auftraege.find((a) => a.id === id);
+    document.title = 'Meine Stunden · ' + d.name.split(' ')[0];
+    $('app').innerHTML = `
+      <header class="oben"><div class="wrap"><small>${esc(d.firma || 'Zeiterfassung')}</small><h1>Hallo ${esc(d.name.split(' ')[0])}</h1>
+        <div class="summen"><div><b>${std(summe(E.filter((e) => e.datum === heute())))}</b><span>Heute</span></div><div><b>${std(summe(E.filter((e) => e.datum >= montag(heute()) && e.datum <= heute())))}</b><span>Diese Woche</span></div><div><b>${std(summe(E.filter((e) => e.datum.slice(0, 7) === heute().slice(0, 7))))}</b><span>${MONATE[new Date().getMonth()]}</span></div></div>
+      </div></header>
+      <main class="wrap">
+        ${!d.aktiv ? '<div class="karte hoch"><h2>Zurzeit pausiert</h2><p class="hinweis">Die Zeiterfassung Ihrer Firma ist gerade nicht aktiv. Ihre Stunden sind gespeichert. Bitte melden Sie sich im Büro.</p></div>' : Z.form ? formular() : `
+        <div class="karte hoch uhr">
+          ${start ? `<div class="zeit" id="laeuft">${std((Date.now() - Number(start)) / 60000)}</div><p>Arbeit läuft seit ${new Date(Number(start)).toTimeString().slice(0, 5)} Uhr</p>
+            <button class="gross stopp" data-a="stopp">Stoppen und speichern</button><button class="gross leicht" data-a="abbrechen">Uhr verwerfen</button>`
+          : `<div class="zeit">${jetztZeit()}</div><p>${wt(heute())}, ${dk(heute())}</p>
+            <button class="gross" data-a="start">▶ Arbeit starten</button><button class="gross leicht" data-a="neu">Stunden nachtragen</button>`}
+        </div>`}
+        <div class="karte">
+          <div class="monat-nav"><button data-a="monatZurueck" aria-label="Monat zurück">‹</button><input type="month" id="monat" value="${Z.monat}" max="${heute().slice(0, 7)}" aria-label="Monat"><button data-a="monatVor" aria-label="Monat vor" ${Z.monat >= heute().slice(0, 7) ? 'disabled style="opacity:.35"' : ''}>›</button></div>
+          <p class="hinweis" style="text-align:center">${MONATE[Number(Z.monat.slice(5, 7)) - 1]}: <b>${std(summe(imMonat))} Stunden</b> an ${tage.length} ${tage.length === 1 ? 'Tag' : 'Tagen'}</p>
+          <label style="margin:12px 0 0">Bestimmten Tag ansehen<input type="date" id="tag" max="${heute()}"></label>
+          ${tage.length ? tage.map((t) => { const l = imMonat.filter((e) => e.datum === t); return `<div class="tag-titel" id="tag-${t}"><span>${wt(t).slice(0, 2)} ${dk(t)}</span><span>${std(summe(l))}</span></div>` + l.map((e) => `<div class="zeile" data-eintrag="${e.id}"><div><b>${e.von ? `${e.von}–${e.bis}` : 'Dauer'}${e.verrechnet ? '<span class="marke-s">verrechnet</span>' : ''}</b><small>${esc([af(e.auftrag_id) ? af(e.auftrag_id).name : '', e.taetigkeit, e.pause_min ? e.pause_min + ' Min. Pause' : '', Number(e.km) ? e.km + ' km' : ''].filter(Boolean).join(' · ')) || 'Ohne Beschreibung'}</small></div><div class="std">${std(e.minuten)}</div></div>`).join(''); }).join('') : '<p class="leer">In diesem Monat ist noch nichts erfasst.</p>'}
+        </div>
+        <p class="fuss">Sie sehen nur Ihre eigenen Stunden. Tipp: Seite zum Home-Bildschirm hinzufügen, dann ist sie wie eine App.</p>
+      </main>`;
+    if (start && !Z.form) { clearInterval(Z.uhr); Z.uhr = setInterval(() => { const e = $('laeuft'); if (e) e.textContent = std((Date.now() - Number(lies(K_START))) / 60000); else clearInterval(Z.uhr); }, 15000); }
+  }
+
+  function formular() {
+    const f = Z.form, d = Z.daten;
+    return `<div class="karte hoch"><h2>${f.id ? 'Eintrag ändern' : 'Stunden erfassen'}</h2>
+      <form id="form">
+        <label>Datum<input type="date" name="datum" value="${f.datum}" max="${plusTage(heute(), 1)}" required></label>
+        <div class="segment"><button type="button" class="${Z.modus === 'zeit' ? 'an' : ''}" data-modus="zeit">Von – bis</button><button type="button" class="${Z.modus === 'dauer' ? 'an' : ''}" data-modus="dauer">Nur Stunden</button></div>
+        ${Z.modus === 'zeit' ? `<div class="drei"><label>Von<input type="time" name="von" value="${f.von || ''}" required></label><label>Bis<input type="time" name="bis" value="${f.bis || ''}" required></label><label>Pause (Min.)<input type="number" inputmode="numeric" name="pause" min="0" max="600" value="${f.pause_min || ''}" placeholder="0"></label></div>`
+          : `<label>Stunden<input type="text" inputmode="decimal" name="dauer" value="${f.minuten && !f.von ? Math.round(f.minuten / 60 * 100) / 100 : ''}" placeholder="z. B. 8 oder 7.5" required></label>`}
+        <div class="vorschau" id="vorschau"></div>
+        ${d.auftraege.length ? `<label>Auftrag<select name="auftrag"><option value="">Ohne Auftrag</option>${d.auftraege.map((a) => `<option value="${a.id}" ${a.id === f.auftrag_id ? 'selected' : ''}>${esc(a.name)}${a.kunde ? ' · ' + esc(a.kunde) : ''}</option>`).join('')}</select></label>` : ''}
+        <label>Was haben Sie gemacht?<input type="text" name="taetigkeit" value="${esc(f.taetigkeit || '')}" maxlength="300" placeholder="z. B. Leitungen verlegt" enterkeyhint="done"></label>
+        <label>Gefahrene Kilometer (freiwillig)<input type="text" inputmode="decimal" name="km" value="${Number(f.km) || ''}" placeholder="0"></label>
+        <div class="knoepfe"><button type="button" class="gross leicht" data-a="zurueck" style="margin:0">Abbrechen</button><button class="gross" id="speichern">Speichern</button></div>
+        ${f.id ? '<button type="button" class="loeschen" data-a="loeschen">Eintrag löschen</button>' : ''}
+      </form></div>`;
+  }
+  function minutenAusForm() {
+    const f = $('form'); if (!f) return 0;
+    const d = new FormData(f);
+    if (Z.modus === 'zeit') {
+      const von = d.get('von'), bis = d.get('bis'); if (!von || !bis) return 0;
+      const [a, b] = [von, bis].map((t) => t.split(':').map(Number)).map(([h, m]) => h * 60 + m);
+      return (b - a + 1440) % 1440 - (Number(d.get('pause')) || 0);
+    }
+    return Math.round(Number(String(d.get('dauer') || '').replace(',', '.')) * 60) || 0;
+  }
+  function vorschau() { const v = $('vorschau'); if (!v) return; const m = minutenAusForm(); v.textContent = m > 0 ? `= ${std(m)} Stunden` : 'Zeiten eingeben'; }
+
+  function formOeffnen(werte) { Z.form = werte; Z.modus = werte.id && !werte.von ? 'dauer' : 'zeit'; zeichnen(); vorschau(); window.scrollTo(0, 0); }
+
+  document.addEventListener('click', async (ev) => {
+    const mo = ev.target.closest('[data-modus]'); if (mo) { const f = $('form'); if (f) { const d = Object.fromEntries(new FormData(f)); Object.assign(Z.form, d, { pause_min: d.pause ?? Z.form.pause_min, auftrag_id: d.auftrag ?? Z.form.auftrag_id }); } Z.modus = mo.dataset.modus; zeichnen(); vorschau(); return; }
+    const ein = ev.target.closest('[data-eintrag]');
+    if (ein) {
+      const e = Z.daten.eintraege.find((x) => x.id === ein.dataset.eintrag);
+      if (e.verrechnet) { toast('Schon verrechnet. Änderungen bitte im Büro melden.', 3500); return; }
+      formOeffnen({ ...e }); return;
+    }
+    const a = ev.target.closest('[data-a]'); if (!a) return;
+    switch (a.dataset.a) {
+      case 'start': setz(K_START, String(Date.now())); zeichnen(); toast('Uhr läuft. Sie können das Handy weglegen.'); break;
+      case 'stopp': { const s = new Date(Number(lies(K_START))); formOeffnen({ datum: iso(s), von: s.toTimeString().slice(0, 5), bis: jetztZeit(), pause_min: '' }); break; }
+      case 'abbrechen': if (confirm('Laufende Uhr verwerfen? Es wird nichts gespeichert.')) { setz(K_START, null); zeichnen(); } break;
+      case 'neu': formOeffnen({ datum: heute(), von: '07:00', bis: '', pause_min: '' }); break;
+      case 'zurueck': Z.form = null; zeichnen(); break;
+      case 'loeschen': {
+        if (!confirm('Diesen Eintrag löschen?')) break;
+        const { error } = await sb.rpc('ze_loeschen', { p_token: token, p_id: Z.form.id });
+        if (error) { toast(fehlerText(error), 4000); break; }
+        Z.form = null; toast('Gelöscht'); laden(); break;
+      }
+      case 'monatZurueck': { const [j, m] = Z.monat.split('-').map(Number); Z.monat = iso(new Date(j, m - 2, 1, 12)).slice(0, 7); laden(); break; }
+      case 'monatVor': { const [j, m] = Z.monat.split('-').map(Number); Z.monat = iso(new Date(j, m, 1, 12)).slice(0, 7); laden(); break; }
+    }
+  });
+  document.addEventListener('input', (ev) => { if (ev.target.closest('#form')) vorschau(); });
+  document.addEventListener('change', async (ev) => {
+    if (ev.target.id === 'monat' && ev.target.value) { Z.monat = ev.target.value; laden(); }
+    if (ev.target.id === 'tag' && ev.target.value) {
+      const t = ev.target.value;
+      if (t.slice(0, 7) !== Z.monat) { Z.monat = t.slice(0, 7); await laden(); }
+      const ziel = $('tag-' + t);
+      if (ziel) ziel.scrollIntoView({ behavior: 'smooth', block: 'start' }); else toast(`Am ${dk(t)} ist nichts erfasst.`);
+    }
+  });
+  document.addEventListener('submit', async (ev) => {
+    if (ev.target.id !== 'form') return;
+    ev.preventDefault();
+    const d = Object.fromEntries(new FormData(ev.target));
+    const m = minutenAusForm();
+    if (!(m > 0 && m <= 1440)) { toast('Bitte gültige Zeiten eingeben'); return; }
+    const knopf = $('speichern'); knopf.disabled = true; knopf.textContent = 'Wird gespeichert …';
+    const eintrag = { id: Z.form.id || '', datum: d.datum, auftrag_id: d.auftrag || '', taetigkeit: (d.taetigkeit || '').trim(), km: String(d.km || '').replace(',', '.') };
+    if (Z.modus === 'zeit') Object.assign(eintrag, { von: d.von, bis: d.bis, pause_min: d.pause || '0' }); else Object.assign(eintrag, { minuten: String(m) });
+    const { data, error } = await sb.rpc('ze_melden', { p_token: token, p_eintrag: eintrag });
+    knopf.disabled = false; knopf.textContent = 'Speichern';
+    if (error) { toast(fehlerText(error), 4500); return; }
+    if (!Z.form.id) setz(K_START, null);
+    Z.form = null; Z.monat = d.datum.slice(0, 7);
+    toast(`✓ ${std(data.minuten)} Stunden gespeichert`);
+    laden();
+  });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Z.daten && !Z.form) laden(); });
+  laden();
+})();
+</script>
+</body>
+</html>

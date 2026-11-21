@@ -136,6 +136,30 @@
     if (e) Z.einst = { ...Z.einst, ...e };
     kategorienAnwenden();
   }
+  // Stunden aus der Zeiterfassung: werden beim Mitarbeiter mit gleichem Namen und Stundenlohn eingetragen
+  async function stundenAusZeiterfassung() {
+    let ze = null;
+    try { ze = JSON.parse(sessionStorage.getItem('ordasio.zeit.lohn') || 'null'); sessionStorage.removeItem('ordasio.zeit.lohn'); } catch {}
+    if (!ze || !ze.monat || !ze.stunden) return;
+    const norm = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const laeufe = { ...(Z.einst.lohnlaeufe || {}) };
+    const monat = { ...(laeufe[ze.monat] || {}) };
+    const fehlt = [], ohneStd = [];
+    let n = 0;
+    for (const [name, h] of Object.entries(ze.stunden)) {
+      const m = (Z.einst.mitarbeiter || []).find((x) => norm(x.name) === norm(name) && x.aktiv !== false);
+      if (!m) { fehlt.push(name); continue; }
+      if (m.lohnart !== 'stunde') { ohneStd.push(name); continue; }
+      monat[m.id] = { ...(monat[m.id] || {}), stunden: h }; n++;
+    }
+    laeufe[ze.monat] = monat;
+    if (n) await einstSpeichern({ lohnlaeufe: laeufe });
+    Z.lohnMonat = ze.monat; Z.ansicht = 'loehne';
+    const teile = [n ? `Stunden für ${n} ${n === 1 ? 'Mitarbeiter' : 'Mitarbeiter'} übernommen.` : 'Keine Stunden übernommen.'];
+    if (fehlt.length) teile.push(`Nicht in den Löhnen erfasst: ${fehlt.join(', ')}.`);
+    if (ohneStd.length) teile.push(`Mit Monatslohn (keine Stunden nötig): ${ohneStd.join(', ')}.`);
+    setTimeout(() => toast(teile.join(' ')), 400);
+  }
   async function einstSpeichern(teil) {
     Z.einst = await Speicher.speichern('einstellungen', { ...Z.einst, ...teil, id: 'haupt' });
     kategorienAnwenden();
@@ -1598,6 +1622,7 @@
     // Sprungziele aus Suche und Anleitung: ?ansicht=loehne, ?aktion=fahrt …
     const q = new URLSearchParams(location.search);
     if (q.get('ansicht') && ANSICHTEN.some(([id]) => id === q.get('ansicht'))) Z.ansicht = q.get('ansicht');
+    await stundenAusZeiterfassung();
     zeichnen();
     const aktion = q.get('aktion');
     if (aktion) {
