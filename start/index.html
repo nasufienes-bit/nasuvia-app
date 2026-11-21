@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Start</title>
+<meta name="theme-color" content="#F4FAF6" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Ordasio" />
+<link rel="apple-touch-icon" href="../icon-180.png" />
+<link rel="manifest" href="../manifest.webmanifest" />
+<link rel="stylesheet" href="../schrift.css" />
+<script src="../konfig.js"></script>
+<script>
+  // Eigene Nutzung (Nasuvia) hat keine Startseite: direkt zur Buchhaltung
+  if (!(window.NASUVIA_KONFIG && window.NASUVIA_KONFIG.produkt)) location.replace('../?bereich=buchhaltung');
+</script>
+<script src="../lib/supabase.js"></script>
+<style>
+:root{--papier:#F4FAF6;--flaeche:#E8F4EE;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--gruen:#0E9F6E;--linie:rgba(11,59,46,.14);--schatten:0 1px 2px rgba(12,18,38,.04),0 14px 34px -22px rgba(11,59,46,.4);--display:'League Spartan',-apple-system,system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:16px/1.5 var(--display);background:var(--papier);color:var(--tinte);min-height:100vh;padding-bottom:60px}
+button{font:inherit;cursor:pointer}
+.kopfzeile{position:sticky;top:0;z-index:20;background:rgba(247,249,253,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.kopfzeile .wrap{display:flex;align-items:center;gap:12px;height:62px}
+.wrap{max-width:980px;margin:0 auto;padding:0 18px}
+h1{font-size:clamp(30px,6vw,44px);letter-spacing:-.03em;line-height:1.05}
+.unter{color:var(--text);margin-top:6px;font-size:17px}
+.abschnitt{margin-top:30px}
+.abschnitt>h2{font-size:14px;font-family:var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--leise);font-weight:500;margin-bottom:12px}
+.aufgaben{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.aufgabe{display:flex;flex-direction:column;gap:12px;background:#fff;border:0;border-radius:22px;padding:20px;text-align:left;text-decoration:none;color:var(--tinte);box-shadow:var(--schatten);transition:transform .2s,box-shadow .2s;min-height:132px}
+.aufgabe:hover{transform:translateY(-3px);box-shadow:0 26px 50px -28px rgba(11,59,46,.55)}
+.aufgabe .ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;color:#fff;font-size:24px}
+.aufgabe .ic svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.aufgabe b{font-size:18px;line-height:1.2}
+.aufgabe small{color:var(--text);font-size:14px;margin-top:-6px}
+.karte{background:#fff;border-radius:22px;padding:20px;box-shadow:var(--schatten)}
+.schritt{display:flex;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--linie);text-decoration:none;color:var(--tinte)}
+.schritt:last-child{border-bottom:0}
+.schritt .haken{width:30px;height:30px;border-radius:50%;border:2px solid var(--linie);display:grid;place-items:center;flex:none;font-weight:800;color:#fff}
+.schritt.fertig .haken{background:var(--gruen);border-color:var(--gruen)}
+.schritt.fertig b{text-decoration:line-through;color:var(--leise)}
+.schritt b{flex:1;font-weight:600}
+.schritt span.pfeil{color:var(--elektrik);font-weight:700}
+.spur{height:10px;background:var(--flaeche);border-radius:10px;overflow:hidden;margin:6px 0 4px}
+.spur i{display:block;height:100%;background:linear-gradient(90deg,var(--gruen),var(--elektrik));border-radius:10px;transition:width .5s}
+.bereiche{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.bereich{display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:12px 14px;text-decoration:none;color:var(--tinte);box-shadow:var(--schatten);font-weight:600}
+.bereich i{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:#fff;font-style:normal;flex:none}
+.bereich i svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.leise{color:var(--leise);font-size:14px}
+.link{background:none;border:0;color:var(--elektrik);font-weight:600;padding:0}
+/* Einführung */
+.einf{position:fixed;inset:0;z-index:9000;background:linear-gradient(160deg,#F4FAF6,#E8F4EE);overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:max(24px,env(safe-area-inset-top)) 16px 40px}
+.einf .box{width:min(640px,100%);margin-top:4vh}
+.einf .punkte{display:flex;gap:6px;margin-bottom:22px}
+.einf .punkte i{height:6px;flex:1;border-radius:6px;background:var(--linie)}
+.einf .punkte i.an{background:var(--blau)}
+.einf h2{font-size:clamp(28px,6vw,40px);letter-spacing:-.03em;line-height:1.08;margin-bottom:8px}
+.einf p{color:var(--text);font-size:17px;margin-bottom:18px}
+.ziele{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ziel{display:flex;gap:12px;align-items:center;background:#fff;border:2px solid transparent;border-radius:18px;padding:16px;text-align:left;box-shadow:var(--schatten);color:var(--tinte)}
+.ziel.an{border-color:var(--blau);background:rgba(14,122,85,.05)}
+.ziel .ic{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:#fff;flex:none}
+.ziel .ic svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ziel b{display:block;font-size:16px;line-height:1.2}
+.ziel small{display:block;color:var(--text);font-size:13px}
+.ziel .h{margin-left:auto;width:26px;height:26px;border-radius:50%;border:2px solid var(--linie);display:grid;place-items:center;color:#fff;font-weight:800;flex:none}
+.ziel.an .h{background:var(--blau);border-color:var(--blau)}
+.knopf{display:block;width:100%;border:0;border-radius:18px;padding:17px;font-weight:700;font-size:18px;background:var(--blau);color:#fff;margin-top:20px}
+.knopf.zweit{background:#fff;color:var(--blau);box-shadow:var(--schatten);margin-top:10px}
+.knopf:disabled{opacity:.4}
+@media(max-width:560px){.ziele{grid-template-columns:1fr}.aufgaben{grid-template-columns:1fr 1fr}.aufgabe{min-height:120px;padding:16px}.aufgabe b{font-size:16px}}
+</style>
+</head>
+<body>
+<header class="kopfzeile"><div class="wrap"><span id="kopfLinks" style="display:flex;align-items:center;gap:10px"></span><span style="margin-left:auto" data-suche-hier></span></div></header>
+<main class="wrap" id="inhalt" style="padding-top:18px"></main>
+<script src="../lizenz.js" data-produkt="start"></script>
+<script src="../marke.js"></script>
+<script src="../suche.js"></script>
+<script src="../ui.js"></script>
+<script src="../navi.js" data-hier="start" data-einfuegen="#kopfLinks"></script>
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const lies = (k, s) => { try { return JSON.parse(localStorage.getItem(k) || 'null') ?? s; } catch { return s; } };
+  const setz = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+  const svg = (p) => `<svg viewBox="0 0 24 24">${p}</svg>`;
+  const I = {
+    rechnung: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>', buch: '<path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2 2 2 0 0 0 2 2h13"/><path d="M9 8h6M9 12h4"/>',
+    lohn: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M17 8h4M19 6v4"/>', uhr: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/>',
+    kalender: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>', lager: '<path d="M3 8 12 3l9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
+    haus: '<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>', plus: '<path d="M12 5v14M5 12h14"/>', bank: '<path d="M3 10 12 4l9 6M5 10v8M9 10v8M15 10v8M19 10v8M3 21h18"/>',
+    foto: '<rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l2-3h4l2 3"/>', teilen: '<circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.2 11 15.8 7M8.2 13l7.6 4"/>',
+    ordner: '<path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>', mwst: '<path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/>',
+    hilfe: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"/><path d="M12 17h.01"/>', design: '<circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A5.7 5.7 0 0 0 22 9.7C22 5.4 17.5 2 12 2z"/>',
+  };
+  // Was jemand mit Ordasio machen will -> Bereiche im Menü, Aufgaben und erste Schritte
+  const ZIELE = [
+    { id: 'rechnungen', name: 'Rechnungen schreiben', text: 'QR-Rechnungen, Offerten, Mahnungen', ic: I.rechnung, farbe: '#0E7A55', bereich: 'rechnungen',
+      aufgaben: [['Neue Rechnung', 'In einer Minute fertig', '../rechnungen/', I.plus], ['Neue Offerte', 'Später mit einem Klick zur Rechnung', '../rechnungen/?dok=offerte', I.rechnung]],
+      schritte: [['rechnung1', 'Erste Rechnung schreiben', '../rechnungen/']] },
+    { id: 'buchhaltung', name: 'Buchhaltung und MWST', text: 'Einnahmen, Ausgaben, Belege', ic: I.buch, farbe: '#0E9F6E', bereich: 'buchhaltung',
+      aufgaben: [['Ausgabe erfassen', 'Mit Foto vom Beleg', '../?aktion=neu', I.foto], ['Bankauszug laden', 'Alles wird sortiert', '../?aktion=bankImport', I.bank], ['MWST-Abrechnung', 'Mit den ESTV-Ziffern', '../?ansicht=mwst', I.mwst]],
+      schritte: [['bank1', 'Bankauszug hochladen', '../?aktion=bankImport'], ['beleg1', 'Ersten Beleg fotografieren', '../?aktion=neu']] },
+    { id: 'loehne', name: 'Löhne', text: 'Lohnabrechnung für Mitarbeiter', ic: I.lohn, farbe: '#14B8A6', bereich: 'buchhaltung',
+      aufgaben: [['Löhne', 'Monatslohn oder Stunden', '../?ansicht=loehne', I.lohn]], schritte: [['lohn1', 'Ersten Mitarbeiter für den Lohn erfassen', '../?ansicht=loehne']] },
+    { id: 'zeit', name: 'Mitarbeiter und Aufträge', text: 'Stunden, Aufträge, Fotos', ic: I.uhr, farbe: '#6366F1', bereich: 'zeit',
+      aufgaben: [['Mitarbeiter einladen', 'Link per WhatsApp', '../zeit/?tab=mitarbeiter', I.teilen], ['Aufträge', 'In Ordnern, mit Fotos', '../zeit/?tab=auftraege', I.ordner], ['Einsatz planen', 'Wer geht wann wohin', '../zeit/?tab=plan', I.kalender]],
+      schritte: [['ma1', 'Ersten Mitarbeiter einladen', '../zeit/?tab=mitarbeiter'], ['af1', 'Ersten Auftrag anlegen', '../zeit/?tab=auftraege']] },
+    { id: 'termine', name: 'Online-Termine', text: 'Kunden buchen selbst', ic: I.kalender, farbe: '#A855F7', bereich: 'termine',
+      aufgaben: [['Termine', 'Heute und diese Woche', '../termine/', I.kalender], ['Buchungslink teilen', 'Website, Google, Instagram', '../termine/?tab=einstellungen', I.teilen]],
+      schritte: [['tb1', 'Leistungen und Öffnungszeiten eintragen', '../termine/?tab=einstellungen']] },
+    { id: 'lager', name: 'Lager und Material', text: 'Bestand und Nachbestellen', ic: I.lager, farbe: '#F59E0B', bereich: 'lager',
+      aufgaben: [['Lager', 'Artikel und Bestand', '../lager/', I.lager]], schritte: [['lg1', 'Ersten Artikel erfassen', '../lager/']] },
+    { id: 'privat', name: 'Private Finanzen', text: 'Konto, Abos, Rechnungen, Sparen', ic: I.haus, farbe: '#EC4899', bereich: 'privat',
+      aufgaben: [['Kontoauszug laden', 'Sehen, wohin das Geld geht', '../privat/?tab=konto', I.bank], ['Private Rechnung', 'Mit Frist und Erinnerung', '../privat/?tab=rechnungen', I.rechnung]],
+      schritte: [['hb1', 'Kontoauszug im Home-Büro hochladen', '../privat/?tab=konto']] },
+  ];
+  const BEREICH_NAME = { buchhaltung: ['Buchhaltung', '../?bereich=buchhaltung', I.buch, '#0E9F6E'], rechnungen: ['Rechnungen', '../rechnungen/', I.rechnung, '#0E7A55'], zeit: ['Zeiterfassung', '../zeit/', I.uhr, '#6366F1'],
+    termine: ['Termine', '../termine/', I.kalender, '#A855F7'], lager: ['Lager', '../lager/', I.lager, '#F59E0B'], privat: ['Home-Büro', '../privat/', I.haus, '#EC4899'] };
+
+  let ziele = lies('ordasio.ziele', null);
+  const erledigt = () => lies('ordasio.schritte', {});
+  const q = new URLSearchParams(location.search);
+
+  function speichern(neu) {
+    ziele = neu; setz('ordasio.ziele', neu);
+    setz('ordasio.bereiche', [...new Set(neu.map((z) => (ZIELE.find((x) => x.id === z) || {}).bereich).filter(Boolean))]);
+  }
+
+  /* ---------- Einführung in 3 Schritten ---------- */
+  let schritt = 1, wahl = new Set(ziele || []);
+  function einfuehrung() {
+    let el = document.querySelector('.einf');
+    if (!el) { el = document.createElement('div'); el.className = 'einf'; document.body.appendChild(el); document.documentElement.style.overflow = 'hidden'; }
+    const punkte = `<div class="punkte">${[1, 2, 3].map((i) => `<i class="${i <= schritt ? 'an' : ''}"></i>`).join('')}</div>`;
+    if (schritt === 1) {
+      el.innerHTML = `<div class="box">${punkte}<h2>Willkommen bei Ordasio 👋</h2><p>Was möchten Sie damit machen? Wählen Sie alles, was passt. Sie sehen danach nur, was Sie brauchen. Ändern geht jederzeit.</p>
+        <div class="ziele">${ZIELE.map((z) => `<button class="ziel ${wahl.has(z.id) ? 'an' : ''}" data-ziel="${z.id}"><span class="ic" style="background:${z.farbe}">${svg(z.ic)}</span><span><b>${esc(z.name)}</b><small>${esc(z.text)}</small></span><span class="h">${wahl.has(z.id) ? '✓' : ''}</span></button>`).join('')}</div>
+        <button class="knopf" data-weiter ${wahl.size ? '' : 'disabled'}>Weiter</button></div>`;
+    } else if (schritt === 2) {
+      const m = window.Marke ? Marke.daten() : {};
+      el.innerHTML = `<div class="box">${punkte}<h2>Ihr Logo und Ihre Farben</h2><p>Geben Sie Ihre Website ein, dann übernimmt Ordasio Logo, Name und Farben automatisch. Oder laden Sie Ihr Logo selbst hoch. Das erscheint auf allen Rechnungen.</p>
+        ${m.name || m.logo ? `<div class="karte" style="display:flex;gap:14px;align-items:center">${m.logo ? `<img src="${m.logo}" alt="" style="max-height:48px;max-width:140px">` : ''}<b>${esc(m.name || '')}</b><span style="margin-left:auto;color:var(--gruen);font-weight:700">✓ eingerichtet</span></div>` : ''}
+        <button class="knopf" data-firma>${m.name || m.logo ? 'Ändern' : 'Firma und Logo einrichten'}</button>
+        <button class="knopf zweit" data-weiter>${m.name || m.logo ? 'Weiter' : 'Später'}</button></div>`;
+    } else {
+      const gewaehlt = ZIELE.filter((z) => wahl.has(z.id));
+      el.innerHTML = `<div class="box">${punkte}<h2>Fertig! So geht es los</h2><p>Auf Ihrer Startseite finden Sie die wichtigsten Knöpfe und eine kurze Liste mit ersten Schritten.</p>
+        <div class="karte">${gewaehlt.map((z) => `<div class="schritt"><span class="haken" style="background:${z.farbe};border-color:${z.farbe}">✓</span><b>${esc(z.name)}</b></div>`).join('')}</div>
+        <p class="leise" style="margin-top:14px">Tipp: Oben links öffnet das Menü alle Bereiche. Oben rechts finden Sie mit der Suche jede Funktion und die Anleitung.</p>
+        <button class="knopf" data-fertig>Zur Startseite</button></div>`;
+    }
+  }
+  document.addEventListener('click', (e) => {
+    const z = e.target.closest('[data-ziel]');
+    if (z) { const id = z.dataset.ziel; wahl.has(id) ? wahl.delete(id) : wahl.add(id); einfuehrung(); return; }
+    if (e.target.closest('[data-weiter]')) { if (schritt === 1) speichern([...wahl]); schritt++; einfuehrung(); return; }
+    if (e.target.closest('[data-firma]')) { if (window.Marke) Marke.dialog({ beiSpeichern: () => einfuehrung() }); return; }
+    if (e.target.closest('[data-fertig]')) { document.querySelector('.einf')?.remove(); document.documentElement.style.overflow = ''; setz('ordasio.einfuehrung', true); history.replaceState(null, '', location.pathname); location.reload(); return; }
+    if (e.target.closest('[data-anpassen]')) { schritt = 1; wahl = new Set(ziele || []); einfuehrung(); return; }
+    const s = e.target.closest('[data-schritt]'); if (s) { const d = erledigt(); d[s.dataset.schritt] = true; setz('ordasio.schritte', d); }
+    const w = e.target.closest('[data-schritt-weg]'); if (w) { e.preventDefault(); const d = erledigt(); d[w.dataset.schrittWeg] = !d[w.dataset.schrittWeg]; setz('ordasio.schritte', d); zeichnen(); }
+  });
+
+  /* ---------- Startseite ---------- */
+  function zeichnen() {
+    const gewaehlt = ZIELE.filter((z) => (ziele || []).includes(z.id));
+    const lizenz = window.NASUVIA_LIZENZ || {};
+    const name = (lizenz.name || '').split(' ')[0];
+    const stunde = new Date().getHours(), gruss = stunde < 11 ? 'Guten Morgen' : stunde < 17 ? 'Guten Tag' : 'Guten Abend';
+    const m = window.Marke ? Marke.daten() : {};
+    const d = erledigt();
+    const schritte = [['firma', 'Firma, Logo und Farben einrichten', null, !!(m.name || m.logo)], ...gewaehlt.flatMap((z) => z.schritte.map(([id, t, url]) => [id, t, url, !!d[id]])), ['app', 'Als App auf den Home-Bildschirm legen', '../hilfe/#homescreen', !!d.app]];
+    const fertig = schritte.filter((s) => s[3]).length;
+    const bereiche = [...new Set(gewaehlt.map((z) => z.bereich))];
+    $('inhalt').innerHTML = `
+      <h1>${gruss}${name ? ', ' + esc(name) : ''} 👋</h1>
+      <p class="unter">Was möchten Sie heute erledigen?</p>
+      <div class="abschnitt"><div class="aufgaben">
+        ${gewaehlt.flatMap((z) => z.aufgaben.map(([t, k, url, ic]) => `<a class="aufgabe" href="${url}"><span class="ic" style="background:${z.farbe}">${svg(ic)}</span><b>${esc(t)}</b><small>${esc(k)}</small></a>`)).join('')}
+      </div></div>
+      ${fertig < schritte.length ? `<div class="abschnitt"><h2>Erste Schritte · ${fertig} von ${schritte.length}</h2><div class="karte">
+        <div class="spur"><i style="width:${Math.round(fertig / schritte.length * 100)}%"></i></div>
+        ${schritte.map(([id, t, url, ok]) => id === 'firma'
+          ? `<button class="schritt ${ok ? 'fertig' : ''}" style="width:100%;background:none;border:0;text-align:left" data-firma-start><span class="haken">${ok ? '✓' : ''}</span><b>${esc(t)}</b><span class="pfeil">›</span></button>`
+          : `<a class="schritt ${ok ? 'fertig' : ''}" href="${url}" data-schritt="${id}"><span class="haken" data-schritt-weg="${id}" title="Als erledigt markieren">${ok ? '✓' : ''}</span><b>${esc(t)}</b><span class="pfeil">›</span></a>`).join('')}
+        <p class="leise" style="margin-top:8px">Tippen Sie auf den Kreis, um einen Schritt selbst abzuhaken.</p></div></div>`
+        : `<div class="abschnitt"><div class="karte" style="display:flex;gap:12px;align-items:center"><span style="font-size:30px">🎉</span><b>Alles eingerichtet. Ordasio ist bereit.</b></div></div>`}
+      <div class="abschnitt"><h2>Ihre Bereiche</h2><div class="bereiche">
+        ${bereiche.map((b) => BEREICH_NAME[b]).filter(Boolean).map(([n, url, ic, f]) => `<a class="bereich" href="${url}"><i style="background:${f}">${svg(ic)}</i>${n}</a>`).join('')}
+        <a class="bereich" href="../hilfe/"><i style="background:#7C8499">${svg(I.hilfe)}</i>Anleitung</a>
+      </div>
+      <p class="leise" style="margin-top:14px">Etwas fehlt oder ist zu viel? <button class="link" data-anpassen>Bereiche anpassen</button> · <a class="link" href="../lizenz/" style="text-decoration:none">Lizenz und Konto</a></p></div>`;
+  }
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-firma-start]') && window.Marke) Marke.dialog({ beiSpeichern: () => zeichnen() }); });
+
+  // Startseite erst zeigen, wenn die Anmeldung geprüft ist (die Lizenzprüfung liegt sonst darüber)
+  function los() {
+    if (!ziele || !ziele.length || q.has('anpassen')) einfuehrung();
+    zeichnen();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', los); else los();
+})();
+</script>
+</body>
+</html>

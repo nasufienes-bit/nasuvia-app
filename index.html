@@ -11,6 +11,12 @@
 <link rel="apple-touch-icon" href="icon-180.png" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="stylesheet" href="schrift.css" />
+<script src="konfig.js"></script>
+<script>
+  // Verkaufsversion: wer die App einfach öffnet, landet auf der Startseite mit Aufgaben und Einführung
+  (function () { var k = window.NASUVIA_KONFIG || {}, q = location.search.replace(/[?&]produkt=\d/, '');
+    if (k.produkt && !q && !/type=recovery|access_token/.test(location.hash)) location.replace('start/' + location.hash); })();
+</script>
 <style>
 /* ============================================================
    NASUVIA BUCHHALTUNG

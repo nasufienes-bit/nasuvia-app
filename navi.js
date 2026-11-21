@@ -27,7 +27,8 @@
   if (PRODUKT) {
     MARKE = 'Ordasio';
     BEREICHE = [
-      { id: 'buchhaltung', name: 'Buchhaltung', text: 'Einnahmen, Ausgaben, MWST, Löhne', href: WURZEL, icon: BEREICHE[3].icon },
+      { id: 'start', name: 'Start', text: 'Ihre Aufgaben und ersten Schritte', href: WURZEL + 'start/', icon: '<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/>' },
+      { id: 'buchhaltung', name: 'Buchhaltung', text: 'Einnahmen, Ausgaben, MWST, Löhne', href: WURZEL + '?bereich=buchhaltung', icon: BEREICHE[3].icon },
       { id: 'rechnungen', name: 'Rechnungen', text: 'Rechnungen, Offerten, Mahnungen', href: WURZEL + 'rechnungen/', icon: BEREICHE[2].icon },
       { id: 'zeit', name: 'Zeiterfassung', text: 'Stunden, Einsatzplan, Rapporte', href: WURZEL + 'zeit/', icon: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/>' },
       { id: 'termine', name: 'Termine', text: 'Online-Buchung für Kunden', href: WURZEL + 'termine/', icon: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M8 14h3"/>' },
@@ -36,6 +37,15 @@
       { id: 'hilfe', name: 'Anleitung', text: 'Schritt für Schritt, mit Suche', href: WURZEL + 'hilfe/', icon: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"/><path d="M12 17h.01"/>' }
     ];
     WEBSITE = { id: 'lizenz', name: 'Lizenz und Konto', text: 'Paket, Stand, bestellen', href: WURZEL + 'lizenz/' };
+    // Nur die Bereiche zeigen, die beim Start gewählt wurden (Start, Anleitung und der aktuelle Bereich immer)
+    try {
+      const gewaehlt = JSON.parse(localStorage.getItem('ordasio.bereiche') || 'null');
+      if (Array.isArray(gewaehlt) && gewaehlt.length) {
+        const alle = BEREICHE.length;
+        BEREICHE = BEREICHE.filter((b) => ['start', 'hilfe'].includes(b.id) || gewaehlt.includes(b.id) || b.id === (ds.hier || ''));
+        if (BEREICHE.length < alle) BEREICHE.push({ id: 'mehr', name: 'Bereiche anpassen', text: `${alle - BEREICHE.length} weitere ausgeblendet`, href: WURZEL + 'start/?anpassen=1', icon: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>' });
+      }
+    } catch (e) { /* ohne Speicher: alle Bereiche */ }
   }
   var hier = ds.hier || '';
 

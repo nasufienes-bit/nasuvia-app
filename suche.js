@@ -4,11 +4,15 @@
 (() => {
   const skript = document.currentScript || {};
   const WURZEL = (() => { try { return new URL('.', skript.src).href; } catch { return '/'; } })();
-  const B = WURZEL, R = WURZEL + 'rechnungen/', P = WURZEL + 'privat/', H = WURZEL + 'hilfe/', Z = WURZEL + 'zeit/', T = WURZEL + 'termine/', L = WURZEL + 'lager/';
+  const S0 = WURZEL + 'start/', B = WURZEL, R = WURZEL + 'rechnungen/', P = WURZEL + 'privat/', H = WURZEL + 'hilfe/', Z = WURZEL + 'zeit/', T = WURZEL + 'termine/', L = WURZEL + 'lager/';
 
   // id, Bereich, Titel, Suchwörter, Anleitung (Schritte), Ziel im Programm
   const ARTIKEL = [
     // Erste Schritte
+    ['startseite', 'Erste Schritte', 'Startseite und Bereiche anpassen', 'start startseite einfach einführung bereiche anpassen ausblenden menü weniger übersicht', [
+      'Beim ersten Öffnen fragt Ordasio, wofür Sie es nutzen. Danach sehen Sie im Menü und auf der Startseite nur diese Bereiche.',
+      'Auf der Startseite finden Sie die wichtigsten Knöpfe (z. B. „Neue Rechnung“) und die Liste „Erste Schritte“.',
+      'Später ändern: auf der Startseite „Bereiche anpassen“ tippen oder im Menü „Bereiche anpassen“.'], S0],
     ['start', 'Erste Schritte', 'So starten Sie', 'anfang einstieg erste schritte konto anmelden registrieren test', [
       'Öffnen Sie app.nasuvia.ch und tippen Sie auf „Konto erstellen“.',
       'Wählen Sie Ihr Paket, geben Sie E-Mail und Passwort ein und bestätigen Sie den Link in Ihrer E-Mail.',

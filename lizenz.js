@@ -6,8 +6,8 @@
   if (!K.produkt) return;
   const skript = document.currentScript || {};
   const PRODUKT = (skript.dataset && skript.dataset.produkt) || 'buchhaltung';
-  const NAME = { buchhaltung: 'die Buchhaltung', rechnungen: 'das Rechnungsprogramm', privat: 'das Home-Büro', zeit: 'die Zeiterfassung', termine: 'die Online-Terminbuchung', lager: 'das Lager' }[PRODUKT];
-  const ERLAUBT = { buchhaltung: ['buchhaltung', 'kombi'], rechnungen: ['rechnungen', 'kombi'], privat: ['privat', 'kombi'], zeit: ['rechnungen', 'buchhaltung', 'kombi'], termine: ['rechnungen', 'buchhaltung', 'kombi'], lager: ['rechnungen', 'buchhaltung', 'kombi'] };
+  const NAME = { buchhaltung: 'die Buchhaltung', rechnungen: 'das Rechnungsprogramm', privat: 'das Home-Büro', zeit: 'die Zeiterfassung', termine: 'die Online-Terminbuchung', lager: 'das Lager', start: 'Ordasio' }[PRODUKT];
+  const ERLAUBT = { buchhaltung: ['buchhaltung', 'kombi'], rechnungen: ['rechnungen', 'kombi'], privat: ['privat', 'kombi'], zeit: ['rechnungen', 'buchhaltung', 'kombi'], termine: ['rechnungen', 'buchhaltung', 'kombi'], lager: ['rechnungen', 'buchhaltung', 'kombi'], start: ['rechnungen', 'buchhaltung', 'kombi', 'privat'] };
   const PAKETE = { rechnungen: 'Rechnungen', buchhaltung: 'Buchhaltung', kombi: 'Kombi (Rechnungen, Buchhaltung, Home-Büro)', privat: 'Home-Büro' };
   const KAUFEN = (() => { try { return new URL('lizenz/', new URL('.', skript.src)).href; } catch { return '/lizenz/'; } })();
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
