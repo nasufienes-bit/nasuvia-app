@@ -16,7 +16,7 @@
     dlg.innerHTML = `<form class="dlg"><h3>${titel}</h3>${felder}${extra}
       <div class="fuss">${loeschen ? '<button type="button" class="btn rot" data-f-weg>Löschen</button>' : '<span></span>'}<span class="aktionen"><button type="button" class="btn" data-f-zu>Abbrechen</button><button class="btn haupt">Speichern</button></span></div></form>`;
     const f = dlg.querySelector('form');
-    f.onclick = (e) => { if (e.target.closest('[data-f-zu]')) dlg.close(); if (e.target.closest('[data-f-weg]') && loeschen() !== false) { dlg.close(); H.zeichnen(); } };
+    f.onclick = async (e) => { if (e.target.closest('[data-f-zu]')) dlg.close(); if (e.target.closest('[data-f-weg]') && (await loeschen()) !== false) { dlg.close(); H.zeichnen(); } };
     f.onsubmit = async (e) => { e.preventDefault(); if ((await beiOk(new FormData(f), f)) !== false) { dlg.close(); H.zeichnen(); } };
     dlg.showModal();
     return f;
@@ -283,9 +283,9 @@
     formular(neu ? 'Neuer Ordner' : 'Ordner bearbeiten', feld('Name', `<input type="text" name="name" value="${H.esc(o.name || '')}" required maxlength="60" placeholder="z. B. Versicherungen">`) +
       `<div><span class="hinweis">Farbe</span><div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">${FARBEN.map((c) => `<label><input type="radio" name="farbe" value="${c}" ${c === o.farbe ? 'checked' : ''} style="accent-color:${c}"><span style="display:inline-block;width:22px;height:22px;border-radius:6px;background:${c};vertical-align:middle"></span></label>`).join('')}</div></div>`,
       (fd) => { o.name = String(fd.get('name')).trim(); o.farbe = fd.get('farbe') || o.farbe; if (neu) D().ordner.push(o); H.sichern(); },
-      { loeschen: neu ? null : () => {
+      { loeschen: neu ? null : async () => {
         const d = D(), ids = new Set([o.id]); let w = true; while (w) { w = false; for (const x of d.ordner) if (ids.has(x.parent) && !ids.has(x.id)) { ids.add(x.id); w = true; } }
-        if (!confirm(`Ordner „${o.name}“ mit ${d.dokumente.filter((x) => ids.has(x.ordner)).length} Dateien löschen?\n\nAlles kommt 30 Tage in „Zuletzt gelöscht“.`)) return false;
+        if (!await UI.frage(`Ordner „${o.name}“ mit ${d.dokumente.filter((x) => ids.has(x.ordner)).length} Dateien löschen?\n\nAlles kommt 30 Tage in „Zuletzt gelöscht“.`)) return false;
         const weg = { ordner: d.ordner.filter((x) => ids.has(x.id)), dokumente: d.dokumente.filter((x) => ids.has(x.ordner)) };
         d.ordner = d.ordner.filter((x) => !ids.has(x.id)); d.dokumente = d.dokumente.filter((x) => !ids.has(x.ordner));
         d.papierkorb.unshift({ pid: H.neueId(), pfad: 'ordnerbaum', eintrag: weg, titel: 'Ordner ' + o.name, am: new Date().toISOString() });
@@ -301,9 +301,9 @@
       <label>In Ordner verschieben<select data-verschieben><option value="">Alle Ordner (oberste Ebene)</option>${D().ordner.map((o) => `<option value="${o.id}" ${o.id === x.ordner ? 'selected' : ''}>${pfadVon(o.id).map((p) => H.esc(p.name)).join(' › ')}</option>`).join('')}</select></label>
       <label>Name<input type="text" data-umbenennen value="${H.esc(x.name)}"></label>
       <div class="fuss"><button type="button" class="btn rot" data-datei-weg>Löschen</button><span class="aktionen"><a class="btn" href="${url}" download="${H.esc(x.name)}">Herunterladen</a><a class="btn" href="${url}" target="_blank" rel="noopener">Öffnen</a><button type="button" class="btn haupt" data-datei-ok>Fertig</button></span></div></div>`;
-    dlg.onclick = (e) => {
+    dlg.onclick = async (e) => {
       if (e.target.closest('[data-datei-ok]')) { const n = dlg.querySelector('[data-umbenennen]').value.trim(); if (n) x.name = n; x.ordner = dlg.querySelector('[data-verschieben]').value; H.sichern(); dlg.close(); H.zeichnen(); }
-      if (e.target.closest('[data-datei-weg]') && H.wegwerfen('dokumente', x, x.name)) { dlg.close(); H.zeichnen(); }
+      if (e.target.closest('[data-datei-weg]') && await H.wegwerfen('dokumente', x, x.name)) { dlg.close(); H.zeichnen(); }
     };
     dlg.showModal();
   }
@@ -400,7 +400,7 @@
       const [was, arg] = a.dataset.hbm.split(':');
       ({ bargeld: () => barDialog(arg), fix: () => fixDialog(), guthaben: () => gutDialog(), sparziel: () => sparDialog(), kalEintrag: () => kalDialog(), ordnerNeu: () => ordnerDialog(), ordnerHoch: () => dateiWaehlen(true), dateiHoch: () => dateiWaehlen(false), startAnpassen, bankHilfe,
         fixVorschlag: () => { const d = D(); let n = 0; for (const ab of H.abosFinden().filter((x) => x.status !== 'gekuendigt')) { if (d.fix.some((f) => f.name.toLowerCase() === String(ab.name).toLowerCase())) continue; d.fix.push({ id: H.neueId(), name: ab.name, betragRappen: ab.betrag, tag: Number(String(ab.naechste || ab.letzter || '').slice(8, 10)) || 1, rhythmus: /jahr/i.test(ab.rhythmus) ? 12 : /quart|viertel/i.test(ab.rhythmus) ? 3 : 1, art: 'lsv', start: (ab.letzter || H.heute()).slice(0, 7) }); n++; } H.sichern(); H.zeichnen(); H.toast(n ? `${n} Zahlungen übernommen. Bitte prüfen.` : 'Keine neuen Vorschläge. Laden Sie Auszüge von 2 bis 3 Monaten hoch.'); },
-        korbLeeren: async () => { if (!confirm('Alles in „Zuletzt gelöscht“ endgültig löschen? Das kann nicht rückgängig gemacht werden.')) return; for (const p of D().papierkorb) await endgueltig(p); D().papierkorb = []; H.sichern(); H.zeichnen(); H.toast('Endgültig gelöscht'); },
+        korbLeeren: async () => { if (!await UI.frage('Alles in „Zuletzt gelöscht“ endgültig löschen? Das kann nicht rückgängig gemacht werden.')) return; for (const p of D().papierkorb) await endgueltig(p); D().papierkorb = []; H.sichern(); H.zeichnen(); H.toast('Endgültig gelöscht'); },
       })[was]?.();
       return;
     }
@@ -426,7 +426,7 @@
       d.papierkorb = d.papierkorb.filter((x) => x !== p); H.sichern(); H.zeichnen(); H.toast('Wiederhergestellt'); return;
     }
     const eg = t.closest('[data-endgueltig]');
-    if (eg) { const d = D(), p = d.papierkorb.find((x) => x.pid === eg.dataset.endgueltig); if (!p || !confirm(`„${p.titel}“ endgültig löschen? Das kann nicht rückgängig gemacht werden.`)) return; await endgueltig(p); d.papierkorb = d.papierkorb.filter((x) => x !== p); H.sichern(); H.zeichnen(); H.toast('Endgültig gelöscht'); }
+    if (eg) { const d = D(), p = d.papierkorb.find((x) => x.pid === eg.dataset.endgueltig); if (!p || !await UI.frage(`„${p.titel}“ endgültig löschen? Das kann nicht rückgängig gemacht werden.`)) return; await endgueltig(p); d.papierkorb = d.papierkorb.filter((x) => x !== p); H.sichern(); H.zeichnen(); H.toast('Endgültig gelöscht'); }
   });
   // Belegter Speicherplatz in der Ordner-Ansicht
   new MutationObserver(async () => { const e = document.getElementById('platz'); if (e && !e.dataset.ok) { e.dataset.ok = 1; try { const s = await navigator.storage.estimate(); e.textContent = `Belegt: ${groesse(s.usage || 0)} von ca. ${groesse(s.quota || 0)}.`; } catch {} } }).observe(document.documentElement, { childList: true, subtree: true });

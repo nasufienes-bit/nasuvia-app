@@ -685,24 +685,24 @@
       if (a === 'pdf') {
         const blob = await pdfHolen(r);
         if (blob) pdfZeigen(blob, r.datei);
-        else alert('Das PDF ist auf diesem Gerät noch nicht da. Bitte kurz warten, bis der Abgleich fertig ist.');
+        else await UI.hinweis('Das PDF ist auf diesem Gerät noch nicht da. Bitte kurz warten, bis der Abgleich fertig ist.');
       } else if (a === 'bearbeiten') {
         d.close();
         if (window.__nasuvia && window.__nasuvia.rechnungOeffnen) window.__nasuvia.rechnungOeffnen(r.datei);
       } else if (a === 'loeschen') {
-        if (!confirm(`Rechnung Nr. ${r.nr} an ${r.kunde || 'Kunde'} über ${chfText(r.betragRappen)} löschen?\n\nSie kommt 30 Tage lang in „Zuletzt gelöscht“ und lässt sich dort wiederherstellen.`)) return;
+        if (!await UI.frage(`Rechnung Nr. ${r.nr} an ${r.kunde || 'Kunde'} über ${chfText(r.betragRappen)} löschen?\n\nSie kommt 30 Tage lang in „Zuletzt gelöscht“ und lässt sich dort wiederherstellen.`)) return;
         await speichern('rechnung', [{ ...r, geloescht: true, geloeschtAm: jetzt() }]);
         if (window.__nasuvia && window.__nasuvia.listenNeu) window.__nasuvia.listenNeu();
         zeichnen();
         if (window.Rueckgaengig) Rueckgaengig.zeigen(`Rechnung Nr. ${r.nr} gelöscht`, async () => { await speichern('rechnung', [{ ...r, geloescht: false, geloeschtAm: '' }]); if (window.__nasuvia && window.__nasuvia.listenNeu) window.__nasuvia.listenNeu(); zeichnen(); });
       } else if (a === 'zurueck') {
         const gleich = (await gueltig('rechnung')).find((x) => String(x.nr) === String(r.nr));
-        if (gleich && !confirm(`Es gibt schon eine Rechnung mit der Nummer ${r.nr} (${gleich.kunde}). Trotzdem wiederherstellen?`)) return;
+        if (gleich && !await UI.frage(`Es gibt schon eine Rechnung mit der Nummer ${r.nr} (${gleich.kunde}). Trotzdem wiederherstellen?`)) return;
         await speichern('rechnung', [{ ...r, geloescht: false, geloeschtAm: '' }]);
         if (window.__nasuvia && window.__nasuvia.listenNeu) window.__nasuvia.listenNeu();
         zeichnen();
       } else if (a === 'endgueltig') {
-        if (!confirm(`Rechnung Nr. ${r.nr} endgültig löschen?\n\nDas lässt sich nicht rückgängig machen.`)) return;
+        if (!await UI.frage(`Rechnung Nr. ${r.nr} endgültig löschen?\n\nDas lässt sich nicht rückgängig machen.`)) return;
         await speichern('rechnung', [{ ...r, endgueltig: true }]);
         const tr = (await db()).transaction('pdf', 'readwrite'); tr.objectStore('pdf').delete(r.id);
         zeichnen();

@@ -112,7 +112,7 @@
       e.preventDefault(); t.disabled = true;
       const l0 = window.NASUVIA_LIZENZ || {};
       const { error } = await sb.rpc('paket_wechseln', { p_paket: t.dataset.lzWechsel, p_rechtsform: l0.rechtsform || 'einzel' });
-      if (error) { t.disabled = false; alert(error.message); return; }
+      if (error) { t.disabled = false; await UI.hinweis(error.message); return; }
       location.reload();
     }
     if (t.hasAttribute('data-lz-abmelden')) { e.preventDefault(); demoAus(); await sb.auth.signOut({ scope: 'local' }); location.reload(); }

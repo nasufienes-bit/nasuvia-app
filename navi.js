@@ -59,7 +59,13 @@
     '.nv-knopf:hover svg .nv-zwei{transform:translateX(3px)}',
     '.nv-schwebend{position:fixed;top:max(12px,env(safe-area-inset-top));right:14px;z-index:60}',
     '@media (min-width:821px){.nv-schwebend.nv-mobil{display:none}}',
-    '.nv-kopfzeile{position:sticky;top:0;z-index:50;height:64px;background:rgba(247,249,253,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font-family:"League Spartan",-apple-system,system-ui,sans-serif}',
+    // Keine Trennlinie: oben durchsichtig, erst beim Scrollen ein ruhiger Hintergrund (ohne Rand und ohne Schatten)
+    '.nv-kopfzeile{position:sticky;top:0;z-index:50;height:64px;background:transparent;border:0;box-shadow:none;transition:background .25s;font-family:"League Spartan",-apple-system,system-ui,sans-serif}',
+    '.nv-kopfzeile.nv-gerollt{background:rgba(244,250,246,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}',
+    '.nv-app{gap:10px!important;padding:4px 10px 4px 2px!important}',
+    '.nv-app-ic{width:34px;height:34px;border-radius:10px;background:linear-gradient(160deg,#2E6B55,#0B3B2E);display:grid;place-items:center;flex:none;box-shadow:0 6px 14px -8px rgba(11,59,46,.8)}',
+    '.nv-app-ic svg{width:19px;height:19px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}',
+    '.nv-app-name{font-weight:700;font-size:1.22rem;color:#0A1F17;letter-spacing:-.01em;line-height:1}',
     '.nv-kz{height:64px;display:flex;align-items:center;gap:12px;padding:0 clamp(14px,3vw,28px)}',
     '.nv-logo{display:inline-flex;align-items:center;gap:5px;text-decoration:none;padding:6px 8px 6px 4px;border-radius:100px}',
     '.nv-logo i{width:15px;height:15px;border-radius:50%;background:#0B3B2E;flex:none}',
@@ -164,13 +170,16 @@
     if (ds.titel) {
       var kz = document.createElement('div'); kz.className = 'nv-kz';
       kz.appendChild(knopf());
-      kz.insertAdjacentHTML('beforeend', (PRODUKT ? '<a class="nv-logo" href="' + WURZEL + '" aria-label="Start"><i></i><img src="' + WURZEL + 'logo.png" alt="Ordasio" style="height:24px;width:auto"><b style="display:none"></b></a>' : '<a class="nv-logo" href="https://www.nasuvia.ch/admin/" aria-label="Nasuvia Admin"><i></i><img src="https://www.nasuvia.ch/logo-wort.png" alt="Nasuvia" width="94" height="18"></a>') + '<span class="nv-bereich">' + ds.titel + '</span>');
+      var bIcon = (BEREICHE.filter(function(b){ return b.id === hier; })[0] || {}).icon || '<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/>';
+      kz.insertAdjacentHTML('beforeend', (PRODUKT ? '<a class="nv-logo nv-app" href="' + WURZEL + 'start/" aria-label="Zur Startseite"><span class="nv-app-ic"><svg viewBox="0 0 24 24">' + bIcon + '</svg></span><span class="nv-app-name">' + ds.titel + '</span></a>' : '<a class="nv-logo" href="https://www.nasuvia.ch/admin/" aria-label="Nasuvia Admin"><i></i><img src="https://www.nasuvia.ch/logo-wort.png" alt="Nasuvia" width="94" height="18"></a>') + (PRODUKT ? '' : '<span class="nv-bereich">' + ds.titel + '</span>'));
       kz.appendChild(rechtsSlot);
       kopfzeile.appendChild(kz);
       if (ds.rechts) { var quelle = document.querySelector(ds.rechts); if (quelle) { while (quelle.firstChild) rechtsSlot.appendChild(quelle.firstChild); quelle.remove(); } }
       var ort = ds.kopfIn ? document.querySelector(ds.kopfIn) : document.body;
       ort.insertBefore(kopfzeile, ort.firstChild);
       document.body.classList.add('nv-mit-kopf');
+      var rollen = function(){ kopfzeile.classList.toggle('nv-gerollt', (window.scrollY || document.documentElement.scrollTop) > 4); };
+      window.addEventListener('scroll', rollen, { passive: true }); rollen();
     }
     // Alte Adresse: Hinweis auf die neue unter nasuvia.ch
     if (/github\.io$/.test(location.hostname) && /nasuvia-buchhaltung/.test(location.pathname)) {

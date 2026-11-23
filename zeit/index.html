@@ -573,7 +573,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       for (const m of material) { const x = proArtikel.get(m.artikel_id) || { a: m.lg_artikel || {}, menge: 0 }; x.menge += Math.abs(Number(m.menge)); proArtikel.set(m.artikel_id, x); }
       for (const { a, menge } of proArtikel.values()) positionen.push({ text: (a.name || 'Material') + (a.nummer ? ` (${a.nummer})` : ''), menge: String(Math.round(menge * 100) / 100), preis: a.verkauf_rappen ? (a.verkauf_rappen / 100).toFixed(2) : '' });
     }
-    if (!confirm(`${positionen.length} ${positionen.length === 1 ? 'Position' : 'Positionen'} (${std(l.reduce((s, e) => s + e.minuten, 0))} Std.) in eine neue Rechnung übernehmen?\n\n${material.length ? `\nDazu ${material.length} Material-Bezüge aus dem Lager.` : ''}\n\nDie Einträge werden als verrechnet markiert.${ohneAnsatz.length ? `\n\nOhne Ansatz: ${ohneAnsatz.join(', ')}. Den Preis tragen Sie in der Rechnung ein.` : ''}`)) return;
+    if (!await UI.frage(`${positionen.length} ${positionen.length === 1 ? 'Position' : 'Positionen'} (${std(l.reduce((s, e) => s + e.minuten, 0))} Std.) in eine neue Rechnung übernehmen?\n\n${material.length ? `\nDazu ${material.length} Material-Bezüge aus dem Lager.` : ''}\n\nDie Einträge werden als verrechnet markiert.${ohneAnsatz.length ? `\n\nOhne Ansatz: ${ohneAnsatz.join(', ')}. Den Preis tragen Sie in der Rechnung ein.` : ''}`)) return;
     const { error } = await sb.from('ze_eintraege').update({ verrechnet: true }).in('id', l.map((e) => e.id));
     if (error) { toast(fehlerText(error), 6000); return; }
     if (material.length) await sb.from('lg_bewegungen').update({ verrechnet: true }).in('id', material.map((m) => m.id));
@@ -631,7 +631,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     if (kop) { try { await navigator.clipboard.writeText(kop.dataset.kopieren); toast('Link kopiert'); } catch { dlg.querySelector('.link-feld input').select(); } return; }
     const nl = t.closest('[data-neuer-link]');
     if (nl) {
-      if (!confirm('Neuen Link erstellen? Der alte Link funktioniert danach nicht mehr.')) return;
+      if (!await UI.frage('Neuen Link erstellen? Der alte Link funktioniert danach nicht mehr.')) return;
       const r = await sb.from('ze_mitarbeiter').update({ token: neuerSchluessel() }).eq('id', nl.dataset.neuerLink).select().single();
       if (r.error) { toast(fehlerText(r.error)); return; }
       await stammLaden(); linkDialog(r.data); toast('Neuer Link erstellt'); return;
@@ -686,7 +686,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
         };
         break;
       }
-      case 'ordnerNeu': { const n = prompt('Name des neuen Ordners' + (Z.afOrdner ? ` in „${Z.afOrdner.split('/').join(' › ')}“` : '')); if (n && n.trim()) { Z.afOrdner = [...ordnerTeile(Z.afOrdner), n.trim().replace(/\//g, '-')].join('/'); zeichnen(); toast('Ordner geöffnet. Jetzt den ersten Auftrag anlegen.'); } break; }
+      case 'ordnerNeu': { const n = await UI.eingabe('Name des neuen Ordners' + (Z.afOrdner ? ` in „${Z.afOrdner.split('/').join(' › ')}“` : '')); if (n && n.trim()) { Z.afOrdner = [...ordnerTeile(Z.afOrdner), n.trim().replace(/\//g, '-')].join('/'); zeichnen(); toast('Ordner geöffnet. Jetzt den ersten Auftrag anlegen.'); } break; }
       case 'afEinsatz': { const id = form.dataset.formAf; dlg.close(); setTimeout(() => einsatzDialog({ auftrag_id: id, adresse: (auftrag(id) || {}).adresse || '' }), 50); break; }
       case 'rapport': rapport(); break;
       case 'csv': csv(); break;

@@ -330,7 +330,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const bw = t.closest('dialog') ? null : t.closest('[data-bewegung]');
     if (bw) {
       const b = Z.bewegungen.find((x) => x.id === bw.dataset.bewegung);
-      if (!confirm(`Diese Bewegung (${zahl(b.menge)} ${art(b.artikel_id).einheit || ''} ${art(b.artikel_id).name || ''}) löschen? Der Bestand wird zurückgerechnet.`)) return;
+      if (!await UI.frage(`Diese Bewegung (${zahl(b.menge)} ${art(b.artikel_id).einheit || ''} ${art(b.artikel_id).name || ''}) löschen? Der Bestand wird zurückgerechnet.`)) return;
       const { error } = await sb.from('lg_bewegungen').delete().eq('id', b.id);
       if (error) { toast(fehlerText(error)); return; }
       if (window.Rueckgaengig) Rueckgaengig.zeigen('Bewegung gelöscht', async () => { const { lg_artikel, ...zeile } = b; const x = await sb.from('lg_bewegungen').insert(zeile); if (x.error) throw x.error; await laden(); });

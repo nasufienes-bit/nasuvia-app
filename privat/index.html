@@ -168,8 +168,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     bargeld: 'Bargeld', guthaben: 'Guthaben', fix: 'Fixe Zahlung', sparziele: 'Sparziel', kalender: 'Kalender-Eintrag', dokumente: 'Dokument', ordner: 'Ordner' };
   const listeVon = (pfad) => pfad.split('.').reduce((o, k) => o[k], D);
   const listeSetzen = (pfad, wert) => { const k = pfad.split('.'); const letzter = k.pop(); k.reduce((o, x) => o[x], D)[letzter] = wert; };
-  function wegwerfen(pfad, eintrag, titel) {
-    if (!confirm(`„${titel || ORT[pfad] || 'Eintrag'}“ löschen?\n\nSie finden es 30 Tage lang unter „Zuletzt gelöscht“ und können es dort wiederherstellen.`)) return false;
+  async function wegwerfen(pfad, eintrag, titel) {
+    if (!await UI.frage(`„${titel || ORT[pfad] || 'Eintrag'}“ löschen?\n\nSie finden es 30 Tage lang unter „Zuletzt gelöscht“ und können es dort wiederherstellen.`)) return false;
     listeSetzen(pfad, listeVon(pfad).filter((x) => x !== eintrag && (!eintrag.id || x.id !== eintrag.id)));
     D.papierkorb.unshift({ pid: neueId(), pfad, eintrag, titel: titel || eintrag.titel || eintrag.name || eintrag.glaeubiger || eintrag.text || ORT[pfad], am: new Date().toISOString() });
     sichern(); toast('In „Zuletzt gelöscht“ verschoben'); return true;
@@ -446,9 +446,9 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       <label style="display:flex;gap:8px;align-items:center;color:var(--tinte)"><input type="checkbox" id="bRegel" checked /> Für alle Zahlungen an „${esc(normPartner(b.partner || b.text))}“ merken</label>
       <label>Notiz<input type="text" id="bNotiz" value="${esc(b.notiz || '')}" /></label>
       <div class="fuss"><button type="button" class="btn rot" data-weg>Löschen</button><span class="aktionen"><button type="button" class="btn" data-zu>Abbrechen</button><button class="btn haupt">Speichern</button></span></div></form>`;
-    dlg.onclick = (e) => {
+    dlg.onclick = async (e) => {
       if (e.target === dlg || e.target.closest('[data-zu]')) dlg.close();
-      if (e.target.closest('[data-weg]') && wegwerfen('bewegungen', b, b.partner || b.text)) { dlg.close(); zeichnen(); }
+      if (e.target.closest('[data-weg]') && await wegwerfen('bewegungen', b, b.partner || b.text)) { dlg.close(); zeichnen(); }
     };
     dlg.querySelector('form').onsubmit = (e) => {
       e.preventDefault();
@@ -511,9 +511,9 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       <label>Notiz<textarea id="rNotiz" rows="2" placeholder="z. B. Referenznummer, Kundennummer">${esc(r.notiz || '')}</textarea></label>
       <div class="fuss">${neu ? '<span></span>' : '<button type="button" class="btn rot" data-weg>Löschen</button>'}<span class="aktionen"><button type="button" class="btn" data-zu>Abbrechen</button><button class="btn haupt">Speichern</button></span></div></form>`;
     dlg.onchange = (e) => { if (e.target.id === 'rStatus' && e.target.value === 'bezahlt' && !$('rBezahlt').value) $('rBezahlt').value = heute(); };
-    dlg.onclick = (e) => {
+    dlg.onclick = async (e) => {
       if (e.target === dlg || e.target.closest('[data-zu]')) dlg.close();
-      if (e.target.closest('[data-weg]') && wegwerfen('rechnungen', r, r.titel || r.glaeubiger)) { dlg.close(); zeichnen(); }
+      if (e.target.closest('[data-weg]') && await wegwerfen('rechnungen', r, r.titel || r.glaeubiger)) { dlg.close(); zeichnen(); }
       if (e.target.closest('[data-datei-weg]')) { r.datei = ''; sichern(); rechnungBearbeiten(neu ? null : r); }
     };
     dlg.querySelector('form').onsubmit = async (e) => {
@@ -578,9 +578,9 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       b.flags = Object.fromEntries([...dlg.querySelectorAll('[data-flag]')].map((x) => [x.dataset.flag, x.checked]));
       if (b.flags.geloescht) b.status = 'geloescht'; else if (b.flags.bezahlt) b.status = 'bezahlt';
     };
-    dlg.onclick = (e) => {
+    dlg.onclick = async (e) => {
       if (e.target === dlg || e.target.closest('[data-zu]')) dlg.close();
-      if (e.target.closest('[data-weg]') && wegwerfen('betreibungen', b, b.glaeubiger)) { dlg.close(); zeichnen(); }
+      if (e.target.closest('[data-weg]') && await wegwerfen('betreibungen', b, b.glaeubiger)) { dlg.close(); zeichnen(); }
       const zw = e.target.closest('[data-zweg]');
       if (zw) { lesen(); b.zahlungen.splice(Number(zw.dataset.zweg), 1); sichern(); betreibungBearbeiten(b); }
       if (e.target.closest('[data-zahlung]')) {
@@ -671,7 +671,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       ${s.foto ? `<img src="${s.foto}" alt="Quittung" style="max-width:100%;border-radius:12px">` : ''}
       <div class="fuss">${s.id ? '<button type="button" class="btn rot" data-weg>Löschen</button>' : '<span></span>'}<span class="aktionen"><button type="button" class="btn" data-zu>Abbrechen</button><button class="btn haupt">Speichern</button></span></div></form>`;
     const f = dlg.querySelector('form');
-    f.onclick = (e) => { if (e.target.closest('[data-zu]')) dlg.close(); if (e.target.closest('[data-weg]') && wegwerfen('steuern', s, s.text)) { dlg.close(); zeichnen(); } };
+    f.onclick = async (e) => { if (e.target.closest('[data-zu]')) dlg.close(); if (e.target.closest('[data-weg]') && await wegwerfen('steuern', s, s.text)) { dlg.close(); zeichnen(); } };
     f.onsubmit = async (e) => {
       e.preventDefault();
       const d = new FormData(f), betrag = betragLesen(d.get('betrag'));
@@ -754,7 +754,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       <div><span class="hinweis">Für wen</span><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px">${P.map((p) => `<label style="display:flex;gap:6px;align-items:center;font-size:14px;color:var(--tinte)"><input type="checkbox" name="fuer" value="${esc(p)}" ${!a.fuer || !a.fuer.length || a.fuer.includes(p) ? 'checked' : ''}>${esc(p)}</label>`).join('')}</div></div>
       <div class="fuss">${a.id ? '<button type="button" class="btn rot" data-weg>Löschen</button>' : '<span></span>'}<span class="aktionen"><button type="button" class="btn" data-zu>Abbrechen</button><button class="btn haupt">Speichern</button></span></div></form>`;
     const f = dlg.querySelector('form');
-    f.onclick = (e) => { if (e.target.closest('[data-zu]')) dlg.close(); if (e.target.closest('[data-weg]') && wegwerfen('teilen.ausgaben', a, a.text)) { dlg.close(); zeichnen(); } };
+    f.onclick = async (e) => { if (e.target.closest('[data-zu]')) dlg.close(); if (e.target.closest('[data-weg]') && await wegwerfen('teilen.ausgaben', a, a.text)) { dlg.close(); zeichnen(); } };
     f.onsubmit = (e) => {
       e.preventDefault(); const d = new FormData(f), betrag = betragLesen(d.get('betrag'));
       if (!(betrag > 0)) { toast('Bitte einen Betrag eingeben'); return; }
@@ -797,7 +797,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       <div class="zwei"><label>Franchise<select name="franchise">${[300, 500, 1000, 1500, 2000, 2500].map((f) => `<option value="${f}" ${Number(o.franchise) === f ? 'selected' : ''}>${f}</option>`).join('')}</select></label><label>Prämie CHF pro Monat<input type="text" inputmode="decimal" name="praemie" value="${o.praemieRappen ? chf(o.praemieRappen) : ''}" required></label></div>
       <div class="fuss">${o.id ? '<button type="button" class="btn rot" data-weg>Löschen</button>' : '<span></span>'}<span class="aktionen"><button type="button" class="btn" data-zu>Abbrechen</button><button class="btn haupt">Speichern</button></span></div></form>`;
     const f = dlg.querySelector('form');
-    f.onclick = (e) => { if (e.target.closest('[data-zu]')) dlg.close(); if (e.target.closest('[data-weg]') && wegwerfen('kk.angebote', o, o.kasse)) { dlg.close(); zeichnen(); } };
+    f.onclick = async (e) => { if (e.target.closest('[data-zu]')) dlg.close(); if (e.target.closest('[data-weg]') && await wegwerfen('kk.angebote', o, o.kasse)) { dlg.close(); zeichnen(); } };
     f.onsubmit = (e) => { e.preventDefault(); const d = new FormData(f); const p = betragLesen(d.get('praemie')); if (!(p > 0)) { toast('Bitte die Prämie eingeben'); return; }
       const neu = { ...o, id: o.id || neueId(), kasse: String(d.get('kasse')).trim(), modell: String(d.get('modell') || '').trim(), franchise: Number(d.get('franchise')), praemieRappen: p };
       D.kk.angebote = D.kk.angebote.filter((x) => x.id !== neu.id).concat(neu); sichern(); dlg.close(); zeichnen(); };
@@ -809,7 +809,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const h = e.target.closest('[data-hb]');
     if (h) {
       ({ abzugNeu: () => abzugBearbeiten(), steuerDruck, personen: personenBearbeiten, ausgabeNeu: () => ausgabeBearbeiten(), kkNeu: () => kkBearbeiten(),
-        ausgeglichen: () => { if (confirm('Alle offenen Ausgaben als ausgeglichen markieren?')) { D.teilen.ausgaben.forEach((a) => { a.erledigt = true; }); sichern(); zeichnen(); toast('Ausgeglichen'); } },
+        ausgeglichen: async () => { if (await UI.frage('Alle offenen Ausgaben als ausgeglichen markieren?')) { D.teilen.ausgaben.forEach((a) => { a.erledigt = true; }); sichern(); zeichnen(); toast('Ausgeglichen'); } },
         budgetVorschlag: () => { const ab = new Date(Date.now() - 92 * 864e5).toLocaleDateString('sv-SE'), s = {}; for (const b of D.bewegungen.filter((x) => x.datum >= ab && x.betragRappen < 0)) s[b.kategorie] = (s[b.kategorie] || 0) - b.betragRappen;
           if (!Object.keys(s).length) { toast('Dafür braucht es Kontoauszüge der letzten Monate'); return; } for (const [k, v] of Object.entries(s)) D.budget[k] = Math.round(v / 3 / 1000) * 1000; sichern(); zeichnen(); toast('Budget aus dem Durchschnitt vorgeschlagen'); },
       })[h.dataset.hb]();
@@ -843,7 +843,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     dlg.innerHTML = `<div class="dlg"><h3>Sicherung</h3><p class="hinweis">Ihre Daten liegen nur auf diesem Gerät. Speichern Sie ab und zu eine Sicherung, zum Beispiel in iCloud Drive.</p>
       <div class="aktionen"><button class="btn haupt" data-runter>Sicherung speichern</button><button class="btn" data-rauf>Sicherung laden</button></div>
       <div class="fuss"><button class="btn rot" data-alleweg>Alle Daten löschen</button><button class="btn" data-zu>Schliessen</button></div></div>`;
-    dlg.onclick = (e) => {
+    dlg.onclick = async (e) => {
       if (e.target === dlg || e.target.closest('[data-zu]')) dlg.close();
       if (e.target.closest('[data-runter]')) {
         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(D)], { type: 'application/json' }));
@@ -854,7 +854,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
         inp.onchange = async () => { try { const n = JSON.parse(await inp.files[0].text()); Object.assign(D, n); sichern(); dlg.close(); zeichnen(); toast('Sicherung geladen'); } catch { toast('Diese Datei kann ich nicht lesen'); } };
         inp.click();
       }
-      if (e.target.closest('[data-alleweg]') && confirm('Wirklich alle Daten auf diesem Gerät löschen? Das kann nicht rückgängig gemacht werden.')) {
+      if (e.target.closest('[data-alleweg]') && await UI.frage('Wirklich alle Daten auf diesem Gerät löschen? Das kann nicht rückgängig gemacht werden.')) {
         Object.assign(D, { bewegungen: [], rechnungen: [], betreibungen: [], regeln: {}, abosStatus: {}, steuern: [], steuerVon: {}, budget: {}, teilen: { personen: [], ausgaben: [] }, kk: { aktuell: {}, angebote: [], kosten: 500 }, bargeld: [], guthaben: [], fix: [], sparziele: [], kalender: [], ordner: [], dokumente: [], papierkorb: [], start: {} }); sichern(); dlg.close(); zeichnen();
       }
     };

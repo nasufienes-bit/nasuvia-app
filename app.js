@@ -708,7 +708,7 @@
       const t = e.target.closest('button'); if (!t) return;
       if (t.dataset.kart) { art = t.dataset.kart; zeichnenK(); }
       if (t.matches('[data-kneu]')) { arbeit[art].push({ id: 'eigen-' + Date.now(), name: 'Neue Kategorie', satz: 8.1, ziffer: 405, farbe: FARBEN[arbeit[art].length % FARBEN.length], eigen: true }); zeichnenK(); dlg.querySelector('.kat-edit-zeile:last-child input[type=text]').select(); }
-      if (t.matches('[data-kstandard]') && confirm('Alle Kategorien auf den Standard zurücksetzen? Eigene Kategorien bleiben bei alten Buchungen erhalten.')) {
+      if (t.matches('[data-kstandard]') && await UI.frage('Alle Kategorien auf den Standard zurücksetzen? Eigene Kategorien bleiben bei alten Buchungen erhalten.')) {
         await einstSpeichern({ kategorien: {} }); dlg.close(); zeichnen(); toast('Standard wiederhergestellt');
       }
     };
@@ -869,7 +869,7 @@
     dlg.onchange = (e) => { if (e.target.id === 'm_lohnart') $('m_lohn').previousElementSibling.textContent = e.target.value === 'stunde' ? 'Lohn pro Stunde (CHF)' : 'Monatslohn 100 % (CHF)'; };
     dlg.onclick = async (e) => {
       if (e.target === dlg || e.target.closest('[data-zu]')) { dlg.close(); return; }
-      if (e.target.closest('[data-ma-weg]') && confirm(`${m.name} löschen? Gebuchte Löhne bleiben in der Buchhaltung.`)) {
+      if (e.target.closest('[data-ma-weg]') && await UI.frage(`${m.name} löschen? Gebuchte Löhne bleiben in der Buchhaltung.`)) {
         await einstSpeichern({ mitarbeiter: mitarbeiterListe().filter((x) => x.id !== m.id) }); dlg.close(); zeichnen();
       }
     };
@@ -1163,7 +1163,7 @@
       }
       if (t.matches('[data-loeschen]')) {
         if (istFest(b.datum)) { toast('Festgeschrieben, Löschen nicht möglich'); return; }
-        if (!confirm('Diese Buchung wirklich löschen?')) return;
+        if (!await UI.frage('Diese Buchung wirklich löschen?')) return;
         await Speicher.loeschen('buchungen', b.id);
         if (b.belegId) await Speicher.loeschen('belege', b.belegId);
         dlg.close();
@@ -1641,7 +1641,7 @@
       if (t.matches('[data-jstorno]')) { dlg.close(); journalBearbeiten(null, { text: 'Storno: ' + (j.text || j.beleg || ''), zeilen: j.zeilen.map((z) => ({ soll: z.haben, haben: z.soll, betrag: z.betrag })) }); }
       if (t.matches('[data-jloeschen]')) {
         if (istFest(j.datum)) { toast('Festgeschrieben, Löschen nicht möglich'); return; }
-        if (!confirm('Diese Buchung löschen?')) return;
+        if (!await UI.frage('Diese Buchung löschen?')) return;
         await Speicher.loeschen('journal', j.id); dlg.close(); await neuLaden('Buchung gelöscht');
       }
     };
@@ -1812,7 +1812,7 @@
     const bis = jahr + '-12-31';
     const r = D.bericht({ plan: kontenplan(), eintraege: eintraege(), jahr, rechtsform: rechtsform() });
     if (r.differenz) { toast('Die Bilanz geht nicht auf. Bitte zuerst die Eröffnungsbilanz prüfen.'); return; }
-    if (!confirm(`Jahr ${jahr} festschreiben?\n\nAlle Buchungen bis ${datumKurz(bis)} lassen sich danach nicht mehr ändern oder löschen. Das kann nicht rückgängig gemacht werden.\n\nLaden Sie vorher Journal und Jahresrechnung herunter.`)) return;
+    if (!await UI.frage(`Jahr ${jahr} festschreiben?\n\nAlle Buchungen bis ${datumKurz(bis)} lassen sich danach nicht mehr ändern oder löschen. Das kann nicht rückgängig gemacht werden.\n\nLaden Sie vorher Journal und Jahresrechnung herunter.`)) return;
     await einstSpeichern({ festBis: bis, festProtokoll: [...(Z.einst.festProtokoll || []), { bis, am: new Date().toISOString(), gewinn: r.gewinn, bilanzsumme: r.summeAktiven }] });
     zeichnen();
     toast(`${jahr} ist festgeschrieben`);
@@ -1881,7 +1881,7 @@
     if (t.matches('[data-kat-konto]')) { await einstSpeichern({ kontoZuordnung: { ...(Z.einst.kontoZuordnung || {}), [t.dataset.katKonto]: t.value } }); toast('Konto zugeordnet'); zeichnen(); return; }
     if (t.matches('[data-zahl-konto]')) { await einstSpeichern({ zahlungKonten: { ...(Z.einst.zahlungKonten || {}), [t.dataset.zahlKonto]: t.value } }); toast('Konto zugeordnet'); zeichnen(); return; }
     if (t.matches('[data-doppelt]')) {
-      if (!t.checked && Z.journal.some((j) => !j.geloescht) && !confirm('Doppelte Buchhaltung ausschalten? Ihre manuellen Journal-Buchungen bleiben gespeichert, werden aber nicht mehr angezeigt.')) { t.checked = true; return; }
+      if (!t.checked && Z.journal.some((j) => !j.geloescht) && !await UI.frage('Doppelte Buchhaltung ausschalten? Ihre manuellen Journal-Buchungen bleiben gespeichert, werden aber nicht mehr angezeigt.')) { t.checked = true; return; }
       await einstSpeichern({ doppelt: t.checked }); zeichnen(); toast(t.checked ? 'Doppelte Buchhaltung eingeschaltet' : 'Doppelte Buchhaltung ausgeschaltet');
     }
   });
@@ -2000,7 +2000,7 @@
     }
     if (e.target.closest('[data-abgleich-jetzt]')) { Abgleich.jetzt(); statusZeigen(); }
     if (e.target.closest('[data-abmelden]')) {
-      if (!confirm('Abmelden? Die Daten bleiben auf diesem Gerät, werden aber nicht mehr abgeglichen.')) return;
+      if (!await UI.frage('Abmelden? Die Daten bleiben auf diesem Gerät, werden aber nicht mehr abgeglichen.')) return;
       await Abgleich.abmelden();
       zeichnen();
     }
@@ -2124,7 +2124,7 @@
     let d;
     try { d = JSON.parse(await datei.text()); } catch { toast('Diese Datei kann ich nicht lesen'); return; }
     if (!d || d.art !== 'nasuvia-buchhaltung') { toast('Das ist keine Sicherung der Buchhaltung'); return; }
-    if (!confirm(`Sicherung vom ${datumKurz((d.erstellt || '').slice(0, 10))} laden? Neuere Einträge auf diesem Gerät bleiben erhalten.`)) return;
+    if (!await UI.frage(`Sicherung vom ${datumKurz((d.erstellt || '').slice(0, 10))} laden? Neuere Einträge auf diesem Gerät bleiben erhalten.`)) return;
     const jetzt = new Map((await Speicher.alleMitGeloeschten('buchungen')).map((b) => [b.id, b]));
     const neuer = (x) => !jetzt.get(x.id) || (jetzt.get(x.id).geaendert || '') < (x.geaendert || '');
     await Speicher.mehrereSpeichern('buchungen', (d.buchungen || []).filter(neuer));
@@ -2175,7 +2175,7 @@
     const w = e.target.closest('[data-kasse-weg]'); if (!w) return;
     const bw = (kasse().bewegungen || []).find((x) => x.id === w.dataset.kasseWeg);
     if (bw && istFest(bw.datum)) { toast('Festgeschrieben, Löschen nicht möglich'); return; }
-    if (!confirm('Diese Bargeld-Bewegung löschen?')) return;
+    if (!await UI.frage('Diese Bargeld-Bewegung löschen?')) return;
     const kk = kasse(); kk.bewegungen = kk.bewegungen.filter((x) => x.id !== w.dataset.kasseWeg); await einstSpeichern({ kasse: kk });
     w.closest('dialog').close(); zeichnen(); toast('Gelöscht');
   });

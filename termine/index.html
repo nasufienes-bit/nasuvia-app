@@ -375,7 +375,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
         beginn: beginn.toISOString(), ende: new Date(beginn.getTime() + dauer * 60000).toISOString() };
       if (t.id) zeile.status = d.get('status'); else zeile.status = 'bestaetigt';
       const ueber = Z.termine.find((x) => x.id !== t.id && x.status !== 'abgesagt' && new Date(x.beginn) < new Date(zeile.ende) && new Date(x.ende) > beginn);
-      if (ueber && !confirm(`Zu dieser Zeit ist schon ${ueber.name} eingetragen. Trotzdem speichern?`)) return;
+      if (ueber && !await UI.frage(`Zu dieser Zeit ist schon ${ueber.name} eingetragen. Trotzdem speichern?`)) return;
       const r = t.id ? await Korb.aendern(sb, 'tb_termine', t.id, zeile, 'Termin geändert') : await Korb.neu(sb, 'tb_termine', zeile, 'Termin eingetragen');
       if (r.error) { toast(fehlerText(r.error), 6000); return; }
       dlg.close(); await laden(); toast('Gespeichert');
@@ -426,7 +426,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       case 'dienstNeu': $('dienste').insertAdjacentHTML('beforeend', dienstZeile({ id: 'd' + Date.now().toString(36), name: '', dauer: 30, preis: 0 })); $('dienste').lastElementChild.querySelector('input').focus(); break;
       case 'linkTeilen': {
         const link = buchungsLink();
-        if (navigator.share) { try { await navigator.share({ title: 'Termin buchen', url: link }); } catch {} } else { try { await navigator.clipboard.writeText(link); toast('Link kopiert'); } catch { prompt('Ihr Buchungslink', link); } }
+        if (navigator.share) { try { await navigator.share({ title: 'Termin buchen', url: link }); } catch {} } else { try { await navigator.clipboard.writeText(link); toast('Link kopiert'); } catch { await UI.eingabe('Ihr Buchungslink', link); } }
         break;
       }
       case 'terminLoeschen': {

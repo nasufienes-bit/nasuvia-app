@@ -188,12 +188,12 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     var w = e.target.closest('[data-wechsel]'); if (!w) return;
     if (!benutzer) { location.href = '../'; return; }
     var ziel = paketVon(w.dataset.wechsel);
-    if (!confirm('Zum Paket „' + ziel.name + '“ für ' + O.RECHTSFORMEN[rf].name + ' wechseln? Während des Gratis-Tests kostet das nichts, Ihre Daten bleiben erhalten.')) return;
+    if (!await UI.frage('Zum Paket „' + ziel.name + '“ für ' + O.RECHTSFORMEN[rf].name + ' wechseln? Während des Gratis-Tests kostet das nichts, Ihre Daten bleiben erhalten.')) return;
     w.disabled = true;
     var res = await sb.rpc('paket_wechseln', { p_paket: ziel.id, p_rechtsform: rf });
-    if (res.error) { w.disabled = false; alert(res.error.message); return; }
+    if (res.error) { w.disabled = false; await UI.hinweis(res.error.message); return; }
     lizenz = res.data; standZeichnen(); paketeZeichnen();
-    alert('Gewechselt zu „' + ziel.name + '“. Die neuen Bereiche sind sofort offen.');
+    await UI.hinweis('Gewechselt zu „' + ziel.name + '“. Die neuen Bereiche sind sofort offen.');
   });
   document.addEventListener('click', function(e){
     var z = e.target.closest('[data-z]'); if (z) { zyklus = z.dataset.z; paketeZeichnen(); }
@@ -226,9 +226,9 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   }
   $('alleDatenWeg').onclick = async function(){
     if (!benutzer) { location.href = '../'; return; }
-    if (!confirm('Wirklich ALLE Ihre Daten löschen? Rechnungen, Buchungen, Belege, Mitarbeiter, Aufträge, Fotos, Termine, Lager und Home-Büro.\n\nDas lässt sich nicht rückgängig machen.')) return;
-    var ok = prompt('Zur Sicherheit: Bitte LÖSCHEN in Grossbuchstaben eingeben.');
-    if (ok !== 'LÖSCHEN') { alert('Nichts gelöscht.'); return; }
+    if (!await UI.frage('Wirklich ALLE Ihre Daten löschen? Rechnungen, Buchungen, Belege, Mitarbeiter, Aufträge, Fotos, Termine, Lager und Home-Büro.\n\nDas lässt sich nicht rückgängig machen.')) return;
+    var ok = await UI.eingabe('Zur Sicherheit: Bitte LÖSCHEN in Grossbuchstaben eingeben.');
+    if (ok !== 'LÖSCHEN') { await UI.hinweis('Nichts gelöscht.'); return; }
     this.disabled = true; this.textContent = 'Wird gelöscht …';
     try {
       await ordnerLeeren('belege', benutzer.id, 2);
@@ -238,9 +238,9 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       // Dieses Gerät: lokale Daten aller Bereiche, die Anmeldung bleibt
       Object.keys(localStorage).forEach(function(k){ if (/^(nasuvia\.|homebuero|nb\.|ordasio\.|ze\.|nr\.)/.test(k) && k !== K.speicher) localStorage.removeItem(k); });
       ['nasuvia-buchhaltung', 'nasuvia-rechnungen', 'homebuero-dateien'].forEach(function(n){ try { indexedDB.deleteDatabase(n); } catch (e) {} });
-      alert('Alle Ihre Daten sind gelöscht. Sie können jederzeit neu beginnen.');
+      await UI.hinweis('Alle Ihre Daten sind gelöscht. Sie können jederzeit neu beginnen.');
       location.href = '../start/';
-    } catch (f) { alert('Das hat nicht ganz geklappt: ' + (f.message || f)); this.disabled = false; this.textContent = 'Alle Daten löschen …'; }
+    } catch (f) { await UI.hinweis('Das hat nicht ganz geklappt: ' + (f.message || f)); this.disabled = false; this.textContent = 'Alle Daten löschen …'; }
   };
   $('abmelden').onclick = async function(){ try { sessionStorage.setItem('nk.ohneDemo', '1'); } catch (e) {} await sb.auth.signOut({ scope: 'local' }); location.href = '../'; };
   // Bestellung geht an Nasuvia: in die Anfragen und per E-Mail
@@ -273,15 +273,15 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     var d = e.target.closest('[data-dienst]'); if (!d) return;
     if (!benutzer) { location.href = '../'; return; }
     var dienst = d.dataset.dienst;
-    var web = prompt(dienst === 'Website' ? 'Haben Sie schon eine Website oder Instagram? (Adresse, freiwillig)' : 'Ihr Instagram-Name (z. B. @ihrefirma)', '');
+    var web = await UI.eingabe(dienst === 'Website' ? 'Haben Sie schon eine Website oder Instagram? (Adresse, freiwillig)' : 'Ihr Instagram-Name (z. B. @ihrefirma)', '');
     if (web === null) return;
-    var wunsch = prompt('Was ist Ihnen wichtig? (z. B. Farben, Stil, Leistungen, freiwillig)', '') || '';
+    var wunsch = await UI.eingabe('Was ist Ihnen wichtig? (z. B. Farben, Stil, Leistungen, freiwillig)', '') || '';
     var daten = { Dienst: dienst, 'Website/Instagram': web, Wunsch: wunsch, Firma: (lizenz && (lizenz.firma || lizenz.name)) || '', 'E-Mail': benutzer.email, Telefon: (lizenz && lizenz.telefon) || '', Konto: benutzer.id };
     var ok1 = await fetch('https://dyepnomhidubsfwyorke.supabase.co/rest/v1/anfragen', { method: 'POST', headers: { apikey: 'sb_publishable_zEmC1R5vq234zR6ST7PTmA_uY7Z1-ph', 'Content-Type': 'application/json', Prefer: 'return=minimal' },
       body: JSON.stringify({ art: 'Service-Anfrage: ' + dienst, name: daten.Firma || benutzer.email, email: benutzer.email, telefon: daten.Telefon, daten: daten }) }).then(function(r){ return r.ok; }).catch(function(){ return false; });
     var ok2 = await fetch('https://formsubmit.co/ajax/info@nasuvia.ch', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(Object.assign({ _subject: 'Service-Anfrage: ' + dienst, _template: 'table', _replyto: benutzer.email }, daten)) }).then(function(r){ return r.ok; }).catch(function(){ return false; });
-    alert(ok1 || ok2 ? 'Danke! Wir melden uns innert 1 bis 2 Arbeitstagen bei Ihnen.' : 'Das hat nicht geklappt. Bitte schreiben Sie an info@nasuvia.ch.');
+    await UI.hinweis(ok1 || ok2 ? 'Danke! Wir melden uns innert 1 bis 2 Arbeitstagen bei Ihnen.' : 'Das hat nicht geklappt. Bitte schreiben Sie an info@nasuvia.ch.');
   });
   async function treuhandZeichnen(){
     if (!benutzer) { $('treuhand').hidden = true; return; }
@@ -293,15 +293,15 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   $('trForm').addEventListener('submit', async function(e){
     e.preventDefault();
     var mail = $('trEmail').value.trim().toLowerCase();
-    if (benutzer && mail === String(benutzer.email).toLowerCase()) { alert('Das ist Ihre eigene E-Mail-Adresse.'); return; }
-    if (!confirm('Lesezugriff auf Ihre ganze Buchhaltung für ' + mail + ' freigeben?')) return;
+    if (benutzer && mail === String(benutzer.email).toLowerCase()) { await UI.hinweis('Das ist Ihre eigene E-Mail-Adresse.'); return; }
+    if (!await UI.frage('Lesezugriff auf Ihre ganze Buchhaltung für ' + mail + ' freigeben?')) return;
     var r = await sb.from('tr_freigaben').insert({ email: mail, name: $('trName').value.trim() });
-    if (r.error) { alert(/duplicate/i.test(r.error.message) ? 'Diese E-Mail ist schon freigegeben.' : r.error.message); return; }
+    if (r.error) { await UI.hinweis(/duplicate/i.test(r.error.message) ? 'Diese E-Mail ist schon freigegeben.' : r.error.message); return; }
     $('trEmail').value = ''; $('trName').value = ''; treuhandZeichnen();
   });
   document.addEventListener('click', async function(e){
     var w = e.target.closest('[data-tr-weg]'); if (!w) return;
-    if (!confirm('Zugang entfernen? Der Treuhänder sieht Ihre Daten danach sofort nicht mehr.')) return;
+    if (!await UI.frage('Zugang entfernen? Der Treuhänder sieht Ihre Daten danach sofort nicht mehr.')) return;
     await sb.from('tr_freigaben').delete().eq('id', w.dataset.trWeg); treuhandZeichnen();
   });
 
