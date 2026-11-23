@@ -592,8 +592,8 @@
     .nr-ue-karte.geloescht{background:#FAFBFE;border-style:dashed}
     .nr-ue-hinweis{grid-column:1/-1;margin:0;font-size:.88rem;color:#3F5A4F;background:#F6F8FC;border-radius:10px;padding:10px 12px}
     .nr-ue-leer{text-align:center;color:#3F5A4F;padding:30px 10px}
-    .nr-ue-summen{grid-template-columns:repeat(3,minmax(0,1fr))}
-    .nr-ue-liste{display:block;padding-top:10px}
+    .nr-ue .nr-ue-summen{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .nr-ue .nr-ue-liste{display:block;padding-top:10px}
     .nr-zeile{border-bottom:1px solid rgba(11,59,46,.08)}
     .nr-zeile-kopf{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;border:0;background:none;padding:14px 6px;cursor:pointer;text-align:left;font:inherit;color:inherit;border-radius:12px}
     .nr-zeile-kopf:hover{background:#F6F8FC}

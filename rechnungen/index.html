@@ -1840,7 +1840,7 @@ u + #body a, #MessageViewBody a { color:inherit; text-decoration:none; font-size
 <td align="left" valign="middle" style="padding:0;">
 <img src="${LOGO_CID}" width="132" alt="${esc(FIRMA.name)}" class="logo" style="display:block; width:100%; max-width:132px; height:auto; border:0; outline:none; text-decoration:none; font-size:17px; line-height:24px; font-weight:700; color:#0A1F17; font-family:Arial, Helvetica, sans-serif;">
 </td>
-<td align="right" valign="middle" class="mono mono-s t-mute" style="padding:0 0 0 12px; font-size:11px; line-height:16px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#3F5A4F; font-family:${MONO};">WINTERTHUR</td>
+<td align="right" valign="middle" class="mono mono-s t-mute" style="padding:0 0 0 12px; font-size:11px; line-height:16px; mso-line-height-rule:exactly; letter-spacing:1.2px; color:#3F5A4F; font-family:${MONO};">${esc(((FIRMA.ort || '').replace(/^\d{4}\s*/, '') || '').toUpperCase())}</td>
 </tr>
 </table>
 </td>
@@ -2003,19 +2003,13 @@ ${zahlungsHinweis}
 
 Am Fuss der Rechnung finden Sie den QR-Zahlteil: In der Banking-App scannen, und Konto, Betrag sowie Referenz sind ohne manuelle Erfassung übernommen.${r.refTyp === 'QRR' ? ' Bitte führen Sie die Referenz bei einer manuellen Zahlung unverändert mit, damit wir den Eingang eindeutig zuordnen können.' : ''}
 
-Für Fragen zur Rechnung oder zu einzelnen Positionen erreichen Sie uns unter ${FIRMA.tel} oder ${FIRMA.mail}.
-
-Freundliche Grüsse
-${FIRMA.name} · ${FIRMA.zusatz}
+${[FIRMA.tel, FIRMA.mail].filter(Boolean).length ? `Für Fragen zur Rechnung oder zu einzelnen Positionen erreichen Sie uns unter ${[FIRMA.tel, FIRMA.mail].filter(Boolean).join(' oder ')}.\n\n` : ''}Freundliche Grüsse
+${[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' · ')}
 
 Beilage: Rechnung Nr. ${r.nr} als PDF
 
 --
-${FIRMA.name} — ${FIRMA.zusatz}
-${FIRMA.strasse} · ${FIRMA.ort}
-${FIRMA.tel} · ${FIRMA.mail}
-${FIRMA.web} · ${FIRMA.uid}
-Glasfaser? Wir ziehen durch.`;
+${[[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' — '), [FIRMA.strasse, FIRMA.ort].filter(Boolean).join(' · '), [FIRMA.tel, FIRMA.mail].filter(Boolean).join(' · '), [FIRMA.web, FIRMA.uid].filter(Boolean).join(' · ')].filter(Boolean).join('\n')}${PRODUKT ? '' : '\nGlasfaser? Wir ziehen durch.'}`;
 
 
   /* ---------- E-Mail-Texte ---------- */
