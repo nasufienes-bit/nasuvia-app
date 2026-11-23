@@ -1,14 +1,16 @@
 // Lizenz der verkauften Version: Anmelden, Gratis-Test, Paket und Ablauf.
 // Läuft nur in der Verkaufsversion (konfig.js → produkt). Der Server prüft zusätzlich: ohne gültige Lizenz wird nichts gespeichert.
-// Einbinden: <script src="lizenz.js" data-produkt="buchhaltung|rechnungen|privat"></script>
+// Einbinden: <script src="pakete.js"></script><script src="lizenz.js" data-produkt="buchhaltung|rechnungen|privat|zeit|termine|lager|start"></script>
 (() => {
   const K = window.NASUVIA_KONFIG || {};
   if (!K.produkt) return;
   const skript = document.currentScript || {};
   const PRODUKT = (skript.dataset && skript.dataset.produkt) || 'buchhaltung';
   const NAME = { buchhaltung: 'die Buchhaltung', rechnungen: 'das Rechnungsprogramm', privat: 'das Home-Büro', zeit: 'die Zeiterfassung', termine: 'die Online-Terminbuchung', lager: 'das Lager', start: 'Ordasio' }[PRODUKT];
-  const ERLAUBT = { buchhaltung: ['buchhaltung', 'kombi'], rechnungen: ['rechnungen', 'kombi'], privat: ['privat', 'kombi'], zeit: ['rechnungen', 'buchhaltung', 'kombi'], termine: ['rechnungen', 'buchhaltung', 'kombi'], lager: ['rechnungen', 'buchhaltung', 'kombi'], start: ['rechnungen', 'buchhaltung', 'kombi', 'privat'] };
-  const PAKETE = { rechnungen: 'Rechnungen', buchhaltung: 'Buchhaltung', kombi: 'Kombi (Rechnungen, Buchhaltung, Home-Büro)', privat: 'Home-Büro' };
+  // Pakete und Rechtsformen kommen aus pakete.js (vor lizenz.js einbinden)
+  const O = window.ORDASIO || null;
+  const paketName = (id) => (O && O.paket(id) ? O.paket(id).name : id);
+  const darf = (id) => !O || O.darf(id, PRODUKT);
   const KAUFEN = (() => { try { return new URL('lizenz/', new URL('.', skript.src)).href; } catch { return '/lizenz/'; } })();
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const heute = () => new Date().toLocaleDateString('sv-SE');
@@ -37,6 +39,7 @@
   .lz-knopf{display:block;width:100%;border:0;border-radius:100px;padding:13px;font:inherit;font-weight:700;font-size:16px;cursor:pointer;background:#0B3B2E;color:#fff;text-align:center;text-decoration:none;margin-top:6px}
   .lz-knopf.zweit{background:#E8F4EE;color:#0B3B2E}
   .lz-link{display:block;margin:12px auto 0;background:none;border:0;color:#0E7A55;font:inherit;font-size:14px;cursor:pointer}
+  .lz-hinweis{font-size:13px!important;margin:-4px 0 10px!important;color:#3F5A4F}
   .lz-meldung{min-height:1.3em;font-size:14px;color:#C53030;margin:4px 0 6px}
   .lz-meldung.ok{color:#0A7150}
   .lz-pille{position:fixed;left:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:9000;background:#0A1F17;color:#fff;border-radius:100px;padding:8px 14px;font:600 13px 'League Spartan',system-ui,sans-serif;box-shadow:0 10px 30px -10px rgba(12,18,38,.5);text-decoration:none}
@@ -56,22 +59,45 @@
   const SYMBOL = '<img src="' + KAUFEN.replace(/lizenz\/$/, 'logo.png') + '" alt="Ordasio" style="height:34px;display:block">';
 
   /* ---------- Anmelden und Konto erstellen ---------- */
+  function paketOptionen(rechtsform, gewaehlt) {
+    if (!O) return '';
+    const liste = O.fuer(rechtsform);
+    const wahl = liste.some((p) => p.id === gewaehlt) ? gewaehlt : O.vorgabe(rechtsform);
+    return liste.map((p) => `<option value="${p.id}" ${p.id === wahl ? 'selected' : ''}>${esc(p.name)} · ${esc(p.kurz)} · CHF ${p.monat}/Mt.</option>`).join('');
+  }
   function anmelden(modus = 'anmelden', meldung = '') {
-    const paketVorgabe = new URLSearchParams(location.search).get('paket') || (PRODUKT === 'privat' ? 'privat' : 'kombi');
+    const q = new URLSearchParams(location.search);
+    const rfVorgabe = (O && O.RECHTSFORMEN[q.get('rechtsform')]) ? q.get('rechtsform') : (PRODUKT === 'privat' ? 'privat' : 'einzel');
+    const paketVorgabe = (O && O.paket(q.get('paket'))) ? O.passend(q.get('paket'), rfVorgabe) : (O ? O.vorgabe(rfVorgabe) : '');
     zeigen(`${SYMBOL}<h2>${modus === 'neu' ? '30 Tage gratis testen' : 'Willkommen zurück'}</h2>
       <p>${modus === 'neu' ? 'Konto erstellen und sofort loslegen. Keine Zahlung nötig.' : `Melden Sie sich an, um ${NAME} zu öffnen.`}</p>
       <div class="lz-reiter"><button class="${modus === 'anmelden' ? 'an' : ''}" data-lz-modus="anmelden">Anmelden</button><button class="${modus === 'neu' ? 'an' : ''}" data-lz-modus="neu">Konto erstellen</button></div>
       <form data-lz-form="${modus}">
         ${modus === 'neu' ? `<label>Vor- und Nachname<input name="name" autocomplete="name" required></label>
-          <label>Firma <span>(freiwillig)</span><input name="firma" autocomplete="organization"></label>
-          <label>Paket<select name="paket">${Object.entries(PAKETE).map(([k, n]) => `<option value="${k}" ${k === paketVorgabe ? 'selected' : ''}>${n}</option>`).join('')}</select></label>` : ''}
+          ${O ? `<label>Ihre Firma ist …<select name="rechtsform" data-lz-rechtsform>${Object.entries(O.RECHTSFORMEN).map(([k, r]) => `<option value="${k}" ${k === rfVorgabe ? 'selected' : ''}>${esc(r.name)}${k === 'privat' ? ' (nur private Finanzen)' : ''}</option>`).join('')}</select></label>` : ''}
+          <label data-lz-firmafeld ${rfVorgabe === 'privat' ? 'hidden' : ''}>Firmenname <span>(freiwillig)</span><input name="firma" autocomplete="organization"></label>
+          ${O ? `<label>Paket<select name="paket" data-lz-paket>${paketOptionen(rfVorgabe, paketVorgabe)}</select></label>
+          <p class="lz-hinweis" data-lz-rfhinweis>${rechtsformHinweis(rfVorgabe)}</p>` : ''}` : ''}
         <label>E-Mail<input name="email" type="email" autocomplete="username" required></label>
         <label>Passwort${modus === 'neu' ? ' <span>(mindestens 8 Zeichen)</span>' : ''}<input name="passwort" type="password" autocomplete="${modus === 'neu' ? 'new-password' : 'current-password'}" required minlength="${modus === 'neu' ? 8 : 6}"></label>
         <p class="lz-meldung ${meldung.startsWith('✓') ? 'ok' : ''}" data-lz-meldung>${esc(meldung)}</p>
         <button class="lz-knopf">${modus === 'neu' ? 'Gratis-Test starten' : 'Anmelden'}</button>
       </form>
-      ${modus === 'anmelden' ? '<button class="lz-link" data-lz-vergessen>Passwort vergessen?</button>' : '<p style="font-size:12.5px;margin-top:12px">Ihre Daten liegen verschlüsselt in der Schweiz (Zürich) und gehören Ihnen. Nur Sie sehen sie.</p>'}`);
+      ${modus === 'anmelden' ? '<button class="lz-link" data-lz-vergessen>Passwort vergessen?</button>' : '<p style="font-size:12.5px;margin-top:12px">Ihre Daten liegen verschlüsselt in der Schweiz (Zürich) und gehören Ihnen. Nur Sie sehen sie. Paket und Rechtsform können Sie während des Tests jederzeit ändern.</p>'}`);
   }
+  function rechtsformHinweis(rf) {
+    return { einzel: 'Einfache Buchhaltung ohne Fachbegriffe. Die doppelte Buchhaltung lässt sich jederzeit zuschalten.',
+      gmbh: 'Mit doppelter Buchhaltung nach Schweizer KMU-Kontenrahmen, Bilanz und Erfolgsrechnung nach OR.',
+      ag: 'Mit doppelter Buchhaltung nach Schweizer KMU-Kontenrahmen, Bilanz und Erfolgsrechnung nach OR.',
+      privat: 'Für Ihre privaten Finanzen: Konto, Abos, Rechnungen und Fristen.' }[rf] || '';
+  }
+  decke.addEventListener('change', (e) => {
+    const r = e.target.closest('[data-lz-rechtsform]'); if (!r) return;
+    const f = r.form, p = f.querySelector('[data-lz-paket]');
+    if (p) p.innerHTML = paketOptionen(r.value, O.passend(p.value, r.value));
+    const h = f.querySelector('[data-lz-rfhinweis]'); if (h) h.textContent = rechtsformHinweis(r.value);
+    const ff = f.querySelector('[data-lz-firmafeld]'); if (ff) ff.hidden = r.value === 'privat';
+  });
   decke.addEventListener('click', async (e) => {
     const t = e.target.closest('button,a'); if (!t) return;
     if (t.dataset.lzModus) { e.preventDefault(); anmelden(t.dataset.lzModus); }
@@ -81,6 +107,13 @@
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) { decke.querySelector('[data-lz-meldung]').textContent = 'Bitte zuerst Ihre E-Mail eingeben.'; return; }
       await sb.auth.resetPasswordForEmail(mail, { redirectTo: location.origin + location.pathname });
       anmelden('anmelden', '✓ Falls es ein Konto gibt, ist ein Link zum Zurücksetzen unterwegs.');
+    }
+    if (t.dataset.lzWechsel) {
+      e.preventDefault(); t.disabled = true;
+      const l0 = window.NASUVIA_LIZENZ || {};
+      const { error } = await sb.rpc('paket_wechseln', { p_paket: t.dataset.lzWechsel, p_rechtsform: l0.rechtsform || 'einzel' });
+      if (error) { t.disabled = false; alert(error.message); return; }
+      location.reload();
     }
     if (t.hasAttribute('data-lz-abmelden')) { e.preventDefault(); demoAus(); await sb.auth.signOut({ scope: 'local' }); location.reload(); }
     if (t.hasAttribute('data-lz-lesen')) { e.preventDefault(); weg(); pille('Nur Lesen: Lizenz abgelaufen · <b>Lizenz kaufen</b>', true); }
@@ -94,7 +127,7 @@
     try {
       if (f.dataset.lzForm === 'neu') {
         const { data, error } = await sb.auth.signUp({ email: d.email.trim(), password: d.passwort,
-          options: { emailRedirectTo: location.origin + location.pathname, data: { name: d.name.trim(), firma: (d.firma || '').trim(), paket: d.paket, zyklus: 'jahr' } } });
+          options: { emailRedirectTo: location.origin + location.pathname, data: { name: d.name.trim(), firma: (d.firma || '').trim(), paket: d.paket || '', rechtsform: d.rechtsform || 'einzel', zyklus: 'jahr' } } });
         if (error) throw error;
         if (!data.session) { anmelden('anmelden', '✓ Fast geschafft: Bitte bestätigen Sie Ihre E-Mail über den Link, den wir Ihnen gerade geschickt haben.'); return; }
         location.reload();
@@ -147,10 +180,19 @@
     const { data: l, error } = await sb.from('lizenzen').select('*').eq('user_id', session.user.id).maybeSingle();
     if (error || !l) { sperre('Lizenz nicht gefunden', 'Zu Ihrem Konto gibt es noch keine Lizenz. Bitte melden Sie sich bei uns.', false); return; }
     window.NASUVIA_LIZENZ = l;
+    try { document.dispatchEvent(new CustomEvent('ordasio-lizenz', { detail: l })); } catch {}
     const h = heute();
     const gueltig = l.status !== 'gesperrt' && ((l.status === 'test' && l.test_bis >= h) || (l.status === 'aktiv' && (l.gueltig_bis || '') >= h));
-    if (!ERLAUBT[PRODUKT].includes(l.paket)) {
-      sperre('Nicht in Ihrem Paket', `Ihr Paket „${esc(PAKETE[l.paket])}“ enthält ${NAME} nicht. ${['zeit', 'termine', 'lager'].includes(PRODUKT) ? 'Das gibt es zu jedem Geschäftspaket (Rechnungen, Buchhaltung oder Kombi).' : 'Mit dem Kombi-Paket haben Sie alles.'}`, false); return;
+    if (!darf(l.paket)) {
+      const besser = O && O.ab(PRODUKT === 'start' ? 'start' : PRODUKT, l.rechtsform || 'einzel');
+      const text = `Ihr Paket „${esc(paketName(l.paket))}“ enthält ${NAME} nicht.` + (besser ? ` Das gibt es ab dem Paket „${esc(besser.name)}“ (CHF ${besser.monat} pro Monat).` : '');
+      if (besser && l.status === 'test' && gueltig) {
+        zeigen(`${SYMBOL}<h2>Nicht in Ihrem Paket</h2><p>${text} Während des Gratis-Tests können Sie gratis wechseln.</p>
+          <button class="lz-knopf" data-lz-wechsel="${besser.id}">Zu „${esc(besser.name)}“ wechseln</button>
+          <a class="lz-knopf zweit" href="${KAUFEN}">Alle Pakete ansehen</a>
+          <a class="lz-link" href="${KAUFEN.replace(/lizenz\/$/, 'start/')}" style="text-align:center;text-decoration:none">Zurück zum Start</a>`);
+      } else sperre('Nicht in Ihrem Paket', text, false);
+      return;
     }
     if (!gueltig) {
       sperre(l.status === 'gesperrt' ? 'Zugang gesperrt' : l.status === 'test' ? 'Ihr Gratis-Test ist abgelaufen' : 'Ihre Lizenz ist abgelaufen',

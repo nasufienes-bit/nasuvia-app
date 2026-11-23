@@ -23,6 +23,7 @@
     { id: 'sozial', name: 'Sozialversicherungen und Vorsorge', ziffer: 405, satz: 0 },
     { id: 'fahrten', name: 'Fahrten (Kilometer)', ziffer: 405, satz: 0 },
     { id: 'uebrig', name: 'Übriges', ziffer: 405, satz: 8.1 },
+    { id: 'steuern', name: 'Steuern (Gewinn und Kapital)', ziffer: 405, satz: 0, nurFirma: true },
   ];
   const KAT_EIN_STD = [
     { id: 'dienstleistung', name: 'Dienstleistungen', satz: 8.1 },
@@ -39,7 +40,7 @@
       for (const e of eigene || []) if (e && e.id) map.set(e.id, { ...(map.get(e.id) || { ziffer: 405, satz: 8.1 }), ...e });
       return [...map.values()];
     };
-    KAT_AUS = mischen(KAT_AUS_STD, k.aus);
+    KAT_AUS = mischen(KAT_AUS_STD, k.aus).map((x) => (x.nurFirma && !istFirma() ? { ...x, versteckt: true } : x));
     KAT_EIN = mischen(KAT_EIN_STD, k.ein);
   }
   const sichtbar = (liste, aktuell) => liste.filter((x) => !x.versteckt || x.id === aktuell);
@@ -54,13 +55,16 @@
     mwst: '<svg viewBox="0 0 24 24"><path d="M19 5L5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg>',
     abschluss: '<svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/></svg>',
     auswertung: '<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+    konten: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16M3 9h18M6 13h3M15 13h3M6 16h3M15 16h3"/></svg>',
     loehne: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2A5 5 0 0 1 21 19"/></svg>',
     mehr: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
   };
   const ANSICHTEN = [
-    ['uebersicht', 'Übersicht'], ['buchungen', 'Buchungen'], ['auswertung', 'Auswertung'], ['loehne', 'Löhne'], ['mwst', 'MWST'], ['abschluss', 'Abschluss'], ['mehr', 'Einstellungen'],
+    ['uebersicht', 'Übersicht'], ['buchungen', 'Buchungen'], ['konten', 'Konten'], ['auswertung', 'Auswertung'], ['loehne', 'Löhne'], ['mwst', 'MWST'], ['abschluss', 'Abschluss'], ['mehr', 'Einstellungen'],
   ];
-  const KURZ = { uebersicht: 'Start', buchungen: 'Buchen', auswertung: 'Grafik', mwst: 'MWST', abschluss: 'Abschluss', mehr: 'Mehr' };
+  // Konten nur mit doppelter Buchhaltung, Löhne nur in Paketen mit Lohn
+  const ansichten = () => ANSICHTEN.filter(([id]) => (id !== 'konten' || doppeltAktiv()) && (id !== 'loehne' || lohnErlaubt()));
+  const KURZ = { uebersicht: 'Start', buchungen: 'Buchen', konten: 'Konten', auswertung: 'Grafik', mwst: 'MWST', abschluss: 'Abschluss', mehr: 'Mehr' };
 
   /* ================= Hilfen ================= */
   const $ = (id) => document.getElementById(id);
@@ -127,11 +131,16 @@
     filter: { typ: 'alle', monat: '', kat: '', suche: '' },
     stichtag: '',
     lohnMonat: new Date().toLocaleDateString('sv-SE').slice(0, 7),
+    journal: [],
+    kontenTab: 'journal',
+    journalFilter: { art: 'alle', suche: '' },
+    alleKonten: false,
   };
   try { const a = localStorage.getItem('nb.ansicht'); if (a && ANSICHTEN.some(([id]) => id === a)) Z.ansicht = a; } catch {}
 
   async function laden() {
     Z.buchungen = await Speicher.alle('buchungen');
+    Z.journal = await Speicher.alle('journal');
     const e = await Speicher.holen('einstellungen', 'haupt');
     if (e) Z.einst = { ...Z.einst, ...e };
     kategorienAnwenden();
@@ -174,11 +183,34 @@
   const sortiert = (l) => [...l].sort((a, b) => (b.datum || '').localeCompare(a.datum || '') || (b.geaendert || '').localeCompare(a.geaendert || ''));
   const istOffen = (b) => b.typ === 'einnahme' && b.quelle === 'rechnung' && !b.bezahlt;
 
+  /* ================= Rechtsform und doppelte Buchhaltung ================= */
+  // In der Verkaufsversion kommt die Rechtsform aus der Lizenz, sonst aus den Einstellungen
+  const O = window.ORDASIO, D = window.Doppelt;
+  const lizenzJetzt = () => window.NASUVIA_LIZENZ || null;
+  function rechtsform() {
+    const l = lizenzJetzt();
+    if (l && ['einzel', 'gmbh', 'ag'].includes(l.rechtsform)) return l.rechtsform;
+    return ['einzel', 'gmbh', 'ag'].includes(Z.einst.rechtsform) ? Z.einst.rechtsform : 'einzel';
+  }
+  const istFirma = () => rechtsform() !== 'einzel';
+  const doppeltAktiv = () => !!D && (istFirma() || !!Z.einst.doppelt);
+  const lohnErlaubt = () => { const l = lizenzJetzt(); return !O || !l || O.darf(l.paket, 'lohn'); };
+  const kontenplan = () => D.kontenplan(rechtsform(), Z.einst.konten || []);
+  const katKonto = (b) => D.kategorieKonto(Z.einst, b.typ, b.kategorie);
+  const kontoText = (nr) => `${nr} ${D.nameVon(kontenplan(), nr)}`;
+  const festBis = () => Z.einst.festBis || '';
+  const istFest = (datum) => !!festBis() && !!datum && datum <= festBis();
+  const eintraege = () => D.journalAus({ buchungen: Z.buchungen, journal: Z.journal, einst: Z.einst, rechtsform: rechtsform() });
+  // Anschaffungen werden mit doppelter Buchhaltung aktiviert und zählen nicht als Aufwand
+  const erfolgswirksam = (b) => !doppeltAktiv() || D.istErfolgskonto(katKonto(b));
+  const firmenName = () => ((lizenzJetzt() || {}).firma) || ((window.Marke && Marke.daten && Marke.daten()) || {}).name || '';
+
   /* ================= Navigation ================= */
   function navZeichnen() {
-    $('navPc').innerHTML = ANSICHTEN.map(([id, name]) =>
+    if (!ansichten().some(([id]) => id === Z.ansicht)) Z.ansicht = 'uebersicht';
+    $('navPc').innerHTML = ansichten().map(([id, name]) =>
       `<button class="nav-knopf ${Z.ansicht === id ? 'aktiv' : ''}" data-ansicht="${id}">${ICON[id]}${name}</button>`).join('');
-    $('navHandy').innerHTML = ANSICHTEN.filter(([id]) => id !== 'loehne').map(([id, name]) =>
+    $('navHandy').innerHTML = ansichten().filter(([id]) => id !== 'loehne' && !(id === 'auswertung' && doppeltAktiv())).map(([id, name]) =>
       `<button class="${Z.ansicht === id ? 'aktiv' : ''}" data-ansicht="${id}">${ICON[id]}${KURZ[id] || name}</button>`).join('');
   }
   document.addEventListener('click', (e) => {
@@ -200,7 +232,8 @@
 
   function zeichnen() {
     navZeichnen();
-    const f = { uebersicht: uebersicht, buchungen: buchungenAnsicht, auswertung: auswertung, loehne: loehneAnsicht, mwst: mwstAnsicht, abschluss: abschluss, mehr: mehr }[Z.ansicht];
+    const f = { uebersicht: uebersicht, buchungen: buchungenAnsicht, konten: kontenAnsicht, auswertung: auswertung, loehne: loehneAnsicht, mwst: mwstAnsicht,
+      abschluss: doppeltAktiv() ? abschlussDoppelt : abschluss, mehr: mehr }[Z.ansicht];
     $('inhalt').innerHTML = f();
     statusZeigen();
   }
@@ -224,6 +257,7 @@
   function summen(liste) {
     let ein = 0, aus = 0;
     for (const b of liste) {
+      if (!erfolgswirksam(b)) continue;
       if (b.typ === 'einnahme') ein += netto(b); else aus += netto(b);
     }
     return { ein, aus, gewinn: ein - aus };
@@ -300,6 +334,7 @@
       <div><h1>${esc(Z.einst.begruessung || 'Übersicht')}</h1><p class="unter">Alle Beträge ohne MWST</p></div>
       <div class="kopf-aktionen">${jahrWahl()}<button class="btn" onclick="NB.startAnpassen()">Übersicht anpassen</button><button class="btn" onclick="NB.zwischenbilanz()">Zwischenbilanz</button><button class="btn" onclick="NB.fahrt()">Fahrt erfassen</button><a class="btn nv-weg" href="rechnungen/" style="text-decoration:none">Rechnung schreiben</a><button class="btn btn-haupt nur-pc" onclick="NB.neu()">+ Neue Buchung</button></div>
     </div>
+    ${doppeltAktiv() ? kontostaendeKarte() : ''}
     ${k('ziel', ziel ? `<div class="card abstand-unten ziel-karte"><div class="ziel-kopf"><h2 style="margin:0">Jahresziel ${Z.jahr}</h2><span class="num">${chf(s.ein)} von ${chf(ziel)} CHF · ${zielPct} %</span></div><div class="spur gross"><i style="width:${zielPct}%"></i></div></div>` : '')}
     ${k('kennzahlen', `<div class="raster raster-4">`)}
       ${st.kennzahlen ? '' : '<!--KZ'}<div class="card kennzahl"><div class="label">Einnahmen</div><div class="wert">${chf(s.ein)}</div><div class="klein">CHF im Jahr ${Z.jahr}</div></div>
@@ -359,7 +394,7 @@
   /* ================= Diagramme ================= */
   const monatsWerte = (jahr, typ) => {
     const m = Array(12).fill(0);
-    for (const b of imJahr(jahr)) if (!typ || b.typ === typ) m[Number(b.datum.slice(5, 7)) - 1] += typ ? netto(b) : (b.typ === 'einnahme' ? netto(b) : -netto(b));
+    for (const b of imJahr(jahr)) if ((!typ || b.typ === typ) && erfolgswirksam(b)) m[Number(b.datum.slice(5, 7)) - 1] += typ ? netto(b) : (b.typ === 'einnahme' ? netto(b) : -netto(b));
     return m;
   };
   const kumuliert = (jahr) => {
@@ -491,6 +526,7 @@
       e.preventDefault();
       const km = rechnen();
       if (!km) { $('fkKm').focus(); toast('Bitte die Kilometer eingeben'); return; }
+      if (istFest($('fkDatum').value)) { toast(`Bis ${datumKurz(festBis())} ist alles festgeschrieben`); return; }
       await Speicher.speichern('buchungen', { typ: 'ausgabe', quelle: 'fahrt', kategorie: 'fahrten', datum: $('fkDatum').value || heute(),
         km, kmAnsatz: ansatz, betragRappen: Math.round(km * ansatz * 100), mwstSatz: 0, mwstRappen: 0,
         text: $('fkZweck').value.trim() || `Fahrt ${km} km`, partner: '', zahlung: 'Bar' });
@@ -610,7 +646,9 @@
     dlg.oninput = null;
     $('iForm').onsubmit = async (e) => {
       e.preventDefault();
-      const gewaehlt = [...dlg.querySelectorAll('input[data-i]:checked')].map((c) => vorschlaege[Number(c.dataset.i)]);
+      const alleGewaehlt = [...dlg.querySelectorAll('input[data-i]:checked')].map((c) => vorschlaege[Number(c.dataset.i)]);
+      const gewaehlt = alleGewaehlt.filter((v) => !istFest(v.datum));
+      if (gewaehlt.length < alleGewaehlt.length) toast(`${alleGewaehlt.length - gewaehlt.length} Bewegungen liegen in der festgeschriebenen Zeit und wurden übersprungen`);
       const speichern = [];
       for (const v of gewaehlt) {
         if (v.rechnung) { speichern.push({ ...v.rechnung, bezahlt: true, bezahltAm: v.datum, zahlung: 'Bank', importSchluessel: v.schluessel }); continue; }
@@ -854,6 +892,7 @@
     const monat = Z.lohnMonat;
     const ende = new Date(Number(monat.slice(0, 4)), Number(monat.slice(5, 7)), 0).toLocaleDateString('sv-SE');
     const name = monatName(monat);
+    if (istFest(ende)) { toast(`${name} ist festgeschrieben und kann nicht mehr gebucht werden.`); return; }
     const alt = Z.buchungen.filter((b) => b.quelle === 'lohn' && b.lohnMonat === monat);
     for (const b of alt) await Speicher.loeschen('buchungen', b.id);
     let n = 0;
@@ -861,7 +900,7 @@
       const r = lohnBerechnen(m, lohnEingabe(monat, m.id));
       if (!r.brutto) continue;
       const basis = { typ: 'ausgabe', quelle: 'lohn', lohnMonat: monat, datum: ende, mwstSatz: 0, mwstRappen: 0, partner: m.name, zahlung: 'Bank' };
-      await Speicher.speichern('buchungen', { ...basis, id: `lohn-${monat}-${m.id}`, kategorie: 'loehne', betragRappen: r.brutto + r.zulagen, text: `Lohn ${name}` });
+      await Speicher.speichern('buchungen', { ...basis, id: `lohn-${monat}-${m.id}`, kategorie: 'loehne', betragRappen: r.brutto + r.zulagen, anAbzuege: r.abzuege, text: `Lohn ${name}` });
       if (r.agTotal) await Speicher.speichern('buchungen', { ...basis, id: `lohn-ag-${monat}-${m.id}`, kategorie: 'sozial', betragRappen: r.agTotal, text: `Arbeitgeberbeiträge ${name}` });
       if (r.spesen) await Speicher.speichern('buchungen', { ...basis, id: `lohn-sp-${monat}-${m.id}`, kategorie: 'spesen', betragRappen: r.spesen, text: `Spesen ${name}` });
       n++;
@@ -1000,10 +1039,13 @@
     function formular() {
       const ein = b.typ === 'einnahme';
       const rechnung = b.quelle === 'rechnung';
+      const gesperrt = !!(vorhanden && istFest(vorhanden.datum));
+      const mitKreditor = doppeltAktiv() && !ein && !['lohn', 'fahrt'].includes(b.quelle);
       dlg.innerHTML = `
       <form method="dialog" id="bForm">
         <div class="dlg-kopf"><h3>${_titel || (vorhanden ? 'Buchung bearbeiten' : (vorgaben.text ? 'Kopie der Buchung' : 'Neue Buchung'))}</h3><button type="button" class="x" data-zu aria-label="Schliessen">×</button></div>
         <div class="dlg-inhalt">
+          ${gesperrt ? `<p class="hinweis" style="background:var(--flaeche);padding:10px 12px;border-radius:10px"><b>Festgeschrieben bis ${datumKurz(festBis())}.</b> Diese Buchung lässt sich nicht mehr ändern oder löschen. Korrekturen machen Sie mit einer Storno-Buchung im Journal.</p>` : ''}
           ${rechnung ? `<p class="hinweis"><span class="marke marke-info">Rechnung ${esc(b.rechnungNr || '')}</span> aus der Rechnungs-App</p>`
             : `<div class="segment"><button type="button" class="${!ein ? 'an' : ''}" data-btyp="ausgabe">Ausgabe</button><button type="button" class="${ein ? 'an' : ''}" data-btyp="einnahme">Einnahme</button></div>`}
           <div class="feld-zeile">
@@ -1014,25 +1056,33 @@
             <div class="feld"><label for="fSatz">MWST-Satz</label><select id="fSatz">${SAETZE.map((s) => `<option value="${s}" ${Number(b.mwstSatz) === s ? 'selected' : ''}>${s ? s.toFixed(1) + ' %' : 'ohne MWST'}</option>`).join('')}</select></div>
             <div class="feld"><label for="fMwst">${ein ? 'MWST' : 'Vorsteuer'} (CHF)</label><input type="text" id="fMwst" inputmode="decimal" autocomplete="off" value="${b.mwstRappen != null ? chf(b.mwstRappen).replace(/’/g, '') : ''}" /></div>
           </div>
-          <div class="feld"><label for="fKat">Kategorie</label><select id="fKat">${katOptionen()}</select></div>
+          <div class="feld"><label for="fKat">Kategorie</label><select id="fKat">${katOptionen()}</select>${doppeltAktiv() ? `<p class="hinweis" id="fKontoInfo" style="margin-top:4px">${kontoHinweis()}</p>` : ''}</div>
           <div class="feld"><label for="fText">Beschreibung</label><input type="text" id="fText" value="${esc(b.text || '')}" placeholder="${ein ? 'z. B. Spleissarbeiten Winterthur' : 'z. B. Kabel und OTO-Dosen'}" /></div>
           <div class="feld-zeile">
             <div class="feld"><label for="fPartner">${ein ? 'Kunde' : 'Lieferant'}</label><input type="text" id="fPartner" list="partnerListe" value="${esc(b.partner || '')}" /><datalist id="partnerListe">${partner.map((p) => `<option value="${esc(p)}">`).join('')}</datalist></div>
             <div class="feld"><label for="fZahlung">Bezahlt mit</label><select id="fZahlung">${ZAHLUNG.map((z) => `<option ${b.zahlung === z ? 'selected' : ''}>${z}</option>`).join('')}</select></div>
           </div>
-          ${rechnung ? `<div class="feld-zeile">
+          ${mitKreditor ? `<label class="haken"><input type="checkbox" id="fKreditor" ${b.kreditor ? 'checked' : ''} />Lieferantenrechnung, noch offen (Kreditor)</label>` : ''}
+          ${rechnung || (mitKreditor && b.kreditor) ? `<div class="feld-zeile">
             <label class="haken"><input type="checkbox" id="fBezahlt" ${b.bezahlt ? 'checked' : ''} />Rechnung ist bezahlt</label>
             <div class="feld"><label for="fBezahltAm">Bezahlt am</label><input type="date" id="fBezahltAm" value="${b.bezahltAm || ''}" ${b.bezahlt ? '' : 'disabled'} /></div>
           </div>` : ''}
           <div id="belegBox">${belegHtml()}</div>
         </div>
         <div class="dlg-fuss">
-          ${vorhanden ? '<button type="button" class="btn btn-rot" data-loeschen>Löschen</button><button type="button" class="btn" data-duplizieren>Duplizieren</button>' : ''}
-          <div class="rechts"><button type="button" class="btn" data-zu>Abbrechen</button><button type="submit" class="btn btn-haupt">Speichern</button></div>
+          ${vorhanden && !gesperrt ? '<button type="button" class="btn btn-rot" data-loeschen>Löschen</button>' : ''}${vorhanden ? '<button type="button" class="btn" data-duplizieren>Duplizieren</button>' : ''}
+          ${gesperrt && doppeltAktiv() ? '<button type="button" class="btn" data-storno>Storno-Buchung</button>' : ''}
+          <div class="rechts"><button type="button" class="btn" data-zu>${gesperrt ? 'Schliessen' : 'Abbrechen'}</button>${gesperrt ? '' : '<button type="submit" class="btn btn-haupt">Speichern</button>'}</div>
         </div>
       </form>`;
     }
 
+    function kontoHinweis() {
+      if (!doppeltAktiv()) return '';
+      const k = katKonto(b);
+      const gegen = b.typ === 'einnahme' ? (b.quelle === 'rechnung' ? '1100' : D.zahlungKonto(Z.einst, b.zahlung)) : (b.kreditor ? '2000' : D.zahlungKonto(Z.einst, b.zahlung));
+      return b.typ === 'einnahme' ? `Buchung: ${kontoText(gegen)} an ${kontoText(k)}` : `Buchung: ${kontoText(k)} an ${kontoText(gegen)}`;
+    }
     function mwstNachfuehren() {
       if (mwstVonHand) return;
       const brutto = betragLesen($('fBetrag').value);
@@ -1052,6 +1102,7 @@
       b.text = $('fText').value.trim();
       b.partner = $('fPartner').value.trim();
       b.zahlung = $('fZahlung').value;
+      if ($('fKreditor')) b.kreditor = $('fKreditor').checked;
       if ($('fBezahlt')) { b.bezahlt = $('fBezahlt').checked; b.bezahltAm = b.bezahlt ? ($('fBezahltAm').value || heute()) : ''; }
     }
 
@@ -1069,6 +1120,8 @@
         const k = (b.typ === 'ausgabe' ? KAT_AUS : KAT_EIN).find((x) => x.id === e.target.value);
         if (k) { $('fSatz').value = String(k.satz); mwstVonHand = false; mwstNachfuehren(); }
       }
+      if (e.target.id === 'fKreditor') { felderMerken(); if (!b.kreditor) { b.bezahlt = false; b.bezahltAm = ''; } formular(); return; }
+      if (['fKat', 'fZahlung'].includes(e.target.id) && $('fKontoInfo')) { felderMerken(); $('fKontoInfo').textContent = kontoHinweis(); }
       if (e.target.id === 'fBezahlt') {
         $('fBezahltAm').disabled = !e.target.checked;
         if (e.target.checked && !$('fBezahltAm').value) $('fBezahltAm').value = heute();
@@ -1102,7 +1155,14 @@
         dlg.close();
         buchungBearbeiten(null, { ...kopie, datum: heute(), quelle: 'manuell' });
       }
+      if (t.matches('[data-storno]')) {
+        dlg.close();
+        const e = eintraege().filter((x) => x.ref === b.id);
+        journalBearbeiten(null, { text: 'Storno: ' + (b.text || katName(b)), datum: heute(), zeilen: e.flatMap((x) => x.zeilen).map((z) => ({ soll: z.haben, haben: z.soll, betrag: z.betrag })) });
+        return;
+      }
       if (t.matches('[data-loeschen]')) {
+        if (istFest(b.datum)) { toast('Festgeschrieben, Löschen nicht möglich'); return; }
         if (!confirm('Diese Buchung wirklich löschen?')) return;
         await Speicher.loeschen('buchungen', b.id);
         if (b.belegId) await Speicher.loeschen('belege', b.belegId);
@@ -1115,6 +1175,7 @@
       felderMerken();
       if (!Number.isFinite(b.betragRappen) || b.betragRappen === null || b.betragRappen <= 0) { $('fBetrag').focus(); toast('Bitte einen Betrag eingeben'); return; }
       if (!b.datum) { $('fDatum').focus(); return; }
+      if (istFest(b.datum) || (vorhanden && istFest(vorhanden.datum))) { toast(`Bis ${datumKurz(festBis())} ist alles festgeschrieben. Bitte ein späteres Datum wählen.`); $('fDatum').focus(); return; }
       if (b.mwstRappen == null) b.mwstRappen = mwstAus(b.betragRappen, b.mwstSatz);
       if (neuerBeleg) {
         if (b.belegId) await Speicher.loeschen('belege', b.belegId);
@@ -1252,6 +1313,7 @@
           <button class="btn btn-klein" onclick="NB.mwstCsv()">Als CSV speichern</button>
           <button class="btn btn-klein nur-pc" onclick="window.print()">Drucken</button>
         </div>
+        ${doppeltAktiv() ? mwstVerbuchenHtml(q, r) : ''}
       </div>
     </div>`;
   }
@@ -1375,6 +1437,463 @@
     zeichnen();
   });
 
+  /* ================= Doppelte Buchhaltung: Konten, Journal, Eröffnung, Abschluss ================= */
+  const ART_NAME = { auto: 'Automatisch', manuell: 'Manuell', eroeffnung: 'Eröffnung', mwst: 'MWST', kasse: 'Kasse' };
+  const KLASSEN = [['1', 'Aktiven'], ['2', 'Passiven'], ['3', 'Ertrag'], ['4', 'Material und Waren'], ['5', 'Personal'], ['6', 'Übriger Aufwand'], ['7', 'Nebenbetriebe'], ['8', 'Betriebsfremd, ausserordentlich, Steuern'], ['9', 'Abschluss']];
+  function kontoOptionen(wert, filter) {
+    const plan = kontenplan().filter((k) => k.art !== 'abschluss' && (!filter || filter(k)));
+    return '<option value="">Konto wählen</option>' + KLASSEN.map(([z, n]) => {
+      const l = plan.filter((k) => k.nr[0] === z);
+      return l.length ? `<optgroup label="${z} ${esc(n)}">${l.map((k) => `<option value="${k.nr}" ${k.nr === wert ? 'selected' : ''}>${k.nr} ${esc(k.name)}</option>`).join('')}</optgroup>` : '';
+    }).join('');
+  }
+  const eroeffnung = () => Z.journal.find((j) => j.id === 'eroeffnung' && !j.geloescht) || null;
+  function naechsterBeleg() {
+    const n = Z.journal.map((j) => /^J-(\d+)$/.exec(j.beleg || '')).filter(Boolean).map((m) => Number(m[1]));
+    return 'J-' + String((n.length ? Math.max(...n) : 0) + 1).padStart(4, '0');
+  }
+  const betragZelle = (x) => `<td class="b ${x < 0 ? 'minus' : ''}">${chf(x)}</td>`;
+
+  function kontenAnsicht() {
+    const tabs = [['journal', 'Journal'], ['salden', 'Saldenliste'], ['plan', 'Kontenplan']];
+    const inhalt = { journal: journalTab, salden: saldenTab, plan: planTab }[Z.kontenTab] || journalTab;
+    const rfName = O ? O.RECHTSFORMEN[rechtsform()].name : rechtsform();
+    return `
+    <div class="kopf">
+      <div><h1>Konten</h1><p class="unter">Doppelte Buchhaltung nach KMU-Kontenrahmen · ${esc(rfName)}${festBis() ? ` · festgeschrieben bis ${datumKurz(festBis())}` : ''}</p></div>
+      <div class="kopf-aktionen">${jahrWahl()}<button class="btn" onclick="NB.eroeffnung()">Eröffnungsbilanz</button><button class="btn" onclick="NB.journalCsv()">Journal als CSV</button><button class="btn btn-haupt" onclick="NB.journalNeu()">+ Buchung Soll an Haben</button></div>
+    </div>
+    ${eroeffnungHinweis()}
+    <div class="segment" style="margin-bottom:12px">${tabs.map(([id, n]) => `<button class="${Z.kontenTab === id ? 'an' : ''}" data-ktab="${id}">${n}</button>`).join('')}</div>
+    ${inhalt()}`;
+  }
+  function eroeffnungHinweis() {
+    if (eroeffnung()) return '';
+    return `<div class="card abstand-unten" style="border:1px solid rgba(183,121,31,.3)"><h2>Zuerst die Eröffnungsbilanz</h2>
+      <p class="hinweis">Tragen Sie einmal ein, womit Ihre Buchhaltung startet: ${istFirma() ? 'das einbezahlte ' + (rechtsform() === 'ag' ? 'Aktienkapital' : 'Stammkapital') + ', ' : ''}Bankguthaben, Kasse, offene Rechnungen, Fahrzeuge, Darlehen. Bei einer Neugründung reicht meist eine Zeile: Bank an Kapital.</p>
+      <button class="btn btn-haupt abstand" onclick="NB.eroeffnung()">Eröffnungsbilanz erfassen</button></div>`;
+  }
+
+  function journalTab() {
+    const f = Z.journalFilter, q = f.suche.trim().toLowerCase();
+    const plan = kontenplan();
+    const liste = eintraege().filter((e) => e.datum.startsWith(Z.jahr)
+      && (f.art === 'alle' || (f.art === 'manuell' ? !['auto', 'kasse'].includes(e.art) : ['auto', 'kasse'].includes(e.art)))
+      && (!q || [e.text, e.beleg, ...e.zeilen.flatMap((z) => [z.soll, z.haben, D.nameVon(plan, z.soll), D.nameVon(plan, z.haben), chf(z.betrag)])].join(' ').toLowerCase().includes(q)));
+    const zuViel = liste.length > 400;
+    const zeigen = zuViel ? liste.slice(-400) : liste;
+    const zeilenJ = zeigen.map((e) => e.zeilen.map((z, i) => `<tr class="klick" data-jeintrag="${esc(e.id)}">
+        <td class="num">${i ? '' : datumKurz(e.datum)}</td><td class="num">${i ? '' : esc(e.beleg || '')}</td>
+        <td>${i ? '' : `${esc(e.text || '')}${e.art !== 'auto' ? ` <span class="marke marke-info">${ART_NAME[e.art] || 'Manuell'}</span>` : ''}`}</td>
+        <td><span class="kontonr">${z.soll}</span> <span class="nur-pc">${esc(D.nameVon(plan, z.soll))}</span></td>
+        <td><span class="kontonr">${z.haben}</span> <span class="nur-pc">${esc(D.nameVon(plan, z.haben))}</span></td>
+        <td class="b">${chf(z.betrag)}</td></tr>`).join('')).join('');
+    return `
+    <div class="filter">
+      <div class="segment">${[['alle', 'Alle'], ['manuell', 'Manuell'], ['auto', 'Automatisch']].map(([id, n]) => `<button class="${f.art === id ? 'an' : ''}" data-jart="${id}">${n}</button>`).join('')}</div>
+      <input type="search" placeholder="Text, Konto oder Betrag suchen" value="${esc(f.suche)}" data-jsuche />
+    </div>
+    <div class="card scroll">${zeigen.length ? `<table class="journal"><tr><th>Datum</th><th>Beleg</th><th>Text</th><th>Soll</th><th>Haben</th><th class="b">Betrag</th></tr>${zeilenJ}</table>` : '<p class="leer">Keine Buchungen in diesem Jahr.</p>'}</div>
+    <p class="hinweis abstand">${zuViel ? 'Es werden die letzten 400 Buchungen gezeigt, mit der Suche finden Sie alle. ' : ''}Automatische Buchungen entstehen aus Einnahmen, Ausgaben, Rechnungen, Löhnen und der Kasse. Zum Ändern öffnen Sie die ursprüngliche Buchung mit einem Klick.</p>`;
+  }
+
+  function saldenTab() {
+    const sl = D.saldenliste({ plan: kontenplan(), eintraege: eintraege(), jahr: Z.jahr });
+    const sichtbar = sl.filter((k) => Z.alleKonten || k.soll || k.haben);
+    const gruppen = KLASSEN.map(([z, n]) => {
+      const l = sichtbar.filter((k) => k.nr[0] === z);
+      if (!l.length) return '';
+      return `<tr><th colspan="5" style="padding-top:14px">${z} ${esc(n)}</th></tr>` + l.map((k) => `<tr class="klick" data-konto="${k.nr}"><td><span class="kontonr">${k.nr}</span></td><td>${esc(k.name)}</td><td class="b">${chf(k.soll)}</td><td class="b">${chf(k.haben)}</td>${betragZelle(k.saldo)}</tr>`).join('');
+    }).join('');
+    const tS = sichtbar.reduce((a, k) => a + k.soll, 0), tH = sichtbar.reduce((a, k) => a + k.haben, 0);
+    return `
+    <div class="filter"><label class="haken"><input type="checkbox" data-alle-konten ${Z.alleKonten ? 'checked' : ''} /> Auch Konten ohne Bewegung zeigen</label><button class="btn btn-klein" onclick="NB.saldenCsv()">Saldenliste als CSV</button></div>
+    <div class="card scroll"><table class="journal"><tr><th>Konto</th><th>Bezeichnung</th><th class="b">Soll</th><th class="b">Haben</th><th class="b">Saldo</th></tr>${gruppen || '<tr><td colspan="5" class="leer">Noch keine Bewegungen.</td></tr>'}
+      <tr class="summe"><td></td><td>Total</td><td class="b">${chf(tS)}</td><td class="b">${chf(tH)}</td><td></td></tr></table></div>
+    <p class="hinweis abstand">Bilanzkonten (1 und 2) zeigen alle Bewegungen bis Ende ${Z.jahr}, Erfolgskonten (3 bis 8) nur das Jahr ${Z.jahr}. Soll und Haben sind immer gleich gross. Ein Klick öffnet das Kontoblatt.</p>`;
+  }
+
+  function planTab() {
+    const plan = kontenplan().filter((k) => k.art !== 'abschluss');
+    const fix = !!festBis();
+    const ART = { aktiv: 'Aktiven', passiv: 'Passiven', aufwand: 'Aufwand', ertrag: 'Ertrag' };
+    const katZeile = (k, typ) => `<tr><td>${esc(k.name)}</td><td><select class="auswahl-klein" data-kat-konto="${k.id}" data-typ="${typ}" ${fix ? 'disabled' : ''}>${kontoOptionen(D.kategorieKonto(Z.einst, typ, k.id), typ === 'einnahme' ? (x) => x.art === 'ertrag' || x.nr[0] === '8' : (x) => ['aufwand', 'aktiv'].includes(x.art))}</select></td></tr>`;
+    return `
+    <div class="raster raster-2">
+      <div class="card">
+        <h2>Kategorien und Konten</h2>
+        <p class="hinweis" style="margin-bottom:8px">Jede Kategorie bucht auf ein Konto. ${fix ? 'Nach dem Festschreiben sind die Zuordnungen fix, damit abgeschlossene Jahre gleich bleiben. Für ein anderes Konto legen Sie eine neue Kategorie an.' : 'Ändern Sie das nur, wenn Ihr Treuhänder es so möchte.'}</p>
+        <table><tr><th colspan="2">Ausgaben</th></tr>${sichtbar(KAT_AUS).map((k) => katZeile(k, 'ausgabe')).join('')}
+          <tr><th colspan="2" style="padding-top:14px">Einnahmen</th></tr>${sichtbar(KAT_EIN).map((k) => katZeile(k, 'einnahme')).join('')}</table>
+        <h2 class="abstand">Bezahlt mit</h2>
+        <table>${ZAHLUNG.map((z) => `<tr><td>${z}</td><td><select class="auswahl-klein" data-zahl-konto="${z}" ${fix ? 'disabled' : ''}>${kontoOptionen(D.zahlungKonto(Z.einst, z), (x) => /^10/.test(x.nr) || x.nr === '2100')}</select></td></tr>`).join('')}</table>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2 style="margin:0">Kontenplan</h2><button class="btn btn-klein" data-konto-neu>+ Eigenes Konto</button></div>
+        <p class="hinweis" style="margin:6px 0 8px">Schweizer KMU-Kontenrahmen für ${esc(O ? O.RECHTSFORMEN[rechtsform()].name : rechtsform())}. Eigene Konten und Namen sind möglich.</p>
+        <table class="journal">${KLASSEN.slice(0, 8).map(([z, n]) => { const l = plan.filter((k) => k.nr[0] === z); return l.length ? `<tr><th colspan="3" style="padding-top:12px">${z} ${esc(n)}</th></tr>` + l.map((k) => `<tr><td><span class="kontonr">${k.nr}</span></td><td>${esc(k.name)}${k.standard ? '' : ' <span class="marke marke-info">eigenes</span>'}</td><td class="b"><button class="link" data-konto-umbenennen="${k.nr}">Umbenennen</button></td></tr>`).join('') : ''; }).join('')}</table>
+        <p class="hinweis abstand">Arten: ${Object.values(ART).join(', ')}.</p>
+      </div>
+    </div>`;
+  }
+  async function kontoAnpassen(nr) {
+    const plan = kontenplan(), alt = nr ? plan.find((k) => k.nr === nr) : null;
+    kleinerDialog(`<h3 style="margin:0">${alt ? 'Konto umbenennen' : 'Eigenes Konto anlegen'}</h3>
+      <div class="feld"><label>Kontonummer (4 Ziffern)</label><input name="nr" inputmode="numeric" pattern="[1-8][0-9]{3}" value="${alt ? alt.nr : ''}" ${alt ? 'readonly' : 'required'} placeholder="z. B. 1022"></div>
+      <div class="feld"><label>Bezeichnung</label><input name="name" value="${esc(alt ? alt.name : '')}" required maxlength="80"></div>
+      ${alt ? '' : `<div class="feld"><label>Art</label><select name="art"><option value="aktiv">Aktiven (1…)</option><option value="passiv">Passiven (2…)</option><option value="ertrag">Ertrag (3…, 8…)</option><option value="aufwand">Aufwand (4… bis 8…)</option></select></div>`}
+      <p class="hinweis">Tipp: 1000 bis 1099 Geld, 1500 bis 1599 Sachanlagen, 2400 bis 2599 langfristige Schulden, 3000 bis 3999 Ertrag, 4000 bis 6999 Aufwand.</p>`,
+    async (fd) => {
+      const n = String(fd.get('nr') || '').trim(), name = String(fd.get('name') || '').trim();
+      if (!/^[1-8]\d{3}$/.test(n)) { toast('Bitte eine vierstellige Kontonummer von 1000 bis 8999'); return false; }
+      if (!alt && plan.some((k) => k.nr === n)) { toast(`Konto ${n} gibt es schon`); return false; }
+      const art = alt ? alt.art : fd.get('art');
+      const erwartet = D.artNachNummer(n);
+      if (!alt && !((art === erwartet) || (n[0] === '8' && ['aufwand', 'ertrag'].includes(art)))) { toast(`Konto ${n} passt nicht zur Art ${art}. Nummern mit ${n[0]} sind ${erwartet}.`); return false; }
+      const eigene = (Z.einst.konten || []).filter((k) => k.nr !== n);
+      await einstSpeichern({ konten: [...eigene, { nr: n, name, art }] });
+      zeichnen(); toast(alt ? 'Konto umbenannt' : 'Konto angelegt');
+    });
+  }
+
+  /* ---------- Manuelle Buchung (Soll an Haben) ---------- */
+  const VORLAGEN = [
+    { id: 'frei', name: 'Freie Buchung', zeilen: [['', '']] },
+    { id: 'privatbezug', name: 'Privatbezug (Geld für den Inhaber)', zeilen: [['2850', '1020']], nur: 'einzel', text: 'Privatbezug' },
+    { id: 'privateinlage', name: 'Privateinlage (Inhaber bringt Geld)', zeilen: [['1020', '2850']], nur: 'einzel', text: 'Privateinlage' },
+    { id: 'privatanteil', name: 'Privatanteil Fahrzeug', zeilen: [['2850', '6200']], nur: 'einzel', text: 'Privatanteil Fahrzeug', hinweis: 'Üblich sind 0.9 % des Kaufpreises pro Monat (Richtlinie der Steuerverwaltung). Bitte mit dem Treuhänder prüfen.' },
+    { id: 'kapital', name: 'Einzahlung Stamm- oder Aktienkapital', zeilen: [['1020', '2800']], nur: 'firma', text: 'Kapitaleinzahlung' },
+    { id: 'abschreibung', name: 'Abschreibung auf Sachanlagen', zeilen: [['6800', '1500']], text: 'Abschreibung', hinweis: 'Wählen Sie im Haben das Anlagekonto (z. B. 1530 Fahrzeuge). Üblich sind zum Beispiel 40 % vom Restwert für Fahrzeuge und Informatik, 25 % für Mobiliar.' },
+    { id: 'mwst_zahlung', name: 'MWST an die ESTV bezahlt', zeilen: [['2200', '1020']], text: 'MWST-Zahlung ESTV' },
+    { id: 'mwst_guthaben', name: 'MWST-Guthaben von der ESTV erhalten', zeilen: [['1020', '1170']], text: 'MWST-Guthaben ESTV' },
+    { id: 'sozial_zahlung', name: 'Sozialversicherungen bezahlt (AHV, BVG, UVG)', zeilen: [['2270', '1020']], text: 'Zahlung Sozialversicherungen' },
+    { id: 'darlehen_erhalten', name: 'Darlehen erhalten', zeilen: [['1020', '2450']], text: 'Darlehen erhalten' },
+    { id: 'darlehen_zurueck', name: 'Darlehen zurückbezahlt', zeilen: [['2450', '1020']], text: 'Darlehen Rückzahlung' },
+    { id: 'zinsen', name: 'Zinsen bezahlt', zeilen: [['6900', '1020']], text: 'Zinsen' },
+    { id: 'aufwand_abgrenzen', name: 'Aufwand abgrenzen (Rechnung kommt erst später)', zeilen: [['6700', '2300']], text: 'Abgrenzung Aufwand', hinweis: 'Im neuen Jahr mit der umgekehrten Buchung wieder auflösen.' },
+    { id: 'ertrag_abgrenzen', name: 'Ertrag abgrenzen (Arbeit gemacht, noch nicht verrechnet)', zeilen: [['1300', '3400']], text: 'Abgrenzung Ertrag', hinweis: 'Im neuen Jahr mit der umgekehrten Buchung wieder auflösen.' },
+    { id: 'rueckstellung', name: 'Rückstellung bilden', zeilen: [['6700', '2330']], text: 'Rückstellung' },
+    { id: 'steuern_rueck', name: 'Steuern zurückstellen (Gewinn und Kapital)', zeilen: [['8900', '2330']], nur: 'firma', text: 'Steuerrückstellung' },
+    { id: 'steuern_zahlung', name: 'Steuern bezahlt (aus der Rückstellung)', zeilen: [['2330', '1020']], nur: 'firma', text: 'Steuerzahlung' },
+    { id: 'reserve', name: 'Gewinnverwendung: gesetzliche Gewinnreserve', zeilen: [['2970', '2950']], nur: 'firma', text: 'Zuweisung gesetzliche Gewinnreserve', hinweis: 'Nach OR 672: 5 % des Jahresgewinns, bis die gesetzlichen Reserven die Hälfte des Kapitals erreichen. Bitte mit dem Treuhänder prüfen.' },
+    { id: 'ausschuettung', name: 'Gewinnverwendung: Ausschüttung beschliessen', zeilen: [['2970', '2261']], nur: 'firma', text: 'Beschlossene Ausschüttung' },
+    { id: 'ausschuettung_zahlung', name: 'Ausschüttung auszahlen (mit 35 % Verrechnungssteuer)', zeilen: [['2261', '1020'], ['2261', '2206']], nur: 'firma', text: 'Auszahlung Ausschüttung', hinweis: 'Beispiel 10’000: 6’500 auf die erste Zeile (an die Gesellschafter), 3’500 auf die zweite (Verrechnungssteuer an die ESTV).' },
+    { id: 'bank_kasse', name: 'Bargeld vom Konto abgehoben', zeilen: [['1000', '1020']], text: 'Bargeld abgehoben' },
+    { id: 'kasse_bank', name: 'Bargeld aufs Konto einbezahlt', zeilen: [['1020', '1000']], text: 'Bargeld einbezahlt' },
+  ];
+  function journalBearbeiten(vorhanden, vorlage = {}) {
+    const { _hinweis, ...vor } = vorlage;
+    const j = vorhanden ? JSON.parse(JSON.stringify(vorhanden)) : { datum: heute(), beleg: naechsterBeleg(), text: '', art: 'manuell', zeilen: [{ soll: '', haben: '', betrag: null }], ...vor };
+    if (!j.zeilen || !j.zeilen.length) j.zeilen = [{ soll: '', haben: '', betrag: null }];
+    const gesperrt = !!(vorhanden && istFest(vorhanden.datum));
+    const dlg = $('dlg');
+    const vorlagen = VORLAGEN.filter((v) => !v.nur || (v.nur === 'firma' ? istFirma() : !istFirma()));
+    const merken = () => {
+      j.datum = $('jDatum').value; j.beleg = $('jBeleg').value.trim(); j.text = $('jText').value.trim();
+      j.zeilen = [...dlg.querySelectorAll('[data-jz]')].map((r) => { const x = betragLesen(r.querySelector('[data-betrag]').value); return { soll: r.querySelector('[data-soll]').value, haben: r.querySelector('[data-haben]').value, betrag: Number.isFinite(x) ? x : null }; });
+    };
+    const summe = () => { const t = [...dlg.querySelectorAll('[data-betrag]')].reduce((a, x) => { const v = betragLesen(x.value); return a + (Number.isFinite(v) ? v : 0); }, 0); if ($('jSumme')) $('jSumme').textContent = t ? `Total ${chf(t)} CHF` : ''; };
+    const zeichnenJ = (hinweis = '') => {
+      dlg.innerHTML = `<form method="dialog" id="jForm">
+        <div class="dlg-kopf"><h3>${vorhanden ? 'Buchung im Journal' : 'Neue Buchung: Soll an Haben'}</h3><button type="button" class="x" data-zu aria-label="Schliessen">×</button></div>
+        <div class="dlg-inhalt">
+          ${gesperrt ? `<p class="hinweis" style="background:var(--flaeche);padding:10px 12px;border-radius:10px"><b>Festgeschrieben bis ${datumKurz(festBis())}.</b> Korrekturen mit einer Storno-Buchung.</p>` : ''}
+          ${!vorhanden ? `<div class="feld"><label for="jVorlage">Vorlage</label><select id="jVorlage"><option value="">Häufige Buchung wählen (freiwillig)</option>${vorlagen.map((v) => `<option value="${v.id}">${esc(v.name)}</option>`).join('')}</select></div>` : ''}
+          ${hinweis ? `<p class="hinweis">${esc(hinweis)}</p>` : ''}
+          <div class="feld-zeile"><div class="feld"><label for="jDatum">Datum</label><input type="date" id="jDatum" value="${j.datum || ''}" required ${gesperrt ? 'disabled' : ''} /></div>
+            <div class="feld"><label for="jBeleg">Beleg-Nr.</label><input id="jBeleg" value="${esc(j.beleg || '')}" ${gesperrt ? 'disabled' : ''} /></div></div>
+          <div class="feld"><label for="jText">Buchungstext</label><input id="jText" value="${esc(j.text || '')}" placeholder="z. B. Abschreibung Lieferwagen" ${gesperrt ? 'disabled' : ''} /></div>
+          <div class="j-zeilen">
+            <div class="j-zeile j-kopf"><span>Soll</span><span>Haben</span><span>Betrag CHF</span><span></span></div>
+            ${j.zeilen.map((z, i) => `<div class="j-zeile" data-jz="${i}"><select data-soll aria-label="Soll-Konto" ${gesperrt ? 'disabled' : ''}>${kontoOptionen(z.soll)}</select><select data-haben aria-label="Haben-Konto" ${gesperrt ? 'disabled' : ''}>${kontoOptionen(z.haben)}</select><input data-betrag inputmode="decimal" placeholder="0.00" aria-label="Betrag" value="${z.betrag != null ? chf(z.betrag).replace(/’/g, '') : ''}" ${gesperrt ? 'disabled' : ''} />${j.zeilen.length > 1 && !gesperrt ? `<button type="button" class="x" data-jweg="${i}" aria-label="Zeile entfernen">×</button>` : '<span></span>'}</div>`).join('')}
+          </div>
+          ${gesperrt ? '' : '<div><button type="button" class="btn btn-klein" data-jplus>+ Zeile (Sammelbuchung)</button></div>'}
+          <p class="hinweis" id="jSumme"></p>
+          <p class="hinweis">Soll: Konto, das zunimmt (Aktiven, Aufwand) oder abnimmt (Schulden, Ertrag). Haben: das Gegenkonto. Beispiel Abschreibung: 6800 Abschreibungen an 1530 Fahrzeuge.</p>
+        </div>
+        <div class="dlg-fuss">
+          ${vorhanden && !gesperrt ? '<button type="button" class="btn btn-rot" data-jloeschen>Löschen</button>' : ''}
+          ${vorhanden ? '<button type="button" class="btn" data-jstorno>Storno-Buchung</button>' : ''}
+          <div class="rechts"><button type="button" class="btn" data-zu>${gesperrt ? 'Schliessen' : 'Abbrechen'}</button>${gesperrt ? '' : '<button type="submit" class="btn btn-haupt">Speichern</button>'}</div>
+        </div></form>`;
+      summe();
+    };
+    zeichnenJ(_hinweis || '');
+    dlg.showModal();
+    dlg.addEventListener('close', () => { dlg.onsubmit = null; }, { once: true });
+    dlg.oninput = (e) => { if (e.target.matches('[data-betrag]')) summe(); };
+    dlg.onchange = (e) => {
+      if (e.target.id !== 'jVorlage' || !e.target.value) return;
+      merken();
+      const v = VORLAGEN.find((x) => x.id === e.target.value);
+      const betrag = j.zeilen[0] && j.zeilen[0].betrag;
+      j.zeilen = v.zeilen.map(([so, ha], i) => ({ soll: so, haben: ha, betrag: i === 0 ? betrag : null }));
+      if (!j.text || VORLAGEN.some((x) => x.text === j.text)) j.text = v.text || '';
+      zeichnenJ(v.hinweis || '');
+      const w = $('jVorlage'); if (w) w.value = v.id;
+    };
+    dlg.onclick = async (e) => {
+      if (e.target === dlg) { dlg.close(); return; }
+      const t = e.target.closest('button'); if (!t) return;
+      if (t.matches('[data-zu]')) dlg.close();
+      if (t.matches('[data-jplus]')) { merken(); j.zeilen.push({ soll: '', haben: '', betrag: null }); zeichnenJ(); }
+      if (t.matches('[data-jweg]')) { merken(); j.zeilen.splice(Number(t.dataset.jweg), 1); zeichnenJ(); }
+      if (t.matches('[data-jstorno]')) { dlg.close(); journalBearbeiten(null, { text: 'Storno: ' + (j.text || j.beleg || ''), zeilen: j.zeilen.map((z) => ({ soll: z.haben, haben: z.soll, betrag: z.betrag })) }); }
+      if (t.matches('[data-jloeschen]')) {
+        if (istFest(j.datum)) { toast('Festgeschrieben, Löschen nicht möglich'); return; }
+        if (!confirm('Diese Buchung löschen?')) return;
+        await Speicher.loeschen('journal', j.id); dlg.close(); await neuLaden('Buchung gelöscht');
+      }
+    };
+    dlg.onsubmit = async (e) => {
+      e.preventDefault();
+      if (gesperrt) return;
+      merken();
+      j.zeilen = j.zeilen.filter((z) => z.soll || z.haben || z.betrag);
+      const fehler = D.pruefen(j, kontenplan());
+      if (fehler) { toast(fehler); return; }
+      if (istFest(j.datum)) { toast(`Bis ${datumKurz(festBis())} ist alles festgeschrieben. Bitte ein späteres Datum wählen.`); return; }
+      if (j.id === 'eroeffnung' || j.art === 'eroeffnung') { toast('Die Eröffnungsbilanz bearbeiten Sie unter „Eröffnungsbilanz“'); return; }
+      await Speicher.speichern('journal', { ...j, art: j.art || 'manuell', geloescht: false });
+      dlg.close();
+      await neuLaden(vorhanden ? 'Buchung geändert' : 'Buchung gespeichert');
+    };
+  }
+
+  /* ---------- Eröffnungsbilanz ---------- */
+  function eroeffnungDialog() {
+    const plan = kontenplan();
+    const alt = eroeffnung();
+    const gesperrt = !!(alt && istFest(alt.datum));
+    const werte = {};
+    if (alt) for (const z of alt.zeilen || []) {
+      if (z.haben === '9100') werte[z.soll] = (werte[z.soll] || 0) + (D.artNachNummer(z.soll) === 'aktiv' ? z.betrag : -z.betrag);
+      if (z.soll === '9100') werte[z.haben] = (werte[z.haben] || 0) + (D.artNachNummer(z.haben) === 'passiv' ? z.betrag : -z.betrag);
+    } else if ((kasse().anfang || 0) > 0) werte['1000'] = kasse().anfang;
+    const ersteJahr = jahre().slice(-1)[0] || String(new Date().getFullYear());
+    const datum = alt ? alt.datum : ersteJahr + '-01-01';
+    const ekKonto = istFirma() ? '2970' : '2800';
+    const konten = plan.filter((k) => D.istBilanzkonto(k.nr) && !['2891', '2979'].includes(k.nr));
+    const feld = (k) => `<label class="eb-zeile"><span><span class="kontonr">${k.nr}</span> ${esc(k.name)}</span><input data-eb="${k.nr}" inputmode="decimal" placeholder="0.00" value="${werte[k.nr] ? chf(werte[k.nr]).replace(/’/g, '') : ''}" ${gesperrt ? 'disabled' : ''} /></label>`;
+    const d = kleinerDialog(`<h3 style="margin:0">Eröffnungsbilanz</h3>
+      <p class="hinweis">Die Bestände am ersten Tag in Ordasio, zum Beispiel aus der Schlussbilanz des Vorjahres. ${istFirma() ? `Bei einer Neugründung: Bank und ${rechtsform() === 'ag' ? 'Aktienkapital' : 'Stammkapital'} mit dem einbezahlten Betrag.` : 'Bei einem Neustart: Bank, Kasse und Eigenkapital.'}</p>
+      ${gesperrt ? `<p class="hinweis"><b>Festgeschrieben.</b> Die Eröffnungsbilanz kann nicht mehr geändert werden.</p>` : ''}
+      <div class="feld"><label>Datum</label><input type="date" name="datum" value="${datum}" required ${gesperrt ? 'disabled' : ''}></div>
+      <div class="eb-raster"><div><h4>Aktiven</h4>${konten.filter((k) => k.art === 'aktiv').map(feld).join('')}</div><div><h4>Passiven und Eigenkapital</h4>${konten.filter((k) => k.art === 'passiv').map(feld).join('')}</div></div>
+      <div class="eb-summe" data-eb-summe></div>
+      ${gesperrt ? '' : `<button type="button" class="btn btn-klein" data-eb-ausgleich>Differenz ins Eigenkapital (${ekKonto} ${esc(D.nameVon(plan, ekKonto))})</button>`}`,
+    gesperrt ? null : async (fd) => {
+      const w = lesen();
+      if (w.aktiv !== w.passiv) { toast('Aktiven und Passiven müssen gleich gross sein'); return false; }
+      const dt = fd.get('datum');
+      if (istFest(dt)) { toast(`Bis ${datumKurz(festBis())} ist alles festgeschrieben`); return false; }
+      const zeilen = Object.entries(w.werte).filter(([, v]) => v).map(([nr, v]) => {
+        const aktiv = D.artNachNummer(nr) === 'aktiv';
+        const sollSeite = aktiv ? v > 0 : v < 0;
+        return sollSeite ? { soll: nr, haben: '9100', betrag: Math.abs(v) } : { soll: '9100', haben: nr, betrag: Math.abs(v) };
+      });
+      if (!zeilen.length) { if (alt) await Speicher.loeschen('journal', 'eroeffnung'); await neuLaden('Eröffnungsbilanz entfernt'); return; }
+      await Speicher.speichern('journal', { ...(alt || {}), id: 'eroeffnung', art: 'eroeffnung', datum: dt, beleg: 'EB', text: 'Eröffnungsbilanz', zeilen, geloescht: false });
+      await neuLaden('Eröffnungsbilanz gespeichert');
+    });
+    d.style.width = 'min(800px, calc(100vw - 24px))';
+    function lesen() {
+      const werte2 = {};
+      let aktiv = 0, passiv = 0;
+      for (const inp of d.querySelectorAll('[data-eb]')) {
+        const v = betragLesen(inp.value); if (!Number.isFinite(v) || !v) continue;
+        werte2[inp.dataset.eb] = v;
+        if (D.artNachNummer(inp.dataset.eb) === 'aktiv') aktiv += v; else passiv += v;
+      }
+      return { werte: werte2, aktiv, passiv };
+    }
+    function summeZeigen() {
+      const w = lesen();
+      d.querySelector('[data-eb-summe]').innerHTML = `Aktiven <b>${chf(w.aktiv)}</b> · Passiven <b>${chf(w.passiv)}</b> · ${w.aktiv === w.passiv ? '<span class="plus">✓ ausgeglichen</span>' : `<span class="minus">Differenz ${chf(w.aktiv - w.passiv)}</span>`}`;
+    }
+    d.addEventListener('input', summeZeigen);
+    d.addEventListener('click', (e) => {
+      if (!e.target.closest('[data-eb-ausgleich]')) return;
+      const w = lesen(), inp = d.querySelector(`[data-eb="${ekKonto}"]`);
+      const neu = (w.werte[ekKonto] || 0) + (w.aktiv - w.passiv);
+      inp.value = neu ? chf(neu).replace(/’/g, '') : '';
+      summeZeigen();
+    });
+    summeZeigen();
+  }
+
+  /* ---------- Kontoblatt ---------- */
+  function kontoblattDialog(nr) {
+    const kb = D.kontoblatt({ plan: kontenplan(), eintraege: eintraege(), nr, jahr: Z.jahr });
+    const d = kleinerDialog(`<h3 style="margin:0">Konto ${kb.nr} ${esc(kb.name)}</h3><p class="hinweis">${Z.jahr}${D.istBilanzkonto(nr) ? ` · Anfangsbestand ${chf(kb.anfang)}` : ''} · Saldo ${chf(kb.ende)}</p>
+      <div style="max-height:60vh;overflow:auto"><table class="journal"><tr><th>Datum</th><th>Text</th><th>Gegenkonto</th><th class="b">Soll</th><th class="b">Haben</th><th class="b">Saldo</th></tr>
+      ${D.istBilanzkonto(nr) ? `<tr><td></td><td class="hinweis">Anfangsbestand</td><td></td><td></td><td></td>${betragZelle(kb.anfang)}</tr>` : ''}
+      ${kb.zeilen.map((z) => `<tr class="klick" data-jeintrag="${esc(z.id)}"><td class="num">${datumKurz(z.datum)}</td><td>${esc(z.text || '')}${z.beleg ? ` <span class="hinweis">${esc(z.beleg)}</span>` : ''}</td><td><span class="kontonr">${z.gegen}</span></td><td class="b">${z.soll ? chf(z.soll) : ''}</td><td class="b">${z.haben ? chf(z.haben) : ''}</td>${betragZelle(z.saldo)}</tr>`).join('') || '<tr><td colspan="6" class="leer">Keine Bewegungen im Jahr.</td></tr>'}
+      </table></div>`, null);
+    d.style.width = 'min(900px, calc(100vw - 24px))';
+    d.addEventListener('click', (e) => { if (e.target.closest('[data-jeintrag]')) d.close(); });
+  }
+  function eintragOeffnen(id) {
+    const e = eintraege().find((x) => x.id === id);
+    if (!e) return;
+    if (e.art === 'auto') { const b = Z.buchungen.find((x) => x.id === e.ref); if (b) buchungBearbeiten(b); return; }
+    if (e.art === 'kasse') { kasseDialog('buch'); return; }
+    if (e.art === 'eroeffnung') { eroeffnungDialog(); return; }
+    const j = Z.journal.find((x) => x.id === id); if (j) journalBearbeiten(j);
+  }
+
+  /* ---------- Jahresabschluss nach OR ---------- */
+  function abschlussDoppelt() {
+    const bis = Z.stichtag && Z.stichtag.startsWith(Z.jahr) ? Z.stichtag : '';
+    const plan = kontenplan(), e = eintraege();
+    const r = D.bericht({ plan, eintraege: e, jahr: Z.jahr, bis, rechtsform: rechtsform() });
+    const jetztJahr = Z.jahr === String(new Date().getFullYear());
+    const kontoZeile = (k) => `<tr class="klick" data-konto="${k.nr}"><td><span class="kontonr">${k.nr}</span> ${esc(k.name)}</td>${betragZelle(k.betrag)}</tr>`;
+    const erHtml = r.erfolg.map((g) => g.zwischen ? `<tr class="summe"><td>${esc(g.zwischen)}</td>${betragZelle(g.betrag)}</tr>`
+      : `<tr><th colspan="2" style="padding-top:14px">${esc(g.titel)}</th></tr>${g.konten.map(kontoZeile).join('')}${g.konten.length > 1 ? `<tr><td class="hinweis">Total ${esc(g.titel)}</td>${betragZelle(g.summe)}</tr>` : ''}`).join('');
+    const seite = (gruppen) => gruppen.map((g) => `<tr><th colspan="2" style="padding-top:14px">${esc(g.titel)}</th></tr>`
+      + g.teile.map((t) => (g.teile.length > 1 || t.titel !== g.titel ? `<tr><td colspan="2" class="hinweis" style="padding-top:8px">${esc(t.titel)}</td></tr>` : '') + t.konten.map(kontoZeile).join('')).join('')
+      + `<tr class="summe"><td>Total ${esc(g.titel)}</td>${betragZelle(g.summe)}</tr>`).join('');
+    // Prüfpunkte vor dem Abschluss
+    const quartale = [1, 2, 3, 4].filter((q) => { const m = mwstRechnen(Z.jahr, q); return (m.steuer || m.vorsteuer) && !Z.journal.some((j) => j.id === `mwst-${Z.jahr}-Q${q}` && !j.geloescht); });
+    const ohneBeleg = imJahr(Z.jahr).filter((b) => b.typ === 'ausgabe' && !b.belegId && b.quelle !== 'lohn' && b.quelle !== 'fahrt').length;
+    const sl = Object.fromEntries(D.saldenliste({ plan, eintraege: e, jahr: Z.jahr }).map((k) => [k.nr, k]));
+    const anlagen = Object.values(sl).filter((k) => /^1[5-7]/.test(k.nr)).reduce((a, k) => a + k.saldo, 0);
+    const abgeschrieben = (sl['6800'] || {}).saldo || 0;
+    const punkte = [
+      [!!eroeffnung() && r.differenz === 0, eroeffnung() ? (r.differenz === 0 ? 'Eröffnungsbilanz ist ausgeglichen' : 'Bilanz geht nicht auf, bitte Eröffnungsbilanz prüfen') : 'Eröffnungsbilanz fehlt', 'NB.eroeffnung()'],
+      [!quartale.length, quartale.length ? `MWST noch nicht verbucht: ${quartale.map((q) => q + '. Quartal').join(', ')}` : 'MWST aller Quartale verbucht', "NB.ansicht('mwst')"],
+      [!(anlagen > 0 && !abgeschrieben), anlagen > 0 && !abgeschrieben ? 'Sachanlagen vorhanden, aber noch keine Abschreibung gebucht' : 'Abschreibungen geprüft', "NB.journalNeu('abschreibung')"],
+      [!ohneBeleg, ohneBeleg ? `${ohneBeleg} Ausgaben ohne Beleg` : 'Alle Ausgaben mit Beleg', "NB.ansicht('buchungen')"],
+      [null, `Bank: Saldo 1020 mit dem Kontoauszug per ${datumKurz(r.stichtag)} vergleichen (${chf((sl['1020'] || {}).saldo || 0)})`, "NB.kontoblatt('1020')"],
+      [null, `Offen: Debitoren ${chf((sl['1100'] || {}).saldo || 0)}, Kreditoren ${chf((sl['2000'] || {}).saldo || 0)}`, ''],
+    ];
+    const kannFest = !bis && Z.jahr < String(new Date().getFullYear()) && (!festBis() || festBis() < Z.jahr + '-12-31');
+    const istFestJahr = festBis() && festBis() >= Z.jahr + '-12-31';
+    return `
+    <div class="stichtag-leiste">
+      <div class="segment"><button class="${bis ? '' : 'an'}" data-ganzjahr>Ganzes Jahr</button>${jetztJahr ? `<button class="${bis === heute() ? 'an' : ''}" data-zwischen>Bis heute</button>` : ''}</div>
+      <label class="hinweis">Stichtag <input type="date" class="auswahl-klein" data-stichtag value="${bis}" min="${Z.jahr}-01-01" max="${Z.jahr}-12-31" /></label>
+    </div>
+    <div class="kopf">
+      <div><h1>${bis ? 'Zwischenabschluss per ' + datumKurz(bis) : 'Jahresrechnung ' + Z.jahr}</h1><p class="unter">${esc(firmenName() || '')}${firmenName() ? ' · ' : ''}Bilanz und Erfolgsrechnung nach OR 959a und 959b, Beträge ohne MWST${istFestJahr ? ' · festgeschrieben' : ''}</p></div>
+      <div class="kopf-aktionen">${jahrWahl()}<button class="btn" onclick="NB.journalCsv()">Journal CSV</button><button class="btn" onclick="NB.saldenCsv()">Saldenliste CSV</button><button class="btn" onclick="window.print()">Als PDF drucken</button></div>
+    </div>
+    ${r.differenz ? `<div class="card abstand-unten" style="border:1px solid rgba(229,72,77,.35)"><h2>Die Bilanz geht nicht auf</h2><p class="hinweis">Differenz ${chf(r.differenz)}. Meist ist die Eröffnungsbilanz nicht ausgeglichen. <button class="link" onclick="NB.eroeffnung()">Eröffnungsbilanz öffnen</button></p></div>` : ''}
+    <div class="raster raster-2">
+      <div class="card">
+        <h2>Erfolgsrechnung ${bis ? '01.01. bis ' + datumKurz(bis) : Z.jahr}</h2>
+        <table>${erHtml || '<tr><td class="leer">Noch keine Erträge oder Aufwände.</td><td></td></tr>'}
+          <tr class="summe"><td>${r.gewinn >= 0 ? 'Jahresgewinn' : 'Jahresverlust'}</td><td class="b ${r.gewinn < 0 ? 'minus' : 'plus'}">${chf(r.gewinn)}</td></tr></table>
+      </div>
+      <div class="card">
+        <h2>Bilanz per ${datumKurz(r.stichtag)}</h2>
+        <table><tr><th colspan="2">Aktiven</th></tr>${seite(r.aktiven) || '<tr><td class="leer">Keine Aktiven</td><td></td></tr>'}<tr class="summe"><td>Total Aktiven</td>${betragZelle(r.summeAktiven)}</tr></table>
+        <table class="abstand"><tr><th colspan="2">Passiven</th></tr>${seite(r.passiven) || '<tr><td class="leer">Keine Passiven</td><td></td></tr>'}<tr class="summe"><td>Total Passiven</td>${betragZelle(r.summePassiven)}</tr></table>
+        ${r.vorErgebnis ? `<p class="hinweis abstand">${istFirma() ? 'Im Gewinnvortrag (2970)' : 'Im Eigenkapital (2800)'} ist das Ergebnis der Vorjahre von ${chf(r.vorErgebnis)} enthalten. ${istFirma() ? 'Die Verwendung (Reserven, Ausschüttung) buchen Sie ab 2970.' : ''}</p>` : ''}
+      </div>
+    </div>
+    <div class="raster raster-2 abstand">
+      <div class="card">
+        <h2>Vor dem Abschluss prüfen</h2>
+        <div class="pruef">${punkte.map(([ok, text, aktion]) => `<div class="pruef-zeile"><span class="pruef-ic ${ok === true ? 'ok' : ok === false ? 'offen' : ''}">${ok === true ? '✓' : ok === false ? '!' : '•'}</span><span>${esc(text)}</span>${aktion && ok !== true ? `<button class="link" onclick="${aktion}">Öffnen</button>` : ''}</div>`).join('')}</div>
+        <h2 class="abstand">Abschlussbuchungen</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">${[['abschreibung', 'Abschreibung'], ['aufwand_abgrenzen', 'Aufwand abgrenzen'], ['ertrag_abgrenzen', 'Ertrag abgrenzen'], ['rueckstellung', 'Rückstellung'], ...(istFirma() ? [['steuern_rueck', 'Steuern zurückstellen'], ['reserve', 'Reserve bilden'], ['ausschuettung', 'Ausschüttung']] : [['privatbezug', 'Privatbezug'], ['privatanteil', 'Privatanteil']])].map(([id, n]) => `<button class="btn btn-klein" onclick="NB.journalNeu('${id}')">${n}</button>`).join('')}</div>
+      </div>
+      <div class="card">
+        <h2>Festschreiben</h2>
+        ${istFestJahr ? `<p class="hinweis"><b>${Z.jahr} ist festgeschrieben</b> (bis ${datumKurz(festBis())}). Buchungen bis zu diesem Datum lassen sich nicht mehr ändern oder löschen. Korrekturen machen Sie mit einer Storno-Buchung im offenen Jahr.</p>`
+          : `<p class="hinweis">Nach dem Abschluss schreiben Sie das Jahr fest. Danach lassen sich die Buchungen nicht mehr ändern, so wie es die Geschäftsbücherverordnung (GeBüV) verlangt. Bewahren Sie Jahresrechnung, Journal und Belege 10 Jahre auf.</p>
+             ${kannFest ? `<button class="btn btn-haupt abstand" data-festschreiben="${Z.jahr}">Jahr ${Z.jahr} festschreiben</button>` : `<p class="hinweis abstand">${bis ? 'Zum Festschreiben „Ganzes Jahr“ wählen.' : `Festschreiben ist ab dem 01.01.${Number(Z.jahr) + 1} möglich.`}</p>`}`}
+      </div>
+    </div>`;
+  }
+  async function festschreiben(jahr) {
+    const bis = jahr + '-12-31';
+    const r = D.bericht({ plan: kontenplan(), eintraege: eintraege(), jahr, rechtsform: rechtsform() });
+    if (r.differenz) { toast('Die Bilanz geht nicht auf. Bitte zuerst die Eröffnungsbilanz prüfen.'); return; }
+    if (!confirm(`Jahr ${jahr} festschreiben?\n\nAlle Buchungen bis ${datumKurz(bis)} lassen sich danach nicht mehr ändern oder löschen. Das kann nicht rückgängig gemacht werden.\n\nLaden Sie vorher Journal und Jahresrechnung herunter.`)) return;
+    await einstSpeichern({ festBis: bis, festProtokoll: [...(Z.einst.festProtokoll || []), { bis, am: new Date().toISOString(), gewinn: r.gewinn, bilanzsumme: r.summeAktiven }] });
+    zeichnen();
+    toast(`${jahr} ist festgeschrieben`);
+  }
+
+  /* ---------- MWST verbuchen ---------- */
+  function mwstVerbuchenHtml(q, r) {
+    const j = Z.journal.find((x) => x.id === `mwst-${Z.jahr}-Q${q}` && !x.geloescht);
+    return `<div class="abstand" style="border-top:1px solid var(--hairline);padding-top:14px">
+      <h2>In der Buchhaltung</h2>
+      <p class="hinweis">${j ? `Verbucht per ${datumKurz(j.datum)}: ${chf(j.zeilen[0].betrag)} Vorsteuer mit der geschuldeten MWST verrechnet.` : 'Noch nicht verbucht. Dabei wird die Vorsteuer (1170) mit der geschuldeten MWST (2200) verrechnet. Übrig bleibt die Zahllast an die ESTV oder ein Guthaben.'}</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn btn-klein ${j ? '' : 'btn-haupt'}" onclick="NB.mwstVerbuchen()">${j ? 'Neu verbuchen' : 'Abrechnung verbuchen'}</button>${r.zahlen ? `<button class="btn btn-klein" onclick="NB.mwstZahlung()">${r.zahlen > 0 ? 'Zahlung an die ESTV buchen' : 'Rückzahlung der ESTV buchen'}</button>` : ''}</div>
+    </div>`;
+  }
+  async function mwstVerbuchen() {
+    const q = Z.quartal, r = mwstRechnen(Z.jahr, q), id = `mwst-${Z.jahr}-Q${q}`;
+    const datum = new Date(Number(Z.jahr), q * 3, 0).toLocaleDateString('sv-SE');
+    if (istFest(datum)) { toast('Dieses Quartal ist festgeschrieben'); return; }
+    const betrag = Math.min(r.steuer, r.vorsteuer);
+    if (!(betrag > 0)) { toast('Nichts zu verrechnen: in diesem Quartal gibt es keine Vorsteuer oder keine MWST'); return; }
+    const alt = Z.journal.find((x) => x.id === id);
+    await Speicher.speichern('journal', { ...(alt || {}), id, art: 'mwst', datum, beleg: `MWST ${q}/${Z.jahr}`, text: `MWST-Abrechnung ${q}. Quartal ${Z.jahr}`, zeilen: [{ soll: '2200', haben: '1170', betrag }], geloescht: false });
+    await neuLaden(`MWST ${q}. Quartal verbucht`);
+  }
+  function mwstZahlung() {
+    const q = Z.quartal, r = mwstRechnen(Z.jahr, q), bank = D.zahlungKonto(Z.einst, 'Bank');
+    if (r.zahlen > 0) journalBearbeiten(null, { text: `MWST ${q}. Quartal ${Z.jahr} an die ESTV`, zeilen: [{ soll: '2200', haben: bank, betrag: r.zahlen }] });
+    else if (r.zahlen < 0) journalBearbeiten(null, { text: `MWST-Guthaben ${q}. Quartal ${Z.jahr} von der ESTV`, zeilen: [{ soll: bank, haben: '1170', betrag: -r.zahlen }] });
+  }
+
+  /* ---------- Übersicht und Einstellungen ---------- */
+  function kontostaendeKarte() {
+    const jetzt = String(new Date().getFullYear());
+    const sl = D.saldenliste({ plan: kontenplan(), eintraege: eintraege(), jahr: jetzt, bis: heute() });
+    const w = (nr) => (sl.find((k) => k.nr === nr) || {}).saldo || 0;
+    const geld = sl.filter((k) => /^10\d\d$/.test(k.nr)).reduce((a, k) => a + k.saldo, 0);
+    const mwst = w('2200') - w('1170');
+    const kz = [['Flüssige Mittel', geld, 'Kasse und Bank'], ['Debitoren', w('1100'), 'Offene Kundenrechnungen'], ['Kreditoren', w('2000'), 'Offene Lieferantenrechnungen'], ['MWST', Math.abs(mwst), mwst >= 0 ? 'Geschuldet nach Vorsteuer' : 'Guthaben']];
+    return `${eroeffnung() ? '' : `<div class="card abstand-unten" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;border:1px solid rgba(183,121,31,.3)"><span style="flex:1;min-width:220px"><b>Eröffnungsbilanz fehlt.</b> <span class="hinweis">Damit Bilanz und Kontostände stimmen, einmal Startkapital und Bestände eintragen.</span></span><button class="btn btn-haupt" onclick="NB.eroeffnung()">Jetzt erfassen</button></div>`}
+      <div class="raster raster-4 abstand-unten">${kz.map(([l, v, k]) => `<div class="card kennzahl klick" data-ansicht="konten"><div class="label">${l}</div><div class="wert ${v < 0 ? 'minus' : ''}">${chf(v)}</div><div class="klein">${k}, Stand heute</div></div>`).join('')}</div>`;
+  }
+  function einstRechtsform() {
+    const l = lizenzJetzt(), rf = rechtsform(), name = O ? O.RECHTSFORMEN[rf].name : rf;
+    const auswahl = l ? `<p class="hinweis">Ihre Firma: <b>${esc(name)}</b>. Ändern unter <a href="lizenz/">Lizenz und Konto</a>.</p>`
+      : `<div class="segment">${['einzel', 'gmbh', 'ag'].map((k) => `<button class="${rf === k ? 'an' : ''}" data-rechtsform="${k}">${O ? O.RECHTSFORMEN[k].kurz : k}</button>`).join('')}</div>`;
+    const schalter = rf === 'einzel'
+      ? `<label class="haken abstand"><input type="checkbox" data-doppelt ${Z.einst.doppelt ? 'checked' : ''} /> Doppelte Buchhaltung (Soll und Haben, Bilanz nach OR)</label><p class="hinweis">Für Einzelfirmen ab CHF 500’000 Umsatz Pflicht. Ihre bisherigen Buchungen werden automatisch übernommen.</p>`
+      : `<p class="hinweis abstand">Als ${esc(name)} führen Sie die doppelte Buchhaltung. Einnahmen, Ausgaben, Rechnungen und Löhne werden automatisch in Soll und Haben verbucht.</p>`;
+    const links = doppeltAktiv() ? `<div class="abstand" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-ansicht="konten">Konten und Journal</button><button class="btn" onclick="NB.eroeffnung()">Eröffnungsbilanz</button></div>` : '';
+    return auswahl + schalter + links;
+  }
+  document.addEventListener('click', async (e) => {
+    const t = e.target;
+    const kt = t.closest('[data-ktab]'); if (kt) { Z.kontenTab = kt.dataset.ktab; zeichnen(); return; }
+    const ja = t.closest('[data-jart]'); if (ja) { Z.journalFilter.art = ja.dataset.jart; zeichnen(); return; }
+    const je = t.closest('[data-jeintrag]'); if (je) { eintragOeffnen(je.dataset.jeintrag); return; }
+    const ko = t.closest('[data-konto]'); if (ko) { kontoblattDialog(ko.dataset.konto); return; }
+    const ku = t.closest('[data-konto-umbenennen]'); if (ku) { kontoAnpassen(ku.dataset.kontoUmbenennen); return; }
+    if (t.closest('[data-konto-neu]')) { kontoAnpassen(null); return; }
+    const fs = t.closest('[data-festschreiben]'); if (fs) { festschreiben(fs.dataset.festschreiben); return; }
+    const rf = t.closest('[data-rechtsform]'); if (rf) { await einstSpeichern({ rechtsform: rf.dataset.rechtsform }); zeichnen(); toast('Rechtsform gespeichert'); }
+  });
+  document.addEventListener('change', async (e) => {
+    const t = e.target;
+    if (t.matches('[data-alle-konten]')) { Z.alleKonten = t.checked; zeichnen(); return; }
+    if (t.matches('[data-kat-konto]')) { await einstSpeichern({ kontoZuordnung: { ...(Z.einst.kontoZuordnung || {}), [t.dataset.katKonto]: t.value } }); toast('Konto zugeordnet'); zeichnen(); return; }
+    if (t.matches('[data-zahl-konto]')) { await einstSpeichern({ zahlungKonten: { ...(Z.einst.zahlungKonten || {}), [t.dataset.zahlKonto]: t.value } }); toast('Konto zugeordnet'); zeichnen(); return; }
+    if (t.matches('[data-doppelt]')) {
+      if (!t.checked && Z.journal.some((j) => !j.geloescht) && !confirm('Doppelte Buchhaltung ausschalten? Ihre manuellen Journal-Buchungen bleiben gespeichert, werden aber nicht mehr angezeigt.')) { t.checked = true; return; }
+      await einstSpeichern({ doppelt: t.checked }); zeichnen(); toast(t.checked ? 'Doppelte Buchhaltung eingeschaltet' : 'Doppelte Buchhaltung ausgeschaltet');
+    }
+  });
+  document.addEventListener('input', (e) => {
+    if (!e.target.matches('[data-jsuche]')) return;
+    Z.journalFilter.suche = e.target.value;
+    const pos = e.target.selectionStart;
+    zeichnen();
+    const neu = document.querySelector('[data-jsuche]');
+    if (neu) { neu.focus(); neu.setSelectionRange(pos, pos); }
+  });
+
   /* ================= Einstellungen ================= */
   function letzteSicherung() {
     let d = null;
@@ -1385,8 +1904,12 @@
   function mehr() {
     const v = Z.einst.abrechnung;
     return `
-    <div class="kopf"><div><h1>Einstellungen</h1><p class="unter">Daten, Sicherung und MWST</p></div></div>
+    <div class="kopf"><div><h1>Einstellungen</h1><p class="unter">Rechtsform, Daten, Sicherung und MWST</p></div></div>
     <div class="raster raster-2">
+      <div class="card">
+        <h2>Rechtsform und Buchhaltung</h2>
+        ${einstRechtsform()}
+      </div>
       <div class="card">
         <h2>Rechnungen übernehmen</h2>
         <p class="hinweis">Laden Sie die Datei <strong>rechnungen.json</strong> aus dem Ordner „Nasuvia Rechnungen“ auf dem Schreibtisch oder eine Sicherung aus der iPhone-App. Jede Rechnung wird als Einnahme übernommen. Schon vorhandene Rechnungen werden nur aktualisiert.</p>
@@ -1405,7 +1928,7 @@
         <div style="display:grid;gap:6px;margin:12px 0">${START_KARTEN.map(([id, n]) => `<label class="haken"><input type="checkbox" data-start="${id}" ${startKarten()[id] ? 'checked' : ''} />${n}</label>`).join('')}</div>
         <div class="feld"><label for="sZiel">Jahresziel Umsatz ohne MWST (CHF)</label><input type="text" id="sZiel" inputmode="decimal" data-einst="jahresziel" value="${Z.einst.jahresziel ? chf(Z.einst.jahresziel).replace(/’/g, '') : ''}" placeholder="z. B. 120000" /></div>
       </div>
-      <div class="card nur-handy-karte">
+      <div class="card nur-handy-karte" ${lohnErlaubt() ? '' : 'hidden'}>
         <h2>Löhne</h2>
         <p class="hinweis">Mitarbeiter, Lohnabrechnungen und Jahresübersicht.</p>
         <button class="btn abstand" data-ansicht="loehne">Zu den Löhnen</button>
@@ -1589,7 +2112,7 @@
     }
     const inhalt = JSON.stringify({
       art: 'nasuvia-buchhaltung', version: 1, erstellt: new Date().toISOString(),
-      buchungen: await Speicher.alleMitGeloeschten('buchungen'), einstellungen: Z.einst, belege,
+      buchungen: await Speicher.alleMitGeloeschten('buchungen'), journal: await Speicher.alleMitGeloeschten('journal'), einstellungen: Z.einst, belege,
     });
     herunterladen(`Nasuvia Buchhaltung Sicherung ${heute()}.json`, inhalt, 'application/json');
     try { localStorage.setItem('nb.sicherung', new Date().toISOString()); } catch {}
@@ -1605,6 +2128,9 @@
     const jetzt = new Map((await Speicher.alleMitGeloeschten('buchungen')).map((b) => [b.id, b]));
     const neuer = (x) => !jetzt.get(x.id) || (jetzt.get(x.id).geaendert || '') < (x.geaendert || '');
     await Speicher.mehrereSpeichern('buchungen', (d.buchungen || []).filter(neuer));
+    const jetztJ = new Map((await Speicher.alleMitGeloeschten('journal')).map((x) => [x.id, x]));
+    const neuerJ = (x) => !jetztJ.get(x.id) || (jetztJ.get(x.id).geaendert || '') < (x.geaendert || '');
+    if ((d.journal || []).length) await Speicher.mehrereSpeichern('journal', d.journal.filter(neuerJ));
     const belege = [];
     for (const x of d.belege || []) belege.push({ ...x, daten: x.daten ? await textZuBlob(x.daten) : null });
     await Speicher.mehrereSpeichern('belege', belege);
@@ -1615,11 +2141,11 @@
   /* ================= Öffentliche Aktionen ================= */
   function kleinerDialog(html, beiOk) {
     const d = document.createElement('dialog');
-    d.innerHTML = `<form class="dlg-inhalt" style="padding:20px;display:grid;gap:10px;min-width:min(440px,90vw)">${html}<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px"><button type="button" class="btn" data-zu>Abbrechen</button>${beiOk ? '<button class="btn btn-haupt">Speichern</button>' : ''}</div></form>`;
+    d.innerHTML = `<form class="dlg-inhalt" style="padding:20px;display:grid;gap:10px;min-width:min(440px,90vw)">${html}<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px"><button type="button" class="btn" data-zu>${beiOk ? 'Abbrechen' : 'Schliessen'}</button>${beiOk ? '<button class="btn btn-haupt">Speichern</button>' : ''}</div></form>`;
     document.body.appendChild(d);
     d.querySelector('[data-zu]').onclick = () => d.close();
     d.addEventListener('close', () => d.remove());
-    d.querySelector('form').onsubmit = async (e) => { e.preventDefault(); if (await beiOk(new FormData(e.target), d) !== false) d.close(); };
+    d.querySelector('form').onsubmit = async (e) => { e.preventDefault(); if (!beiOk) { d.close(); return; } if (await beiOk(new FormData(e.target), d) !== false) d.close(); };
     d.showModal();
     return d;
   }
@@ -1641,11 +2167,14 @@
       <div class="feld"><label>Datum</label><input type="date" name="datum" value="${heute()}" required></div>
       <p class="hinweis">Das ist keine Einnahme oder Ausgabe, nur eine Verschiebung zwischen Konto und Kasse.</p>`,
       async (fd) => { const b = betragLesen(fd.get('betrag')); if (!(b > 0)) { toast('Bitte einen Betrag eingeben'); return false; }
+        if (istFest(fd.get('datum'))) { toast(`Bis ${datumKurz(festBis())} ist alles festgeschrieben`); return false; }
         const kk = kasse(); kk.bewegungen = [...kk.bewegungen, { id: Speicher.neueId(), art, betrag: b, datum: fd.get('datum') }];
         await einstSpeichern({ kasse: kk }); zeichnen(); toast('In der Kasse erfasst'); });
   }
   document.addEventListener('click', async (e) => {
     const w = e.target.closest('[data-kasse-weg]'); if (!w) return;
+    const bw = (kasse().bewegungen || []).find((x) => x.id === w.dataset.kasseWeg);
+    if (bw && istFest(bw.datum)) { toast('Festgeschrieben, Löschen nicht möglich'); return; }
     if (!confirm('Diese Bargeld-Bewegung löschen?')) return;
     const kk = kasse(); kk.bewegungen = kk.bewegungen.filter((x) => x.id !== w.dataset.kasseWeg); await einstSpeichern({ kasse: kk });
     w.closest('dialog').close(); zeichnen(); toast('Gelöscht');
@@ -1656,6 +2185,21 @@
       async (fd) => { await einstSpeichern({ start: Object.fromEntries(START_KARTEN.map(([id]) => [id, fd.get(id) === 'on'])) }); zeichnen(); toast('Übersicht angepasst'); });
   }
   window.NB = {
+    ansicht: (id) => { Z.ansicht = id; zeichnen(); window.scrollTo(0, 0); },
+    journalNeu: (vorlageId) => {
+      const v = VORLAGEN.find((x) => x.id === vorlageId);
+      if (!v) return journalBearbeiten(null);
+      journalBearbeiten(null, { text: v.text || '', zeilen: v.zeilen.map(([soll, haben]) => ({ soll, haben, betrag: null })), _hinweis: v.hinweis || '' });
+    },
+    eroeffnung: () => { if (!doppeltAktiv()) { toast('Die Eröffnungsbilanz gibt es mit der doppelten Buchhaltung'); return; } eroeffnungDialog(); },
+    kontoblatt: (nr) => kontoblattDialog(nr),
+    journalCsv: () => herunterladen(`Ordasio Journal ${Z.jahr}.csv`, D.journalCsv(eintraege(), kontenplan(), Z.jahr + '-01-01', Z.jahr + '-12-31'), 'text/csv'),
+    saldenCsv: () => {
+      const sl = D.saldenliste({ plan: kontenplan(), eintraege: eintraege(), jahr: Z.jahr }).filter((k) => k.soll || k.haben);
+      herunterladen(`Ordasio Saldenliste ${Z.jahr}.csv`, csv([['Konto', 'Bezeichnung', 'Soll', 'Haben', 'Saldo'], ...sl.map((k) => [k.nr, k.name, (k.soll / 100).toFixed(2), (k.haben / 100).toFixed(2), (k.saldo / 100).toFixed(2)])]), 'text/csv');
+    },
+    mwstVerbuchen: () => mwstVerbuchen(),
+    mwstZahlung: () => mwstZahlung(),
     kasse: kasseDialog,
     startAnpassen,
     neu: () => buchungBearbeiten(),
@@ -1716,6 +2260,7 @@
         if (!Abgleich.laeuft) rechnungenAusApp();
       });
     }
+    document.addEventListener('ordasio-lizenz', () => { kategorienAnwenden(); zeichnen(); });
     if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
   })();
 })();

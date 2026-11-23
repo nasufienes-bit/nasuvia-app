@@ -77,6 +77,7 @@ h1{font-size:clamp(30px,6vw,44px);letter-spacing:-.03em;line-height:1.05}
 <body>
 <header class="kopfzeile"><div class="wrap"><span id="kopfLinks" style="display:flex;align-items:center;gap:10px"></span><span style="margin-left:auto" data-suche-hier></span></div></header>
 <main class="wrap" id="inhalt" style="padding-top:18px"></main>
+<script src="../pakete.js"></script>
 <script src="../lizenz.js" data-produkt="start"></script>
 <script src="../marke.js"></script>
 <script src="../suche.js"></script>
@@ -124,6 +125,20 @@ h1{font-size:clamp(30px,6vw,44px);letter-spacing:-.03em;line-height:1.05}
   const BEREICH_NAME = { buchhaltung: ['Buchhaltung', '../?bereich=buchhaltung', I.buch, '#0E9F6E'], rechnungen: ['Rechnungen', '../rechnungen/', I.rechnung, '#0E7A55'], zeit: ['Zeiterfassung', '../zeit/', I.uhr, '#6366F1'],
     termine: ['Termine', '../termine/', I.kalender, '#A855F7'], lager: ['Lager', '../lager/', I.lager, '#F59E0B'], privat: ['Home-Büro', '../privat/', I.haus, '#EC4899'] };
 
+  // Was das Paket enthält (ohne Lizenz, z. B. eigene Nutzung: alles)
+  const O = window.ORDASIO;
+  const lizenz = () => window.NASUVIA_LIZENZ || null;
+  const PROGRAMM = { loehne: 'lohn' };
+  const zielOffen = (z) => !O || !lizenz() || O.darf(lizenz().paket, PROGRAMM[z.id] || z.bereich);
+  const zielAb = (z) => (O && lizenz() ? O.ab(PROGRAMM[z.id] || z.bereich, lizenz().rechtsform || 'einzel') : null);
+  const doppelt = () => !!(O && lizenz() && O.doppelt(lizenz().rechtsform));
+  // GmbH und AG: Buchhaltung mit Bilanz und Eröffnung
+  function zielFuerRechtsform(z) {
+    if (z.id !== 'buchhaltung' || !doppelt()) return z;
+    return { ...z, text: 'Doppelte Buchhaltung, Bilanz, MWST',
+      aufgaben: [...z.aufgaben, ['Bilanz und Erfolgsrechnung', 'Nach OR, immer aktuell', '../?ansicht=abschluss', I.buch], ['Journal und Konten', 'Soll und Haben, Kontoblätter', '../?ansicht=konten', I.ordner]],
+      schritte: [['eroeffnung1', 'Eröffnungsbilanz erfassen (Startkapital, Bank)', '../?aktion=eroeffnung'], ...z.schritte] };
+  }
   let ziele = lies('ordasio.ziele', null);
   const erledigt = () => lies('ordasio.schritte', {});
   const q = new URLSearchParams(location.search);
@@ -141,7 +156,8 @@ h1{font-size:clamp(30px,6vw,44px);letter-spacing:-.03em;line-height:1.05}
     const punkte = `<div class="punkte">${[1, 2, 3].map((i) => `<i class="${i <= schritt ? 'an' : ''}"></i>`).join('')}</div>`;
     if (schritt === 1) {
       el.innerHTML = `<div class="box">${punkte}<h2>Willkommen bei Ordasio 👋</h2><p>Was möchten Sie damit machen? Wählen Sie alles, was passt. Sie sehen danach nur, was Sie brauchen. Ändern geht jederzeit.</p>
-        <div class="ziele">${ZIELE.map((z) => `<button class="ziel ${wahl.has(z.id) ? 'an' : ''}" data-ziel="${z.id}"><span class="ic" style="background:${z.farbe}">${svg(z.ic)}</span><span><b>${esc(z.name)}</b><small>${esc(z.text)}</small></span><span class="h">${wahl.has(z.id) ? '✓' : ''}</span></button>`).join('')}</div>
+        <div class="ziele">${ZIELE.filter(zielOffen).map(zielFuerRechtsform).map((z) => `<button class="ziel ${wahl.has(z.id) ? 'an' : ''}" data-ziel="${z.id}"><span class="ic" style="background:${z.farbe}">${svg(z.ic)}</span><span><b>${esc(z.name)}</b><small>${esc(z.text)}</small></span><span class="h">${wahl.has(z.id) ? '✓' : ''}</span></button>`).join('')}</div>
+        ${ZIELE.some((z) => !zielOffen(z)) ? `<p class="leise" style="margin:12px 0 0">In einem grösseren Paket: ${ZIELE.filter((z) => !zielOffen(z)).map((z) => `${esc(z.name)}${zielAb(z) ? ' (ab ' + esc(zielAb(z).name) + ')' : ''}`).join(', ')}. <a class="link" href="../lizenz/">Pakete ansehen</a></p>` : ''}
         <button class="knopf" data-weiter ${wahl.size ? '' : 'disabled'}>Weiter</button></div>`;
     } else if (schritt === 2) {
       const m = window.Marke ? Marke.daten() : {};
@@ -150,7 +166,7 @@ h1{font-size:clamp(30px,6vw,44px);letter-spacing:-.03em;line-height:1.05}
         <button class="knopf" data-firma>${m.name || m.logo ? 'Ändern' : 'Firma und Logo einrichten'}</button>
         <button class="knopf zweit" data-weiter>${m.name || m.logo ? 'Weiter' : 'Später'}</button></div>`;
     } else {
-      const gewaehlt = ZIELE.filter((z) => wahl.has(z.id));
+      const gewaehlt = ZIELE.filter((z) => wahl.has(z.id) && zielOffen(z));
       el.innerHTML = `<div class="box">${punkte}<h2>Fertig! So geht es los</h2><p>Auf Ihrer Startseite finden Sie die wichtigsten Knöpfe und eine kurze Liste mit ersten Schritten.</p>
         <div class="karte">${gewaehlt.map((z) => `<div class="schritt"><span class="haken" style="background:${z.farbe};border-color:${z.farbe}">✓</span><b>${esc(z.name)}</b></div>`).join('')}</div>
         <p class="leise" style="margin-top:14px">Tipp: Oben links öffnet das Menü alle Bereiche. Oben rechts finden Sie mit der Suche jede Funktion und die Anleitung.</p>
@@ -170,9 +186,8 @@ h1{font-size:clamp(30px,6vw,44px);letter-spacing:-.03em;line-height:1.05}
 
   /* ---------- Startseite ---------- */
   function zeichnen() {
-    const gewaehlt = ZIELE.filter((z) => (ziele || []).includes(z.id));
-    const lizenz = window.NASUVIA_LIZENZ || {};
-    const name = (lizenz.name || '').split(' ')[0];
+    const gewaehlt = ZIELE.filter((z) => (ziele || []).includes(z.id) && zielOffen(z)).map(zielFuerRechtsform);
+    const name = ((lizenz() || {}).name || '').split(' ')[0];
     const stunde = new Date().getHours(), gruss = stunde < 11 ? 'Guten Morgen' : stunde < 17 ? 'Guten Tag' : 'Guten Abend';
     const m = window.Marke ? Marke.daten() : {};
     const d = erledigt();
@@ -205,6 +220,8 @@ h1{font-size:clamp(30px,6vw,44px);letter-spacing:-.03em;line-height:1.05}
     if (!ziele || !ziele.length || q.has('anpassen')) einfuehrung();
     zeichnen();
   }
+  // Sobald die Lizenz da ist: Pakete und Rechtsform berücksichtigen
+  document.addEventListener('ordasio-lizenz', () => { if (document.querySelector('.einf')) einfuehrung(); zeichnen(); });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', los); else los();
 })();
 </script>

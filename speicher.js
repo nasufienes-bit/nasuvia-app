@@ -4,8 +4,9 @@
 // über Speicher.beiAenderung, damit der Abgleich anlaufen kann.
 (() => {
   const NAME = 'nasuvia-buchhaltung';
-  const VERSION = 1;
-  const SPEICHER = ['buchungen', 'belege', 'einstellungen'];
+  const VERSION = 2;
+  // journal: manuelle Soll/Haben-Buchungen der doppelten Buchhaltung (seit Version 2)
+  const SPEICHER = ['buchungen', 'belege', 'einstellungen', 'journal'];
   let offen;
 
   const anfrage = (r) => new Promise((ok, fehler) => {

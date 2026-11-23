@@ -7,6 +7,7 @@
 <meta name="theme-color" content="#F4FAF6" />
 <link rel="stylesheet" href="../schrift.css" />
 <script src="../konfig.js"></script>
+<script src="../pakete.js"></script>
 <script src="../lib/supabase.js"></script>
 <style>
 :root{--papier:#F4FAF6;--flaeche:#E8F4EE;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--gruen:#0E9F6E;--rot:#E5484D;--linie:rgba(11,59,46,.14);--schatten:0 1px 2px rgba(12,18,38,.05),0 14px 34px -20px rgba(12,18,38,.3)}
@@ -28,7 +29,13 @@ h1{font-size:clamp(30px,6vw,42px);letter-spacing:-.03em;line-height:1.05;margin:
 .umschalter div{display:inline-flex;background:#fff;border-radius:100px;padding:5px;box-shadow:var(--schatten)}
 .umschalter button{border:0;background:none;border-radius:100px;padding:10px 18px;font:inherit;font-weight:500;color:var(--text);cursor:pointer}
 .umschalter button.an{background:var(--blau);color:#fff;font-weight:700}
-.pakete{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.pakete{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.rf-wahl{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:18px 0 4px}
+.rf-wahl button{font:inherit;font-weight:600;border:1px solid rgba(11,59,46,.2);background:#fff;border-radius:100px;padding:9px 16px;cursor:pointer;color:var(--tinte)}
+.rf-wahl button.an{background:var(--gruen,#0B3B2E);border-color:transparent;color:#fff}
+.rf-text{text-align:center;color:var(--text);font-size:14px;margin:4px 0 0}
+.paket .kurz{color:var(--text);font-size:13.5px;margin-top:4px}
+.paket .btn+.btn{margin-top:8px}
 .paket{background:#fff;border-radius:20px;padding:20px;box-shadow:var(--schatten);display:flex;flex-direction:column;border:2px solid transparent;position:relative}
 .paket.top{border-color:var(--elektrik)}
 .paket.jetzt::after{content:'Ihr Paket';position:absolute;top:-11px;left:16px;background:var(--gruen);color:#fff;font-size:12px;font-weight:700;border-radius:100px;padding:3px 10px}
@@ -41,8 +48,7 @@ h1{font-size:clamp(30px,6vw,42px);letter-spacing:-.03em;line-height:1.05;margin:
 .btn.haupt{background:var(--blau);color:#fff}
 .btn:disabled{opacity:.5}
 .zusatz{margin-top:14px;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}.zusatz span{color:var(--text);font-size:14px}
-@media(max-width:900px){.pakete{grid-template-columns:1fr 1fr}}
-@media(max-width:560px){.pakete{grid-template-columns:1fr}.stand{grid-template-columns:auto minmax(0,1fr)}.stand .marke{grid-column:2}}
+@media(max-width:560px){.stand{grid-template-columns:auto minmax(0,1fr)}.stand .marke{grid-column:2}}
 dialog{border:0;border-radius:22px;padding:0;width:min(460px,calc(100% - 24px));box-shadow:0 40px 100px -30px rgba(12,18,38,.5)}
 dialog::backdrop{background:rgba(12,18,38,.35)}
 .dlg{padding:24px;display:grid;gap:10px}
@@ -67,9 +73,12 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 
   <div class="karte stand" id="stand"><div class="ic">…</div><div><b>Wird geladen …</b></div></div>
 
+  <h2 style="text-align:center;margin-top:22px">Ihre Firma ist …</h2>
+  <div class="rf-wahl" id="rfWahl"></div>
+  <p class="rf-text" id="rfText"></p>
   <div class="umschalter"><div><button data-z="monat">Monatlich</button><button data-z="jahr" class="an">Jährlich · 2 Monate gratis</button></div></div>
   <div class="pakete" id="pakete"></div>
-  <div class="karte zusatz"><b>Zeiterfassung für Ihre Mitarbeiter</b><span>Zu jedem Geschäftspaket: CHF 5 pro Mitarbeiter und Monat oder CHF 50 pro Jahr. Im Gratis-Test unbegrenzt. Online-Termine und Lager sind in jedem Geschäftspaket inklusive.</span></div>
+  <div class="karte zusatz"><b>Mehr Mitarbeitende in der Zeiterfassung</b><span>In „Team“ sind 3, in „Business Team“ 5 Mitarbeitende inklusive. Jede weitere Person: CHF 5 pro Monat oder CHF 50 pro Jahr. Im Gratis-Test unbegrenzt.</span></div>
   <div class="karte zusatz"><b>Einrichtung durch uns</b><span>CHF 190 einmalig: Daten übernehmen, Logo und Vorlagen einrichten, 30 Minuten Einführung. Beim Bestellen einfach ankreuzen.</span></div>
   <p class="unter" style="text-align:center;margin-top:14px;font-size:14px">Alle Preise in CHF. Sie erhalten eine QR-Rechnung per E-Mail. Nach der Zahlung schalten wir Ihre Lizenz frei, alle Daten bleiben erhalten.</p>
 
@@ -106,7 +115,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     <label>Firma oder Name auf der Rechnung<input id="dFirma" required></label>
     <label>Rechnungsadresse<textarea id="dAdresse" rows="2" placeholder="Strasse und Nr., PLZ und Ort" required></textarea></label>
     <label>Telefon <span>(freiwillig)</span><input id="dTel" type="tel"></label>
-    <label id="dZeitFeld">Zeiterfassung: Anzahl Mitarbeiter <span>(0 = ohne)</span><input id="dZeit" type="number" min="0" max="200" value="0" inputmode="numeric"></label>
+    <label id="dZeitFeld"><span id="dZeitText">Zusätzliche Mitarbeitende für die Zeiterfassung</span><input id="dZeit" type="number" min="0" max="200" value="0" inputmode="numeric"></label>
     <label style="display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--tinte)"><input type="checkbox" id="dEinrichtung" style="width:18px;height:18px;margin-top:2px"> <span><b>Einrichtung durch uns, CHF 190 einmalig</b><br><span style="color:var(--text)">Wir übernehmen Ihre bisherigen Daten, richten Logo, Vorlagen und Kategorien ein und zeigen Ihnen alles in 30 Minuten per Video oder vor Ort.</span></span></label>
     <div class="summe"><span id="dPaket"></span><span id="dPreis"></span></div>
     <p class="meldung" id="dMeldung"></p>
@@ -123,18 +132,16 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   var esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var dk = function(d){ return d ? d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4) : ''; };
   var heute = new Date().toLocaleDateString('sv-SE');
-  var PAKETE = [
-    { id: 'privat', name: 'Home-Büro', monat: 3, jahr: 29, was: ['Kontoauszüge und Übersicht', 'Abos und Fixkosten', 'Rechnungen und Fristen', 'Betreibungen'] },
-    { id: 'rechnungen', name: 'Rechnungen', monat: 9, jahr: 90, was: ['QR-Rechnungen', 'Offerten, Gutschriften, Mahnungen', 'Abos und Vorlagen', 'Logo und Farben'] },
-    { id: 'buchhaltung', name: 'Buchhaltung', monat: 14, jahr: 140, was: ['Buchungen und Belege', 'Bankauszug importieren', 'MWST, Bilanz, Abschluss', 'Löhne'] },
-    { id: 'kombi', name: 'Kombi', monat: 19, jahr: 190, was: ['Rechnungen und Buchhaltung', 'Rechnungen werden automatisch gebucht', 'Home-Büro inklusive', 'Persönlicher Support'], top: true }
-  ];
+  var O = window.ORDASIO;
+  var PAKETE = O.PAKETE;
+  var rf = 'einzel';
+  var paketVon = function(id){ return O.paket(id); };
   var zyklus = 'jahr', lizenz = null, benutzer = null, gewaehlt = null, zeitLeute = 0;
-  var ZEIT = { monat: 5, jahr: 50 };
-  function zeitAnzahl(){ return gewaehlt && gewaehlt.id !== 'privat' ? Math.max(0, Math.min(200, parseInt($('dZeit').value, 10) || 0)) : 0; }
+  var ZEIT = O.ZUSATZ_MITARBEITER;
+  function zeitAnzahl(){ return gewaehlt && gewaehlt.programme.indexOf('zeit') >= 0 ? Math.max(0, Math.min(200, parseInt($('dZeit').value, 10) || 0)) : 0; }
   function summeZeigen(){
     var n = zeitAnzahl(), grund = zyklus === 'jahr' ? gewaehlt.jahr : gewaehlt.monat, z = n * ZEIT[zyklus];
-    $('dPaket').textContent = gewaehlt.name + (n ? ' + Zeiterfassung für ' + n : '') + (zyklus === 'jahr' ? ', jährlich' : ', monatlich');
+    $('dPaket').textContent = gewaehlt.name + (n ? ' + ' + n + ' weitere Mitarbeitende' : '') + (zyklus === 'jahr' ? ', jährlich' : ', monatlich');
     $('dPreis').textContent = 'CHF ' + (grund + z) + (zyklus === 'jahr' ? '/Jahr' : '/Monat') + ($('dEinrichtung').checked ? ' + 190 einmalig' : '');
   }
   var sb = window.supabase.createClient(K.url, K.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: K.speicher } });
@@ -145,26 +152,49 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       return;
     }
     if (!lizenz) { $('stand').innerHTML = '<div class="ic ab">!</div><div><b>Keine Lizenz gefunden</b><small>' + esc(benutzer.email) + '</small></div>'; return; }
-    var l = lizenz, name = (PAKETE.find(function(p){ return p.id === l.paket; }) || {}).name || l.paket;
+    var l = lizenz, name = (paketVon(l.paket) || {}).name || l.paket;
+    var rfName = (O.RECHTSFORMEN[l.rechtsform] || {}).name || '';
     var gueltig = l.status !== 'gesperrt' && ((l.status === 'test' && l.test_bis >= heute) || (l.status === 'aktiv' && (l.gueltig_bis || '') >= heute));
     var bis = l.status === 'test' ? l.test_bis : l.gueltig_bis;
     var tage = bis ? Math.round((new Date(bis + 'T12:00') - new Date(heute + 'T12:00')) / 864e5) : 0;
     var titel = l.status === 'gesperrt' ? 'Zugang gesperrt' : !gueltig ? (l.status === 'test' ? 'Gratis-Test abgelaufen' : 'Lizenz abgelaufen')
       : l.status === 'test' ? 'Gratis-Test: noch ' + tage + (tage === 1 ? ' Tag' : ' Tage') : 'Lizenz aktiv';
     $('stand').innerHTML = '<div class="ic ' + (gueltig ? (l.status === 'aktiv' ? 'ok' : '') : 'ab') + '">' + (gueltig ? (l.status === 'aktiv' ? '✓' : '⏳') : '!') + '</div>' +
-      '<div><b>' + esc(titel) + '</b><small>' + esc(name) + ' · ' + esc(benutzer.email) + (bis ? ' · ' + (gueltig ? 'bis ' : 'seit ') + dk(bis) : '') + '</small></div>' +
+      '<div><b>' + esc(titel) + '</b><small>' + esc(name) + (rfName && l.rechtsform !== 'privat' ? ' für ' + esc(rfName) : '') + ' · ' + esc(benutzer.email) + (bis ? ' · ' + (gueltig ? 'bis ' : 'seit ') + dk(bis) : '') + '</small></div>' +
       '<span class="marke">' + (l.status === 'aktiv' ? 'Bezahlt' : l.status === 'test' ? 'Test' : 'Gesperrt') + '</span>';
   }
+  function rfZeichnen(){
+    $('rfWahl').innerHTML = Object.keys(O.RECHTSFORMEN).map(function(k){ return '<button data-rf="' + k + '" class="' + (k === rf ? 'an' : '') + '">' + esc(O.RECHTSFORMEN[k].name) + '</button>'; }).join('');
+    $('rfText').textContent = { einzel: 'Einfache Buchhaltung ohne Fachbegriffe, die doppelte Buchhaltung lässt sich zuschalten.', gmbh: 'Doppelte Buchhaltung nach KMU-Kontenrahmen, Bilanz und Erfolgsrechnung nach OR.', ag: 'Doppelte Buchhaltung nach KMU-Kontenrahmen, Bilanz und Erfolgsrechnung nach OR.', privat: 'Nur private Finanzen: Konto, Abos, Rechnungen, Fristen.' }[rf];
+  }
   function paketeZeichnen(){
+    rfZeichnen();
     [].forEach.call(document.querySelectorAll('[data-z]'), function(b){ b.classList.toggle('an', b.dataset.z === zyklus); });
-    $('pakete').innerHTML = PAKETE.map(function(p){
-      var jetzt = lizenz && lizenz.paket === p.id;
-      return '<div class="paket' + (p.top ? ' top' : '') + (jetzt ? ' jetzt' : '') + '"><h3>' + p.name + '</h3>' +
+    var test = lizenz && lizenz.status === 'test';
+    $('pakete').innerHTML = O.fuer(rf).map(function(p){
+      var jetzt = lizenz && O.paket(lizenz.paket) && O.paket(lizenz.paket).id === p.id && lizenz.rechtsform === rf;
+      var top = p.top && p.top.indexOf(rf) >= 0;
+      var knoepfe = jetzt
+        ? '<button class="btn haupt" data-paket="' + p.id + '">' + (lizenz.status === 'aktiv' ? 'Verlängern' : 'Lizenz kaufen') + '</button>'
+        : (test ? '<button class="btn' + (top ? ' haupt' : '') + '" data-wechsel="' + p.id + '">Gratis zu diesem Paket wechseln</button><button class="btn" data-paket="' + p.id + '">Direkt bestellen</button>'
+          : '<button class="btn' + (top ? ' haupt' : '') + '" data-paket="' + p.id + '">Dieses Paket wählen</button>');
+      return '<div class="paket' + (top ? ' top' : '') + (jetzt ? ' jetzt' : '') + '"><h3>' + esc(p.name) + '</h3><div class="kurz">' + esc(p.kurz) + '</div>' +
         '<div class="preis">' + (zyklus === 'jahr' ? p.jahr : p.monat) + ' <span>CHF / ' + (zyklus === 'jahr' ? 'Jahr' : 'Monat') + '</span></div>' +
-        '<ul>' + p.was.map(function(w){ return '<li>' + esc(w) + '</li>'; }).join('') + '</ul>' +
-        '<button class="btn' + (jetzt || p.top ? ' haupt' : '') + '" data-paket="' + p.id + '">' + (jetzt ? (lizenz.status === 'aktiv' ? 'Verlängern' : 'Lizenz kaufen') : 'Dieses Paket wählen') + '</button></div>';
+        '<ul>' + p.was.map(function(w){ return '<li>' + esc(w) + '</li>'; }).join('') + '</ul>' + knoepfe + '</div>';
     }).join('');
   }
+  document.addEventListener('click', async function(e){
+    var r = e.target.closest('[data-rf]'); if (r) { rf = r.dataset.rf; paketeZeichnen(); return; }
+    var w = e.target.closest('[data-wechsel]'); if (!w) return;
+    if (!benutzer) { location.href = '../'; return; }
+    var ziel = paketVon(w.dataset.wechsel);
+    if (!confirm('Zum Paket „' + ziel.name + '“ für ' + O.RECHTSFORMEN[rf].name + ' wechseln? Während des Gratis-Tests kostet das nichts, Ihre Daten bleiben erhalten.')) return;
+    w.disabled = true;
+    var res = await sb.rpc('paket_wechseln', { p_paket: ziel.id, p_rechtsform: rf });
+    if (res.error) { w.disabled = false; alert(res.error.message); return; }
+    lizenz = res.data; standZeichnen(); paketeZeichnen();
+    alert('Gewechselt zu „' + ziel.name + '“. Die neuen Bereiche sind sofort offen.');
+  });
   document.addEventListener('click', function(e){
     var z = e.target.closest('[data-z]'); if (z) { zyklus = z.dataset.z; paketeZeichnen(); }
     var p = e.target.closest('[data-paket]');
@@ -172,8 +202,9 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       if (!benutzer) { location.href = '../'; return; }
       gewaehlt = PAKETE.find(function(x){ return x.id === p.dataset.paket; });
       $('dTitel').textContent = gewaehlt.name + ' bestellen';
-      $('dZeitFeld').hidden = gewaehlt.id === 'privat';
-      $('dZeit').value = String(Math.max(zeitLeute, (lizenz && lizenz.zeit_plaetze) || 0));
+      $('dZeitFeld').hidden = gewaehlt.programme.indexOf('zeit') < 0;
+      $('dZeitText').textContent = 'Zusätzliche Mitarbeitende für die Zeiterfassung (' + gewaehlt.mitarbeiter + ' inklusive)';
+      $('dZeit').value = String(Math.max(zeitLeute - gewaehlt.mitarbeiter, (lizenz && lizenz.zeit_plaetze) || 0, 0));
       summeZeigen();
       $('dFirma').value = (lizenz && (lizenz.firma || lizenz.name)) || '';
       $('dTel').value = (lizenz && lizenz.telefon) || '';
@@ -222,9 +253,9 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     var nr = 'LIZ-' + String(d.getFullYear()).slice(2) + zz(d.getMonth() + 1) + zz(d.getDate()) + '-' + (100 + Math.floor(Math.random() * 900));
     var zeitN = zeitAnzahl();
     var preis = (zyklus === 'jahr' ? gewaehlt.jahr : gewaehlt.monat) + zeitN * ZEIT[zyklus];
-    var daten = { Paket: gewaehlt.name, 'Zeiterfassung (Mitarbeiter)': String(zeitN), Einrichtung: $('dEinrichtung').checked ? 'Ja, CHF 190 einmalig' : 'Nein', Zahlungsweise: zyklus === 'jahr' ? 'Jährlich' : 'Monatlich', Preis: 'CHF ' + preis + (zyklus === 'jahr' ? ' pro Jahr' : ' pro Monat'),
+    var daten = { Paket: gewaehlt.name, Rechtsform: O.RECHTSFORMEN[rf].name, 'Zusätzliche Mitarbeitende': String(zeitN), Einrichtung: $('dEinrichtung').checked ? 'Ja, CHF 190 einmalig' : 'Nein', Zahlungsweise: zyklus === 'jahr' ? 'Jährlich' : 'Monatlich', Preis: 'CHF ' + preis + (zyklus === 'jahr' ? ' pro Jahr' : ' pro Monat'),
       'Rechnung an': firma, Adresse: adresse, 'E-Mail': benutzer.email, Telefon: $('dTel').value.trim(), Konto: benutzer.id,
-      'Stand jetzt': lizenz ? lizenz.status + ' / ' + lizenz.paket : '' };
+      'Stand jetzt': lizenz ? lizenz.status + ' / ' + lizenz.paket + ' / ' + lizenz.rechtsform : '' };
     var ok1 = await fetch('https://dyepnomhidubsfwyorke.supabase.co/rest/v1/anfragen', { method: 'POST',
       headers: { apikey: 'sb_publishable_zEmC1R5vq234zR6ST7PTmA_uY7Z1-ph', 'Content-Type': 'application/json', Prefer: 'return=minimal' },
       body: JSON.stringify({ art: 'Lizenz-Bestellung: ' + gewaehlt.name, nummer: nr, name: firma, email: benutzer.email, telefon: daten.Telefon, daten: daten }) })
@@ -282,7 +313,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       if (benutzer) {
         var r = await sb.from('lizenzen').select('*').eq('user_id', benutzer.id).maybeSingle();
         lizenz = r.data || null;
-        if (lizenz) zyklus = lizenz.zyklus || 'jahr';
+        if (lizenz) { zyklus = lizenz.zyklus || 'jahr'; rf = lizenz.rechtsform || 'einzel'; }
         try { var zm = await sb.from('ze_mitarbeiter').select('id', { count: 'exact', head: true }).eq('aktiv', true); zeitLeute = zm.count || 0; } catch (f2) { zeitLeute = 0; }
       }
     } catch (f) { benutzer = null; }

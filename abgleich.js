@@ -4,7 +4,7 @@
   const K = window.NASUVIA_KONFIG || { url: 'https://dyepnomhidubsfwyorke.supabase.co', key: 'sb_publishable_zEmC1R5vq234zR6ST7PTmA_uY7Z1-ph', speicher: 'nb.anmeldung' };
   const URL_PROJEKT = K.url;
   const SCHLUESSEL = K.key;
-  const ARTEN = ['buchungen', 'belege', 'einstellungen'];
+  const ARTEN = ['buchungen', 'belege', 'einstellungen', 'journal'];
   const K_SEIT = 'nb.abgleich.seit';
   const K_ZULETZT = 'nb.abgleich.zuletzt';
 

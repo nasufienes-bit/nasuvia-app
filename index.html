@@ -286,6 +286,33 @@ dialog::backdrop { background: rgba(12, 18, 38, .35); }
   .dlg-fuss { padding-bottom: calc(18px + var(--unten)); }
   td, th { padding: 8px 2px; font-size: 13.5px; }
 }
+
+/* ============ DOPPELTE BUCHHALTUNG ============ */
+.scroll { overflow-x: auto; }
+table.journal { font-size: 13.5px; }
+table.journal td, table.journal th { padding: 7px 6px; }
+.kontonr { font-family: var(--font-mono); font-size: 12px; color: var(--elektrik); letter-spacing: .02em; }
+tr.klick { cursor: pointer; }
+tr.klick:hover td { background: var(--flaeche); }
+.kennzahl.klick { cursor: pointer; }
+td.minus, .wert.minus { color: var(--rot); }
+.j-zeilen { display: grid; gap: 8px; }
+.j-zeile { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 120px 30px; gap: 8px; align-items: center; }
+.j-zeile select, .j-zeile input { width: 100%; min-width: 0; padding: 9px 10px; border: 1px solid var(--hairline-strong); border-radius: var(--r-feld); background: var(--karte); }
+.j-zeile input { text-align: right; font-variant-numeric: tabular-nums; }
+.j-kopf span { font-family: var(--font-mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--leise); }
+@media (max-width: 640px) { .j-zeile { grid-template-columns: 1fr 1fr; } .j-zeile input { grid-column: 1; } .j-kopf { display: none; } }
+.eb-raster { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; max-height: 52vh; overflow: auto; padding-right: 4px; }
+.eb-raster h4 { font-size: 13px; color: var(--tinte); margin: 0 0 6px; position: sticky; top: 0; background: var(--karte); padding: 4px 0; }
+.eb-zeile { display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 8px; align-items: center; font-size: 13px; padding: 3px 0; }
+.eb-zeile input { width: 100%; padding: 6px 8px; border: 1px solid var(--hairline-strong); border-radius: 7px; text-align: right; font-variant-numeric: tabular-nums; }
+.eb-summe { background: var(--flaeche); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+@media (max-width: 640px) { .eb-raster { grid-template-columns: 1fr; } }
+.pruef { display: grid; gap: 8px; }
+.pruef-zeile { display: grid; grid-template-columns: 24px 1fr auto; gap: 8px; align-items: center; font-size: 14px; }
+.pruef-ic { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: var(--flaeche); color: var(--leise); }
+.pruef-ic.ok { background: rgba(14, 159, 110, .14); color: #0A7150; }
+.pruef-ic.offen { background: rgba(183, 121, 31, .16); color: var(--gelb); }
 </style>
 </head>
 <body>
@@ -310,12 +337,14 @@ dialog::backdrop { background: rgba(12, 18, 38, .35); }
 <script src="konfig.js"></script>
 <script src="speicher.js"></script>
 <script src="lib/supabase.js"></script>
+<script src="pakete.js"></script>
 <script src="lizenz.js" data-produkt="buchhaltung"></script>
 <script src="marke.js"></script>
 <script src="abgleich.js"></script>
 <script src="ui.js"></script>
 <script src="navi.js" data-hier="buchhaltung" data-titel="Buchhaltung"></script>
 <script src="auszug.js"></script>
+<script src="doppelt.js"></script>
 <script src="app.js"></script>
 <script src="suche.js"></script>
 </body>
