@@ -345,6 +345,21 @@
       nummer: nummer ? nummer.trim().replace(/\s+/g, ' ') : '', glaeubiger: glaeubiger ? glaeubiger.trim() : '', amt: amt ? amt.trim() : '', verlustschein: /Verlustschein/i.test(t) };
   };
 
+  // Rechnung oder Mahnung: Betrag, Fälligkeit, Mahnstufe, Gebühr und Absender aus dem Text
+  H.rechnungAusText = (text) => {
+    const t = text.replace(/\r/g, '');
+    const zahl = (x) => Math.round(Number(String(x).replace(/[’'\s]/g, '').replace(',', '.')) * 100);
+    const BETRAG = "([0-9’']{1,3}(?:[’' ]?[0-9]{3})*[.,]\\d{2})";
+    const total = t.match(new RegExp("(?:Total|Gesamtbetrag|Rechnungsbetrag|zu bezahlen|Zahlbetrag|offener Betrag|Saldo|Betrag)[^\\n]{0,40}?(?:CHF|Fr\\.?)?\\s*" + BETRAG, 'i'));
+    const alle = [...t.matchAll(new RegExp("(?:CHF|Fr\\.?)\\s*" + BETRAG, 'gi'))].map((m) => zahl(m[1])).filter((n) => n > 0 && n < 1e9);
+    const datum = (s2) => { const m = /(\d{1,2})\.\s?(\d{1,2})\.\s?(\d{2,4})/.exec(s2 || ''); if (!m) return ''; const j = m[3].length === 2 ? '20' + m[3] : m[3]; return `${j}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`; };
+    const faellig = datum((t.match(/(?:zahlbar bis|fällig(?: am| bis)?|Zahlungsfrist|spätestens(?: am| bis)?|bis zum)[^\n]{0,25}?(\d{1,2}\.\s?\d{1,2}\.\s?\d{2,4})/i) || [])[1]);
+    const stufe = /letzte mahnung|inkasso|betreibung angedroht/i.test(t) ? 4 : /(?:2\.|zweite)\s*mahnung/i.test(t) ? 3 : /(?:1\.|erste)?\s*mahnung/i.test(t) ? 2 : /zahlungserinnerung|erinnerung/i.test(t) ? 1 : 0;
+    const geb = t.match(new RegExp("(?:Mahngebühr|Mahnspesen|Gebühr)[^\\n]{0,25}?" + BETRAG, 'i'));
+    const zeilen = t.split('\n').map((z) => z.trim()).filter((z) => /[A-Za-zÄÖÜäöü]{3}/.test(z) && !/rechnung|mahnung|erinnerung|seite|datum|kunden/i.test(z));
+    return { betrag: total ? zahl(total[1]) : (alle.length ? Math.max(...alle) : 0), faellig, mahnstufe: stufe, gebuehr: geb ? zahl(geb[1]) : 0, glaeubiger: (zeilen[0] || '').slice(0, 60) };
+  };
+
   /* ---------- Hilfe: Kontoauszug bei der Bank holen ---------- */
   const BANKEN = [
     ['UBS', 'E-Banking oder App: Konto antippen, oben rechts „Export“ bzw. „Transaktionen exportieren“, Zeitraum wählen, Format CSV oder camt.053.'],

@@ -20,6 +20,14 @@
   .ui-frage button.ja{background:#0B3B2E;color:#fff}
   .ui-frage button.ja.gefahr{background:#E5484D}
   @media (max-width:640px){dialog.ui-frage[open]{border-radius:22px 22px 0 0!important}.ui-frage .ui-knoepfe button{flex:1}}
+  dialog.ui-bild{width:min(760px,calc(100vw - 24px))}
+  .ui-schnitt{position:relative;display:block;width:fit-content;max-width:100%;margin:0 auto;touch-action:none;user-select:none;overflow:hidden;border-radius:8px;background:#eef1f4}
+  .ui-schnitt canvas{display:block;max-width:100%;max-height:55vh;width:auto;height:auto}
+  .ui-rahmen{position:absolute;border:2px solid #0E7A55;box-shadow:0 0 0 9999px rgba(10,31,23,.45);cursor:move}
+  .ui-rahmen i{position:absolute;width:20px;height:20px;background:#fff;border:2px solid #0E7A55;border-radius:50%}
+  .ui-rahmen i[data-e=nw]{left:-3px;top:-3px;cursor:nwse-resize}.ui-rahmen i[data-e=ne]{right:-3px;top:-3px;cursor:nesw-resize}
+  .ui-rahmen i[data-e=sw]{left:-3px;bottom:-3px;cursor:nesw-resize}.ui-rahmen i[data-e=se]{right:-3px;bottom:-3px;cursor:nwse-resize}
+  .ui-bild .ui-knoepfe button[data-b].ja{background:#0E7A55;color:#fff}
   @keyframes uiHoch{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
   html.ui-dialog-offen,html.ui-dialog-offen body{overflow:hidden}
   /* Kopfzeile ohne Trennlinie: oben durchsichtig, beim Scrollen ruhiger Hintergrund in der Seitenfarbe */
@@ -111,7 +119,80 @@
     eingabe: (text, o = {}) => fenster({ text, eingabe: o.vorgabe || '', ja: o.ja || 'OK', platzhalter: o.platzhalter || '', titel: o.titel || '' }),
     // Hinweis mit einem Knopf
     hinweis: (text, o = {}) => fenster({ text, ja: o.ja || 'OK', nein: '', titel: o.titel || '' }),
+    // Foto bearbeiten: drehen, zuschneiden, für schlecht eingescannte Dokumente heller und kräftiger machen
+    bildBearbeiten: (src, o = {}) => bildBearbeiten(src, o),
   };
+
+  function bildBearbeiten(src, { titel = 'Foto bearbeiten', max = 1800 } = {}) {
+    return new Promise((fertig) => {
+      const img = new Image();
+      img.onload = () => {
+        let dreh = 0, scan = false, r = { x: 0, y: 0, w: 1, h: 1 };
+        const d = document.createElement('dialog');
+        d.className = 'ui-frage ui-bild'; d.setAttribute('data-ohne-x', '');
+        d.innerHTML = `<form method="dialog"><h3>${escH(titel)}</h3><p>Rahmen oder Ecken ziehen zum Zuschneiden.</p>
+          <div class="ui-schnitt"><canvas></canvas><div class="ui-rahmen"><i data-e="nw"></i><i data-e="ne"></i><i data-e="sw"></i><i data-e="se"></i></div></div>
+          <div class="ui-knoepfe" style="justify-content:flex-start"><button type="button" data-b="links">↺ Drehen</button><button type="button" data-b="rechts">↻ Drehen</button><button type="button" data-b="scan">Heller und schärfer</button><button type="button" data-b="alles">Ganzes Bild</button></div>
+          <div class="ui-knoepfe"><button type="button" data-b="zu">Abbrechen</button><button class="ja" value="ja">Übernehmen</button></div></form>`;
+        document.body.appendChild(d);
+        const cv = d.querySelector('canvas'), box = d.querySelector('.ui-schnitt'), rahmen = d.querySelector('.ui-rahmen');
+        // Bild gedreht (und auf Wunsch kontrastreicher) auf eine Leinwand malen
+        const malen = (ziel, f = 1) => {
+          const quer = dreh % 180 !== 0, w = img.naturalWidth * f, h = img.naturalHeight * f;
+          ziel.width = Math.round(quer ? h : w); ziel.height = Math.round(quer ? w : h);
+          const g = ziel.getContext('2d');
+          g.save(); g.translate(ziel.width / 2, ziel.height / 2); g.rotate(dreh * Math.PI / 180);
+          if (scan) g.filter = 'brightness(1.12) contrast(1.45) saturate(.85)';
+          g.drawImage(img, -w / 2, -h / 2, w, h); g.restore();
+        };
+        const zeigen = () => {
+          const f = Math.min(1, 900 / Math.max(img.naturalWidth, img.naturalHeight));
+          malen(cv, f);
+          Object.assign(rahmen.style, { left: r.x * 100 + '%', top: r.y * 100 + '%', width: r.w * 100 + '%', height: r.h * 100 + '%' });
+        };
+        zeigen();
+        let zug = null;
+        box.addEventListener('pointerdown', (e) => { if (!e.target.closest('.ui-rahmen')) return; e.preventDefault(); box.setPointerCapture(e.pointerId); zug = { e: e.target.dataset.e || 'm', x: e.clientX, y: e.clientY, r: { ...r } }; });
+        box.addEventListener('pointermove', (e) => {
+          if (!zug) return;
+          const b = cv.getBoundingClientRect(), dx = (e.clientX - zug.x) / b.width, dy = (e.clientY - zug.y) / b.height, a = zug.r, m = 0.05;
+          let { x, y, w, h } = a;
+          if (zug.e === 'm') { x = Math.min(1 - w, Math.max(0, a.x + dx)); y = Math.min(1 - h, Math.max(0, a.y + dy)); }
+          if (zug.e.includes('w')) { x = Math.min(a.x + a.w - m, Math.max(0, a.x + dx)); w = a.x + a.w - x; }
+          if (zug.e.includes('e')) w = Math.min(1 - a.x, Math.max(m, a.w + dx));
+          if (zug.e.includes('n')) { y = Math.min(a.y + a.h - m, Math.max(0, a.y + dy)); h = a.y + a.h - y; }
+          if (zug.e.includes('s')) h = Math.min(1 - a.y, Math.max(m, a.h + dy));
+          r = { x, y, w, h }; zeigen();
+        });
+        const los = () => { zug = null; };
+        box.addEventListener('pointerup', los); box.addEventListener('pointercancel', los);
+        let ergebnis = null;
+        d.addEventListener('click', (e) => {
+          const t = e.target.closest('[data-b]'); if (!t) return;
+          const b = t.dataset.b;
+          if (b === 'zu') { d.close(); return; }
+          if (b === 'links' || b === 'rechts') { dreh = (dreh + (b === 'rechts' ? 90 : 270)) % 360; r = { x: 0, y: 0, w: 1, h: 1 }; }
+          if (b === 'scan') { scan = !scan; t.classList.toggle('ja', scan); }
+          if (b === 'alles') r = { x: 0, y: 0, w: 1, h: 1 };
+          zeigen();
+        });
+        d.querySelector('form').onsubmit = (e) => {
+          e.preventDefault();
+          const voll = document.createElement('canvas'); malen(voll, 1);
+          const sx = r.x * voll.width, sy = r.y * voll.height, sw = r.w * voll.width, sh = r.h * voll.height;
+          const f = Math.min(1, max / Math.max(sw, sh));
+          const aus = document.createElement('canvas'); aus.width = Math.max(1, Math.round(sw * f)); aus.height = Math.max(1, Math.round(sh * f));
+          aus.getContext('2d').drawImage(voll, sx, sy, sw, sh, 0, 0, aus.width, aus.height);
+          ergebnis = aus.toDataURL('image/jpeg', 0.86);
+          d.close();
+        };
+        d.addEventListener('close', () => { d.remove(); fertig(ergebnis); });
+        d.showModal();
+      };
+      img.onerror = () => fertig(null);
+      img.src = src;
+    });
+  }
 
   // Neuer Inhalt per innerHTML entfernt das ✕: beim nächsten showModal wird es wieder eingesetzt.
   new MutationObserver(() => {
