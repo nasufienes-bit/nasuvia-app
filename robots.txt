@@ -5,3 +5,4 @@ Allow: /
 Disallow: /treuhand/
 Disallow: /zeit/erfassen/
 Disallow: /buchen/
+Disallow: /r/

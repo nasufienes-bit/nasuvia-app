@@ -188,6 +188,34 @@
     };
   }
 
+  /* ---------- Online-Link für den Kunden (nur Verkaufsversion) ---------- */
+  // Der Kunde öffnet die Rechnung ohne Konto unter /r/?t=…; dabei wird vermerkt, wann sie geöffnet wurde.
+  const LINK_BASIS = (() => { try { return new URL('../r/', location.href).href; } catch { return '/r/'; } })();
+  const linkMoeglich = () => !!(K.produkt && benutzer);
+  function linkDaten(r) {
+    const m = window.Marke ? Marke.daten() : {};
+    return { art: artVon(r), nr: r.nr, datum: r.datum, faellig: r.faellig, betragRappen: r.betragRappen, kunde: r.kunde, bezahlt: !!r.bezahlt,
+      firma: { name: m.name || r.empfaenger || '', logo: m.logo && m.logo.length < 300000 ? m.logo : '', farbe: m.farbe1 || '', mail: m.mail || '', tel: m.tel || '', web: m.web || '' } };
+  }
+  async function onlineLink(r, blob) {
+    if (!linkMoeglich()) return null;
+    const daten = linkDaten(r);
+    let { data: l } = await sb.from('rg_links').select('token').eq('rechnung_id', r.id).maybeSingle();
+    if (!l) { const n = await sb.from('rg_links').insert({ rechnung_id: r.id, daten }).select('token').single(); if (n.error) throw n.error; l = n.data; }
+    else await sb.from('rg_links').update({ daten }).eq('token', l.token);
+    blob = blob || await pdfHolen(r);
+    if (!blob) throw new Error('Das PDF ist auf diesem Gerät noch nicht da. Bitte kurz warten, bis der Abgleich fertig ist.');
+    const up = await sb.storage.from('rechnung-links').upload(l.token + '.pdf', blob, { upsert: true, contentType: 'application/pdf' });
+    if (up.error) throw up.error;
+    return LINK_BASIS + '?t=' + l.token;
+  }
+  // Bezahlt geändert: die Seite des Kunden soll es auch zeigen
+  async function linkNachfuehren(r) { try { if (linkMoeglich()) await sb.from('rg_links').update({ daten: linkDaten(r) }).eq('rechnung_id', r.id); } catch {} }
+  async function geoeffnetListe() {
+    if (!linkMoeglich()) return new Map();
+    try { const { data } = await sb.from('rg_links').select('rechnung_id,token,geoeffnet_erst,geoeffnet_zuletzt,anzahl'); return new Map((data || []).map((x) => [x.rechnung_id, x])); } catch { return new Map(); }
+  }
+
   /* ---------- Antworten auf die Aufrufe der App ---------- */
   async function statistik() {
     // Nur Rechnungen zählen als Umsatz, Gutschriften ziehen ihn ab
@@ -288,7 +316,10 @@
           await speichern('rechnung', [{ ...e, gesendet: true, gesendetAm: jetzt(), gesendetAn: d.an || e.gesendetAn || '' }]);
         }
         if (!blob) return fehler('Das PDF ist auf diesem Gerät noch nicht da. Bitte kurz warten, bis der Abgleich fertig ist.', 500);
-        pdfZeigen(blob, e.datei, { an: d.an, betreff: d.betreff, text: d.text });
+        // Link zum Online-Ansehen in die Mail: so sehen Sie, wann der Kunde die Rechnung geöffnet hat
+        let text = d.text || '';
+        try { const url = await onlineLink(e, blob); if (url) text += `\n\n${WORT[artVon(e)]} online ansehen und als PDF laden:\n${url}`; } catch { /* ohne Link weiter */ }
+        pdfZeigen(blob, e.datei, { an: d.an, betreff: d.betreff, text });
         return { body: { ok: true, pfad: PFAD + e.datei, weg: 'teilen' } };
       }
       case '/api/laden': {
@@ -301,6 +332,7 @@
         const e = await nachDatei(d.datei || '');
         if (!e) return fehler('Rechnung nicht im Verzeichnis.');
         await speichern('rechnung', [{ ...e, bezahlt: !!d.bezahlt, bezahltAm: d.bezahlt ? heute() : '' }]);
+        linkNachfuehren({ ...e, bezahlt: !!d.bezahlt });
         return { body: { ok: true, bezahlt: !!d.bezahlt } };
       }
       case '/api/entwurf': {
@@ -560,6 +592,27 @@
     .nr-ue-karte.geloescht{background:#FAFBFE;border-style:dashed}
     .nr-ue-hinweis{grid-column:1/-1;margin:0;font-size:.88rem;color:#3F5A4F;background:#F6F8FC;border-radius:10px;padding:10px 12px}
     .nr-ue-leer{text-align:center;color:#3F5A4F;padding:30px 10px}
+    .nr-ue-summen{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .nr-ue-liste{display:block;padding-top:10px}
+    .nr-zeile{border-bottom:1px solid rgba(11,59,46,.08)}
+    .nr-zeile-kopf{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;border:0;background:none;padding:14px 6px;cursor:pointer;text-align:left;font:inherit;color:inherit;border-radius:12px}
+    .nr-zeile-kopf:hover{background:#F6F8FC}
+    .nr-haupt b,.nr-rechts b{display:block;font-size:1rem;color:#0A1F17;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .nr-haupt small,.nr-rechts small{display:block;font-size:.82rem;color:#3F5A4F;margin-top:2px}
+    .nr-rechts{text-align:right}
+    .nr-punkt{width:10px;height:10px;border-radius:50%;background:#C8CFD9}
+    .nr-punkt.gesendet{background:#3B82F6}.nr-punkt.geoeffnet{background:#8B5CF6}.nr-punkt.ueber{background:#E5484D}.nr-punkt.bezahlt{background:#0E9F6E}
+    .nr-stand.gesendet{color:#2563EB}.nr-stand.geoeffnet{color:#7C3AED}.nr-stand.ueber{color:#C7383D;font-weight:600}.nr-stand.bezahlt{color:#0A7150}
+    .nr-mehr{display:none;padding:0 6px 16px 30px}
+    .nr-zeile.auf .nr-mehr{display:block}
+    .nr-zeile.auf .nr-zeile-kopf{background:#F6F8FC}
+    .nr-schritte{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px}
+    .nr-st{display:inline-flex;align-items:center;gap:6px;border-radius:100px;padding:5px 11px 5px 7px;font-size:.82rem;background:#F1F3F8;color:#7C8499}
+    .nr-st i{width:14px;height:14px;border-radius:50%;background:#D7DCE6}
+    .nr-st.ja{background:rgba(14,159,110,.1);color:#0A7150}
+    .nr-st.ja i{background:#0E9F6E url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 8.5l2.2 2.2L11.5 6' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100%}
+    .nr-info{margin:0 0 10px;font-size:.86rem;color:#3F5A4F}
+    @media (max-width:640px){.nr-ue-summen{grid-template-columns:repeat(3,minmax(0,1fr))}.nr-ue-summen b{font-size:.92rem}.nr-mehr{padding-left:6px}}
     @media (max-width:640px){
       .nr-ue{width:100%;max-width:100%;height:100%;max-height:100%;margin:0;border-radius:0}
       .nr-ue-innen{max-height:100%;height:100%}
@@ -594,10 +647,10 @@
     d.className = 'nr-ue';
     d.innerHTML = `<div class="nr-ue-innen">
       <div class="nr-ue-kopf">
-        <div class="zeile1"><h3>Alle Rechnungen</h3><button class="nr-ue-zu" data-zu aria-label="Schliessen">×</button></div>
+        <div class="zeile1"><h3>Rechnungen</h3><button class="nr-ue-zu" data-zu aria-label="Schliessen">×</button></div>
         <div class="nr-ue-summen" data-summen></div>
         <div class="nr-ue-filter" data-filter>
-          <button data-f="alle">Alle</button><button data-f="nichtGesendet">Nicht gesendet</button><button data-f="gesendet">Gesendet, offen</button><button data-f="ueberfaellig">Überfällig</button><button data-f="bezahlt">Bezahlt</button><button data-f="papierkorb" data-papierkorb>Zuletzt gelöscht</button>
+          <button data-f="alle">Alle</button><button data-f="offen">Offen</button><button data-f="ueberfaellig">Überfällig</button><button data-f="nichtGesendet">Nicht gesendet</button><button data-f="bezahlt">Bezahlt</button><button data-f="papierkorb" data-papierkorb>Zuletzt gelöscht</button>
         </div>
         <input class="nr-ue-suche" type="search" placeholder="Suchen: Nummer, Kunde oder E-Mail" data-suche value="${esc(ueSuche)}">
       </div>
@@ -609,11 +662,12 @@
       const alle_ = (await gueltig('rechnung')).sort((a, b) => (b.datum || '').localeCompare(a.datum || '') || String(b.nr).localeCompare(String(a.nr), 'de', { numeric: true }));
       const offen = alle_.filter((r) => !r.bezahlt), ueber = alle_.filter(ueberfaellig);
       const summe = (l) => l.reduce((s, r) => s + (r.betragRappen || 0), 0);
+      const jahr = heute().slice(0, 4);
       d.querySelector('[data-summen]').innerHTML =
-        `<div><b>${alle_.length}</b><span>Rechnungen</span></div>` +
-        `<div><b>${alle_.filter((r) => !r.gesendet).length}</b><span>Nicht gesendet</span></div>` +
-        `<div class="${ueber.length ? 'rot' : 'blau'}"><b>${chfText(summe(offen))}</b><span>Offen${ueber.length ? `, davon ${ueber.length} überfällig` : ''}</span></div>` +
-        `<div class="gruen"><b>${chfText(summe(alle_.filter((r) => r.bezahlt)))}</b><span>Bezahlt</span></div>`;
+        `<div class="blau"><b>${chfText(summe(offen))}</b><span>Offen · ${offen.length} ${offen.length === 1 ? 'Rechnung' : 'Rechnungen'}</span></div>` +
+        `<div class="${ueber.length ? 'rot' : ''}"><b>${chfText(summe(ueber))}</b><span>Überfällig · ${ueber.length}</span></div>` +
+        `<div class="gruen"><b>${chfText(summe(alle_.filter((r) => r.bezahlt && (r.bezahltAm || r.datum || '').startsWith(jahr))))}</b><span>Bezahlt ${jahr}</span></div>`;
+      const geoeffnet = await geoeffnetListe();
       d.querySelectorAll('[data-f]').forEach((b) => b.classList.toggle('an', b.getAttribute('data-f') === ueFilter));
       const korb = (await alle('rechnung')).filter((r) => r.geloescht && r.geloeschtAm && !r.endgueltig)
         .sort((a, b) => (b.geloeschtAm || '').localeCompare(a.geloeschtAm || ''));
@@ -640,7 +694,7 @@
         return;
       }
       const liste = alle_.filter((r) => ({
-        alle: true, nichtGesendet: !r.gesendet, gesendet: r.gesendet && !r.bezahlt, ueberfaellig: ueberfaellig(r), bezahlt: r.bezahlt,
+        alle: true, offen: !r.bezahlt, nichtGesendet: !r.gesendet, gesendet: r.gesendet && !r.bezahlt, ueberfaellig: ueberfaellig(r), bezahlt: r.bezahlt,
       })[ueFilter]).filter(passt);
       const box = d.querySelector('[data-liste]');
       if (!liste.length && !alle_.length) {
@@ -652,24 +706,36 @@
       }
       if (!liste.length) { box.innerHTML = '<p class="nr-ue-leer">Keine Rechnung passt zu dieser Auswahl.</p>'; return; }
       box.innerHTML = liste.map((r) => {
-        const an = adresseVon(r);
-        const gesendetText = !r.gesendet ? 'Noch nicht gesendet'
-          : (r.gesendetAm ? zeitText(r.gesendetAm) : 'Ja') + (an ? `<span>an ${esc(an)}</span>` : '');
-        const bezahltText = r.bezahlt ? (r.bezahltAm ? datumText(r.bezahltAm) : 'Ja')
-          : ueberfaellig(r) ? `Überfällig seit ${datumText(r.faellig)}` : (r.faellig ? `Fällig am ${datumText(r.faellig)}` : 'Offen');
-        return `<div class="nr-ue-karte" data-id="${esc(r.id)}">
-          <div class="oben"><b>Nr. ${esc(r.nr || '?')} · ${esc(r.kunde || 'Ohne Kunde')}</b><span class="betrag">${chfText(r.betragRappen)}</span></div>
-          <div class="klein">Rechnung vom ${datumText(r.datum)}${r.empfaenger ? ' · Zahlung an ' + esc(r.empfaenger) : ''}</div>
-          <div class="nr-ue-weg">
-            <div class="nr-ue-schritt ja"><b><i></i>Gespeichert</b><span>${zeitText(r.zuletztGesichert || r.erstellt)}</span></div>
-            <div class="nr-ue-schritt ${r.gesendet ? 'ja' : ''}"><b><i></i>Gesendet</b><span>${gesendetText}</span></div>
-            <div class="nr-ue-schritt ${r.bezahlt ? 'ja' : ueberfaellig(r) ? 'warn' : ''}"><b><i></i>Bezahlt</b><span>${bezahltText}</span></div>
-          </div>
-          <div class="nr-ue-knoepfe">
-            <button data-a="pdf">PDF ansehen</button>
-            <button data-a="bearbeiten">Bearbeiten</button>
-            <button data-a="bezahlt" class="${r.bezahlt ? '' : 'gruen'}">${r.bezahlt ? 'Wieder offen' : 'Als bezahlt markieren'}</button>
-            <button data-a="loeschen" class="rot">Löschen</button>
+        const an = adresseVon(r), g = geoeffnet.get(r.id);
+        const stand = r.bezahlt ? 'bezahlt' : ueberfaellig(r) ? 'ueber' : g && g.anzahl ? 'geoeffnet' : r.gesendet ? 'gesendet' : 'neu';
+        const STAND = { bezahlt: 'Bezahlt', ueber: 'Überfällig', geoeffnet: 'Geöffnet', gesendet: 'Gesendet', neu: 'Nicht gesendet' };
+        const schritt = (an_, text, titel) => `<span class="nr-st ${an_ ? 'ja' : ''}" title="${esc(titel || '')}"><i></i>${text}</span>`;
+        const offenSeit = g && g.anzahl ? `Geöffnet ${zeitText(g.geoeffnet_erst)}${g.anzahl > 1 ? ` (${g.anzahl}×, zuletzt ${zeitText(g.geoeffnet_zuletzt)})` : ''}` : r.gesendet ? 'Noch nicht geöffnet' : '';
+        return `<div class="nr-zeile" data-id="${esc(r.id)}">
+          <button class="nr-zeile-kopf" data-a="auf" aria-expanded="false">
+            <span class="nr-punkt ${stand}"></span>
+            <span class="nr-haupt"><b>${esc(r.kunde || 'Ohne Kunde')}</b><small>Nr. ${esc(r.nr || '?')} · ${datumText(r.datum)}</small></span>
+            <span class="nr-rechts"><b>${chfText(r.betragRappen)}</b><small class="nr-stand ${stand}">${STAND[stand]}</small></span>
+          </button>
+          <div class="nr-mehr">
+            <div class="nr-schritte">
+              ${schritt(true, 'Erstellt', zeitText(r.zuletztGesichert || r.erstellt))}
+              ${schritt(r.gesendet, 'Gesendet', r.gesendetAm ? zeitText(r.gesendetAm) + (an ? ' an ' + an : '') : '')}
+              ${schritt(g && g.anzahl, 'Geöffnet', offenSeit)}
+              ${schritt(r.bezahlt, 'Bezahlt', r.bezahltAm ? datumText(r.bezahltAm) : '')}
+            </div>
+            <p class="nr-info">${[
+              r.gesendet ? `Gesendet ${r.gesendetAm ? zeitText(r.gesendetAm) : ''}${an ? ' an ' + esc(an) : ''}` : 'Noch nicht gesendet',
+              offenSeit,
+              r.bezahlt ? `Bezahlt ${r.bezahltAm ? datumText(r.bezahltAm) : ''}` : ueberfaellig(r) ? `Überfällig seit ${datumText(r.faellig)}` : r.faellig ? `Fällig am ${datumText(r.faellig)}` : '',
+            ].filter(Boolean).join(' · ')}</p>
+            <div class="nr-ue-knoepfe">
+              <button data-a="pdf">PDF ansehen</button>
+              ${K.produkt ? '<button data-a="link">Link für den Kunden</button>' : ''}
+              <button data-a="bearbeiten">Bearbeiten</button>
+              <button data-a="bezahlt" class="${r.bezahlt ? '' : 'gruen'}">${r.bezahlt ? 'Wieder offen' : 'Bezahlt'}</button>
+              <button data-a="loeschen" class="rot">Löschen</button>
+            </div>
           </div>
         </div>`;
       }).join('');
@@ -679,9 +745,22 @@
     d.querySelector('[data-suche]').oninput = (e) => { ueSuche = e.target.value; zeichnen(); };
     d.querySelector('[data-liste]').onclick = async (e) => {
       const b = e.target.closest('[data-a]'); if (!b) return;
+      const a = b.getAttribute('data-a');
+      if (a === 'auf') { const z = b.closest('.nr-zeile'); const auf = z.classList.toggle('auf'); b.setAttribute('aria-expanded', auf ? 'true' : 'false'); return; }
       const r = await eins('rechnung', b.closest('[data-id]').getAttribute('data-id'));
       if (!r) return;
-      const a = b.getAttribute('data-a');
+      if (a === 'link') {
+        b.disabled = true; const alt = b.textContent; b.textContent = 'Link wird erstellt …';
+        try {
+          const url = await onlineLink(r);
+          if (!url) throw new Error('Bitte zuerst anmelden.');
+          b.textContent = alt; b.disabled = false;
+          const teilen = navigator.share ? await UI.frage(`Link für Rechnung Nr. ${r.nr}:\n${url}\n\nSobald ${r.kunde || 'der Kunde'} ihn öffnet, sehen Sie es hier.`, { ja: 'Teilen', nein: 'Kopieren' }) : false;
+          if (teilen) { try { await navigator.share({ title: `Rechnung Nr. ${r.nr}`, url }); } catch {} }
+          else { try { await navigator.clipboard.writeText(url); toast('Link kopiert'); } catch { await UI.eingabe('Link kopieren:', { vorgabe: url }); } }
+        } catch (f) { b.textContent = alt; b.disabled = false; await UI.hinweis(f.message || 'Der Link konnte nicht erstellt werden.'); }
+        return;
+      }
       if (a === 'pdf') {
         const blob = await pdfHolen(r);
         if (blob) pdfZeigen(blob, r.datei);
@@ -708,6 +787,7 @@
         zeichnen();
       } else if (a === 'bezahlt') {
         await speichern('rechnung', [{ ...r, bezahlt: !r.bezahlt, bezahltAm: r.bezahlt ? '' : heute() }]);
+        linkNachfuehren({ ...r, bezahlt: !r.bezahlt });
         if (window.__nasuvia && window.__nasuvia.listenNeu) window.__nasuvia.listenNeu();
         zeichnen();
         if (window.Rueckgaengig) Rueckgaengig.zeigen(r.bezahlt ? `Nr. ${r.nr} wieder offen` : `Nr. ${r.nr} als bezahlt markiert`, async () => { await speichern('rechnung', [{ ...r }]); if (window.__nasuvia && window.__nasuvia.listenNeu) window.__nasuvia.listenNeu(); zeichnen(); });

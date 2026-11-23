@@ -233,6 +233,9 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     try {
       await ordnerLeeren('belege', benutzer.id, 2);
       await ordnerLeeren('auftrag-fotos', benutzer.id, 2);
+      // Online-Links zu Rechnungen: PDFs entfernen
+      var links = await sb.from('rg_links').select('token');
+      if (links.data && links.data.length) await sb.storage.from('rechnung-links').remove(links.data.map(function(x){ return x.token + '.pdf'; }));
       var r = await sb.rpc('konto_daten_loeschen', { p_bestaetigung: 'LÖSCHEN' });
       if (r.error) throw r.error;
       // Dieses Gerät: lokale Daten aller Bereiche, die Anmeldung bleibt

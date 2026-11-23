@@ -1166,6 +1166,8 @@ const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
     if (m.farbe2) blatt.style.setProperty('--elektrik', m.farbe2); else blatt.style.removeProperty('--elektrik');
     // Logo-Grösse, Schriftfarbe und Schriftstil aus „Firma und Design“
     $('sheetLogo').style.height = (Number(m.logoHoehe) || 9) + 'mm';
+    $('sheetLogo').style.maxWidth = '95mm'; $('sheetLogo').style.objectFit = 'contain';
+    const kopfRg = $('sheetInner').querySelector('header'); if (kopfRg) kopfRg.style.flexDirection = m.logoPos === 'rechts' ? 'row-reverse' : '';
     if (m.textFarbe) { blatt.style.setProperty('--tinte', m.textFarbe); blatt.style.setProperty('--text', m.textFarbe); } else { blatt.style.removeProperty('--tinte'); blatt.style.removeProperty('--text'); }
     if (m.schrift && m.schrift !== 'modern' && window.Marke && Marke.schrift) blatt.style.setProperty('--font-display', Marke.schrift(m)); else blatt.style.removeProperty('--font-display');
   };

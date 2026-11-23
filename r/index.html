@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Rechnung</title>
+<link rel="stylesheet" href="../schrift.css">
+<style>
+:root { --farbe: #0B3B2E; --text: #3F5A4F; --tinte: #0A1F17; --flaeche: #F4FAF6; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'League Spartan', -apple-system, system-ui, sans-serif; background: var(--flaeche); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 880px; margin: 0 auto; padding: max(28px, env(safe-area-inset-top)) 18px 40px; }
+.karte { background: #fff; border-radius: 22px; padding: 26px; box-shadow: 0 1px 2px rgba(12,18,38,.06), 0 24px 60px -34px rgba(12,18,38,.35); }
+.kopf { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+.kopf img { max-height: 54px; max-width: 220px; object-fit: contain; display: block; }
+.kopf .name { font-size: 1.3rem; font-weight: 700; color: var(--farbe); }
+.art { font-size: .8rem; letter-spacing: .14em; text-transform: uppercase; color: #7C8499; }
+h1 { font-size: 1.15rem; color: var(--tinte); margin-top: 4px; font-weight: 600; }
+.betrag { font-size: clamp(2.2rem, 7vw, 3rem); font-weight: 700; color: var(--tinte); margin: 18px 0 6px; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.betrag small { font-size: 1rem; color: #7C8499; font-weight: 600; margin-right: 6px; }
+.stand { display: inline-flex; align-items: center; gap: 8px; border-radius: 100px; padding: 8px 14px; font-weight: 600; font-size: .95rem; background: #EEF2FF; color: #3730A3; }
+.stand.bezahlt { background: rgba(14,159,110,.12); color: #0A7150; }
+.stand.ueber { background: rgba(229,72,77,.1); color: #C7383D; }
+.knoepfe { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+.knopf { display: inline-flex; align-items: center; gap: 8px; border-radius: 100px; padding: 13px 20px; font: 600 1rem inherit; font-family: inherit; text-decoration: none; cursor: pointer; border: 0; background: var(--farbe); color: #fff; }
+.knopf.zweit { background: #EEF2F0; color: var(--tinte); }
+.knopf svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.zahlen { margin-top: 22px; background: var(--flaeche); border-radius: 16px; padding: 16px 18px; font-size: .98rem; line-height: 1.5; }
+.zahlen b { color: var(--tinte); }
+.pdf { margin-top: 20px; border-radius: 16px; overflow: hidden; border: 1px solid rgba(11,59,46,.1); background: #fff; }
+.pdf iframe { width: 100%; height: 78vh; border: 0; display: block; }
+.kontakt { margin-top: 18px; font-size: .92rem; display: flex; gap: 6px 18px; flex-wrap: wrap; }
+.kontakt a { color: var(--farbe); text-decoration: none; font-weight: 600; }
+.fuss { text-align: center; font-size: .78rem; color: #9AA1B2; margin-top: 22px; }
+.fuss a { color: inherit; }
+.laden, .fehler { text-align: center; padding: 60px 10px; font-size: 1.05rem; }
+@media (max-width: 640px) { .karte { padding: 20px; border-radius: 18px; } .pdf { display: none; } .knopf { flex: 1; justify-content: center; } }
+</style>
+</head>
+<body>
+<div class="wrap"><div class="karte" id="inhalt"><p class="laden">Rechnung wird geladen …</p></div>
+<p class="fuss">Sicher übermittelt mit <a href="https://ordasio.ch" rel="noopener">Ordasio</a> · Schweizer Software für KMU</p></div>
+<script src="../konfig.js"></script>
+<script src="../lib/supabase.js"></script>
+<script>
+(async () => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const chf = (r) => ((r || 0) / 100).toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const datum = (iso) => iso ? new Date(iso + 'T12:00:00').toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+  const WORT = { rechnung: 'Rechnung', offerte: 'Offerte', gutschrift: 'Gutschrift', mahnung: 'Mahnung' };
+  const token = new URLSearchParams(location.search).get('t') || '';
+  // Immer die Kunden-Datenbank (auch wenn die Seite woanders liegt)
+  const K = window.NASUVIA_KONFIG && window.NASUVIA_KONFIG.produkt ? window.NASUVIA_KONFIG : { url: 'https://poyilrmwcsyqdajsykpt.supabase.co', key: 'sb_publishable_312jPWJKkZNlWWc51a6Ucw_Ku-xF8Vw' };
+  const fehler = (t) => { $('inhalt').innerHTML = `<p class="fehler">${esc(t)}</p>`; };
+  if (!/^[a-f0-9]{20,}$/.test(token)) { fehler('Dieser Link ist unvollständig. Bitte öffnen Sie ihn nochmals aus der E-Mail.'); return; }
+  try {
+    const sb = window.supabase.createClient(K.url, K.key, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: d, error } = await sb.rpc('rg_ansehen', { p_token: token });
+    if (error) throw error;
+    if (!d) { fehler('Diese Rechnung wurde nicht gefunden. Vielleicht wurde der Link ersetzt. Bitte fragen Sie beim Absender nach.'); return; }
+    const f = d.firma || {}, art = WORT[d.art] || 'Rechnung';
+    if (f.farbe && /^#[0-9a-f]{6}$/i.test(f.farbe)) document.documentElement.style.setProperty('--farbe', f.farbe);
+    document.title = `${art} ${d.nr || ''}${f.name ? ' · ' + f.name : ''}`;
+    const pdf = `${K.url}/storage/v1/object/public/${d.pdf}`;
+    const heute = new Date().toISOString().slice(0, 10);
+    const ueber = !d.bezahlt && d.faellig && d.faellig < heute;
+    const stand = d.art === 'offerte' ? `<span class="stand">Gültig gemäss Offerte</span>`
+      : d.art === 'gutschrift' ? `<span class="stand bezahlt">Gutschrift</span>`
+      : d.bezahlt ? `<span class="stand bezahlt">✓ Bezahlt, vielen Dank</span>`
+      : ueber ? `<span class="stand ueber">Fällig seit ${datum(d.faellig)}</span>`
+      : d.faellig ? `<span class="stand">Zahlbar bis ${datum(d.faellig)}</span>` : '';
+    const svgPdf = '<svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/></svg>';
+    const svgLaden = '<svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>';
+    $('inhalt').innerHTML = `
+      <div class="kopf">${f.logo ? `<img src="${esc(f.logo)}" alt="${esc(f.name || '')}">` : `<span class="name">${esc(f.name || '')}</span>`}<span class="art">${art} Nr. ${esc(d.nr || '')}</span></div>
+      <h1>${d.kunde ? 'Für ' + esc(d.kunde) + ' · ' : ''}vom ${datum(d.datum)}</h1>
+      <div class="betrag"><small>CHF</small>${chf(d.betragRappen)}</div>
+      ${stand}
+      <div class="knoepfe">
+        <a class="knopf" href="${pdf}" target="_blank" rel="noopener">${svgPdf}${art} öffnen</a>
+        <a class="knopf zweit" href="${pdf}" download="${esc(art + ' ' + (d.nr || '') + '.pdf')}">${svgLaden}Herunterladen</a>
+      </div>
+      ${d.art === 'rechnung' || d.art === 'mahnung' ? (d.bezahlt ? '' : `<div class="zahlen"><b>So bezahlen Sie:</b> Öffnen Sie die ${art} und scannen Sie den QR-Code im Zahlteil mit Ihrer E-Banking-App. Betrag, Konto und Referenz sind dann schon ausgefüllt.</div>`) : ''}
+      <div class="pdf"><iframe src="${pdf}#view=FitH" title="${art}"></iframe></div>
+      <div class="kontakt">${f.tel ? `<a href="tel:${esc(f.tel.replace(/\s/g, ''))}">${esc(f.tel)}</a>` : ''}${f.mail ? `<a href="mailto:${esc(f.mail)}">${esc(f.mail)}</a>` : ''}${f.web ? `<a href="${/^https?:/i.test(f.web) ? esc(f.web) : 'https://' + esc(f.web)}" rel="noopener" target="_blank">${esc(f.web.replace(/^https?:\/\//, ''))}</a>` : ''}</div>`;
+  } catch (e) {
+    fehler('Die Rechnung konnte gerade nicht geladen werden. Bitte versuchen Sie es in einem Moment nochmals.');
+  }
+})();
+</script>
+</body>
+</html>

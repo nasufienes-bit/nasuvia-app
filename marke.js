@@ -64,6 +64,9 @@
     elegant: ['Elegant', "'Palatino Linotype', Palatino, 'Book Antiqua', serif"],
     rund: ['Rund', "'Avenir Next', Avenir, 'Segoe UI', 'Trebuchet MS', sans-serif"],
     technisch: ['Technisch', "'SF Mono', Menlo, Consolas, 'Courier New', monospace"],
+    geometrisch: ['Geometrisch', "Futura, 'Century Gothic', 'Trebuchet MS', sans-serif"],
+    fein: ['Fein', "Optima, Candara, 'Segoe UI', sans-serif"],
+    mode: ['Mode', "Didot, 'Bodoni 72', 'Bodoni MT', 'Times New Roman', serif"],
   };
   const schrift = (d) => (SCHRIFTEN[(d || daten()).schrift] || SCHRIFTEN.modern)[1];
 
@@ -146,60 +149,153 @@
   .mk-schriften button.an{border-color:var(--mk1,#0B3B2E);box-shadow:0 0 0 2px rgba(11,59,46,.12)}
   .mk-vorschau .mk-logo-box{display:flex;align-items:center;min-height:46px}
   .mk-vorschau img{max-height:none;max-width:60%}
-  @media (max-width:560px){.mk-raster{grid-template-columns:1fr}.mk-zeile{flex-direction:column}}`;
+  .mk-gross{width:min(1040px,calc(100% - 20px))}
+  .mk-spalten{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+  .mk-sticky{position:sticky;top:0}
+  .mk-titelchen{display:block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#7C8499;margin:0 0 6px}
+  .mk-blatt{background:#fff;border-radius:6px;padding:24px 28px 26px;box-shadow:0 1px 2px rgba(12,18,38,.08),0 16px 40px -20px rgba(12,18,38,.35);border:1px solid rgba(11,59,46,.08)}
+  .mk-blatt .mk-logo-box{min-height:20px}
+  .mk-segment{display:inline-flex;background:#fff;border-radius:100px;padding:3px;gap:2px}
+  .mk-segment button{border:0;background:none;border-radius:100px;padding:7px 14px;font:inherit;font-size:13.5px;cursor:pointer;color:#3F5A4F}
+  .mk-segment button.an{background:var(--mk1,#0B3B2E);color:#fff;font-weight:600}
+  .mk-schnitt{position:relative;display:inline-block;max-width:100%;background:repeating-conic-gradient(#eef1f4 0 25%,#fff 0 50%) 0 0/16px 16px;border-radius:8px;touch-action:none;user-select:none}
+  .mk-schnitt img{display:block;max-width:100%;max-height:52vh}
+  .mk-rahmen{position:absolute;border:2px solid #0E7A55;box-shadow:0 0 0 9999px rgba(10,31,23,.45);cursor:move}
+  .mk-rahmen i{position:absolute;width:18px;height:18px;background:#fff;border:2px solid #0E7A55;border-radius:50%}
+  .mk-rahmen i[data-e=nw]{left:-3px;top:-3px;cursor:nwse-resize}.mk-rahmen i[data-e=ne]{right:-3px;top:-3px;cursor:nesw-resize}
+  .mk-rahmen i[data-e=sw]{left:-3px;bottom:-3px;cursor:nesw-resize}.mk-rahmen i[data-e=se]{right:-3px;bottom:-3px;cursor:nwse-resize}
+  .mk-schnitt{overflow:hidden}
+  @media (max-width:820px){.mk-spalten{grid-template-columns:1fr}.mk-rechts{order:-1}.mk-blatt{padding:16px 18px}}
+  @media (max-width:560px){.mk-raster{grid-template-columns:1fr}.mk-zeile{flex-direction:column}.mk-schriften{grid-template-columns:repeat(3,minmax(0,1fr))}}`;
   document.head.appendChild(stil);
+
+  // Zuschneiden von Hand: Rahmen mit vier Ecken über dem Logo ziehen
+  function zuschneiden(src) {
+    return new Promise(async (fertig) => {
+      const img = await bildLaden(src).catch(() => null);
+      if (!img) { fertig(null); return; }
+      const d = document.createElement('dialog');
+      d.className = 'mk-dlg'; d.setAttribute('data-ohne-x', '');
+      d.innerHTML = `<div class="mk-in"><h3>Logo zuschneiden</h3><p class="mk-sub">Ziehen Sie den Rahmen oder seine Ecken, bis nur noch Ihr Logo drin ist.</p>
+        <div class="mk-schnitt"><img src="${src}" alt="Logo" draggable="false"><div class="mk-rahmen"><i data-e="nw"></i><i data-e="ne"></i><i data-e="sw"></i><i data-e="se"></i></div></div>
+        <div class="mk-fuss"><button class="mk-btn" data-x="alles">Ganzes Bild</button><span style="display:flex;gap:8px"><button class="mk-btn" data-x="zu">Abbrechen</button><button class="mk-btn haupt" data-x="ok">Zuschneiden</button></span></div></div>`;
+      document.body.appendChild(d); d.showModal();
+      const box = d.querySelector('.mk-schnitt'), bild = box.querySelector('img'), rahmen = box.querySelector('.mk-rahmen');
+      let r = { x: 0, y: 0, w: 1, h: 1 }; // Anteile 0..1
+      const setzen = () => { Object.assign(rahmen.style, { left: r.x * 100 + '%', top: r.y * 100 + '%', width: r.w * 100 + '%', height: r.h * 100 + '%' }); };
+      setzen();
+      let zug = null;
+      box.addEventListener('pointerdown', (e) => {
+        if (!e.target.closest('.mk-rahmen')) return;
+        e.preventDefault(); box.setPointerCapture(e.pointerId);
+        zug = { ecke: e.target.dataset.e || 'mitte', x: e.clientX, y: e.clientY, r: { ...r } };
+      });
+      box.addEventListener('pointermove', (e) => {
+        if (!zug) return;
+        const b = bild.getBoundingClientRect(), dx = (e.clientX - zug.x) / b.width, dy = (e.clientY - zug.y) / b.height, a = zug.r, min = 0.05;
+        let { x, y, w, h } = a;
+        if (zug.ecke === 'mitte') { x = Math.min(1 - w, Math.max(0, a.x + dx)); y = Math.min(1 - h, Math.max(0, a.y + dy)); }
+        if (zug.ecke.includes('w')) { x = Math.min(a.x + a.w - min, Math.max(0, a.x + dx)); w = a.x + a.w - x; }
+        if (zug.ecke.includes('e')) { w = Math.min(1 - a.x, Math.max(min, a.w + dx)); }
+        if (zug.ecke.includes('n')) { y = Math.min(a.y + a.h - min, Math.max(0, a.y + dy)); h = a.y + a.h - y; }
+        if (zug.ecke.includes('s')) { h = Math.min(1 - a.y, Math.max(min, a.h + dy)); }
+        r = { x, y, w, h }; setzen();
+      });
+      const loslassen = () => { zug = null; };
+      box.addEventListener('pointerup', loslassen); box.addEventListener('pointercancel', loslassen);
+      let ergebnis = null;
+      d.addEventListener('click', (e) => {
+        const t = e.target.closest('[data-x]'); if (!t) return;
+        if (t.dataset.x === 'alles') { r = { x: 0, y: 0, w: 1, h: 1 }; setzen(); return; }
+        if (t.dataset.x === 'ok') {
+          let w = img.naturalWidth || 800, h = img.naturalHeight || 400;
+          if (src.startsWith('data:image/svg')) { const f = 1200 / Math.max(w, h); w = Math.round(w * f); h = Math.round(h * f); }
+          const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(r.w * w)); c.height = Math.max(1, Math.round(r.h * h));
+          c.getContext('2d').drawImage(img, r.x * w, r.y * h, r.w * w, r.h * h, 0, 0, c.width, c.height);
+          ergebnis = c.toDataURL('image/png');
+        }
+        d.close();
+      });
+      d.addEventListener('close', () => { d.remove(); fertig(ergebnis); });
+    });
+  }
+
+  // Vorschau: oberer Teil einer echten Rechnung (1 mm = 2.4 px)
+  function vorschau(d) {
+    const mm = (x) => (x * 2.4).toFixed(1) + 'px';
+    const t = d.textFarbe || '#0A1F17', h = d.farbe1 || '#0B3B2E', a = d.farbe2 || '#0E7A55';
+    const logo = d.logo ? `<img src="${d.logo}" alt="" style="height:${mm(d.logoHoehe || 9)};max-width:${mm(95)};width:auto;display:block;object-fit:contain">` : `<span class="mk-leer">Ihr Logo</span>`;
+    const zeile = (l, w) => `<div style="display:flex;justify-content:space-between;border-top:1px solid rgba(0,0,0,.12);padding:3px 0;font-size:7px;letter-spacing:.08em"><span style="color:${t};opacity:.7">${l}</span><span style="color:${h};font-weight:700">${w}</span></div>`;
+    return `<div class="mk-blatt" style="font-family:${schrift(d)};color:${t}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-direction:${d.logoPos === 'rechts' ? 'row-reverse' : 'row'}">
+        <div class="mk-logo-box">${logo}</div>
+        <div style="width:${mm(62)};flex:none">${zeile('RECHNUNG NR.', '2026-042')}${zeile('DATUM', '24.11.2026')}${zeile('ZAHLBAR BIS', '24.12.2026')}</div>
+      </div>
+      <div style="margin-top:${mm(8)};font-size:6px;letter-spacing:.1em;color:${a}">${esc((d.name || 'IHRE FIRMA').toUpperCase())} — ${esc((d.strasse || 'STRASSE 1').toUpperCase())}</div>
+      <div style="font-size:9px;line-height:1.4;margin-top:4px">Muster AG<br>Bahnhofstrasse 10<br>8001 Zürich</div>
+      <div style="margin-top:${mm(8)};font-size:20px;font-weight:700;color:${h}">Rechnung</div>
+      <div style="font-size:9px;margin-top:4px">Vielen Dank für Ihren Auftrag. Wir erlauben uns, folgende Leistungen zu verrechnen:</div>
+      <div style="display:flex;justify-content:space-between;border-top:1.5px solid ${h};margin-top:8px;padding-top:4px;font-size:9px"><span>Arbeitsstunden 6 × 95.00</span><b>570.00</b></div>
+    </div>`;
+  }
 
   function dialog({ beiSpeichern } = {}) {
     const d = { ...daten() };
     let vorschlaege = [];
     const dlg = document.createElement('dialog');
-    dlg.className = 'mk-dlg';
+    dlg.className = 'mk-dlg mk-gross';
+    const vorschauNeu = () => { const v = dlg.querySelector('[data-mk-vorschau]'); if (v) v.innerHTML = vorschau(d); };
     const zeichnen = () => {
       dlg.style.setProperty('--mk1', d.farbe1 || '#0B3B2E'); dlg.style.setProperty('--mk2', d.farbe2 || '#0E7A55');
       dlg.innerHTML = `<div class="mk-in">
         <h3>Firma und Design</h3>
-        <p class="mk-sub">Ihr Logo, Ihre Farben und Ihre Angaben erscheinen auf Rechnungen, Offerten und im ganzen Programm.</p>
-        <div class="mk-vorschau"><span class="mk-logo-box">${d.logo ? `<img src="${d.logo}" alt="Logo" data-mk-bild style="height:${Math.round((d.logoHoehe || 9) * 4.2)}px">` : '<span class="mk-leer">Ihr Logo</span>'}</span><strong data-mk-titel style="font-family:${schrift(d)};color:${d.textFarbe || 'var(--mk1,#0B3B2E)'}">Rechnung<i>.</i></strong></div>
-        <div class="mk-box"><b>Automatisch von Ihrer Website</b>
-          <div class="mk-zeile"><input type="url" data-mk="website" placeholder="z. B. www.ihre-firma.ch" value="${esc(d.webScan || d.web || '')}"><button class="mk-btn haupt" data-mk-scan>Übernehmen</button></div>
-          <p class="mk-meldung" data-mk-meldung>Logo, Name und Farben werden von Ihrer Website gelesen. Sie können danach alles anpassen.</p></div>
-        <div class="mk-box"><b>Oder selbst festlegen</b>
-          <div class="mk-zeile" style="margin-bottom:12px"><button class="mk-btn" data-mk-logo>Logo hochladen</button>${d.logo ? '<button class="mk-btn" data-mk-logoweg>Logo entfernen</button>' : ''}</div>
-          <div class="mk-farben"><label><input type="color" data-mk-farbe="farbe1" value="${d.farbe1 || '#0B3B2E'}">Hauptfarbe</label><label><input type="color" data-mk-farbe="farbe2" value="${d.farbe2 || '#0E7A55'}">Akzentfarbe</label></div>
-          ${vorschlaege.length ? `<div class="mk-vorschlaege" title="Farben aus Ihrem Logo und Ihrer Website">${vorschlaege.map((f) => `<button style="background:${f}" data-mk-vorschlag="${f}" aria-label="Farbe ${f}"></button>`).join('')}</div>` : ''}</div>
-        ${d.logo ? `<div class="mk-box"><b>Logo anpassen</b>
-          <label class="mk-regler">Grösse<input type="range" min="5" max="26" step="0.5" value="${d.logoHoehe || 9}" data-mk-groesse><output data-mk-groesse-wert>${d.logoHoehe || 9} mm</output></label>
-          <div class="mk-werkzeuge"><button class="mk-btn" data-mk-bearbeiten="raender">Ränder wegschneiden</button><button class="mk-btn" data-mk-bearbeiten="weiss">Weissen Hintergrund entfernen</button><button class="mk-btn" data-mk-bearbeiten="drehen">Drehen</button>${d.logoOriginal && d.logoOriginal !== d.logo ? '<button class="mk-btn" data-mk-original>Original</button>' : ''}</div></div>` : ''}
-        <div class="mk-box"><b>Schrift auf Rechnungen und Offerten</b>
-          <div class="mk-farben"><label><input type="color" data-mk-farbe="textFarbe" value="${d.textFarbe || '#0A1F17'}">Schriftfarbe</label>${d.textFarbe ? '<button class="mk-btn" data-mk-textstandard style="padding:6px 12px;font-size:13px">Standard</button>' : ''}</div>
-          <div class="mk-schriften">${Object.entries(SCHRIFTEN).map(([k, [n, f]]) => `<button class="${(d.schrift || 'modern') === k ? 'an' : ''}" data-mk-schrift="${k}" style="font-family:${f}">${n}</button>`).join('')}</div></div>
-        <div class="mk-raster">${FELDER.map(([k, n]) => `<label>${n}<input type="text" data-mk="${k}" value="${esc(d[k] || '')}"></label>`).join('')}</div>
-        <div class="mk-fuss"><button class="mk-btn" data-mk-standard>Standard-Design</button><span style="display:flex;gap:8px"><button class="mk-btn" data-mk-zu>Abbrechen</button><button class="mk-btn haupt" data-mk-ok>Speichern</button></span></div>
+        <p class="mk-sub">Logo, Farben, Schrift und Angaben für Rechnungen, Offerten und das ganze Programm. Die Vorschau zeigt, wie Ihre Rechnung aussieht.</p>
+        <div class="mk-spalten">
+          <div class="mk-links">
+            <div class="mk-box"><b>1. Logo</b>
+              <div class="mk-zeile"><input type="url" data-mk="website" placeholder="Ihre Website, z. B. www.ihre-firma.ch" value="${esc(d.webScan || d.web || '')}"><button class="mk-btn haupt" data-mk-scan>Von Website übernehmen</button></div>
+              <p class="mk-meldung" data-mk-meldung>Logo, Name und Farben werden von Ihrer Website gelesen. Oder laden Sie das Logo selbst hoch.</p>
+              <div class="mk-werkzeuge" style="margin-top:8px"><button class="mk-btn" data-mk-logo>${d.logo ? 'Anderes Logo hochladen' : 'Logo hochladen'}</button>${d.logo ? '<button class="mk-btn" data-mk-logoweg>Entfernen</button>' : ''}</div>
+              ${d.logo ? `
+              <label class="mk-regler">Grösse<input type="range" min="5" max="34" step="0.5" value="${d.logoHoehe || 9}" data-mk-groesse><output data-mk-groesse-wert>${d.logoHoehe || 9} mm</output></label>
+              <div class="mk-segment">${[['links', 'Logo links'], ['rechts', 'Logo rechts']].map(([k, n]) => `<button class="${(d.logoPos || 'links') === k ? 'an' : ''}" data-mk-pos="${k}">${n}</button>`).join('')}</div>
+              <div class="mk-werkzeuge" style="margin-top:8px"><button class="mk-btn" data-mk-schneiden>Zuschneiden</button><button class="mk-btn" data-mk-bearbeiten="raender">Ränder automatisch weg</button><button class="mk-btn" data-mk-bearbeiten="weiss">Weissen Hintergrund weg</button><button class="mk-btn" data-mk-bearbeiten="drehen">Drehen</button>${d.logoOriginal && d.logoOriginal !== d.logo ? '<button class="mk-btn" data-mk-original>Original</button>' : ''}</div>` : ''}
+            </div>
+            <div class="mk-box"><b>2. Farben</b>
+              <div class="mk-farben"><label><input type="color" data-mk-farbe="farbe1" value="${d.farbe1 || '#0B3B2E'}">Titel und Linien</label><label><input type="color" data-mk-farbe="farbe2" value="${d.farbe2 || '#0E7A55'}">Akzent</label><label><input type="color" data-mk-farbe="textFarbe" value="${d.textFarbe || '#0A1F17'}">Text</label></div>
+              ${vorschlaege.length ? `<div class="mk-vorschlaege" title="Farben aus Ihrem Logo und Ihrer Website">${vorschlaege.map((f) => `<button style="background:${f}" data-mk-vorschlag="${f}" aria-label="Farbe ${f}"></button>`).join('')}</div>` : ''}
+              <div class="mk-werkzeuge" style="margin-top:8px"><button class="mk-btn" data-mk-standard>Standardfarben</button></div>
+            </div>
+            <div class="mk-box"><b>3. Schrift</b>
+              <div class="mk-schriften">${Object.entries(SCHRIFTEN).map(([k, [n, f]]) => `<button class="${(d.schrift || 'modern') === k ? 'an' : ''}" data-mk-schrift="${k}" style="font-family:${f}">${n}</button>`).join('')}</div></div>
+          </div>
+          <div class="mk-rechts"><div class="mk-sticky"><span class="mk-titelchen">Vorschau</span><div data-mk-vorschau>${vorschau(d)}</div></div></div>
+        </div>
+        <div class="mk-box"><b>4. Angaben</b><div class="mk-raster">${FELDER.map(([k, n]) => `<label>${n}<input type="text" data-mk="${k}" value="${esc(d[k] || '')}"></label>`).join('')}</div></div>
+        <div class="mk-fuss"><span></span><span style="display:flex;gap:8px"><button class="mk-btn" data-mk-zu>Abbrechen</button><button class="mk-btn haupt" data-mk-ok>Speichern</button></span></div>
       </div>`;
     };
-    const meldung = (t, fehler) => { const m = dlg.querySelector('[data-mk-meldung]'); m.textContent = t; m.classList.toggle('fehler', !!fehler); };
+    const meldung = (t, fehler) => { const m = dlg.querySelector('[data-mk-meldung]'); if (!m) return; m.textContent = t; m.classList.toggle('fehler', !!fehler); };
     const felderLesen = () => dlg.querySelectorAll('[data-mk]').forEach((i) => { if (i.dataset.mk === 'website') d.webScan = i.value.trim(); else d[i.dataset.mk] = i.value.trim(); });
     dlg.addEventListener('input', (e) => {
       const f = e.target.dataset.mkFarbe;
-      if (f === 'textFarbe') { d.textFarbe = e.target.value; const ti = dlg.querySelector('[data-mk-titel]'); if (ti) ti.style.color = d.textFarbe; return; }
-      if (f) { d[f] = e.target.value; dlg.style.setProperty(f === 'farbe1' ? '--mk1' : '--mk2', e.target.value); }
-      if (e.target.matches('[data-mk-groesse]')) {
-        d.logoHoehe = Number(e.target.value);
-        dlg.querySelector('[data-mk-groesse-wert]').textContent = d.logoHoehe + ' mm';
-        const b = dlg.querySelector('[data-mk-bild]'); if (b) b.style.height = Math.round(d.logoHoehe * 4.2) + 'px';
-      }
+      if (f) { d[f] = e.target.value; if (f !== 'textFarbe') dlg.style.setProperty(f === 'farbe1' ? '--mk1' : '--mk2', e.target.value); vorschauNeu(); return; }
+      if (e.target.matches('[data-mk-groesse]')) { d.logoHoehe = Number(e.target.value); dlg.querySelector('[data-mk-groesse-wert]').textContent = d.logoHoehe + ' mm'; vorschauNeu(); return; }
+      if (e.target.matches('[data-mk="name"],[data-mk="strasse"]')) { felderLesen(); vorschauNeu(); }
     });
     dlg.addEventListener('click', async (e) => {
       const t = e.target.closest('button'); if (!t) { if (e.target === dlg) dlg.close(); return; }
       e.preventDefault();
       if (t.matches('[data-mk-zu]')) dlg.close();
-      if (t.matches('[data-mk-vorschlag]')) {
+      if (t.matches('[data-mk-vorschlag]')) { felderLesen(); const f = t.dataset.mkVorschlag; if (hell(f) < 150) d.farbe1 = f; else d.farbe2 = f; zeichnen(); }
+      if (t.matches('[data-mk-logoweg]')) { felderLesen(); d.logo = ''; d.logoOriginal = ''; zeichnen(); }
+      if (t.matches('[data-mk-pos]')) { felderLesen(); d.logoPos = t.dataset.mkPos; zeichnen(); }
+      if (t.matches('[data-mk-schneiden]')) {
         felderLesen();
-        const f = t.dataset.mkVorschlag;
-        if (hell(f) < 150) d.farbe1 = f; else d.farbe2 = f;
+        const neu = await zuschneiden(d.logo);
+        if (neu) { if (!d.logoOriginal) d.logoOriginal = d.logo; d.logo = neu; }
         zeichnen();
       }
-      if (t.matches('[data-mk-logoweg]')) { felderLesen(); d.logo = ''; d.logoOriginal = ''; zeichnen(); }
       if (t.matches('[data-mk-bearbeiten]')) {
         felderLesen(); t.disabled = true;
         try { if (!d.logoOriginal) d.logoOriginal = d.logo; d.logo = await logoBearbeiten(d.logo, t.dataset.mkBearbeiten); } catch { /* Bild bleibt */ }
@@ -207,8 +303,7 @@
       }
       if (t.matches('[data-mk-original]')) { felderLesen(); d.logo = d.logoOriginal; zeichnen(); }
       if (t.matches('[data-mk-schrift]')) { felderLesen(); d.schrift = t.dataset.mkSchrift; zeichnen(); }
-      if (t.matches('[data-mk-textstandard]')) { felderLesen(); delete d.textFarbe; zeichnen(); }
-      if (t.matches('[data-mk-standard]')) { felderLesen(); delete d.farbe1; delete d.farbe2; zeichnen(); }
+      if (t.matches('[data-mk-standard]')) { felderLesen(); delete d.farbe1; delete d.farbe2; delete d.textFarbe; zeichnen(); }
       if (t.matches('[data-mk-logo]')) {
         felderLesen();
         const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/png,image/jpeg,image/svg+xml,image/webp';
@@ -216,9 +311,11 @@
           const datei = inp.files[0]; if (!datei) return;
           const url = await new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(datei); });
           d.logo = await verkleinern(url); d.logoOriginal = d.logo;
+          try { d.logo = await logoBearbeiten(d.logo, 'raender'); } catch { /* bleibt */ }
           vorschlaege = await logoFarben(d.logo);
           const p = paar(vorschlaege); if (p && !d.farbe1) [d.farbe1, d.farbe2] = p;
           zeichnen();
+          meldung('Logo geladen und Ränder weggeschnitten. Mit „Zuschneiden“ und „Grösse“ passen Sie es an.');
         };
         inp.click();
       }
@@ -232,7 +329,7 @@
           const { data, error } = await sb.functions.invoke('marke-scannen', { body: { url: d.webScan } });
           if (error) { let txt = error.message; try { txt = (await error.context.json()).fehler || txt; } catch {} throw new Error(txt); }
           if (data.fehler) throw new Error(data.fehler);
-          if (data.logo) { d.logo = await verkleinern(data.logo); d.logoOriginal = d.logo; }
+          if (data.logo) { d.logo = await verkleinern(data.logo); d.logoOriginal = d.logo; try { d.logo = await logoBearbeiten(d.logo, 'raender'); } catch {} }
           if (data.name && !d.name) d.name = data.name;
           if (!d.web) d.web = data.website;
           const ausLogo = data.logo && !data.logoIstSymbol ? await logoFarben(d.logo) : [];
@@ -240,7 +337,7 @@
           const p = paar([...(data.farben || []).slice(0, 2), ...ausLogo]);
           if (p) [d.farbe1, d.farbe2] = p;
           zeichnen();
-          meldung(`Übernommen von ${data.website}${data.logo ? '' : ' (kein Logo gefunden, bitte selbst hochladen)'}. Prüfen und speichern.`);
+          meldung(`Übernommen von ${data.website}${data.logo ? '. Mit „Zuschneiden“ und „Grösse“ passen Sie das Logo an.' : ' (kein Logo gefunden, bitte selbst hochladen)'}`);
         } catch (f) {
           zeichnen(); meldung(f.message || 'Die Website konnte nicht gelesen werden.', true);
         }
