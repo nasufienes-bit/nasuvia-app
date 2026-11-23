@@ -5,10 +5,10 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const dk = (d) => (d ? d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4) : '');
   async function loeschen(sb, tabelle, id, titel, extra = {}) {
-    if (!confirm(`„${titel}“ löschen?\n\nSie finden es ${TAGE} Tage lang unter „Zuletzt gelöscht“ und können es dort wiederherstellen.`)) return false;
+    if (!await UI.frage(`„${titel}“ löschen?\n\nSie finden es ${TAGE} Tage lang unter „Zuletzt gelöscht“ und können es dort wiederherstellen.`)) return false;
     const ids = [].concat(id);
     const { error } = await sb.from(tabelle).update({ geloescht_am: new Date().toISOString(), ...extra }).in('id', ids);
-    if (error) { alert(error.message); return false; }
+    if (error) { await UI.hinweis(error.message); return false; }
     // Sofort rückgängig machbar (alte Werte von extra, z. B. aktiv, werden mitgerettet)
     if (window.Rueckgaengig) window.Rueckgaengig.zeigen(`„${titel}“ gelöscht`, async () => {
       const zurueck = { geloescht_am: null }; if ('aktiv' in extra) zurueck.aktiv = true;
@@ -75,8 +75,8 @@
         const z = e.target.closest('[data-k-zurueck]'), w = e.target.closest('[data-k-weg]');
         const eintrag = z ? zeilen[Number(z.dataset.kZurueck)] : w ? zeilen[Number(w.dataset.kWeg)] : null;
         if (!eintrag) return;
-        if (z) { const { error } = await sb.from(eintrag.t.tabelle).update({ geloescht_am: null, ...(eintrag.t.zurueck || {}) }).eq('id', eintrag.r.id); if (error) { alert(error.message); return; } }
-        if (w) { if (!confirm(`„${eintrag.t.titel(eintrag.r)}“ endgültig löschen? Das kann nicht rückgängig gemacht werden.`)) return; if (eintrag.t.dateien) { try { await eintrag.t.dateien([eintrag.r]); } catch {} } const { error } = await sb.from(eintrag.t.tabelle).delete().eq('id', eintrag.r.id); if (error) { alert(error.message); return; } }
+        if (z) { const { error } = await sb.from(eintrag.t.tabelle).update({ geloescht_am: null, ...(eintrag.t.zurueck || {}) }).eq('id', eintrag.r.id); if (error) { await UI.hinweis(error.message); return; } }
+        if (w) { if (!await UI.frage(`„${eintrag.t.titel(eintrag.r)}“ endgültig löschen? Das kann nicht rückgängig gemacht werden.`)) return; if (eintrag.t.dateien) { try { await eintrag.t.dateien([eintrag.r]); } catch {} } const { error } = await sb.from(eintrag.t.tabelle).delete().eq('id', eintrag.r.id); if (error) { await UI.hinweis(error.message); return; } }
         await zeichnen(); if (beiAenderung) beiAenderung();
       };
     }

@@ -215,7 +215,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   const firma = () => (Z.konfig && Z.konfig.firma) || (window.NASUVIA_LIZENZ && (window.NASUVIA_LIZENZ.firma || window.NASUVIA_LIZENZ.name)) || '';
 
   async function laden() {
-    Korb.neuLaden = laden;
+    Korb.neuLaden = laden; if (window.UI && UI.teile) UI.teile.anwenden('termine');
     Korb.aufraeumen(sb, [{ tabelle: 'tb_termine' }]);
     try {
       let k = await sb.from('tb_konfig').select('*').maybeSingle();
@@ -246,8 +246,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const neu = Z.termine.filter((t) => t.status === 'neu' && new Date(t.ende) >= new Date());
     const tage = [...new Set(Z.termine.map((t) => tagVon(t.beginn)))];
     return `<div class="kopf"><div><h1>Termine</h1><p class="unter">${k.aktiv ? `Online-Buchung ist <b style="color:var(--gruen)">eingeschaltet</b>.` : 'Online-Buchung ist noch ausgeschaltet.'} ${neu.length ? `${neu.length} neue ${neu.length === 1 ? 'Buchung' : 'Buchungen'} warten auf Bestätigung.` : ''}</p></div>
-        <div class="aktionen">${k.aktiv ? '<button class="btn" data-a="linkTeilen">Buchungslink teilen</button>' : '<button class="btn" data-tab="einstellungen">Online-Buchung einrichten</button>'}<button class="btn" data-a="korb">Zuletzt gelöscht</button><button class="btn haupt" data-a="terminNeu">+ Termin</button></div></div>
-      <div class="raster r4">
+        <div class="aktionen">${k.aktiv ? '<button class="btn" data-a="linkTeilen">Buchungslink teilen</button>' : '<button class="btn" data-tab="einstellungen">Online-Buchung einrichten</button>'}<button class="btn" data-a="anpassen">Übersicht anpassen</button><button class="btn" data-a="korb">Zuletzt gelöscht</button><button class="btn haupt" data-a="terminNeu">+ Termin</button></div></div>
+      <div class="raster r4" data-teil="zahlen">
         <div class="card zahl"><div class="l">Heute</div><div class="w">${kommend.filter((t) => tagVon(t.beginn) === heute()).length}</div><div class="k">Termine</div></div>
         <div class="card zahl"><div class="l">Nächste 7 Tage</div><div class="w">${kommend.filter((t) => tagVon(t.beginn) <= plusTage(heute(), 7)).length}</div><div class="k">Termine</div></div>
         <div class="card zahl"><div class="l">Neu</div><div class="w">${neu.length}</div><div class="k">zu bestätigen</div></div>
@@ -258,7 +258,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
           l.map((t) => `<div class="zeile klick" data-termin="${t.id}" ${t.status === 'abgesagt' ? 'style="opacity:.5"' : ''}><div style="min-width:0"><b>${uhr(t.beginn)}–${uhr(t.ende)} · ${esc(t.name)}<span class="marke-s ${STATUS[t.status][1]}">${STATUS[t.status][0]}</span>${t.quelle === 'online' ? '<span class="marke-s m-grau">online</span>' : ''}</b>
             <small>${esc([t.dienst_name, t.telefon, t.notiz].filter(Boolean).join(' · '))}</small></div><div class="betrag">${t.preis_rappen ? chf(t.preis_rappen) : ''}</div></div>`).join(''); }).join('')
         : '<p class="leer">Keine kommenden Termine.</p>'}</div>
-      <button class="btn abstand" data-a="alte">${Z.alte ? 'Vergangene ausblenden' : 'Vergangene Termine zeigen'}</button>`;
+      <button class="btn abstand" data-a="alte" data-teil="alte">${Z.alte ? 'Vergangene ausblenden' : 'Vergangene Termine zeigen'}</button>`;
   }
 
   function einstellungen() {
@@ -412,6 +412,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     switch (a.dataset.a) {
       case 'zu': dlg.close(); break;
       case 'terminNeu': terminDialog(); break;
+      case 'anpassen': UI.teile.dialog('termine', [['zahlen', 'Zahlen oben (Heute, 7 Tage, Neu, Umsatz)'], ['alte', 'Knopf „Vergangene Termine zeigen“']]); break;
       case 'korb': Korb.oeffnen(sb, [{ tabelle: 'tb_termine', art: 'Termin', titel: (r) => `${r.name} · ${dk(tagVon(r.beginn))} ${uhr(r.beginn)}` }], laden); break;
       case 'aufsteller': {
         const k = Z.konfig;

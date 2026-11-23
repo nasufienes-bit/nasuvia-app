@@ -271,7 +271,7 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
     if (st) { const { error } = await sb.rpc('ze_auftrag_status', { p_token: token, p_id: Z.auftrag, p_status: st.dataset.status }); if (error) { toast(fehlerText(error)); return; } toast('✓ Gemeldet'); await laden(); fotosLaden(Z.auftrag); return; }
     const as = ev.target.closest('[data-auftrag-start]'); if (as) { setz(K_START, String(Date.now())); setz(K_START + '.auftrag', as.dataset.auftragStart); ortHolen().then((o) => { if (o) setz(K_START + '.ort', JSON.stringify(o)); }); zeichnen(); fotosLaden(Z.auftrag); toast('Uhr läuft für diesen Auftrag.'); return; }
     const pr = ev.target.closest('[data-pruefen]'); if (pr) { await sb.functions.invoke('ze-foto', { body: { token, aktion: 'pruefen', foto_id: pr.dataset.pruefen, geprueft: pr.dataset.wert === '1' } }); fotosLaden(Z.auftrag); return; }
-    const fw = ev.target.closest('[data-foto-weg]'); if (fw) { if (!confirm('Dieses Foto löschen?')) return; await sb.functions.invoke('ze-foto', { body: { token, aktion: 'loeschen', foto_id: fw.dataset.fotoWeg } }); fotosLaden(Z.auftrag); return; }
+    const fw = ev.target.closest('[data-foto-weg]'); if (fw) { if (!await UI.frage('Dieses Foto löschen?')) return; await sb.functions.invoke('ze-foto', { body: { token, aktion: 'loeschen', foto_id: fw.dataset.fotoWeg } }); fotosLaden(Z.auftrag); return; }
     const hs = ev.target.closest('[data-hier-start]');
     if (hs) { const s = Z.daten.einsaetze.find((x) => x.id === hs.dataset.hierStart); setz(K_START, String(Date.now())); setz(K_START + '.auftrag', s.auftrag_id || ''); zeichnen(); toast('Uhr läuft für diesen Einsatz.'); return; }
     const er = ev.target.closest('[data-erledigt]');
@@ -289,11 +289,11 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
       case 'start': setz(K_START, String(Date.now())); zeichnen(); toast('Uhr läuft. Sie können das Handy weglegen.'); ortHolen().then((o) => { if (o) setz(K_START + '.ort', JSON.stringify(o)); }); break;
       case 'auftragNeu': auftragNeu(); break;
       case 'stopp': { ortHolen().then((o) => { if (o) setz(K_START + '.ortEnde', JSON.stringify(o)); }); const s = new Date(Number(lies(K_START))); formOeffnen({ datum: iso(s), von: s.toTimeString().slice(0, 5), bis: jetztZeit(), pause_min: '', auftrag_id: lies(K_START + '.auftrag') || '' }); break; }
-      case 'abbrechen': if (confirm('Laufende Uhr verwerfen? Es wird nichts gespeichert.')) { setz(K_START, null); setz(K_START + '.auftrag', null); zeichnen(); } break;
+      case 'abbrechen': if (await UI.frage('Laufende Uhr verwerfen? Es wird nichts gespeichert.')) { setz(K_START, null); setz(K_START + '.auftrag', null); zeichnen(); } break;
       case 'neu': formOeffnen({ datum: heute(), von: '07:00', bis: '', pause_min: '' }); break;
       case 'zurueck': Z.form = null; zeichnen(); break;
       case 'loeschen': {
-        if (!confirm('Diesen Eintrag löschen?')) break;
+        if (!await UI.frage('Diesen Eintrag löschen?')) break;
         const { error } = await sb.rpc('ze_loeschen', { p_token: token, p_id: Z.form.id });
         if (error) { toast(fehlerText(error), 4000); break; }
         Z.form = null; toast('Gelöscht'); laden(); break;
@@ -318,10 +318,29 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
     if (ok) toast(`✓ ${ok} ${ok === 1 ? 'Foto' : 'Fotos'} gespeichert`);
     fotosLaden(fh.dataset.fotoHoch);
   });
+  // Neuer Auftrag in einem Fenster (statt drei Browser-Abfragen, die auf dem iPhone hängen können)
+  function auftragFenster() {
+    return new Promise((fertig) => {
+      const d = document.createElement('dialog');
+      d.className = 'ui-frage';
+      const e_ = (x) => String(x ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      d.innerHTML = `<form method="dialog"><h3>Neuer Auftrag</h3>
+        <label style="display:grid;gap:4px;font-size:14px">Bezeichnung<input name="name" required placeholder="z. B. Bahnhofstrasse 12"></label>
+        <label style="display:grid;gap:4px;font-size:14px">Ordner <small style="color:#7C8499">Unterordner mit / trennen</small><input name="ordner" value="${e_(teile(Z.ordner).join(' / '))}" placeholder="z. B. FTTH / Zürich"></label>
+        <label style="display:grid;gap:4px;font-size:14px">Adresse <small style="color:#7C8499">freiwillig</small><input name="adresse" placeholder="Strasse, Ort"></label>
+        <div class="ui-knoepfe"><button type="button" data-nein>Abbrechen</button><button class="ja">Anlegen</button></div></form>`;
+      document.body.appendChild(d);
+      let wert = null;
+      d.querySelector('[data-nein]').onclick = () => d.close();
+      d.querySelector('form').onsubmit = (ev) => { ev.preventDefault(); const f = new FormData(ev.target); wert = { name: String(f.get('name') || '').trim(), ordner: String(f.get('ordner') || ''), adresse: String(f.get('adresse') || '').trim() }; d.close(); };
+      d.addEventListener('close', () => { d.remove(); fertig(wert); });
+      d.showModal();
+      setTimeout(() => { try { d.querySelector('input').focus(); } catch {} }, 80);
+    });
+  }
   async function auftragNeu() {
-    const name = prompt('Bezeichnung des Auftrags (z. B. Adresse)'); if (!name || !name.trim()) return;
-    const ordner = prompt('Ordner (Unterordner mit / trennen, z. B. FTTH / Zürich)', teile(Z.ordner).join(' / ')) ?? '';
-    const adresse = prompt('Adresse (freiwillig)', name) || '';
+    const w = await auftragFenster(); if (!w || !w.name) return;
+    const name = w.name, ordner = w.ordner, adresse = w.adresse || name;
     const { error } = await sb.rpc('ze_auftrag_anlegen', { p_token: token, p_ordner: ordner, p_name: name, p_kunde: '', p_adresse: adresse });
     if (error) { toast(fehlerText(error), 4500); return; }
     Z.ordner = teile(ordner).join('/'); toast('✓ Auftrag angelegt'); laden();

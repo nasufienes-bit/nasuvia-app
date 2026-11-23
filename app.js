@@ -983,7 +983,7 @@
     return `
     <div class="kopf">
       <div><h1>Buchungen</h1><p class="unter">${f.suche.trim() ? 'Suche in allen Jahren: ' : ''}${liste.length} Einträge, Einnahmen ${chf(s.ein)}, Ausgaben ${chf(s.aus)} (ohne MWST)</p></div>
-      <div class="kopf-aktionen">${jahrWahl()}<button class="btn" onclick="NB.bankImport()">Bankauszug oder Daten importieren</button><button class="btn" onclick="NB.belege()">Belege hochladen</button><button class="btn" onclick="NB.fahrt()">Fahrt erfassen</button><button class="btn btn-haupt nur-pc" onclick="NB.neu()">+ Neue Buchung</button></div>
+      <div class="kopf-aktionen">${jahrWahl()}<button class="btn" onclick="NB.korb()">Zuletzt gelöscht</button><button class="btn" onclick="NB.bankImport()">Bankauszug oder Daten importieren</button><button class="btn" onclick="NB.belege()">Belege hochladen</button><button class="btn" onclick="NB.fahrt()">Fahrt erfassen</button><button class="btn btn-haupt nur-pc" onclick="NB.neu()">+ Neue Buchung</button></div>
     </div>
     <div class="filter">
       <div class="segment">${typen.map(([id, n]) => `<button class="${f.typ === id ? 'an' : ''}" data-ftyp="${id}">${n}</button>`).join('')}</div>
@@ -1843,6 +1843,35 @@
     else if (r.zahlen < 0) journalBearbeiten(null, { text: `MWST-Guthaben ${q}. Quartal ${Z.jahr} von der ESTV`, zeilen: [{ soll: bank, haben: '1170', betrag: -r.zahlen }] });
   }
 
+  /* ---------- Zuletzt gelöscht (30 Tage) ---------- */
+  async function korbDialog() {
+    const grenze = Date.now() - 30 * 864e5;
+    const holen = async (sp) => (await Speicher.alleMitGeloeschten(sp)).filter((x) => x.geloescht && !x.endgueltig && Date.parse(x.geaendert || 0) >= grenze).map((x) => ({ sp, x }));
+    const liste = [...await holen('buchungen'), ...(doppeltAktiv() ? await holen('journal') : [])].sort((a, b) => (b.x.geaendert || '').localeCompare(a.x.geaendert || ''));
+    const zeile = ({ sp, x }, i) => {
+      const rest = 30 - Math.floor((Date.now() - Date.parse(x.geaendert)) / 864e5);
+      const titel = sp === 'journal' ? `${x.text || 'Journal-Buchung'} (Soll/Haben)` : `${x.text || x.partner || katName(x)}`;
+      const betrag = sp === 'journal' ? (x.zeilen || []).reduce((a, z) => a + (z.betrag || 0), 0) : x.betragRappen;
+      return `<div class="pruef-zeile" style="grid-template-columns:minmax(0,1fr) auto auto;padding:8px 0;border-bottom:1px solid var(--hairline)"><span style="min-width:0"><b style="color:var(--tinte)">${esc(titel)}</b><br><span class="hinweis">${datumKurz(x.datum)} · ${chf(betrag || 0)} CHF · noch ${rest} ${rest === 1 ? 'Tag' : 'Tage'}</span></span>
+        <button type="button" class="btn btn-klein" data-k-zurueck="${i}">Wiederherstellen</button><button type="button" class="btn btn-klein btn-rot" data-k-weg="${i}">Endgültig</button></div>`;
+    };
+    const d = kleinerDialog(`<h3 style="margin:0">Zuletzt gelöscht</h3><p class="hinweis">Gelöschte Buchungen bleiben 30 Tage hier. Danach sind sie weg.</p>
+      <div style="max-height:56vh;overflow:auto">${liste.length ? liste.map(zeile).join('') : '<p class="leer">Hier ist nichts.</p>'}</div>`, null);
+    d.addEventListener('click', async (e) => {
+      const z = e.target.closest('[data-k-zurueck]'), w = e.target.closest('[data-k-weg]');
+      const ein = z ? liste[Number(z.dataset.kZurueck)] : w ? liste[Number(w.dataset.kWeg)] : null;
+      if (!ein) return;
+      if (z) {
+        if (istFest(ein.x.datum)) { toast('Liegt in der festgeschriebenen Zeit und kann nicht zurückgeholt werden'); return; }
+        await Speicher.speichern(ein.sp, { ...ein.x, geloescht: false }); d.close(); await neuLaden('Wiederhergestellt'); return;
+      }
+      if (!await UI.frage('Endgültig löschen? Das lässt sich nicht rückgängig machen.')) return;
+      // Nur die Markierung bleibt (damit andere Geräte es auch löschen), der Inhalt ist weg
+      await Speicher.roh(ein.sp, [{ id: ein.x.id, geloescht: true, endgueltig: true, geaendert: new Date().toISOString(), offen: true }]);
+      d.close(); await neuLaden('Endgültig gelöscht');
+    });
+  }
+
   /* ---------- Übersicht und Einstellungen ---------- */
   function kontostaendeKarte() {
     const jetzt = String(new Date().getFullYear());
@@ -2185,6 +2214,7 @@
       async (fd) => { await einstSpeichern({ start: Object.fromEntries(START_KARTEN.map(([id]) => [id, fd.get(id) === 'on'])) }); zeichnen(); toast('Übersicht angepasst'); });
   }
   window.NB = {
+    korb: () => korbDialog(),
     ansicht: (id) => { Z.ansicht = id; zeichnen(); window.scrollTo(0, 0); },
     journalNeu: (vorlageId) => {
       const v = VORLAGEN.find((x) => x.id === vorlageId);

@@ -807,11 +807,12 @@ Herzlichen Dank für das entgegengebrachte Vertrauen. Wir stellen Ihnen folgende
         <button type="button" class="mini-btn" id="btnEntwurf">Als Entwurf sichern</button>
         <button type="button" class="mini-btn" id="btnAbo">Als Abo einrichten</button>
         <button type="button" class="mini-btn" id="btnNeu">Neue Rechnung</button>
+        <button type="button" class="mini-btn" id="btnAnpassen">Seite anpassen</button>
       </div>
     </div>
 
     <!-- Statistik -->
-    <section class="card statistik-card">
+    <section class="card statistik-card" data-teil="statistik">
       <h2>Übersicht</h2>
       <div class="stat-kacheln">
         <div class="stat-kachel">
@@ -839,20 +840,20 @@ Herzlichen Dank für das entgegengebrachte Vertrauen. Wir stellen Ihnen folgende
     </section>
 
     <!-- Entwürfe -->
-    <section class="card entwuerfe-card">
+    <section class="card entwuerfe-card" data-teil="entwuerfe">
       <h2>Entwürfe</h2>
       <p class="hint" style="margin-top:-2px">Angefangene Rechnungen, an denen Sie später weiterarbeiten.</p>
       <div id="entwuerfeListe"><p class="archiv-leer">Noch keine Entwürfe.</p></div>
     </section>
 
-    <section class="card abo-card">
+    <section class="card abo-card" data-teil="abos">
       <h2>Wiederkehrende Rechnungen</h2>
       <p class="hint" style="margin-top:0">Für Abos, Wartung oder Miete: einmal einrichten, dann mit einem Klick erstellen.</p>
       <div id="aboListe"><p class="archiv-leer">Noch keine wiederkehrenden Rechnungen.</p></div>
     </section>
 
     <!-- Archiv -->
-    <section class="card archiv-card">
+    <section class="card archiv-card" data-teil="archiv">
       <h2>Gesicherte Rechnungen</h2>
       <p class="archiv-pfad" id="archivOrdner">—</p>
       <input type="search" id="archivSuche" class="archiv-suche" placeholder="Nummer oder Kunde suchen" />
@@ -2633,6 +2634,8 @@ ${[[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' — '), [FIRMA.strasse, FIR
     };
     inp.click();
   });
+  if (window.UI && UI.teile) UI.teile.anwenden('rechnungen');
+  $('btnAnpassen').addEventListener('click', () => UI.teile.dialog('rechnungen', [['statistik', 'Übersicht mit Umsatz und Offenem'], ['entwuerfe', 'Entwürfe'], ['abos', 'Wiederkehrende Rechnungen'], ['archiv', 'Gesicherte Rechnungen']])));
   $('btnFirma').addEventListener('click', () => window.Marke && Marke.dialog({ beiSpeichern: () => { firmaAnwenden(); aktualisiere({ sofort: true }); toast('Design gespeichert'); } }));
   window.addEventListener('storage', (e) => { if (e.key === 'nasuvia.firma.v1') { firmaAnwenden(); aktualisiere({ sofort: true }); } });
   $('btnOrdner').addEventListener('click', () =>

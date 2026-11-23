@@ -119,6 +119,32 @@
     eingabe: (text, o = {}) => fenster({ text, eingabe: o.vorgabe || '', ja: o.ja || 'OK', platzhalter: o.platzhalter || '', titel: o.titel || '' }),
     // Hinweis mit einem Knopf
     hinweis: (text, o = {}) => fenster({ text, ja: o.ja || 'OK', nein: '', titel: o.titel || '' }),
+    // Übersicht anpassen: Teile mit data-teil="…" ein- oder ausblenden, pro Bereich auf dem Gerät gemerkt
+    teile: {
+      lesen: (bereich) => { try { return JSON.parse(localStorage.getItem('ordasio.teile.' + bereich) || '{}'); } catch { return {}; } },
+      anwenden: (bereich) => {
+        const aus = window.UI.teile.lesen(bereich);
+        let st = document.getElementById('ui-teile'); if (!st) { st = document.createElement('style'); st.id = 'ui-teile'; document.head.appendChild(st); }
+        st.textContent = Object.entries(aus).filter(([, an]) => an === false).map(([id]) => `[data-teil="${String(id).replace(/[^\w-]/g, '')}"]{display:none!important}`).join('\n');
+      },
+      dialog: (bereich, teile) => new Promise((fertig) => {
+        const aus = window.UI.teile.lesen(bereich);
+        const d = document.createElement('dialog'); d.className = 'ui-frage'; d.setAttribute('data-ohne-x', '');
+        d.innerHTML = `<form method="dialog"><h3>Übersicht anpassen</h3><p>Wählen Sie, was hier angezeigt wird.</p>
+          <div style="display:grid;gap:10px">${teile.map(([id, n]) => `<label style="display:flex;gap:10px;align-items:center;font-size:15px;color:#0A1F17"><input type="checkbox" data-t="${escH(id)}" ${aus[id] === false ? '' : 'checked'} style="width:20px;height:20px;accent-color:#0B3B2E"> ${escH(n)}</label>`).join('')}</div>
+          <div class="ui-knoepfe"><button type="button" data-nein>Abbrechen</button><button class="ja">Speichern</button></div></form>`;
+        document.body.appendChild(d);
+        d.querySelector('[data-nein]').onclick = () => d.close();
+        d.querySelector('form').onsubmit = (e) => {
+          e.preventDefault();
+          const neu = {}; d.querySelectorAll('[data-t]').forEach((c) => { neu[c.dataset.t] = c.checked; });
+          try { localStorage.setItem('ordasio.teile.' + bereich, JSON.stringify(neu)); } catch {}
+          window.UI.teile.anwenden(bereich); d.close();
+        };
+        d.addEventListener('close', () => { d.remove(); fertig(); });
+        d.showModal();
+      }),
+    },
     // Foto bearbeiten: drehen, zuschneiden, für schlecht eingescannte Dokumente heller und kräftiger machen
     bildBearbeiten: (src, o = {}) => bildBearbeiten(src, o),
   };

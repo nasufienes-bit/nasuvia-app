@@ -650,7 +650,7 @@
         <div class="zeile1"><h3>Rechnungen</h3><button class="nr-ue-zu" data-zu aria-label="Schliessen">×</button></div>
         <div class="nr-ue-summen" data-summen></div>
         <div class="nr-ue-filter" data-filter>
-          <button data-f="alle">Alle</button><button data-f="offen">Offen</button><button data-f="ueberfaellig">Überfällig</button><button data-f="nichtGesendet">Nicht gesendet</button><button data-f="bezahlt">Bezahlt</button><button data-f="papierkorb" data-papierkorb>Zuletzt gelöscht</button>
+          <button data-f="alle">Alle</button><button data-f="offen">Offen</button><button data-f="ueberfaellig">Überfällig</button><button data-f="nichtGesendet">Nicht gesendet</button><button data-f="bezahlt">Bezahlt</button><button data-f="archiv">Archiv</button><button data-f="papierkorb" data-papierkorb>Zuletzt gelöscht</button>
         </div>
         <input class="nr-ue-suche" type="search" placeholder="Suchen: Nummer, Kunde oder E-Mail" data-suche value="${esc(ueSuche)}">
       </div>
@@ -694,8 +694,8 @@
         return;
       }
       const liste = alle_.filter((r) => ({
-        alle: true, offen: !r.bezahlt, nichtGesendet: !r.gesendet, gesendet: r.gesendet && !r.bezahlt, ueberfaellig: ueberfaellig(r), bezahlt: r.bezahlt,
-      })[ueFilter]).filter(passt);
+        alle: true, offen: !r.bezahlt, nichtGesendet: !r.gesendet, gesendet: r.gesendet && !r.bezahlt, ueberfaellig: ueberfaellig(r), bezahlt: r.bezahlt, archiv: true,
+      })[ueFilter] && (ueFilter === 'archiv' ? !!r.archiviert : !r.archiviert)).filter(passt);
       const box = d.querySelector('[data-liste]');
       if (!liste.length && !alle_.length) {
         box.innerHTML = `<div class="nr-ue-leer"><p>Hier sind noch keine Rechnungen.</p>
@@ -734,6 +734,7 @@
               ${K.produkt ? '<button data-a="link">Link für den Kunden</button>' : ''}
               <button data-a="bearbeiten">Bearbeiten</button>
               <button data-a="bezahlt" class="${r.bezahlt ? '' : 'gruen'}">${r.bezahlt ? 'Wieder offen' : 'Bezahlt'}</button>
+              <button data-a="archivieren">${r.archiviert ? 'Aus dem Archiv holen' : 'Archivieren'}</button>
               <button data-a="loeschen" class="rot">Löschen</button>
             </div>
           </div>
@@ -749,6 +750,12 @@
       if (a === 'auf') { const z = b.closest('.nr-zeile'); const auf = z.classList.toggle('auf'); b.setAttribute('aria-expanded', auf ? 'true' : 'false'); return; }
       const r = await eins('rechnung', b.closest('[data-id]').getAttribute('data-id'));
       if (!r) return;
+      if (a === 'archivieren') {
+        await speichern('rechnung', [{ ...r, archiviert: !r.archiviert }]);
+        zeichnen();
+        if (window.Rueckgaengig) Rueckgaengig.zeigen(r.archiviert ? `Nr. ${r.nr} aus dem Archiv geholt` : `Nr. ${r.nr} archiviert`, async () => { await speichern('rechnung', [{ ...r }]); zeichnen(); });
+        return;
+      }
       if (a === 'link') {
         b.disabled = true; const alt = b.textContent; b.textContent = 'Link wird erstellt …';
         try {

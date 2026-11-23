@@ -177,7 +177,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   const knapp = (a) => a.aktiv && Number(a.mindest) > 0 && Number(a.bestand) <= Number(a.mindest);
 
   async function laden() {
-    Korb.neuLaden = laden;
+    Korb.neuLaden = laden; if (window.UI && UI.teile) UI.teile.anwenden('lager');
     Korb.aufraeumen(sb, [{ tabelle: 'lg_artikel' }]);
     try {
       const [a, b, z] = await Promise.all([
@@ -205,14 +205,14 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const l = Z.artikel.filter((a) => !s || `${a.name} ${a.nummer} ${a.lieferant}`.toLowerCase().includes(s));
     const wert = Z.artikel.filter((a) => a.aktiv).reduce((x, a) => x + Math.max(0, Number(a.bestand)) * a.einkauf_rappen, 0);
     return `<div class="kopf"><div><h1>Artikel</h1><p class="unter">${Z.artikel.filter((a) => a.aktiv).length} Artikel · Lagerwert CHF ${chf(wert)} (Einkauf)</p></div>
-        <div class="aktionen"><button class="btn" data-a="korb">Zuletzt gelöscht</button><button class="btn" data-a="verrechnen">Material verrechnen</button><button class="btn haupt" data-a="artikelNeu">+ Artikel</button></div></div>
-      <div class="raster r4">
+        <div class="aktionen"><button class="btn" data-a="anpassen">Übersicht anpassen</button><button class="btn" data-a="korb">Zuletzt gelöscht</button><button class="btn" data-a="verrechnen">Material verrechnen</button><button class="btn haupt" data-a="artikelNeu">+ Artikel</button></div></div>
+      <div class="raster r4" data-teil="zahlen">
         <div class="card zahl"><div class="l">Artikel</div><div class="w">${Z.artikel.filter((a) => a.aktiv).length}</div><div class="k">aktiv</div></div>
         <div class="card zahl"><div class="l">Lagerwert</div><div class="w">${chf(wert)}</div><div class="k">CHF zum Einkaufspreis</div></div>
         <div class="card zahl"><div class="l">Knapp</div><div class="w ${Z.artikel.some(knapp) ? 'warn' : ''}">${Z.artikel.filter(knapp).length}</div><div class="k">unter Mindestbestand</div></div>
         <div class="card zahl"><div class="l">Diesen Monat</div><div class="w">${Z.bewegungen.filter((b) => b.datum.slice(0, 7) === heute().slice(0, 7) && b.art === 'ausgang').length}</div><div class="k">Ausgänge</div></div>
       </div>
-      <div class="filter abstand"><input type="search" data-f="suche" value="${esc(Z.suche)}" placeholder="Artikel suchen …" style="flex:1;max-width:360px"></div>
+      <div class="filter abstand" data-teil="suche"><input type="search" data-f="suche" value="${esc(Z.suche)}" placeholder="Artikel suchen …" style="flex:1;max-width:360px"></div>
       <div class="card">${l.length ? l.map((a) => `<div class="zeile klick" data-artikel="${a.id}"><div style="min-width:0"><b>${esc(a.name)}${a.aktiv ? '' : '<span class="marke-s m-grau">inaktiv</span>'}${knapp(a) ? '<span class="marke-s m-offen">nachbestellen</span>' : ''}</b>
           <small>${esc([a.nummer, a.lieferant, a.verkauf_rappen ? 'Verkauf CHF ' + chf(a.verkauf_rappen) + '/' + a.einheit : ''].filter(Boolean).join(' · ')) || '&nbsp;'}</small></div>
           <div class="aktionen"><button class="btn klein" data-schnell="eingang:${a.id}" aria-label="Eingang">+</button><button class="btn klein" data-schnell="ausgang:${a.id}" aria-label="Ausgang">−</button><span class="betrag ${Number(a.bestand) < 0 || knapp(a) ? 'warn' : ''}" style="min-width:76px">${zahl(a.bestand)} ${esc(a.einheit)}</span></div></div>`).join('')
@@ -341,6 +341,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     switch (a.dataset.a) {
       case 'zu': dlg.close(); break;
       case 'artikelNeu': artikelDialog(); break;
+      case 'anpassen': UI.teile.dialog('lager', [['zahlen', 'Zahlen oben (Artikel, Lagerwert, Knapp, Ausgänge)'], ['suche', 'Suchfeld']]); break;
       case 'bewegungNeu': bewegungDialog(); break;
       case 'verrechnen': verrechnenDialog(); break;
       case 'bestellDruck': bestellDruck(); break;
