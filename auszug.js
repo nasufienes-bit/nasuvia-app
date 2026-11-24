@@ -185,7 +185,13 @@
   }
 
   // Ergebnis: { roh } (Text für camt/CSV-Leser) oder { liste, anfang, ende, quelle } (fertige Bewegungen)
+  // Im öffentlichen Demo-Konto keine echten Unterlagen hochladen: alle Besucher sehen dieselben Daten
+  async function demoOk() {
+    if (!window.NASUVIA_DEMO || !window.UI || !UI.frage) return true;
+    return UI.frage('Sie sind im Demo-Konto. Alles, was Sie hier hochladen, sehen auch andere Besucher der Demo. Bitte nur Beispieldaten verwenden, für echte Daten ein eigenes Konto erstellen.\n\nTrotzdem fortfahren?');
+  }
   async function vorbereiten(datei, melden) {
+    if (!await demoOk()) throw new Error('Abgebrochen.');
     const bytes = new Uint8Array(await datei.slice(0, 8).arrayBuffer());
     const kopf = String.fromCharCode(...bytes);
     const pdf = istPdf(datei, kopf), bild = !pdf && istBild(datei, bytes);

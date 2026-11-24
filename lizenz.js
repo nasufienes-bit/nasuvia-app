@@ -217,7 +217,7 @@
       return;
     }
     weg();
-    if (istDemo(session)) { demoPille(); return; }
+    if (istDemo(session)) { window.NASUVIA_DEMO = true; demoPille(); return; }
     const tage = Math.round((new Date((l.status === 'test' ? l.test_bis : l.gueltig_bis) + 'T12:00') - new Date(h + 'T12:00')) / 864e5);
     if (l.status === 'test') pille(`Gratis-Test: noch ${tage} ${tage === 1 ? 'Tag' : 'Tage'} · <b>Lizenz kaufen</b>`);
     else if (tage <= 21) pille(`Lizenz läuft am ${dk(l.gueltig_bis)} ab · <b>Verlängern</b>`);
