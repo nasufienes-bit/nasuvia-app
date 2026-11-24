@@ -43,6 +43,10 @@
       'Links ausfüllen, rechts sehen Sie das fertige Blatt mit Ihrem Logo und Ihrer Adresse.',
       '„Drucken / PDF“ zum Ausdrucken oder als PDF speichern, „Per E-Mail“ für den Text, „In Firmenablage“ legt es als PDF beim richtigen Ordner und Mitarbeiter ab.',
       'Bei der Kündigung rechnet Ordasio das früheste Ende nach OR 335c aus.'], WURZEL + 'vorlagen/'],
+    ['steuererklaerung', 'Home-Büro', 'Private Steuererklärung Schritt für Schritt', 'steuererklärung steuern privat ausfüllen anleitung lohnausweis abzüge säule 3a vermögen schulden frist einreichen veranlagung', [
+      'Home-Büro, Planen, Steuern öffnen. Oben steht die Anleitung für das gewählte Jahr.',
+      'Schritt für Schritt abhaken: Zugang und Frist, Unterlagen sammeln, Einkommen, Abzüge, Vermögen, Schulden, einreichen.',
+      'Ordasio zeigt dazu Ihre gesammelten Abzüge, Lohneingänge, Bargeld und Guthaben als Hilfe.'], WURZEL + 'privat/'],
     ['dienste', 'Erste Schritte', 'Website oder Instagram von uns gestalten lassen', 'website homepage webseite instagram highlights design gestalten entwurf gratis', [
       'Auf der Startseite „Ihre Website, von uns gestaltet“ tippen.',
       'Gewünschten Dienst und Stil wählen und die Anfrage senden. Den ersten Website-Entwurf machen wir kostenlos.'], WURZEL + 'dienste/'],

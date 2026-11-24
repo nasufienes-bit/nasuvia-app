@@ -100,6 +100,21 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 .schnell svg{width:22px;height:22px;fill:none;stroke:var(--elektrik,#0E7A55);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .schnell small{color:var(--text);font-size:12.5px;line-height:1.35}
 @media(max-width:820px){.raster.r4 .schnell{padding:12px}}
+.st-anleitung{margin-bottom:14px}
+.st-anleitung summary{display:flex;gap:14px;align-items:center;justify-content:space-between;cursor:pointer;list-style:none}
+.st-anleitung summary::-webkit-details-marker{display:none}
+.st-anleitung summary small{display:block;color:var(--leise);font-size:13px}
+.st-balken{width:120px;height:8px;border-radius:8px;background:var(--flaeche);overflow:hidden;flex:none}.st-balken i{display:block;height:100%;background:linear-gradient(90deg,var(--elektrik),#34D399)}
+.st-schritt{border-top:1px solid var(--linie);padding:12px 0}
+.st-titel{display:flex;gap:10px;align-items:center;font-weight:700;cursor:pointer}
+.st-titel input{width:20px;height:20px;accent-color:var(--elektrik)}
+.st-schritt .st-inhalt{margin:6px 0 0 30px;color:var(--text);font-size:14px}
+.st-schritt.fertig .st-titel span{text-decoration:line-through;color:var(--leise)}.st-schritt.fertig .st-inhalt{display:none}
+.st-schritt.jetzt{background:linear-gradient(90deg,rgba(14,122,85,.06),transparent);border-radius:12px;padding:12px 10px;margin:0 -10px}
+.st-liste{display:grid;gap:6px;margin:4px 0 8px}.st-liste label{display:flex;gap:8px;align-items:center}.st-liste input{width:18px;height:18px;accent-color:var(--elektrik)}
+.st-werte{display:grid;gap:4px;margin:6px 0}.st-werte div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed var(--linie);padding:4px 0}
+.st-wert{background:var(--flaeche);border-radius:10px;padding:8px 10px}
+.st-tipps{margin:8px 0 0 18px;display:grid;gap:4px}
 </style>
 </head>
 <body>
@@ -707,6 +722,38 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const a = ABZUG.find((x) => x[2] && x[2].test(t));
     return a ? a[0] : '';
   }
+  /* Steuererklärung Schritt für Schritt: Fortschritt pro Jahr, Werte aus dem Home-Büro als Hilfe */
+  function steuerAnleitung(l) {
+    D.steuerPlan = D.steuerPlan || {};
+    const plan = D.steuerPlan[steuerJahr] = D.steuerPlan[steuerJahr] || { erledigt: {}, unterlagen: {} };
+    const jahrL = (b) => b.datum.slice(0, 4) === steuerJahr;
+    const lohn = D.bewegungen.filter((b) => jahrL(b) && b.kategorie === 'lohn' && b.betragRappen > 0).reduce((x, b) => x + b.betragRappen, 0);
+    const summe = (art) => l.filter((x) => x.art === art).reduce((a, x) => a + x.betragRappen, 0);
+    const bar = D.bewegungen.filter((b) => jahrL(b) && b.kategorie === 'bargeld' && b.betragRappen < 0).reduce((a, b) => a - b.betragRappen, 0)
+      + (D.bargeld || []).filter(jahrL).reduce((a, x) => a + (x.art === 'ausgabe' ? -x.betragRappen : x.betragRappen), 0);
+    const guthaben = (D.guthaben || []).reduce((a, g) => a + Math.max(0, g.betragRappen - (g.zahlungen || []).reduce((t, z) => t + z.betragRappen, 0)), 0);
+    const gespart = (D.sparziele || []).reduce((a, z) => a + (z.einzahlungen || []).reduce((t, e) => t + e.betragRappen, 0), 0);
+    const offeneRg = (D.rechnungen || []).filter((r) => r.status !== 'bezahlt' && (r.erhalten || r.faellig || '') <= steuerJahr + '-12-31').reduce((a, r) => a + (r.betragRappen || 0), 0);
+    const UNTERLAGEN = [['lohnausweis', 'Lohnausweis(e) vom Arbeitgeber'], ['bank', 'Zins- und Saldoausweise aller Konten per 31.12.'], ['3a', 'Bescheinigung Säule 3a'], ['kk', 'Prämienübersicht der Krankenkasse'],
+      ['arzt', 'Arzt-, Zahnarzt- und Apothekenrechnungen (selbst bezahlt)'], ['beruf', 'Belege Berufsauslagen (ÖV-Abo, Weiterbildung)'], ['spenden', 'Spendenbestätigungen'], ['kinder', 'Belege Kinderbetreuung'],
+      ['schulden', 'Schulden und Schuldzinsen (Kredit, Leasing, Hypothek)'], ['wertschriften', 'Wertschriften- und Depotauszug'], ['vorjahr', 'Steuererklärung und Veranlagung vom Vorjahr']];
+    const SCHRITTE = [
+      ['zugang', 'Zugang und Frist', `<p>Die Unterlagen kommen meist im Januar oder Februar per Post, mit einem Zugangscode für die Online-Steuererklärung Ihres Kantons. Die Frist ist meist der 31. März. Reicht die Zeit nicht, verlängern Sie online, oft gratis.</p>`],
+      ['sammeln', 'Unterlagen sammeln', `<div class="st-liste">${UNTERLAGEN.map(([k, n]) => `<label><input type="checkbox" data-st-unterlage="${k}" ${plan.unterlagen[k] ? 'checked' : ''}> ${n}</label>`).join('')}</div><p class="hinweis">Tipp: Alles laufend im Ordner „Steuern ${steuerJahr}“ unter Dokumente ablegen.</p>`],
+      ['einkommen', 'Einkommen eintragen', `<p>Übertragen Sie den Nettolohn vom Lohnausweis (Ziffer 11). Nebenverdienste, Renten, Taggelder und Arbeitslosengeld gehören auch dazu.</p>${lohn ? `<p class="st-wert">Lohneingänge laut Ihren Kontoauszügen ${steuerJahr}: <b>CHF ${chf(lohn)}</b><br><small>Nur zur Kontrolle. Massgebend ist der Lohnausweis.</small></p>` : ''}`],
+      ['abzuege', 'Abzüge eintragen', `<p>Hier sparen Sie Steuern. Gesammelt in Ordasio:</p><div class="st-werte">${ABZUG.filter(([id]) => summe(id)).map(([id, n]) => `<div><span>${esc(n)}</span><b>CHF ${chf(summe(id))}</b></div>`).join('') || '<div><span>Noch keine Abzüge gesammelt</span><b>–</b></div>'}</div>
+        <ul class="st-tipps"><li>Säule 3a ${steuerJahr >= '2026' ? '2026' : steuerJahr}: höchstens CHF 7’258 mit Pensionskasse, ohne Pensionskasse 20 % des Erwerbseinkommens, höchstens CHF 36’288.</li><li>Krankheitskosten zählen nur, soweit sie einen Selbstbehalt übersteigen (beim Bund 5 % des Nettoeinkommens).</li><li>Krankenkassenprämien und Versicherungen werden meist pauschal abgezogen. Prüfen Sie die Wegleitung Ihres Kantons.</li><li>Berufsauslagen: Fahrt, auswärtige Verpflegung, Weiterbildung. Viele Kantone kennen Pauschalen.</li></ul>`],
+      ['vermoegen', 'Vermögen per 31. Dezember', `<p>Saldo jedes Kontos am 31.12. vom Bankauszug, dazu Bargeld, Guthaben, Fahrzeug und Wertschriften.</p><div class="st-werte">
+        <div><span>Bargeld (laut Home-Büro, grob)</span><b>CHF ${chf(Math.max(0, bar))}</b></div><div><span>Guthaben, die Ihnen geschuldet werden</span><b>CHF ${chf(guthaben)}</b></div><div><span>Gespart in Sparzielen</span><b>CHF ${chf(gespart)}</b></div></div><p class="hinweis">Sparziele sind oft schon im Kontosaldo enthalten. Nicht doppelt zählen.</p>`],
+      ['schulden', 'Schulden und Schuldzinsen', `<p>Alle Schulden per 31.12. (Kredite, Leasing, Hypothek, offene Rechnungen) und die im Jahr bezahlten Schuldzinsen.</p>${offeneRg ? `<p class="st-wert">Offene Rechnungen im Home-Büro: <b>CHF ${chf(offeneRg)}</b></p>` : ''}${summe('schuldzinsen') ? `<p class="st-wert">Gesammelte Schuldzinsen: <b>CHF ${chf(summe('schuldzinsen'))}</b></p>` : ''}`],
+      ['einreichen', 'Prüfen und einreichen', `<p>Mit dem Vorjahr vergleichen: Fehlt ein Konto? Stimmt der Lohn? Dann online einreichen oder ausdrucken, unterschreiben und mit den Belegen senden. Die Übersicht der Abzüge drucken Sie hier mit „Übersicht drucken“.</p>`],
+      ['nachher', 'Nach der Veranlagung', `<p>Kommt die Veranlagung, vergleichen Sie sie mit Ihrer Erklärung. Für eine Einsprache haben Sie meist 30 Tage. Legen Sie für die nächsten Steuern jeden Monat etwas zur Seite, zum Beispiel als Sparziel „Steuern“.</p>`],
+    ];
+    const n = SCHRITTE.filter(([k]) => plan.erledigt[k]).length, naechster = SCHRITTE.find(([k]) => !plan.erledigt[k]);
+    return `<details class="card st-anleitung" ${n < SCHRITTE.length ? 'open' : ''}><summary><span><b>Steuererklärung ${steuerJahr}, Schritt für Schritt</b><small>${n === SCHRITTE.length ? '✓ Alles erledigt' : `${n} von ${SCHRITTE.length} erledigt · als Nächstes: ${naechster[1]}`}</small></span><span class="st-balken"><i style="width:${Math.round(n / SCHRITTE.length * 100)}%"></i></span></summary>
+      ${SCHRITTE.map(([k, t, inhalt], i) => `<div class="st-schritt ${plan.erledigt[k] ? 'fertig' : ''} ${naechster && naechster[0] === k ? 'jetzt' : ''}"><label class="st-titel"><input type="checkbox" data-st-schritt="${k}" ${plan.erledigt[k] ? 'checked' : ''}><span>${i + 1}. ${t}</span></label><div class="st-inhalt">${inhalt}</div></div>`).join('')}
+      <p class="hinweis" style="margin-top:10px">Allgemeine Hilfe ohne Gewähr. Regeln und Beträge sind je nach Kanton verschieden. Massgebend ist die Wegleitung Ihres Kantons.</p></details>`;
+  }
   function steuernAnsicht() {
     const l = D.steuern.filter((s) => s.datum.slice(0, 4) === steuerJahr).sort((a, b) => (a.datum > b.datum ? 1 : -1));
     const jahre = [...new Set([...D.steuern.map((s) => s.datum.slice(0, 4)), ...D.bewegungen.map((b) => b.datum.slice(0, 4)), steuerJahr])].sort().reverse();
@@ -715,6 +762,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const summe = (art) => l.filter((s) => s.art === art).reduce((x, s) => x + s.betragRappen, 0);
     return `<div class="kopf"><div><h1>Steuern</h1><p class="unter">Sammeln Sie das ganze Jahr, was Sie bei den Steuern abziehen können. Im Frühling haben Sie alles beisammen.</p></div>
         <div class="aktionen"><select data-steuerjahr>${jahre.map((j) => `<option ${j === steuerJahr ? 'selected' : ''}>${j}</option>`).join('')}</select><button class="btn" data-hb="steuerDruck">Übersicht drucken</button><button class="btn haupt" data-hb="abzugNeu">+ Abzug</button></div></div>
+      ${steuerAnleitung(l)}
       <div class="raster r2 voll">
         <div class="card"><h2>Steuerjahr ${steuerJahr}</h2>${ABZUG.filter(([id]) => summe(id)).map(([id, n]) => `<div class="zeile"><div><b>${esc(n)}</b><small>${l.filter((s) => s.art === id).length} Belege</small></div><div class="betrag">${chf(summe(id))}</div></div>`).join('') || '<p class="leer">Noch nichts gesammelt.</p>'}
           ${l.length ? `<div class="zeile"><div><b>Total</b></div><div class="betrag">${chf(l.reduce((x, s) => x + s.betragRappen, 0))}</div></div>` : ''}</div>
@@ -891,6 +939,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   document.addEventListener('change', (e) => {
     const t = e.target;
     if (t.matches('[data-steuerjahr]')) { steuerJahr = t.value; zeichnen(); }
+    if (t.matches('[data-st-schritt]')) { const pl = D.steuerPlan[steuerJahr]; pl.erledigt[t.dataset.stSchritt] = t.checked; sichern(); const offen = document.querySelector('.st-anleitung')?.open; zeichnen(); const d = document.querySelector('.st-anleitung'); if (d && offen) d.open = true; if (t.checked) toast('✓ Erledigt'); }
+    if (t.matches('[data-st-unterlage]')) { D.steuerPlan[steuerJahr].unterlagen[t.dataset.stUnterlage] = t.checked; sichern(); }
     if (t.matches('[data-budgetmonat]')) { budgetMonat = t.value || heute().slice(0, 7); zeichnen(); }
     if (t.matches('[data-budget]')) { const v = betragLesen(t.value); if (Number.isFinite(v) && v > 0) D.budget[t.dataset.budget] = v; else delete D.budget[t.dataset.budget]; sichern(); zeichnen(); }
   });
