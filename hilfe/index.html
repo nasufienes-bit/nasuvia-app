@@ -41,17 +41,21 @@ h2{font-size:22px;margin:30px 0 12px;letter-spacing:-.01em}
   <p class="unter">Alles Schritt für Schritt: Rechnungen, Buchhaltung, Löhne, Zeiterfassung, Termine, Lager und Home-Büro. Suchen Sie einfach, was Sie brauchen.</p>
   <div class="such"><div><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" id="q" placeholder="z. B. Mahnung, Lohn, Bankauszug, Logo" autocomplete="off" /></div></div>
   <div class="bereiche" id="bereiche"></div>
+  <div id="hilfen" style="display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 14px"></div>
   <div id="inhalt"></div>
   <div class="kontakt"><b>Nicht gefunden?</b><br>Schreiben Sie an <a href="mailto:info@nasuvia.ch">info@nasuvia.ch</a> oder rufen Sie an: <a href="tel:+41798218408">079 821 84 08</a>.</div>
 </div>
+<script src="../pakete.js"></script>
 <script src="../suche.js" data-ohne-knopf></script>
 <script src="../ordi.js" defer></script>
 <script src="../erinnerungen.js" defer></script>
+<script src="../tipps.js" defer></script>
 <script>
 (function(){
   var S = window.NasuviaSuche, $ = function(id){ return document.getElementById(id); };
   var esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
-  var bereiche = []; S.artikel.forEach(function(a){ if (bereiche.indexOf(a.bereich) < 0) bereiche.push(a.bereich); });
+  var ALLE = S.passende ? S.passende() : S.artikel;
+  var bereiche = []; ALLE.forEach(function(a){ if (bereiche.indexOf(a.bereich) < 0) bereiche.push(a.bereich); });
   var slug = function(b){ return 'b-' + b.toLowerCase().replace(/[^a-zäöü]+/g, '-'); };
   $('bereiche').innerHTML = bereiche.map(function(b){ return '<a href="#' + slug(b) + '">' + esc(b) + '</a>'; }).join('');
   function karte(a){
@@ -66,9 +70,18 @@ h2{font-size:22px;margin:30px 0 12px;letter-spacing:-.01em}
       return;
     }
     $('inhalt').innerHTML = bereiche.map(function(b){
-      return '<h2 id="' + slug(b) + '">' + esc(b) + '</h2>' + S.artikel.filter(function(a){ return a.bereich === b; }).map(karte).join('');
+      return '<h2 id="' + slug(b) + '">' + esc(b) + '</h2>' + ALLE.filter(function(a){ return a.bereich === b; }).map(karte).join('');
     }).join('');
   }
+  function hilfen(){
+    $('hilfen').innerHTML = '<button type="button" data-h="tipps" style="border:0;border-radius:100px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer;background:#fff;box-shadow:0 0 0 1px rgba(11,59,46,.15)">💡 Tipps in den Bereichen: ' + (!window.Tipps || Tipps.istAn() ? 'an' : 'aus') + '</button>' +
+      '<button type="button" data-h="ordi" style="border:0;border-radius:100px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer;background:#fff;box-shadow:0 0 0 1px rgba(11,59,46,.15)">💬 Ordi: ' + (!window.Ordi || Ordi.istAn() ? 'an' : 'aus') + '</button>';
+  }
+  $('hilfen').addEventListener('click', function(e){ var b = e.target.closest('[data-h]'); if (!b) return;
+    if (b.dataset.h === 'ordi' && window.Ordi) { Ordi.istAn() ? Ordi.aus() : Ordi.an(); }
+    if (b.dataset.h === 'tipps' && window.Tipps) { if (Tipps.istAn()) Tipps.aus(); else { try { localStorage.setItem('ordasio.tippsAus', JSON.stringify({ alle: true })); } catch (x) {} } }
+    hilfen(); });
+  setTimeout(hilfen, 300);
   $('q').addEventListener('input', zeichnen);
   zeichnen();
   if (location.hash) { var z = document.querySelector(location.hash); if (z) setTimeout(function(){ z.scrollIntoView(); }, 50); }

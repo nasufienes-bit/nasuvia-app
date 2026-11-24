@@ -308,6 +308,8 @@
           <label class="${d.hintergrund === 'bild' ? 'an' : ''}" style="cursor:pointer"><i style="background:${hatBild && d.hintergrund === 'bild' ? 'center/cover url(' + localStorage.getItem(BILD) + ')' : 'repeating-linear-gradient(45deg,#E8EEEB 0 8px,#F7FAF8 8px 16px)'}">${hatBild ? '' : '<span>＋</span>'}</i>Eigenes Bild<input type="file" accept="image/*" hidden data-hg-bild></label></div>
         ${d.hintergrund === 'bild' ? `<label class="ui-regler">Bild heller oder kräftiger<input type="range" min="0.3" max="0.92" step="0.02" value="${d.schleier ?? 0.72}" data-hg-schleier></label>` : ''}
         <p style="margin-top:10px"><b style="color:#0A1F17">Schrift</b></p><div class="ui-hg zwei">${[['normal', 'Normal'], ['gross', 'Etwas grösser']].map(([k, n]) => `<button type="button" data-schrift="${k}" class="${(d.schrift || 'normal') === k ? 'an' : ''}">${n}</button>`).join('')}</div>
+        <p style="margin-top:10px"><b style="color:#0A1F17">Hilfen</b></p><div class="ui-hg zwei">
+          <button type="button" data-hilfe="tipps" class="${!window.Tipps || Tipps.istAn() ? 'an' : ''}">💡 Tipps in den Bereichen</button><button type="button" data-hilfe="ordi" class="${!window.Ordi || Ordi.istAn() ? 'an' : ''}">💬 Ordi, der Helfer</button></div>
         <div class="ui-knoepfe"><button type="button" class="nein" data-hg-zurueck>Zurücksetzen</button><button class="ja">Fertig</button></div></form>`;
     };
     const setz = (neu) => { try { localStorage.setItem(KEY, JSON.stringify({ ...lies(), ...neu })); } catch {} anwenden(); malen(); };
@@ -315,6 +317,9 @@
     dlg.addEventListener('click', (e) => {
       const h = e.target.closest('[data-hg]'); if (h) setz({ hintergrund: h.dataset.hg });
       const s = e.target.closest('[data-schrift]'); if (s) setz({ schrift: s.dataset.schrift });
+      const hi = e.target.closest('[data-hilfe]');
+      if (hi && hi.dataset.hilfe === 'tipps' && window.Tipps) { if (Tipps.istAn()) Tipps.aus(); else Tipps.an(); malen(); }
+      if (hi && hi.dataset.hilfe === 'ordi' && window.Ordi) { if (Ordi.istAn()) Ordi.aus(); else Ordi.an(); malen(); }
       if (e.target.closest('[data-hg-zurueck]')) { try { localStorage.removeItem(KEY); localStorage.removeItem(BILD); } catch {} anwenden(); malen(); }
     });
     dlg.addEventListener('input', (e) => { if (e.target.matches('[data-hg-schleier]')) { try { localStorage.setItem(KEY, JSON.stringify({ ...lies(), schleier: Number(e.target.value) })); } catch {} anwenden(); } });

@@ -195,6 +195,7 @@
     const { data: l, error } = await sb.from('lizenzen').select('*').eq('user_id', session.user.id).maybeSingle();
     if (error || !l) { sperre('Lizenz nicht gefunden', 'Zu Ihrem Konto gibt es noch keine Lizenz. Bitte melden Sie sich bei uns.', false); return; }
     window.NASUVIA_LIZENZ = l;
+    try { localStorage.setItem('ordasio.lizenz', JSON.stringify({ paket: l.paket, rechtsform: l.rechtsform, status: l.status })); } catch {}
     try { document.dispatchEvent(new CustomEvent('ordasio-lizenz', { detail: l })); } catch {}
     const h = heute();
     const gueltig = l.status !== 'gesperrt' && ((l.status === 'test' && l.test_bis >= h) || (l.status === 'aktiv' && (l.gueltig_bis || '') >= h));

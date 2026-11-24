@@ -336,7 +336,8 @@
   // Nur Artikel zum eigenen Paket zeigen (wer nur das Home-Büro hat, sieht keine Firmen-Anleitungen)
   const PROG = { Buchhaltung: 'buchhaltung', Rechnungen: 'rechnungen', Zeiterfassung: 'zeit', Termine: 'termine', Lager: 'lager', 'Home-Büro': 'privat', Firmenablage: 'ablage', Vorlagen: 'ablage', Löhne: 'lohn' };
   function passt(a) {
-    const l = window.NASUVIA_LIZENZ, O = window.ORDASIO;
+    let l = window.NASUVIA_LIZENZ; const O = window.ORDASIO;
+    if (!l) { try { l = JSON.parse(localStorage.getItem('ordasio.lizenz') || 'null'); } catch { l = null; } }
     if (!l || !l.paket || !O || !O.darf) return true;
     const p = PROG[a.bereich];
     if (!p) return l.paket !== 'privat' || a.bereich === 'Konto und Lizenz';
