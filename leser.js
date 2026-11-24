@@ -125,7 +125,7 @@
   // Im öffentlichen Demo-Konto keine echten Unterlagen hochladen: alle Besucher sehen dieselben Daten
   async function demoOk() {
     if (!window.NASUVIA_DEMO || !window.UI || !UI.frage) return true;
-    return UI.frage('Sie sind im Demo-Konto. Alles, was Sie hier hochladen, sehen auch andere Besucher der Demo. Bitte nur Beispieldaten verwenden, für echte Daten ein eigenes Konto erstellen.\n\nTrotzdem fortfahren?');
+    return UI.frage('Sie sind im Demo-Konto. Alles, was Sie hier hochladen, sehen alle, die sich mit dem Demo-Login anmelden. Bitte nur Beispieldaten verwenden, für echte Daten ein eigenes Konto erstellen.\n\nTrotzdem fortfahren?');
   }
   async function lesenUndPruefen(datei, art, { felder, titel, werteAus = (f) => f, extra = {} } = {}) {
     if (!await demoOk()) return null;

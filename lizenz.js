@@ -20,7 +20,8 @@
   // Vorzeige-Modus (konfig.js → demo): ohne Anmeldung ins Demo-Konto. Wer sich bewusst abmeldet oder ?anmelden an die Adresse hängt, sieht wieder die Anmeldung.
   const OHNE_DEMO = 'nk.ohneDemo';
   try { if (/[?&]anmelden\b/.test(location.search)) sessionStorage.setItem(OHNE_DEMO, '1'); } catch {}
-  const demoErlaubt = () => { try { return !!K.demo && sessionStorage.getItem(OHNE_DEMO) !== '1'; } catch { return !!K.demo; } };
+  // Automatische Anmeldung nur, wenn ein Demo-Passwort hinterlegt ist (zurzeit nicht: Demo braucht eine Anmeldung)
+  const demoErlaubt = () => { try { return !!(K.demo && K.demo.password) && sessionStorage.getItem(OHNE_DEMO) !== '1'; } catch { return !!(K.demo && K.demo.password); } };
   const demoAus = () => { try { sessionStorage.setItem(OHNE_DEMO, '1'); } catch {} };
   const istDemo = (s) => !!(K.demo && s && s.user && s.user.email === K.demo.email);
 
@@ -171,7 +172,7 @@
   function demoPille() {
     const a = document.createElement('a');
     a.className = 'lz-pille'; a.href = '#'; a.innerHTML = 'Demo-Ansicht · <b>Eigenes Konto</b>';
-    a.title = 'Das ist ein Vorzeige-Konto. Eingaben sehen auch andere Besucher.';
+    a.title = 'Das ist das Demo-Konto. Alle mit dem Demo-Login sehen dieselben Daten.';
     a.onclick = async (ev) => { ev.preventDefault(); demoAus(); await sb.auth.signOut({ scope: 'local' }); location.reload(); };
     anhaengen(a);
   }
