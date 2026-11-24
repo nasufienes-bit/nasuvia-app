@@ -82,6 +82,9 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
 .pfad{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px;font-size:14px}
 .pfad button{border:0;background:var(--flaeche);color:var(--blau);border-radius:100px;padding:6px 11px;font-size:13px}
 .loeschen{border:0;background:none;color:var(--rot);font-size:14px;margin-top:10px;width:100%;padding:8px}
+.einsatz details.info{margin-top:6px;font-size:14px}.einsatz details.info summary{cursor:pointer;font-weight:600;color:var(--elektrik,#0E7A55)}
+.einsatz details.info p{margin:6px 0 0;line-height:1.45}
+.live-zeile{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}.live-zeile small{flex-basis:100%;color:#3F5A4F}
 </style>
 </head>
 <body>
@@ -168,6 +171,24 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
     if (start && !Z.form) { clearInterval(Z.uhr); Z.uhr = setInterval(() => { const e = $('laeuft'); if (e) e.textContent = std((Date.now() - Number(lies(K_START))) / 60000); else clearInterval(Z.uhr); }, 15000); }
   }
 
+  // Live-Standort: nur wenn der Einsatz es vorsieht und der Mitarbeiter selbst startet
+  let liveAn = null, liveWatch = null, liveZuletzt = 0;
+  function liveStopp(still) {
+    if (liveWatch != null) { try { navigator.geolocation.clearWatch(liveWatch); } catch {} }
+    const id = liveAn; liveWatch = null; liveAn = null;
+    if (id && !still) sb.rpc('ze_standort_stopp', { p_token: token, p_einsatz: id });
+  }
+  function liveStart(id) {
+    if (!navigator.geolocation) { toast('Dieses Handy kann den Standort nicht teilen'); return; }
+    liveStopp(true); liveAn = id;
+    liveWatch = navigator.geolocation.watchPosition(async (p) => {
+      if (Date.now() - liveZuletzt < 60000) return; // höchstens einmal pro Minute
+      liveZuletzt = Date.now();
+      const { data } = await sb.rpc('ze_standort_melden', { p_token: token, p_einsatz: id, p_lat: p.coords.latitude, p_lng: p.coords.longitude, p_genau: p.coords.accuracy });
+      if (data && data.ok === false) { liveStopp(true); zeichnen(); }
+    }, () => { toast('Standort nicht erlaubt. Bitte in den Einstellungen des Handys freigeben.'); liveStopp(true); zeichnen(); }, { enableHighAccuracy: true, maximumAge: 30000, timeout: 30000 });
+    zeichnen(); toast('📍 Standort wird geteilt');
+  }
   function einsaetzeKarte() {
     const d = Z.daten, l = (d.einsaetze || []).filter((s) => s.datum >= heute() || !s.erledigt);
     if (!l.length) return '';
@@ -177,6 +198,8 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
       <b>${s.datum === heute() ? 'Heute' : s.datum === plusTage(heute(), 1) ? 'Morgen' : wt(s.datum) + ' ' + dk(s.datum)}${s.von ? ', ' + s.von + (s.bis ? '–' + s.bis : '') : ''}${s.erledigt ? ' · erledigt' : ''}</b>
       <small>${esc([af(s.auftrag_id) ? af(s.auftrag_id).name + (af(s.auftrag_id).kunde ? ' · ' + af(s.auftrag_id).kunde : '') : '', s.adresse].filter(Boolean).join(' · ')) || 'Ohne Angaben'}</small>
       ${s.notiz ? `<small>📝 ${esc(s.notiz)}</small>` : ''}
+      ${s.info ? `<details class="info"><summary>Zusatzinfos</summary><p>${esc(s.info).replace(/\n/g, '<br>')}</p></details>` : ''}
+      ${s.live && !s.erledigt && s.datum === heute() ? `<div class="live-zeile">${liveAn === s.id ? `<span>📍 Standort wird geteilt</span><button class="mini" data-live-stopp="${s.id}">Stoppen</button>` : `<button class="mini" data-live="${s.id}">📍 Standort teilen</button><small>Ihr Arbeitgeber sieht nur Ihren letzten Ort, solange diese Seite offen ist. Bei „Erledigt“ wird er gelöscht.</small>`}</div>` : ''}
       <div class="knoepfe">${s.adresse ? `<a class="mini" href="https://maps.apple.com/?q=${encodeURIComponent(s.adresse)}" target="_blank" rel="noopener">Route</a>` : ''}${s.kunde_telefon ? `<a class="mini" href="tel:${esc(s.kunde_telefon.replace(/\s/g, ''))}">Anrufen</a>` : ''}
         ${Z.daten.zeit !== false && !start && !s.erledigt && s.datum === heute() ? `<button class="mini haupt" data-hier-start="${s.id}">▶ Hier starten</button>` : ''}
         <button class="mini" data-erledigt="${s.id}">${s.erledigt ? 'Doch nicht erledigt' : '✓ Erledigt'}</button></div></div>`).join('')}</div>`;
@@ -274,8 +297,10 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
     const fw = ev.target.closest('[data-foto-weg]'); if (fw) { if (!await UI.frage('Dieses Foto löschen?')) return; await sb.functions.invoke('ze-foto', { body: { token, aktion: 'loeschen', foto_id: fw.dataset.fotoWeg } }); fotosLaden(Z.auftrag); return; }
     const hs = ev.target.closest('[data-hier-start]');
     if (hs) { const s = Z.daten.einsaetze.find((x) => x.id === hs.dataset.hierStart); setz(K_START, String(Date.now())); setz(K_START + '.auftrag', s.auftrag_id || ''); zeichnen(); toast('Uhr läuft für diesen Einsatz.'); return; }
+    const lv = ev.target.closest('[data-live]'); if (lv) { liveZuletzt = 0; liveStart(lv.dataset.live); return; }
+    const ls = ev.target.closest('[data-live-stopp]'); if (ls) { liveStopp(); zeichnen(); toast('Standort wird nicht mehr geteilt'); return; }
     const er = ev.target.closest('[data-erledigt]');
-    if (er) { const s = Z.daten.einsaetze.find((x) => x.id === er.dataset.erledigt);
+    if (er) { const s = Z.daten.einsaetze.find((x) => x.id === er.dataset.erledigt); if (liveAn === s.id && !s.erledigt) liveStopp(true);
       const { error } = await sb.rpc('ze_einsatz_erledigt', { p_token: token, p_id: s.id, p_erledigt: !s.erledigt });
       if (error) { toast(fehlerText(error)); return; } toast(s.erledigt ? 'Wieder offen' : '✓ Als erledigt gemeldet'); laden(); return; }
     const ein = ev.target.closest('[data-eintrag]');

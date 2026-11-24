@@ -120,6 +120,32 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   #rapport .unterschrift div{flex:1;border-top:1px solid #000;padding-top:2mm;font-size:9pt}
   .lz-pille,.nv-schwebend{display:none!important}
 }
+.kal-leiste{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.kal-leiste .woche-nav b{min-width:150px;text-transform:capitalize}
+.kal-leute{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.kal-leute button{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--linie);background:#fff;border-radius:100px;padding:6px 12px;font:inherit;font-size:13.5px;cursor:pointer;color:var(--tinte)}
+.kal-leute button.an{border-color:var(--elektrik);background:rgba(14,122,85,.08);font-weight:600}
+.kal-leute i,.ma-wahl i,i.punkt{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
+i.punkt{margin-right:6px;vertical-align:1px}
+.kal-woche{display:grid;grid-template-columns:repeat(7,minmax(130px,1fr));gap:8px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch}
+.kal-spalte{background:var(--flaeche,#F4FAF6);border-radius:14px;padding:8px;min-height:160px;display:flex;flex-direction:column;gap:6px}
+.kal-spalte.heute{box-shadow:inset 0 0 0 2px var(--elektrik)}
+.kal-kopf{font-size:12px;color:var(--leise);text-transform:uppercase;letter-spacing:.08em;display:flex;gap:6px;align-items:baseline}
+.kal-kopf b{font-size:18px;color:var(--tinte);letter-spacing:0}
+.block{background:#fff;border-left:4px solid var(--f);border-radius:10px;padding:7px 8px;display:grid;gap:1px;font-size:13px;box-shadow:0 1px 2px rgba(12,18,38,.06)}
+.block b{font-size:12.5px;color:var(--tinte)}.block span{color:var(--f);font-weight:600}.block small{color:var(--text);font-size:12px;line-height:1.3}
+.block .marke-s{justify-self:start;margin-top:3px}
+.kal-plus{margin-top:auto;border:1.5px dashed var(--linie);background:none;border-radius:10px;padding:6px;font-size:18px;color:var(--leise);cursor:pointer}
+.kal-plus:hover{border-color:var(--elektrik);color:var(--elektrik)}
+.kal-monat{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.kal-wt{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--leise);text-align:center;padding:4px 0}
+.kal-tag{min-height:84px;border:0;background:var(--flaeche,#F4FAF6);border-radius:10px;padding:6px;text-align:left;display:flex;flex-direction:column;gap:3px;cursor:pointer;font:inherit;color:var(--tinte);overflow:hidden}
+.kal-tag span{font-weight:700;font-size:13px}.kal-tag.aussen{opacity:.45}.kal-tag.heute{box-shadow:inset 0 0 0 2px var(--elektrik)}
+.kal-tag i{display:block;color:#fff;font-style:normal;font-size:11px;border-radius:5px;padding:1px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kal-tag em{font-style:normal;font-size:11px;color:var(--leise)}
+.ma-wahl{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:6px}.ma-wahl label{display:flex!important;align-items:center;gap:6px;font-size:14px;color:var(--tinte)}
+a.live{text-decoration:none}
+@media(max-width:640px){.kal-tag{min-height:56px;padding:4px}.kal-tag i{font-size:0;height:6px;padding:0}.kal-woche{grid-template-columns:repeat(7,minmax(150px,1fr))}}
 </style>
 </head>
 <body>
@@ -175,7 +201,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   };
   const TABS = [['uebersicht', 'Übersicht'], ['plan', 'Einsatzplan'], ['eintraege', 'Einträge'], ['mitarbeiter', 'Mitarbeiter'], ['auftraege', 'Aufträge']];
   const Z = { tab: 'uebersicht', woche: montag(heute()), monat: heute().slice(0, 7), fMa: '', fAuftrag: '', fStatus: 'offen', wahl: new Set(),
-    mitarbeiter: [], auftraege: [], eintraege: [], einsaetze: [], planWoche: montag(heute()), bereit: false };
+    mitarbeiter: [], auftraege: [], eintraege: [], einsaetze: [], planWoche: montag(heute()), bereit: false, planModus: (() => { try { return localStorage.getItem('ze.planModus') || 'woche'; } catch { return 'woche'; } })(), planMa: '', standorte: {} };
+  if (Z.planModus === 'monat') Z.planWoche = heute().slice(0, 7) + '-01';
   try { const t = sessionStorage.getItem('ze.tab'); if (TABS.some(([id]) => id === t)) Z.tab = t; } catch {}
   const q = new URLSearchParams(location.search);
   if (TABS.some(([id]) => id === q.get('tab'))) Z.tab = q.get('tab');
@@ -214,9 +241,11 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       if (data.length < 1000) break;
     }
     Z.eintraege = alle;
-    const es = await sb.from('ze_einsaetze').select('*').is('geloescht_am', null).gte('datum', plusTage(Z.planWoche, -7)).lte('datum', plusTage(Z.planWoche, 13)).order('datum').order('von', { nullsFirst: false });
+    const [pv, pb] = planBereich();
+    const es = await sb.from('ze_einsaetze').select('*').is('geloescht_am', null).gte('datum', [pv, heute()].sort()[0]).lte('datum', [pb, heute()].sort().pop()).order('datum').order('von', { nullsFirst: false });
     if (es.error) throw es.error;
     Z.einsaetze = es.data;
+    try { const st = await sb.from('ze_standorte').select('*'); Z.standorte = Object.fromEntries((st.data || []).map((x) => [x.einsatz_id, x])); } catch { Z.standorte = {}; }
   }
   const KORB = [
     { tabelle: 'ze_mitarbeiter', art: 'Mitarbeiter', titel: (r) => r.name, zurueck: {} },
@@ -310,48 +339,92 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   /* ---------- Einsatzplan: wer geht wann zu welchem Kunden ---------- */
   const smsText = (s) => { const a = auftrag(s.auftrag_id); const firma = (window.NASUVIA_LIZENZ && (window.NASUVIA_LIZENZ.firma || window.NASUVIA_LIZENZ.name)) || 'wir';
     return `Guten Tag, wir bestätigen Ihren Termin am ${wt(s.datum)} ${dk(s.datum)}${s.von ? ' um ' + s.von.slice(0, 5) + ' Uhr' : ''}${a ? ' (' + a.name + ')' : ''}. ${maName(s.mitarbeiter_id).split(' ')[0]} kommt bei Ihnen vorbei. Freundliche Grüsse, ${firma}`; };
+  // Einsatzplan als Kalender: Woche (Raster), Monat oder Liste; Farbe pro Mitarbeiter
+  const FARBEN_MA = ['#0E7A55', '#2563EB', '#C2410C', '#7C3AED', '#0891B2', '#B91C1C', '#CA8A04', '#DB2777', '#4D7C0F', '#475569'];
+  const maFarbe = (id) => FARBEN_MA[Math.max(0, Z.mitarbeiter.findIndex((m) => m.id === id)) % FARBEN_MA.length];
+  const monatsStart = (d) => d.slice(0, 7) + '-01';
+  function planBereich() {
+    if (Z.planModus === 'monat') { const st = montag(monatsStart(Z.planWoche)); return [st, plusTage(st, 41)]; }
+    return [plusTage(Z.planWoche, -7), plusTage(Z.planWoche, 13)];
+  }
+  const sichtbarePlan = () => Z.einsaetze.filter((s) => !Z.planMa || s.mitarbeiter_id === Z.planMa);
+  function liveText(s) {
+    const st = Z.standorte[s.id]; if (!st) return s.live && !s.erledigt ? '<span class="marke-s">Live-Standort an</span>' : '';
+    const min = Math.max(0, Math.round((Date.now() - Date.parse(st.zeit)) / 60000));
+    return `<a class="marke-s m-ok live" href="https://maps.google.com/?q=${st.lat},${st.lng}" target="_blank" rel="noopener" data-stopp>📍 ${min < 1 ? 'gerade eben' : 'vor ' + min + ' Min.'}</a>`;
+  }
+  function block(s) {
+    return `<div class="block klick" data-einsatz="${s.id}" style="--f:${maFarbe(s.mitarbeiter_id)}${s.erledigt ? ';opacity:.55' : ''}"><b>${s.von ? s.von.slice(0, 5) + (s.bis ? '–' + s.bis.slice(0, 5) : '') : 'Ganzer Tag'}</b>
+      <span>${esc(maName(s.mitarbeiter_id))}</span><small>${esc([auftragText(s.auftrag_id), s.adresse].filter(Boolean).join(' · ')) || ''}</small>${liveText(s)}${s.erledigt ? '<small>✓ erledigt</small>' : ''}</div>`;
+  }
   function plan() {
+    const m = Z.planModus;
     const tage = [...Array(7)].map((_, i) => plusTage(Z.planWoche, i));
-    return `<div class="kopf"><div><h1>Einsatzplan</h1><p class="unter">Wer geht wann zu welchem Kunden. Ihre Mitarbeiter sehen ihre Einsätze auf dem Handy.</p></div>
-        <div class="aktionen"><button class="btn haupt" data-a="einsatzNeu">+ Einsatz planen</button></div></div>
-      <div class="card">
-        <div class="kopf" style="margin-bottom:6px"><h2 style="margin:0">${dkurz(tage[0])} bis ${dk(tage[6])}</h2>
-          <div class="woche-nav"><button class="btn klein" data-a="planZurueck" aria-label="Woche zurück">‹</button><button class="btn klein" data-a="planHeute">Diese Woche</button><button class="btn klein" data-a="planVor" aria-label="Woche vor">›</button></div></div>
-        ${tage.map((t) => { const l = Z.einsaetze.filter((s) => s.datum === t);
-          return `<div class="tag-titel" ${t === heute() ? 'style="color:var(--elektrik)"' : ''}><span>${wt(t)} ${dk(t)}${t === heute() ? ' · heute' : ''}</span><span>${l.length || ''}</span></div>` +
-            (l.length ? l.map((s) => `<div class="zeile klick" data-einsatz="${s.id}"><div style="min-width:0"><b>${s.von ? s.von.slice(0, 5) + (s.bis ? '–' + s.bis.slice(0, 5) : '') + ' · ' : ''}${esc(maName(s.mitarbeiter_id))}${s.erledigt ? '<span class="marke-s m-ok">erledigt</span>' : ''}</b>
+    const l = sichtbarePlan();
+    const aktive = Z.mitarbeiter.filter((x) => x.aktiv);
+    const titel = m === 'monat' ? new Date(monatsStart(Z.planWoche) + 'T12:00').toLocaleDateString('de-CH', { month: 'long', year: 'numeric' }) : `${dkurz(tage[0])} bis ${dk(tage[6])}`;
+    let inhalt = '';
+    if (m === 'woche') {
+      inhalt = `<div class="kal-woche">${tage.map((t) => `<div class="kal-spalte ${t === heute() ? 'heute' : ''}" data-plan-tag="${t}"><div class="kal-kopf">${wt(t)} <b>${Number(t.slice(8))}</b></div>
+        ${l.filter((s) => s.datum === t).map(block).join('')}<button class="kal-plus" data-plan-neu="${t}" aria-label="Einsatz am ${dk(t)} planen">+</button></div>`).join('')}</div>`;
+    } else if (m === 'monat') {
+      const st = montag(monatsStart(Z.planWoche)), mon = Z.planWoche.slice(0, 7);
+      inhalt = `<div class="kal-monat">${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map((x) => `<div class="kal-wt">${x}</div>`).join('')}${[...Array(42)].map((_, i) => { const t = plusTage(st, i), e = l.filter((s) => s.datum === t);
+        return `<button class="kal-tag ${t.slice(0, 7) !== mon ? 'aussen' : ''} ${t === heute() ? 'heute' : ''}" data-plan-woche="${t}"><span>${Number(t.slice(8))}</span>${e.slice(0, 3).map((s) => `<i style="background:${maFarbe(s.mitarbeiter_id)}">${esc((s.von || '').slice(0, 5))} ${esc(maName(s.mitarbeiter_id).split(' ')[0])}</i>`).join('')}${e.length > 3 ? `<em>+${e.length - 3}</em>` : ''}</button>`; }).join('')}</div>`;
+    } else {
+      inhalt = tage.map((t) => { const e = l.filter((s) => s.datum === t);
+        return `<div class="tag-titel" ${t === heute() ? 'style="color:var(--elektrik)"' : ''}><span>${wt(t)} ${dk(t)}${t === heute() ? ' · heute' : ''}</span><span>${e.length || ''}</span></div>` +
+          (e.length ? e.map((s) => `<div class="zeile klick" data-einsatz="${s.id}"><div style="min-width:0"><b><i class="punkt" style="background:${maFarbe(s.mitarbeiter_id)}"></i>${s.von ? s.von.slice(0, 5) + (s.bis ? '–' + s.bis.slice(0, 5) : '') + ' · ' : ''}${esc(maName(s.mitarbeiter_id))}${s.erledigt ? '<span class="marke-s m-ok">erledigt</span>' : ''} ${liveText(s)}</b>
               <small>${esc([auftragText(s.auftrag_id), s.adresse, s.notiz].filter(Boolean).join(' · ')) || 'Ohne Angaben'}</small></div>
               <div class="aktionen">${s.kunde_telefon ? `<a class="btn klein" href="sms:${esc(s.kunde_telefon.replace(/\s/g, ''))}?&body=${encodeURIComponent(smsText(s))}" data-stopp>SMS an Kunde</a>` : ''}</div></div>`).join('')
-            : '<p class="leer" style="padding:4px 0 8px;font-size:13px">Nichts geplant</p>'); }).join('')}
+            : '<p class="leer" style="padding:4px 0 8px;font-size:13px">Nichts geplant</p>'); }).join('');
+    }
+    return `<div class="kopf"><div><h1>Einsatzplan</h1><p class="unter">Wer geht wann wohin. Ihre Mitarbeiter sehen ihre Einsätze mit allen Infos auf dem Handy.</p></div>
+        <div class="aktionen"><button class="btn haupt" data-a="einsatzNeu">+ Einsatz planen</button></div></div>
+      <div class="card">
+        <div class="kal-leiste">
+          <div class="segment">${[['woche', 'Woche'], ['monat', 'Monat'], ['liste', 'Liste']].map(([k, n]) => `<button class="${m === k ? 'an' : ''}" data-plan-modus="${k}">${n}</button>`).join('')}</div>
+          <div class="woche-nav"><button class="btn klein" data-a="planZurueck" aria-label="Zurück">‹</button><b>${titel}</b><button class="btn klein" data-a="planVor" aria-label="Vor">›</button><button class="btn klein" data-a="planHeute">Heute</button></div>
+        </div>
+        ${aktive.length > 1 ? `<div class="kal-leute"><button class="${!Z.planMa ? 'an' : ''}" data-plan-ma="">Alle</button>${aktive.map((x) => `<button class="${Z.planMa === x.id ? 'an' : ''}" data-plan-ma="${x.id}"><i style="background:${maFarbe(x.id)}"></i>${esc(x.name)}</button>`).join('')}</div>` : ''}
+        ${inhalt}
       </div>
-      <p class="hinweis abstand">Mit „SMS an Kunde“ öffnet sich auf dem Handy eine fertige Terminbestätigung. Sie müssen nur noch auf Senden tippen.</p>`;
+      <p class="hinweis abstand">Tippen Sie auf einen Tag oder auf „+“, um dort einen Einsatz zu planen. Mit „SMS an Kunde“ öffnet sich eine fertige Terminbestätigung.</p>`;
   }
   function einsatzDialog(s = {}) {
     const aktive = Z.mitarbeiter.filter((m) => m.aktiv || m.id === s.mitarbeiter_id);
     if (!aktive.length) { toast('Zuerst einen Mitarbeiter erfassen'); return; }
     const f = dialog(`<h3>${s.id ? 'Einsatz bearbeiten' : 'Einsatz planen'}</h3>
-      <div class="zwei"><label>Mitarbeiter<select name="ma" required>${aktive.map((m) => `<option value="${m.id}" ${m.id === s.mitarbeiter_id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label>
-      <label>Datum<input type="date" name="datum" value="${s.datum || heute()}" required></label></div>
+      ${s.id ? `<div class="zwei"><label>Mitarbeiter<select name="ma" required>${aktive.map((m) => `<option value="${m.id}" ${m.id === s.mitarbeiter_id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label>
+      <label>Datum<input type="date" name="datum" value="${s.datum || heute()}" required></label></div>`
+      : `<div><span class="hinweis">Wer geht? (mehrere möglich)</span><div class="ma-wahl">${aktive.map((m, i) => `<label><input type="checkbox" name="ma" value="${m.id}" ${(Z.planMa ? Z.planMa === m.id : i === 0) ? 'checked' : ''}><i style="background:${maFarbe(m.id)}"></i>${esc(m.name)}</label>`).join('')}</div></div>
+      <label>Datum<input type="date" name="datum" value="${s.datum || heute()}" required></label>`}
       <div class="zwei"><label>Von<input type="time" name="von" value="${(s.von || '').slice(0, 5)}"></label><label>Bis (ungefähr)<input type="time" name="bis" value="${(s.bis || '').slice(0, 5)}"></label></div>
       <label>Auftrag<select name="auftrag"><option value="">Ohne Auftrag</option>${Z.auftraege.filter((a) => a.aktiv || a.id === s.auftrag_id).map((a) => `<option value="${a.id}" ${a.id === s.auftrag_id ? 'selected' : ''}>${esc(a.name)}${a.kunde ? ' · ' + esc(a.kunde) : ''}</option>`).join('')}</select></label>
       <label>Adresse<input type="text" name="adresse" value="${esc(s.adresse || '')}" maxlength="200" placeholder="Strasse, PLZ Ort"></label>
       <label>Telefon des Kunden (für die SMS)<input type="tel" name="tel" value="${esc(s.kunde_telefon || '')}" maxlength="40" placeholder="079 123 45 67"></label>
-      <label>Notiz für den Mitarbeiter<input type="text" name="notiz" value="${esc(s.notiz || '')}" maxlength="500" placeholder="z. B. Schlüssel beim Nachbarn"></label>
+      <label>Kurze Notiz<input type="text" name="notiz" value="${esc(s.notiz || '')}" maxlength="500" placeholder="z. B. Schlüssel beim Nachbarn"></label>
+      <label>Zusatzinfos <small class="hinweis">Material, Zugang, Ansprechperson, Ablauf</small><textarea name="info" rows="3" maxlength="2000" placeholder="z. B. Material im Lager abholen. Kunde ist ab 9 Uhr da. Hund im Garten.">${esc(s.info || '')}</textarea></label>
+      <label style="display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--tinte)"><input type="checkbox" name="live" ${s.live ? 'checked' : ''} style="margin-top:3px"> <span>Live-Standort während dieses Einsatzes<br><small class="hinweis">Nur wenn der Mitarbeiter auf dem Handy „Standort teilen“ antippt. Sie sehen den letzten Ort, nach 12 Stunden oder bei „Erledigt“ wird er gelöscht. Bitte vorher mit dem Mitarbeiter absprechen.</small></span></label>
       ${s.id ? `<label style="display:flex;gap:8px;align-items:center;font-size:14px;color:var(--tinte)"><input type="checkbox" name="erledigt" ${s.erledigt ? 'checked' : ''}> Erledigt</label>` : ''}
       <div class="fuss">${s.id ? '<button type="button" class="btn rot" data-a="einsatzLoeschen">Löschen</button>' : '<span></span>'}<span class="aktionen"><button type="button" class="btn" data-a="zu">Abbrechen</button><button class="btn haupt">Speichern</button></span></div>`);
     f.dataset.formEinsatz = s.id || '';
     f.onsubmit = async (ev) => {
       ev.preventDefault();
       const d = new FormData(f);
-      const zeile = { mitarbeiter_id: d.get('ma'), datum: d.get('datum'), von: d.get('von') || null, bis: d.get('bis') || null, auftrag_id: d.get('auftrag') || null,
-        adresse: String(d.get('adresse') || '').trim(), kunde_telefon: String(d.get('tel') || '').trim(), notiz: String(d.get('notiz') || '').trim() };
+      const leute = s.id ? [d.get('ma')] : d.getAll('ma');
+      if (!leute.length) { toast('Bitte mindestens einen Mitarbeiter wählen'); return; }
+      const zeile = { datum: d.get('datum'), von: d.get('von') || null, bis: d.get('bis') || null, auftrag_id: d.get('auftrag') || null,
+        adresse: String(d.get('adresse') || '').trim(), kunde_telefon: String(d.get('tel') || '').trim(), notiz: String(d.get('notiz') || '').trim(),
+        info: String(d.get('info') || '').trim(), live: d.get('live') === 'on' };
       if (s.id) zeile.erledigt = d.get('erledigt') === 'on';
-      // Adresse aus dem Auftrag übernehmen, wenn leer
-      const r = s.id ? await Korb.aendern(sb, 'ze_einsaetze', s.id, zeile, 'Einsatz geändert') : await Korb.neu(sb, 'ze_einsaetze', zeile, 'Einsatz geplant');
+      const r = s.id ? await Korb.aendern(sb, 'ze_einsaetze', s.id, { ...zeile, mitarbeiter_id: leute[0] }, 'Einsatz geändert')
+        : await Korb.neu(sb, 'ze_einsaetze', leute.map((ma) => ({ ...zeile, mitarbeiter_id: ma })), leute.length > 1 ? `${leute.length} Einsätze geplant` : 'Einsatz geplant');
       if (r.error) { toast(fehlerText(r.error), 6000); return; }
-      // Ist der Auftrag nur bestimmten Mitarbeitern zugewiesen, bekommt ihn der eingeplante Mitarbeiter automatisch dazu
+      // Ist der Auftrag nur bestimmten Mitarbeitern zugewiesen, bekommen ihn die eingeplanten Mitarbeiter automatisch dazu
       const af = auftrag(zeile.auftrag_id);
-      if (af && (af.zugewiesen || []).length && !af.zugewiesen.includes(zeile.mitarbeiter_id)) await sb.from('ze_auftraege').update({ zugewiesen: [...af.zugewiesen, zeile.mitarbeiter_id] }).eq('id', af.id);
+      const fehlen = af && (af.zugewiesen || []).length ? leute.filter((x) => !af.zugewiesen.includes(x)) : [];
+      if (fehlen.length) await sb.from('ze_auftraege').update({ zugewiesen: [...af.zugewiesen, ...fehlen] }).eq('id', af.id);
       await stammLaden();
       dlg.close(); await eintraegeLaden(); zeichnen(); toast(s.id ? 'Gespeichert' : 'Einsatz geplant');
     };
@@ -645,6 +718,11 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const ao = t.closest('[data-af-ordner]'); if (ao && !t.closest('dialog')) { Z.afOrdner = ao.dataset.afOrdner; zeichnen(); return; }
     const fp = t.closest('[data-foto-pruefen]'); if (fp) { await Korb.aendern(sb, 'ze_fotos', fp.dataset.fotoPruefen, { geprueft: fp.dataset.wert === '1' }, fp.dataset.wert === '1' ? 'Foto geprüft' : 'Prüfung entfernt'); fotosZeigen(dlg.querySelector('form').dataset.formAf); return; }
     const fw = t.closest('[data-foto-weg]'); if (fw) { if (await Korb.loeschen(sb, 'ze_fotos', fw.dataset.fotoWeg, 'Foto')) fotosZeigen(dlg.querySelector('form').dataset.formAf); return; }
+    const pm = t.closest('[data-plan-modus]'); if (pm) { Z.planModus = pm.dataset.planModus; try { localStorage.setItem('ze.planModus', Z.planModus); } catch {} if (Z.planModus === 'monat') Z.planWoche = monatsStart(Z.planWoche); else Z.planWoche = montag(Z.planWoche); await eintraegeLaden(); zeichnen(); return; }
+    const pma = t.closest('[data-plan-ma]'); if (pma) { Z.planMa = pma.dataset.planMa; zeichnen(); return; }
+    const pn = t.closest('[data-plan-neu]'); if (pn) { einsatzDialog({ datum: pn.dataset.planNeu }); return; }
+    const pw = t.closest('[data-plan-woche]'); if (pw) { Z.planModus = 'woche'; Z.planWoche = montag(pw.dataset.planWoche); await eintraegeLaden(); zeichnen(); return; }
+    if (t.closest('[data-stopp]')) return;
     const es = t.closest('[data-einsatz]'); if (es && !t.closest('dialog')) { einsatzDialog(Z.einsaetze.find((s) => s.id === es.dataset.einsatz)); return; }
     const ein = t.closest('[data-eintrag]'); if (ein && !t.closest('dialog') && !t.matches('input')) { eintragDialog(Z.eintraege.find((e) => e.id === ein.dataset.eintrag)); return; }
     const m = t.closest('[data-ma]'); if (m && !t.closest('dialog')) { maDialog(ma(m.dataset.ma)); return; }
@@ -658,9 +736,9 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       case 'afNeu': afDialog(); break;
       case 'eintragNeu': eintragDialog(); break;
       case 'einsatzNeu': einsatzDialog(); break;
-      case 'planZurueck': Z.planWoche = plusTage(Z.planWoche, -7); await eintraegeLaden(); zeichnen(); break;
-      case 'planVor': Z.planWoche = plusTage(Z.planWoche, 7); await eintraegeLaden(); zeichnen(); break;
-      case 'planHeute': Z.planWoche = montag(heute()); await eintraegeLaden(); zeichnen(); break;
+      case 'planZurueck': Z.planWoche = Z.planModus === 'monat' ? monatsStart(plusTage(monatsStart(Z.planWoche), -1)) : plusTage(Z.planWoche, -7); await eintraegeLaden(); zeichnen(); break;
+      case 'planVor': Z.planWoche = Z.planModus === 'monat' ? monatsStart(plusTage(monatsStart(Z.planWoche), 32)) : plusTage(Z.planWoche, 7); await eintraegeLaden(); zeichnen(); break;
+      case 'planHeute': Z.planWoche = Z.planModus === 'monat' ? monatsStart(heute()) : montag(heute()); await eintraegeLaden(); zeichnen(); break;
       case 'einsatzLoeschen': {
         const es0 = Z.einsaetze.find((s) => s.id === form.dataset.formEinsatz) || {};
         if (!await Korb.loeschen(sb, 'ze_einsaetze', form.dataset.formEinsatz, `Einsatz ${maName(es0.mitarbeiter_id)} am ${dk(es0.datum || '')}`)) break;
