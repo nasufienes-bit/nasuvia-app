@@ -42,12 +42,19 @@
   };
   const ZIEL = { rechnungen: 'aside.panel' };
   const css = document.createElement('style');
-  css.textContent = `.tp-leiste{position:relative;margin:0 0 16px;border-radius:18px;background:linear-gradient(135deg,color-mix(in srgb,var(--elektrik,#0E7A55) 9%,transparent),rgba(201,164,92,.12));padding:12px 40px 12px 12px;font-family:inherit}
-  .tp-band{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}.tp-band::-webkit-scrollbar{display:none}
-  .tp-karte{flex:0 0 min(320px,86%);scroll-snap-align:start;background:rgba(255,255,255,.85);border-radius:14px;padding:10px 12px;display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:start}
-  .tp-karte span{font-size:22px;grid-row:span 2;line-height:1.2}.tp-karte b{font-size:14.5px;color:#0A1F17}.tp-karte p{font-size:13px;color:#3F5A4F;margin:0;line-height:1.4}
-  .tp-zu{position:absolute;top:8px;right:8px;width:28px;height:28px;border:0;border-radius:50%;background:rgba(255,255,255,.8);color:#3F5A4F;font-size:16px;cursor:pointer}
-  .tp-punkte{display:flex;gap:5px;justify-content:center;margin-top:8px}.tp-punkte i{width:6px;height:6px;border-radius:50%;background:color-mix(in srgb,var(--blau,#0B3B2E) 20%,transparent)}.tp-punkte i.an{background:var(--elektrik,#0E7A55);width:16px;border-radius:4px}
+  // Immer nur ganze Karten zeigen (Handy 1, Tablet 2, Computer 3), nichts ragt über den Rand; × unten neben den Punkten
+  css.textContent = `.tp-leiste{position:relative;flex-shrink:0;margin:0 0 16px;border-radius:18px;background:linear-gradient(135deg,color-mix(in srgb,var(--elektrik,#0E7A55) 9%,transparent),rgba(201,164,92,.12));padding:12px;font-family:inherit;container-type:inline-size;overflow:hidden}
+  .tp-band{display:grid;grid-auto-flow:column;grid-auto-columns:100%;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}.tp-band::-webkit-scrollbar{display:none}
+  @container (min-width:560px){.tp-band{grid-auto-columns:calc((100% - 10px) / 2)}}
+  @container (min-width:880px){.tp-band{grid-auto-columns:calc((100% - 20px) / 3)}}
+  .tp-karte{min-width:0;scroll-snap-align:start;background:rgba(255,255,255,.88);border-radius:14px;padding:12px 14px;display:grid;grid-template-columns:28px 1fr;gap:3px 10px;align-items:start}
+  .tp-karte span{font-size:22px;grid-row:span 2;line-height:28px;text-align:center}.tp-karte b{font-size:14.5px;line-height:1.3;color:#0A1F17;align-self:center;min-height:20px}.tp-karte p{font-size:13px;color:#3F5A4F;margin:0;line-height:1.45}
+  .tp-fuss{display:flex;align-items:center;gap:6px;margin-top:10px;min-height:28px}
+  .tp-fuss button{flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.85);color:#3F5A4F;font:600 15px/1 system-ui,sans-serif;cursor:pointer}
+  .tp-fuss button:disabled{opacity:.35;cursor:default}
+  .tp-fuss .tp-zu{margin-left:auto;width:auto;padding:0 12px;border-radius:100px;font:500 12.5px/1 inherit;font-family:inherit;gap:6px}
+  .tp-punkte{display:flex;gap:5px;align-items:center;justify-content:center;flex:1}.tp-punkte i{width:6px;height:6px;border-radius:50%;background:color-mix(in srgb,var(--blau,#0B3B2E) 20%,transparent);cursor:pointer;transition:width .2s}.tp-punkte i.an{background:var(--elektrik,#0E7A55);width:16px;border-radius:4px}
+  .tp-fuss .tp-platz{flex:1}
   @media print{.tp-leiste{display:none}}`;
   document.head.appendChild(css);
   function bauen() {
@@ -55,9 +62,23 @@
     const d = lies(); if (d.alle === false || d[hier]) return null;
     const el = document.createElement('div'); el.className = 'tp-leiste'; el.setAttribute('aria-label', 'Tipps');
     el.innerHTML = `<div class="tp-band">${l.map(([ic, t, x]) => `<div class="tp-karte"><span>${ic}</span><b>${esc(t)}</b><p>${esc(x)}</p></div>`).join('')}</div>
-      ${l.length > 1 ? `<div class="tp-punkte">${l.map((_, i) => `<i class="${i ? '' : 'an'}"></i>`).join('')}</div>` : ''}<button class="tp-zu" type="button" aria-label="Tipps ausblenden" title="Tipps ausblenden">×</button>`;
-    const band = el.querySelector('.tp-band');
-    band.addEventListener('scroll', () => { const k = band.querySelector('.tp-karte'); if (!k) return; const i = Math.round(band.scrollLeft / (k.offsetWidth + 10)); el.querySelectorAll('.tp-punkte i').forEach((p, j) => p.classList.toggle('an', j === i)); }, { passive: true });
+      <div class="tp-fuss"><button type="button" data-tp="-1" aria-label="Zurück">‹</button><div class="tp-punkte"></div><button type="button" data-tp="1" aria-label="Weiter">›</button><button class="tp-zu" type="button" title="Tipps ausblenden">× Ausblenden</button></div>`;
+    const band = el.querySelector('.tp-band'), punkte = el.querySelector('.tp-punkte');
+    // Seiten = so viele ganze Karten, wie nebeneinander Platz haben
+    const proSeite = () => { const k = band.querySelector('.tp-karte'); return k ? Math.max(1, Math.round((band.clientWidth + 10) / (k.offsetWidth + 10))) : 1; };
+    const seiten = () => Math.ceil(l.length / proSeite());
+    const jetzt = () => { const k = band.querySelector('.tp-karte'); return k ? Math.round(band.scrollLeft / ((k.offsetWidth + 10) * proSeite())) : 0; };
+    const malen = () => {
+      const n = seiten(), i = Math.min(jetzt(), n - 1);
+      if (punkte.children.length !== n) punkte.innerHTML = n > 1 ? Array.from({ length: n }, (_, j) => `<i data-seite="${j}"></i>`).join('') : '';
+      [...punkte.children].forEach((p, j) => p.classList.toggle('an', j === i));
+      el.querySelectorAll('[data-tp]').forEach((b) => { b.hidden = n <= 1; b.disabled = (b.dataset.tp === '-1' && i <= 0) || (b.dataset.tp === '1' && i >= n - 1); });
+    };
+    const gehe = (i) => { const k = band.querySelector('.tp-karte'); if (k) band.scrollTo({ left: Math.max(0, i) * (k.offsetWidth + 10) * proSeite(), behavior: 'smooth' }); };
+    band.addEventListener('scroll', malen, { passive: true });
+    el.addEventListener('click', (e) => { const b = e.target.closest('[data-tp]'); if (b) gehe(jetzt() + Number(b.dataset.tp)); const p = e.target.closest('[data-seite]'); if (p) gehe(Number(p.dataset.seite)); });
+    if (window.ResizeObserver) new ResizeObserver(malen).observe(band);
+    setTimeout(malen, 50);
     el.querySelector('.tp-zu').addEventListener('click', () => { const v = lies(); v[hier] = true; setz(v); el.remove(); beobachter && beobachter.disconnect(); if (window.UI && UI.hinweis && !v.gesagt) { v.gesagt = true; setz(v); UI.hinweis('Tipps ausgeblendet. Unter „Darstellung“ im Menü schalten Sie sie wieder ein.'); } });
     return el;
   }

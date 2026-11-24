@@ -75,6 +75,9 @@
     '.nv-app-ic{width:34px;height:34px;border-radius:10px;background:linear-gradient(160deg,color-mix(in srgb,var(--blau,#0B3B2E),#fff 22%),var(--blau,#0B3B2E));display:grid;place-items:center;flex:none;box-shadow:0 6px 14px -8px color-mix(in srgb,var(--blau,#0B3B2E) 80%,transparent)}',
     '.nv-app-ic svg{width:19px;height:19px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}',
     '.nv-app-name{font-weight:700;font-size:1.22rem;color:#0A1F17;letter-spacing:-.01em;line-height:1}',
+    // Kopfzeile passt immer auf den Bildschirm: Name kürzt sich, Knöpfe rechts werden auf dem Handy zu Symbolen
+    '.nv-kz{min-width:0}.nv-app{min-width:0;flex-shrink:1}.nv-app-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nv-rechts{flex-shrink:0}',
+    '@media (max-width:520px){.nv-rechts{gap:6px}.nv-rechts .nr-ue-knopf{font-size:0!important;gap:0!important;width:40px;height:40px;padding:0!important;justify-content:center}.nv-rechts .nr-ue-knopf svg{width:18px;height:18px}}',
     '.nv-kz{height:64px;display:flex;align-items:center;gap:12px;padding:0 clamp(14px,3vw,28px)}',
     '.nv-logo{display:inline-flex;align-items:center;gap:5px;text-decoration:none;padding:6px 8px 6px 4px;border-radius:100px}',
     '.nv-logo i{width:15px;height:15px;border-radius:50%;background:var(--blau,#0B3B2E);flex:none}',

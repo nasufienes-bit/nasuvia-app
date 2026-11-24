@@ -13,7 +13,8 @@
   dialog.ui-frage{width:min(420px,calc(100vw - 24px));border:0;border-radius:18px;padding:0;background:#fff;color:#0A1F17;box-shadow:0 30px 80px -20px rgba(12,18,38,.45);font-family:'League Spartan',-apple-system,system-ui,sans-serif}
   dialog.ui-frage::backdrop{background:rgba(12,18,38,.4)}
   .ui-frage form{padding:22px;display:grid;gap:14px}
-  .ui-frage h3{margin:0;font-size:19px;color:#0A1F17}
+  .ui-frage h3{margin:0;font-size:19px;line-height:26px;color:#0A1F17;padding-right:46px}
+  .ui-frage > .ui-zu{margin-top:17px;margin-right:16px}
   .ui-frage p{margin:0;font-size:15px;line-height:1.5;color:#3F5A4F;white-space:pre-line}
   .ui-frage input{width:100%;padding:12px 14px;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 26%,transparent);border-radius:10px;font:inherit;font-size:16px}
   .ui-frage .ui-knoepfe{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
@@ -337,7 +338,7 @@
     // Kopfzeile in Akzentfarbe oder als Farbverlauf (weisse Schrift)
     const kopf = d.kopf || 'hell';
     if (kopf !== 'hell') {
-      const K = '.nv-kopfzeile', H = 'header.kopfzeile', N = ':not(.su-knopf):not(.nv-knopf)';
+      const K = '.nv-kopfzeile', H = 'header.kopfzeile', N = ':not(.su-knopf):not(.nv-knopf):not(.ordi-kopfknopf)';
       const bg = kopf === 'verlauf' ? `linear-gradient(110deg,${A.dunkel} 0%,${A.kraeftig} 100%)` : A.dunkel;
       regeln += `${K},${K}.nv-gerollt,${H},${H}.ui-gerollt{background:${bg}!important;box-shadow:0 10px 30px -18px ${A.dunkel}!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
         ${K} .nv-app-name,${K} .nv-rechts a${N},${K} .nv-rechts button${N},${H} .marke,${H} .tabs button,${H} a${N}{color:#fff!important}
@@ -416,6 +417,7 @@
   }
   const stil = document.createElement('style');
   stil.textContent = `.ui-hg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:8px}.ui-hg.zwei{grid-template-columns:1fr 1fr}
+  .ui-hg button,.ui-hg label{align-content:center}
   .ui-hg button,.ui-hg label{border:2px solid transparent;border-radius:14px;padding:6px;background:#fff;box-shadow:0 0 0 1px color-mix(in srgb,var(--blau,#0B3B2E) 14%,transparent);font:inherit;font-size:12.5px;color:#0A1F17;display:grid;gap:5px;text-align:center}
   .ui-hg i{display:grid;place-items:center;height:40px;border-radius:9px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);font-style:normal;color:#7C8499;font-size:18px}
   .ui-darst form{max-height:min(84vh,780px);overflow:auto;overscroll-behavior:contain}

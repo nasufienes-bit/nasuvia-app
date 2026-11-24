@@ -147,6 +147,7 @@
     .nr-status{position:fixed;right:14px;bottom:14px;z-index:50;display:flex;align-items:center;gap:8px;background:#fff;border-radius:100px;padding:9px 14px;box-shadow:0 10px 30px -12px rgba(12,18,38,.35);font-size:.85rem;color:#0A1F17;cursor:pointer;border:0;font-family:inherit}
     .nr-status i{width:9px;height:9px;border-radius:50%;background:#B7791F}
     .nr-status.ok i{background:#0E9F6E}.nr-status.aus i{background:#E5484D}
+    .nr-status{transition:opacity .4s,transform .4s}.nr-status.ok.still{opacity:0;transform:translateY(12px);pointer-events:none}
     body.server #btnOrdner{display:none}
     @media print{.nr-status{display:none}}
   `;
@@ -496,7 +497,8 @@
     if (!document.body) return;
     if (!knopf.isConnected) document.body.appendChild(knopf);
     const z = lies(K_ZULETZT);
-    knopf.className = 'nr-status ' + (!benutzer ? 'aus' : letzterFehler ? '' : 'ok');
+    const kl = 'nr-status ' + (!benutzer ? 'aus' : letzterFehler ? '' : 'ok');
+    if (knopf.dataset.kl !== kl) { knopf.dataset.kl = kl; knopf.className = kl; clearTimeout(knopf._still); if (kl.endsWith('ok')) knopf._still = setTimeout(() => knopf.classList.add('still'), 4000); }
     knopf.innerHTML = '<i></i>' + (!benutzer ? 'Anmelden für Abgleich' : laeuft ? 'Gleicht ab …' : letzterFehler ? 'Abgleich offen' : 'Abgeglichen' + (z ? ' ' + new Date(z).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }) : ''));
   }
   knopf.addEventListener('click', () => (benutzer ? kontoZeigen() : anmeldenZeigen()));

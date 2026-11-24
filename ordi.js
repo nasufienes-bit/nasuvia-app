@@ -43,7 +43,16 @@
   css.textContent = `
   .ordi-knopf{position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:70;width:58px;height:58px;border-radius:20px;border:0;background:#fff;box-shadow:0 14px 34px -14px color-mix(in srgb,var(--blau,#0B3B2E) 55%,transparent),0 1px 2px rgba(0,0,0,.06);display:grid;place-items:center;cursor:pointer;transition:transform .2s}
   .ordi-knopf:hover{transform:translateY(-2px) rotate(-3deg)}
-  .ordi-knopf .ordi-blase{position:absolute;right:66px;bottom:8px;background:#0A1F17;color:#fff;font:600 13px/1.3 'League Spartan',system-ui,sans-serif;border-radius:14px 14px 4px 14px;padding:8px 12px;white-space:nowrap;box-shadow:0 10px 24px -12px rgba(0,0,0,.5);animation:ordiRein .4s ease}
+  button.ordi-kopfknopf.ordi-kopfknopf{position:relative;flex:none;display:inline-flex!important;align-items:center;justify-content:center;width:40px!important;height:40px!important;padding:0!important;margin:0 2px;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 16%,transparent)!important;border-radius:50%!important;background:#fff!important;box-shadow:none;cursor:pointer;transition:transform .2s}
+  button.ordi-kopfknopf svg{display:block;width:26px;height:26px}
+  button.ordi-kopfknopf:hover{transform:rotate(-6deg)}
+  .ordi-kopfknopf .ordi-blase{position:absolute;top:calc(100% + 10px);right:-4px;bottom:auto;z-index:90;border-radius:14px 4px 14px 14px}
+  .ordi-kopfplatz{display:inline-flex;align-items:center;gap:10px;margin-left:auto;flex:none}
+  header:has(> .ordi-kopfplatz){flex-wrap:nowrap!important}
+  .ordi-kopfplatz > a{white-space:nowrap}
+  @media(max-width:480px){.ordi-kopfplatz > a[href^="mailto"]{font-size:0!important;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 16%,transparent)}.ordi-kopfplatz > a[href^="mailto"]::before{content:"✉";font-size:17px;line-height:1}}
+  .ordi-panel.oben{top:76px;bottom:auto}
+  .ordi-blase{position:absolute;right:66px;bottom:8px;background:#0A1F17;color:#fff;font:600 13px/1.3 'League Spartan',system-ui,sans-serif;border-radius:14px 14px 4px 14px;padding:8px 12px;white-space:nowrap;box-shadow:0 10px 24px -12px rgba(0,0,0,.5);animation:ordiRein .4s ease}
   body:has(.nr-status) .ordi-knopf{bottom:calc(66px + env(safe-area-inset-bottom))}
   @keyframes ordiRein{from{opacity:0;transform:translateY(6px)}}
   @media(max-width:820px){.ordi-knopf{bottom:calc(84px + env(safe-area-inset-bottom));width:52px;height:52px;border-radius:18px}body:has(.fab) .ordi-knopf{bottom:calc(146px + env(safe-area-inset-bottom))}}
@@ -75,12 +84,30 @@
   const verlauf = lies('ordi.verlauf', []).slice(-20);
   const sichern = () => setz('ordi.verlauf', verlauf.slice(-20));
 
-  function knopfZeigen() {
+  // Ordi sitzt oben in der Kopfzeile neben „Suchen“, damit er nichts auf der Seite verdeckt.
+  // Nur wo es keine Kopfzeile gibt, schwebt er unten rechts.
+  function kopfOrt() {
+    const su = document.querySelector('.su-knopf');
+    if (su && su.parentElement) return { el: su.parentElement, vor: su };
+    const r = document.querySelector('.nv-rechts'); if (r) return { el: r, vor: r.firstChild };
+    const w = document.querySelector('header.kopfzeile .wrap'); if (w) return { el: w, vor: null };
+    const h = document.querySelector('body > header, main > header, .wrap > header, .seite > header');
+    if (h) {
+      let platz = h.querySelector(':scope > .ordi-kopfplatz');
+      if (!platz) { platz = document.createElement('span'); platz.className = 'ordi-kopfplatz'; const letzt = h.lastElementChild; if (letzt && h.children.length > 1) platz.appendChild(letzt); h.appendChild(platz); }
+      return { el: platz, vor: null };
+    }
+    return null;
+  }
+  function knopfZeigen(versuch = 0) {
     if (lies(AUS, false) || knopf) return;
-    knopf = document.createElement('button'); knopf.type = 'button'; knopf.className = 'ordi-knopf'; knopf.setAttribute('aria-label', 'Ordi fragen');
-    knopf.innerHTML = GESICHT(34);
+    const ort = kopfOrt();
+    // Kurz warten, bis Menü und Suche eingebaut sind
+    if ((!ort || !document.querySelector('.su-knopf')) && versuch < 6) { setTimeout(() => knopfZeigen(versuch + 1), 250); return; }
+    knopf = document.createElement('button'); knopf.type = 'button'; knopf.setAttribute('aria-label', 'Ordi fragen'); knopf.title = 'Ordi fragen';
     knopf.addEventListener('click', () => (panel ? zu() : auf()));
-    document.body.appendChild(knopf);
+    if (ort) { knopf.className = 'ordi-kopfknopf'; knopf.innerHTML = GESICHT(26); ort.el.insertBefore(knopf, ort.vor); }
+    else { knopf.className = 'ordi-knopf'; knopf.innerHTML = GESICHT(34); document.body.appendChild(knopf); }
     // Einmal pro Tag kurz Hallo sagen
     const heute = new Date().toLocaleDateString('sv-SE');
     if (lies('ordi.hallo', '') !== heute) {
@@ -91,7 +118,7 @@
   function zu() { if (panel) { panel.remove(); panel = null; } }
   function auf() {
     zu();
-    panel = document.createElement('div'); panel.className = 'ordi-panel'; panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Ordi');
+    panel = document.createElement('div'); panel.className = 'ordi-panel' + (knopf && knopf.classList.contains('ordi-kopfknopf') && innerWidth > 820 ? ' oben' : ''); panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Ordi');
     panel.innerHTML = `<div class="ordi-kopf">${GESICHT(36)}<div><b>Ordi</b><small>Ihr Helfer in Ordasio</small></div><button class="ordi-menue" data-ordi-menue title="Optionen">⋯</button><button data-ordi-zu aria-label="Schliessen">×</button></div>
       <div class="ordi-verlauf" id="ordiVerlauf"></div>
       <form class="ordi-eingabe"><input id="ordiFrage" placeholder="Frage stellen …" autocomplete="off" enterkeyhint="send"><button>Senden</button></form>`;
