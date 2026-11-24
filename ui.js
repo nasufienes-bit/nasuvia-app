@@ -92,20 +92,20 @@
   // Eigene Fenster für Fragen, Eingaben und Hinweise. Ersetzt confirm(), prompt() und alert() des Browsers:
   // die können auf dem iPhone (vor allem als App auf dem Home-Bildschirm) hängen und die Seite blockieren.
   const escH = (x) => String(x ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  function fenster({ titel = '', text = '', eingabe = null, ja = 'OK', nein = 'Abbrechen', gefahr = false, platzhalter = '' }) {
+  function fenster({ titel = '', text = '', eingabe = null, ja = 'OK', nein = 'Abbrechen', gefahr = false, platzhalter = '', mehrzeilig = false }) {
     return new Promise((fertig) => {
       const d = document.createElement('dialog');
       d.className = 'ui-frage'; d.setAttribute('data-ohne-x', '');
-      d.innerHTML = `<form method="dialog">${titel ? `<h3>${escH(titel)}</h3>` : ''}${text ? `<p>${escH(text)}</p>` : ''}${eingabe !== null ? `<input value="${escH(eingabe)}" placeholder="${escH(platzhalter)}" autocomplete="off">` : ''}<div class="ui-knoepfe">${nein ? `<button type="button" data-nein>${escH(nein)}</button>` : ''}<button class="ja ${gefahr ? 'gefahr' : ''}" value="ja">${escH(ja)}</button></div></form>`;
+      d.innerHTML = `<form method="dialog">${titel ? `<h3>${escH(titel)}</h3>` : ''}${text ? `<p>${escH(text)}</p>` : ''}${eingabe !== null ? (mehrzeilig ? `<textarea rows="4" placeholder="${escH(platzhalter)}" style="width:100%;font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);border-radius:12px;padding:10px 12px;resize:vertical">${escH(eingabe)}</textarea>` : `<input value="${escH(eingabe)}" placeholder="${escH(platzhalter)}" autocomplete="off">`) : ''}<div class="ui-knoepfe">${nein ? `<button type="button" data-nein>${escH(nein)}</button>` : ''}<button class="ja ${gefahr ? 'gefahr' : ''}" value="ja">${escH(ja)}</button></div></form>`;
       document.body.appendChild(d);
       let wert;
       const ende = (w) => { wert = w; if (d.open) d.close(); };
       d.querySelector('[data-nein]') && (d.querySelector('[data-nein]').onclick = () => ende(eingabe !== null ? null : false));
-      d.querySelector('form').onsubmit = (e) => { e.preventDefault(); ende(eingabe !== null ? d.querySelector('input').value : true); };
+      d.querySelector('form').onsubmit = (e) => { e.preventDefault(); ende(eingabe !== null ? d.querySelector('input,textarea').value : true); };
       d.addEventListener('cancel', () => { wert = eingabe !== null ? null : false; });
       d.addEventListener('close', () => { d.remove(); fertig(wert === undefined ? (eingabe !== null ? null : false) : wert); });
       d.showModal();
-      const f = d.querySelector('input') || d.querySelector('.ja');
+      const f = d.querySelector('input,textarea') || d.querySelector('.ja');
       setTimeout(() => { try { f.focus(); if (f.select) f.select(); } catch {} }, 60);
     });
   }
@@ -116,7 +116,7 @@
       return fenster({ text, ja: o.ja || (weg ? (/lösch/i.test(String(text).split('\n')[0]) ? 'Löschen' : 'Ja') : 'OK'), nein: o.nein || 'Abbrechen', gefahr: o.gefahr ?? weg, titel: o.titel || '' });
     },
     // Eingabe: await UI.eingabe('Name des Ordners', { vorgabe: '' }) → Text oder null
-    eingabe: (text, o = {}) => fenster({ text, eingabe: o.vorgabe || '', ja: o.ja || 'OK', platzhalter: o.platzhalter || '', titel: o.titel || '' }),
+    eingabe: (text, o = {}) => fenster({ text, eingabe: o.vorgabe || '', ja: o.ja || 'OK', platzhalter: o.platzhalter || '', titel: o.titel || '', mehrzeilig: !!o.mehrzeilig }),
     // Hinweis mit einem Knopf
     hinweis: (text, o = {}) => fenster({ text, ja: o.ja || 'OK', nein: '', titel: o.titel || '' }),
     // Übersicht anpassen: Teile mit data-teil="…" ein- oder ausblenden, pro Bereich auf dem Gerät gemerkt

@@ -200,10 +200,14 @@
       'Ansicht „Nachbestellen“: alles unter dem Mindestbestand, nach Lieferant, mit Bestellung per E-Mail.'], L],
 
     // Treuhänder
-    ['treuhand', 'Konto und Lizenz', 'Treuhänder Zugang geben', 'treuhänder treuhand buchhalter zugang freigeben lesen steuerberater', [
+    ['treuhand', 'Konto und Lizenz', 'Treuhänder Zugang geben', 'treuhänder treuhand buchhalter zugang freigeben lesen steuerberater rückfrage export zip', [
       'Im Menü „Lizenz und Konto“ unter „Treuhänder-Zugang“ die E-Mail Ihres Treuhänders eingeben und „Freigeben“.',
-      'Ihr Treuhänder meldet sich unter Treuhänder-Zugang mit dieser E-Mail an und sieht Erfolgsrechnung, MWST, Buchungen und Belege. Ändern kann er nichts.',
+      'Ihr Treuhänder meldet sich unter Treuhänder-Zugang mit dieser E-Mail an. Er sieht eine Prüfliste (fehlende Belege, Doppelte, unklare Kategorien), Bilanz und Erfolgsrechnung, Konten, Journal, MWST und Belege und kann alles exportieren (CSV, Belege als ZIP). Ändern kann er nichts.',
+      'Rückfragen Ihres Treuhänders erscheinen in der Buchhaltung auf der Übersicht. Dort direkt antworten.',
       'Mit „Entfernen“ ist der Zugang sofort wieder weg.'], WURZEL + 'lizenz/#treuhand'],
+    ['treuhand-fragen', 'Buchhaltung', 'Fragen vom Treuhänder beantworten', 'treuhänder frage rückfrage antwort beleg nachreichen', [
+      'Offene Fragen Ihres Treuhänders stehen in der Buchhaltung oben auf der Übersicht.',
+      'Antwort schreiben und „Antworten“ tippen. Mit „Buchung öffnen“ sehen und korrigieren Sie die betroffene Buchung, zum Beispiel um einen Beleg anzuhängen.'], B],
     ['einrichtung', 'Konto und Lizenz', 'Einrichtung durch uns', 'einrichtung hilfe einrichten daten übernehmen import service schulung', [
       'Beim Bestellen der Lizenz „Einrichtung durch uns“ ankreuzen (CHF 190 einmalig).',
       'Wir übernehmen Ihre bisherigen Daten, richten Logo, Vorlagen und Kategorien ein und zeigen Ihnen alles in 30 Minuten.'], WURZEL + 'lizenz/'],

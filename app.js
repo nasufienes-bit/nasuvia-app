@@ -270,6 +270,40 @@
     return { ein, aus, gewinn: ein - aus };
   }
 
+  /* ---------- Rückfragen vom Treuhänder ---------- */
+  Z.fragen = [];
+  async function fragenLaden() {
+    const sb = window.NASUVIA_SB; if (!sb) return;
+    try {
+      const { data: { session } } = await sb.auth.getSession(); if (!session) return;
+      const { data } = await sb.from('tr_rueckfragen').select('*').eq('kunde', session.user.id).eq('status', 'offen').order('erstellt');
+      const vorher = Z.fragen.length; Z.fragen = data || [];
+      if (Z.fragen.length || vorher) zeichnen();
+    } catch { /* ohne Netz: später */ }
+  }
+  function fragenKarte() {
+    if (!Z.fragen.length) return '';
+    return `<div class="card abstand-unten" style="border:1px solid rgba(183,121,31,.35)"><h2>Fragen von Ihrem Treuhänder (${Z.fragen.length})</h2>
+      ${Z.fragen.map((f) => `<div style="padding:10px 0;border-top:1px solid var(--linie)"><p class="hinweis">${esc(f.treuhaender_email || 'Treuhänder')}${f.bezug ? ' · ' + esc(f.bezug) : ''}</p>
+        <p style="margin:4px 0 8px"><b>${esc(f.frage)}</b></p>
+        <textarea data-frage-text="${f.id}" rows="2" placeholder="Ihre Antwort" style="width:100%"></textarea>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="btn btn-haupt btn-klein" data-frage-antwort="${f.id}">Antworten</button>${f.buchung_id && Z.buchungen.some((b) => b.id === f.buchung_id) ? `<button class="btn btn-klein" data-frage-buchung="${esc(f.buchung_id)}">Buchung öffnen</button>` : ''}</div></div>`).join('')}</div>`;
+  }
+  document.addEventListener('click', async (e) => {
+    const a = e.target.closest('[data-frage-antwort]');
+    if (a) {
+      const t = document.querySelector(`[data-frage-text="${a.dataset.frageAntwort}"]`), text = t ? t.value.trim() : '';
+      if (!text) { if (t) t.focus(); toast('Bitte eine Antwort schreiben'); return; }
+      a.disabled = true;
+      const { error } = await window.NASUVIA_SB.rpc('tr_frage_beantworten', { p_id: a.dataset.frageAntwort, p_antwort: text });
+      if (error) { a.disabled = false; toast(error.message); return; }
+      Z.fragen = Z.fragen.filter((f) => f.id !== a.dataset.frageAntwort); zeichnen(); toast('✓ Antwort gesendet');
+    }
+    const bu = e.target.closest('[data-frage-buchung]');
+    if (bu) { const b = Z.buchungen.find((x) => x.id === bu.dataset.frageBuchung); if (b) buchungBearbeiten(b); }
+  });
+  document.addEventListener('ordasio-lizenz', () => fragenLaden());
+
   function uebersicht() {
     const liste = imJahr(Z.jahr);
     const s = summen(liste);
@@ -341,6 +375,7 @@
       <div><h1>${esc(Z.einst.begruessung || 'Übersicht')}</h1><p class="unter">Alle Beträge ohne MWST</p></div>
       <div class="kopf-aktionen">${jahrWahl()}<button class="btn" onclick="NB.startAnpassen()">Übersicht anpassen</button><button class="btn" onclick="NB.zwischenbilanz()">Zwischenbilanz</button><button class="btn" onclick="NB.fahrt()">Fahrt erfassen</button><a class="btn nv-weg" href="rechnungen/" style="text-decoration:none">Rechnung schreiben</a><button class="btn btn-haupt nur-pc" onclick="NB.neu()">+ Neue Buchung</button></div>
     </div>
+    ${fragenKarte()}
     ${doppeltAktiv() ? kontostaendeKarte() : ''}
     ${k('ziel', ziel ? `<div class="card abstand-unten ziel-karte"><div class="ziel-kopf"><h2 style="margin:0">Jahresziel ${Z.jahr}</h2><span class="num">${chf(s.ein)} von ${chf(ziel)} CHF · ${zielPct} %</span></div><div class="spur gross"><i style="width:${zielPct}%"></i></div></div>` : '')}
     ${k('kennzahlen', `<div class="raster raster-4">`)}
@@ -2310,6 +2345,7 @@
     if (q.get('ansicht') && ANSICHTEN.some(([id]) => id === q.get('ansicht'))) Z.ansicht = q.get('ansicht');
     await stundenAusZeiterfassung();
     zeichnen();
+    fragenLaden();
     const aktion = q.get('aktion');
     if (aktion) {
       history.replaceState(null, '', location.pathname + (q.get('produkt') ? '?produkt=' + q.get('produkt') : ''));
