@@ -351,7 +351,7 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
       const e_ = (x) => String(x ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
       d.innerHTML = `<form method="dialog"><h3>Neuer Auftrag</h3>
         <label style="display:grid;gap:4px;font-size:14px">Bezeichnung<input name="name" required placeholder="z. B. Bahnhofstrasse 12"></label>
-        <label style="display:grid;gap:4px;font-size:14px">Ordner <small style="color:#7C8499">Unterordner mit / trennen</small><input name="ordner" value="${e_(teile(Z.ordner).join(' / '))}" placeholder="z. B. FTTH / Zürich"></label>
+        <label style="display:grid;gap:4px;font-size:14px">Ordner <small style="color:#7C8499">Unterordner mit / trennen</small><input name="ordner" value="${e_(teile(Z.ordner).join(' / '))}" placeholder="z. B. Projekte / Zürich"></label>
         <label style="display:grid;gap:4px;font-size:14px">Adresse <small style="color:#7C8499">freiwillig</small><input name="adresse" placeholder="Strasse, Ort"></label>
         <div class="ui-knoepfe"><button type="button" data-nein>Abbrechen</button><button class="ja">Anlegen</button></div></form>`;
       document.body.appendChild(d);

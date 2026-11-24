@@ -18,6 +18,19 @@
       'Wählen Sie Ihr Paket, geben Sie E-Mail und Passwort ein und bestätigen Sie den Link in Ihrer E-Mail.',
       'Melden Sie sich an. Ihr Gratis-Test läuft 30 Tage, unten sehen Sie, wie viele Tage noch bleiben.',
       'Richten Sie unter Einstellungen „Firma und Design“ ein, damit Ihr Logo auf den Rechnungen steht.'], B],
+    ['selbstaendig', 'Erste Schritte', 'Zum ersten Mal selbständig: Tipps', 'selbständig selbstständig gründen neu anfang ahv anmelden versicherung unfall mwst handelsregister einzelfirma gmbh stundenansatz preise tipps checkliste', [
+      'Auf der Startseite „Tipps für Selbständige“ tippen.',
+      'Die Liste führt durch Anmeldung bei der AHV, Versicherungen, Rückstellungen für AHV und Steuern, MWST, Rechnungen und Werbung.',
+      'Erledigtes abhaken. Unten rechnet der Stundenansatz-Rechner aus, wie viel Sie mindestens verlangen sollten.'], WURZEL + 'selbstaendig/'],
+    ['darstellung', 'Erste Schritte', 'Darstellung der Startseite ändern', 'darstellung design dunkel hell farbe thema kacheln gross kompakt aussehen startseite', [
+      'Auf der Startseite ganz unten „Darstellung ändern“ tippen.',
+      'Farbthema wählen (Hell, Ihre Farben, Sand, Himmel, Wald oder Nacht) und die Grösse der Kacheln.',
+      'Nur das Aussehen ändert sich. Die Einstellung gilt für dieses Gerät.'], S0],
+    ['doppelt', 'Buchhaltung', 'Doppelte Buchhaltung (GmbH und AG)', 'doppelt soll haben journal konto kontenplan bilanz erfolgsrechnung eröffnungsbilanz festschreiben saldenliste kontoblatt gmbh ag', [
+      'Bei GmbH und AG ist die doppelte Buchhaltung eingeschaltet (Einstellungen, Rechtsform).',
+      'Rechnungen, Belege und Löhne werden automatisch mit Soll- und Habenkonto gebucht. Unter „Konten“ sehen Sie Journal, Saldenliste und Kontenplan.',
+      'Eröffnungsbilanz einmal erfassen: Konten, dann „Eröffnung“. Ein Kontoblatt öffnen Sie mit einem Tipp auf das Konto.',
+      'Nach dem Abschluss das Jahr festschreiben. Danach lassen sich die Buchungen nicht mehr ändern.'], B + '?ansicht=konten'],
     ['homescreen', 'Erste Schritte', 'Als App auf das iPhone legen', 'iphone handy app home bildschirm android installieren symbol', [
       'Öffnen Sie app.nasuvia.ch in Safari (iPhone) oder Chrome (Android).',
       'iPhone: Teilen-Symbol, dann „Zum Home-Bildschirm“. Android: Menü ⋮, dann „App installieren“.',
@@ -223,7 +236,7 @@
       'Auf der Übersicht jedes Bereichs „Übersicht anpassen“ tippen.',
       'Anhaken, was erscheinen soll, und speichern.'], B],
     ['ze-auftraege-ordner', 'Zeiterfassung', 'Aufträge in Ordnern mit Fotos', 'auftrag ordner ftth zürich adresse foto bilder projektleiter kontrolle status erledigt', [
-      'Zeiterfassung, „Aufträge“: mit „+ Ordner“ Ordner anlegen (z. B. FTTH, darin Zürich) und darin mit „+ Auftrag“ die Adressen.',
+      'Zeiterfassung, „Aufträge“: mit „+ Ordner“ Ordner anlegen (z. B. Kunden, darin Zürich) und darin mit „+ Auftrag“ die Adressen.',
       'Mitarbeiter sehen die gleichen Ordner auf dem Handy und laden Fotos hoch. Den Stand (In Arbeit, Erledigt, Kontrolliert) setzen nur Sie oder ein Projektleiter.',
       'Einen Mitarbeiter als „Projektleiter“ einstellen: Er sieht alle Fotos, prüft sie und setzt „Kontrolliert“.'], Z + '?tab=auftraege'],
     ['ze-zuweisen', 'Zeiterfassung', 'Aufträge Mitarbeitern zuweisen', 'zuweisen zugewiesen mitarbeiter auftrag sehen wer bestimmten', [

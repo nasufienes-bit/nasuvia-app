@@ -486,7 +486,7 @@ a.live{text-decoration:none}
     const unter = {}; for (const a of imPfad) { const o = ordnerTeile(a.ordner); if (o.length > tiefe) (unter[o[tiefe]] = unter[o[tiefe]] || []).push(a); }
     const hier = imPfad.filter((a) => ordnerTeile(a.ordner).length === tiefe);
     const offenStd = (l) => Z.eintraege.filter((e) => l.some((a) => a.id === e.auftrag_id) && !e.verrechnet).reduce((s, e) => s + e.minuten, 0);
-    return `<div class="kopf"><div><h1>Aufträge</h1><p class="unter">In Ordnern wie auf dem Computer, z. B. FTTH › Zürich › Adresse. Mit Fotos, Stunden und Material.</p></div>
+    return `<div class="kopf"><div><h1>Aufträge</h1><p class="unter">In Ordnern wie auf dem Computer, z. B. Projekte › Zürich › Adresse. Mit Fotos, Stunden und Material.</p></div>
         <div class="aktionen"><button class="btn" data-a="afArchiv">${Z.afArchiv ? 'Offene zeigen' : `Archiv (${Z.auftraege.filter((a) => !a.aktiv).length})`}</button><button class="btn" data-a="korb">Zuletzt gelöscht</button><button class="btn" data-a="ordnerNeu">+ Ordner</button><button class="btn haupt" data-a="afNeu">+ Auftrag</button></div></div>
       <div class="card">
         <div class="aktionen" style="margin-bottom:8px;font-size:14px"><button class="btn klein" data-af-ordner="">🏠 Alle</button>${pfad.map((n, i) => `<span>›</span><button class="btn klein" data-af-ordner="${esc(pfad.slice(0, i + 1).join('/'))}">${esc(n)}</button>`).join('')}
@@ -496,7 +496,7 @@ a.live{text-decoration:none}
         ${hier.map((a) => { const l = Z.eintraege.filter((e) => e.auftrag_id === a.id); const offen = l.filter((e) => !e.verrechnet).reduce((s, e) => s + e.minuten, 0);
           return `<div class="zeile klick" data-af="${a.id}"><div style="min-width:0"><b>${esc(a.name)}<span class="marke-s ${STATUS_AF[a.status || 'offen'][1]}">${STATUS_AF[a.status || 'offen'][0]}</span>${a.aktiv ? '' : '<span class="marke-s m-grau">archiviert</span>'}</b><small>👤 ${esc(wer(a))} · ${esc([a.kunde, a.adresse].filter(Boolean).join(' · ') || 'Ohne Kunde')} · total ${std(l.reduce((s, e) => s + e.minuten, 0))} Std.</small></div>
             <div class="aktionen">${offen ? `<button class="btn klein" data-af-offen="${a.id}">${std(offen)} offen</button>` : ''}</div></div>`; }).join('')}
-        ${!Object.keys(unter).length && !hier.length ? `<p class="leer">${tiefe ? 'Dieser Ordner ist noch leer. Legen Sie mit „+ Auftrag“ den ersten Auftrag darin an.' : 'Noch keine Aufträge. Erstellen Sie Ordner, zum Beispiel „FTTH“, darin „Zürich“, und darin die Adressen als Aufträge.'}</p>` : ''}
+        ${!Object.keys(unter).length && !hier.length ? `<p class="leer">${tiefe ? 'Dieser Ordner ist noch leer. Legen Sie mit „+ Auftrag“ den ersten Auftrag darin an.' : 'Noch keine Aufträge. Erstellen Sie Ordner, zum Beispiel „Projekte“, darin „Zürich“, und darin die Adressen als Aufträge.'}</p>` : ''}
       </div>
       <div class="info-box abstand"><b>So arbeiten Sie am einfachsten:</b> Aufträge in Ordnern sind der Standard: Mitarbeiter finden sie auf dem Handy im gleichen Ordner, machen Fotos und melden „Erledigt“. Projektleiter kontrollieren und setzen „Kontrolliert“.
         <br>Die <b>Option</b> dazu ist der <button class="link" data-tab="plan" style="background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;padding:0;font:inherit">Einsatzplan</button>: ein Kalender, in dem Sie Mitarbeitern Termine mit Infos zuweisen.</div>`;
@@ -548,7 +548,7 @@ a.live{text-decoration:none}
     const pfade = [...new Set(Z.auftraege.map((x) => x.ordner).filter(Boolean))].sort();
     const l = a.id ? Z.eintraege.filter((x) => x.auftrag_id === a.id) : [];
     const f = dialog(`<h3>${a.id ? esc(a.name) : 'Neuer Auftrag'}</h3>
-      <label>Ordner (Unterordner mit „/“ trennen)<input type="text" name="ordner" value="${esc(a.id ? a.ordner || '' : Z.afOrdner || '')}" maxlength="300" list="afPfade" placeholder="z. B. FTTH / Zürich"><datalist id="afPfade">${pfade.map((x) => `<option value="${esc(x)}">`).join('')}</datalist></label>
+      <label>Ordner (Unterordner mit „/“ trennen)<input type="text" name="ordner" value="${esc(a.id ? a.ordner || '' : Z.afOrdner || '')}" maxlength="300" list="afPfade" placeholder="z. B. Projekte / Zürich"><datalist id="afPfade">${pfade.map((x) => `<option value="${esc(x)}">`).join('')}</datalist></label>
       <label>Bezeichnung<input type="text" name="name" value="${esc(a.name || '')}" required maxlength="120" placeholder="z. B. Bahnhofstrasse 12"></label>
       <div class="zwei"><label>Kunde<input type="text" name="kunde" value="${esc(a.kunde || '')}" maxlength="120"></label><label>Adresse<input type="text" name="adresse" value="${esc(a.adresse || '')}" maxlength="200" placeholder="Strasse, PLZ Ort"></label></div>
       <div class="zwei"><label>Status<select name="status">${Object.entries(STATUS_AF).map(([k, [n]]) => `<option value="${k}" ${k === (a.status || 'offen') ? 'selected' : ''}>${n}</option>`).join('')}</select></label>

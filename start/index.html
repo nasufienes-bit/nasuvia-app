@@ -72,6 +72,28 @@ h1{font-size:clamp(30px,6vw,44px);letter-spacing:-.03em;line-height:1.05}
 .knopf.zweit{background:#fff;color:var(--blau);box-shadow:var(--schatten);margin-top:10px}
 .knopf:disabled{opacity:.4}
 @media(max-width:560px){.ziele{grid-template-columns:1fr}.aufgaben{grid-template-columns:1fr 1fr}.aufgabe{min-height:120px;padding:16px}.aufgabe b{font-size:16px}}
+/* Darstellung der Startseite (nur optisch) */
+body[data-thema=wald]{--papier:#0F2A21;--tinte:#F2FBF6;--text:#BFD7CB;--leise:#8FB3A2;--linie:rgba(255,255,255,.12);background:radial-gradient(1200px 600px at 10% -10%,#1E5A44 0%,transparent 60%),#0F2A21}
+body[data-thema=nacht]{--papier:#0E1116;--tinte:#F1F4F9;--text:#B7C0CF;--leise:#8A94A6;--linie:rgba(255,255,255,.1);background:#0E1116}
+body[data-thema=sand]{--papier:#F7F1E6;--flaeche:#EFE4D0;--tinte:#2B2116;--text:#5E4E3B;--leise:#8C7B66;--blau:#6B4F2A;--elektrik:#A0692B;background:#F7F1E6}
+body[data-thema=himmel]{--papier:#EEF4FF;--flaeche:#DDE8FF;--tinte:#0B1B3A;--text:#3D4E72;--leise:#7B89A8;--blau:#1D3B8A;--elektrik:#2563EB;background:linear-gradient(180deg,#EEF4FF,#F8FAFF)}
+body[data-thema=firma]{background:linear-gradient(180deg,color-mix(in srgb,var(--blau) 10%,#fff),var(--papier))}
+body[data-thema=wald] .aufgabe,body[data-thema=wald] .karte,body[data-thema=wald] .bereich,body[data-thema=nacht] .aufgabe,body[data-thema=nacht] .karte,body[data-thema=nacht] .bereich{background:rgba(255,255,255,.06);color:var(--tinte);box-shadow:none;border:1px solid var(--linie)}
+body[data-thema=wald] .schritt,body[data-thema=nacht] .schritt,body[data-thema=wald] .bereich,body[data-thema=nacht] .bereich{color:var(--tinte)}
+body[data-thema=wald] header.kopfzeile.ui-gerollt,body[data-thema=nacht] header.kopfzeile.ui-gerollt{background:rgba(14,17,22,.85)!important}
+body[data-thema] .einf{--papier:#F4FAF6;--flaeche:#E8F4EE;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--linie:rgba(11,59,46,.14);color:var(--tinte)}
+body[data-dichte=kompakt] .aufgaben{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+body[data-dichte=kompakt] .aufgabe{padding:14px;gap:8px;border-radius:16px}
+body[data-dichte=kompakt] .aufgabe .ic{width:38px;height:38px;border-radius:12px}
+body[data-dichte=kompakt] .aufgabe small{display:none}
+body[data-dichte=gross] .aufgaben{grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+body[data-dichte=gross] .aufgabe{padding:26px}
+.selbst{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:linear-gradient(135deg,var(--blau),var(--elektrik));color:#fff;border-radius:22px;padding:20px 22px;text-decoration:none}
+.selbst b{font-size:19px;display:block}.selbst span{opacity:.9}.selbst em{margin-left:auto;font-style:normal;background:rgba(255,255,255,.18);border-radius:100px;padding:8px 14px;font-weight:600;white-space:nowrap}
+.themen{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.themen button{border:2px solid transparent;border-radius:14px;padding:10px;text-align:left;font-size:14px;color:#0A1F17;background:#fff;box-shadow:0 0 0 1px rgba(11,59,46,.15)}
+.themen button.an{border-color:#0E7A55}
+.themen i{display:block;height:34px;border-radius:9px;margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -185,6 +207,34 @@ h1{font-size:clamp(30px,6vw,44px);letter-spacing:-.03em;line-height:1.05}
   });
 
   /* ---------- Startseite ---------- */
+  // Darstellung (nur optisch): Farbthema und Grösse der Kacheln, auf diesem Gerät gemerkt
+  const DESIGN_KEY = 'ordasio.startDesign';
+  const design = () => ({ thema: 'hell', dichte: 'normal', ...lies(DESIGN_KEY, {}) });
+  function designAnwenden() { const d = design(); document.body.dataset.thema = d.thema; document.body.dataset.dichte = d.dichte; }
+  const THEMEN = [['hell', 'Hell', 'linear-gradient(135deg,#F4FAF6,#E8F4EE)'], ['firma', 'Ihre Farben', 'linear-gradient(135deg,var(--blau),var(--elektrik))'], ['sand', 'Sand', 'linear-gradient(135deg,#F7F1E6,#E9D8B8)'],
+    ['himmel', 'Himmel', 'linear-gradient(135deg,#EEF4FF,#BFD3FF)'], ['wald', 'Wald (dunkel)', 'linear-gradient(135deg,#1E5A44,#0F2A21)'], ['nacht', 'Nacht (dunkel)', 'linear-gradient(135deg,#2A303B,#0E1116)']];
+  function designDialog() {
+    const d = design();
+    const dlg = document.createElement('dialog'); dlg.className = 'ui-frage'; dlg.setAttribute('data-ohne-x', '');
+    dlg.innerHTML = `<form method="dialog"><h3>Darstellung der Startseite</h3><p>Nur das Aussehen ändert sich, Ihre Daten bleiben gleich.</p>
+      <div class="themen">${THEMEN.map(([k, n, g]) => `<button type="button" data-thema-wahl="${k}" class="${d.thema === k ? 'an' : ''}"><i style="background:${g}"></i>${n}</button>`).join('')}</div>
+      <p style="margin-top:4px"><b style="color:#0A1F17">Kacheln</b></p>
+      <div class="themen">${[['kompakt', 'Kompakt'], ['normal', 'Normal'], ['gross', 'Gross']].map(([k, n]) => `<button type="button" data-dichte-wahl="${k}" class="${d.dichte === k ? 'an' : ''}">${n}</button>`).join('')}</div>
+      <div class="ui-knoepfe"><button class="ja">Fertig</button></div></form>`;
+    document.body.appendChild(dlg);
+    dlg.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-thema-wahl],[data-dichte-wahl]'); if (!t) return;
+      const neu = { ...design(), ...(t.dataset.themaWahl ? { thema: t.dataset.themaWahl } : { dichte: t.dataset.dichteWahl }) };
+      setz(DESIGN_KEY, neu); designAnwenden();
+      t.parentElement.querySelectorAll('button').forEach((b) => b.classList.toggle('an', b === t));
+    });
+    dlg.querySelector('form').onsubmit = (e) => { e.preventDefault(); dlg.close(); };
+    dlg.addEventListener('close', () => dlg.remove());
+    dlg.showModal();
+  }
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-design]')) designDialog(); });
+  designAnwenden();
+
   function zeichnen() {
     const gewaehlt = ZIELE.filter((z) => (ziele || []).includes(z.id) && zielOffen(z)).map(zielFuerRechtsform);
     const name = ((lizenz() || {}).name || '').split(' ')[0];
@@ -207,11 +257,12 @@ h1{font-size:clamp(30px,6vw,44px);letter-spacing:-.03em;line-height:1.05}
           : `<a class="schritt ${ok ? 'fertig' : ''}" href="${url}" data-schritt="${id}"><span class="haken" data-schritt-weg="${id}" title="Als erledigt markieren">${ok ? '✓' : ''}</span><b>${esc(t)}</b><span class="pfeil">›</span></a>`).join('')}
         <p class="leise" style="margin-top:8px">Tippen Sie auf den Kreis, um einen Schritt selbst abzuhaken.</p></div></div>`
         : `<div class="abschnitt"><div class="karte" style="display:flex;gap:12px;align-items:center"><span style="font-size:30px">🎉</span><b>Alles eingerichtet. Ordasio ist bereit.</b></div></div>`}
+      ${!lizenz() || ['einzel', undefined, null].includes((lizenz() || {}).rechtsform) ? `<div class="abschnitt"><a class="selbst" href="../selbstaendig/"><span><b>Zum ersten Mal selbständig?</b><span>Anmeldung, Versicherungen, AHV, MWST, Preise: die wichtigsten Schritte und Tipps zum Abhaken.</span></span><em>Tipps ansehen ›</em></a></div>` : ''}
       <div class="abschnitt"><h2>Ihre Bereiche</h2><div class="bereiche">
         ${bereiche.map((b) => BEREICH_NAME[b]).filter(Boolean).map(([n, url, ic, f]) => `<a class="bereich" href="${url}"><i style="background:${f}">${svg(ic)}</i>${n}</a>`).join('')}
         <a class="bereich" href="../hilfe/"><i style="background:#7C8499">${svg(I.hilfe)}</i>Anleitung</a>
       </div>
-      <p class="leise" style="margin-top:14px">Etwas fehlt oder ist zu viel? <button class="link" data-anpassen>Bereiche anpassen</button> · <a class="link" href="../lizenz/" style="text-decoration:none">Lizenz und Konto</a></p></div>`;
+      <p class="leise" style="margin-top:14px">Etwas fehlt oder ist zu viel? <button class="link" data-anpassen>Bereiche anpassen</button> · <button class="link" data-design>Darstellung ändern</button> · <a class="link" href="../selbstaendig/" style="text-decoration:none">Tipps für Selbständige</a> · <a class="link" href="../lizenz/" style="text-decoration:none">Lizenz und Konto</a></p></div>`;
   }
   document.addEventListener('click', (e) => { if (e.target.closest('[data-firma-start]') && window.Marke) Marke.dialog({ beiSpeichern: () => zeichnen() }); });
 

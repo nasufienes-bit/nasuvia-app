@@ -1057,7 +1057,7 @@
             <div class="feld"><label for="fMwst">${ein ? 'MWST' : 'Vorsteuer'} (CHF)</label><input type="text" id="fMwst" inputmode="decimal" autocomplete="off" value="${b.mwstRappen != null ? chf(b.mwstRappen).replace(/’/g, '') : ''}" /></div>
           </div>
           <div class="feld"><label for="fKat">Kategorie</label><select id="fKat">${katOptionen()}</select>${doppeltAktiv() ? `<p class="hinweis" id="fKontoInfo" style="margin-top:4px">${kontoHinweis()}</p>` : ''}</div>
-          <div class="feld"><label for="fText">Beschreibung</label><input type="text" id="fText" value="${esc(b.text || '')}" placeholder="${ein ? 'z. B. Spleissarbeiten Winterthur' : 'z. B. Kabel und OTO-Dosen'}" /></div>
+          <div class="feld"><label for="fText">Beschreibung</label><input type="text" id="fText" value="${esc(b.text || '')}" placeholder="${ein ? 'z. B. Gartenpflege Winterthur' : 'z. B. Kabel und OTO-Dosen'}" /></div>
           <div class="feld-zeile">
             <div class="feld"><label for="fPartner">${ein ? 'Kunde' : 'Lieferant'}</label><input type="text" id="fPartner" list="partnerListe" value="${esc(b.partner || '')}" /><datalist id="partnerListe">${partner.map((p) => `<option value="${esc(p)}">`).join('')}</datalist></div>
             <div class="feld"><label for="fZahlung">Bezahlt mit</label><select id="fZahlung">${ZAHLUNG.map((z) => `<option ${b.zahlung === z ? 'selected' : ''}>${z}</option>`).join('')}</select></div>

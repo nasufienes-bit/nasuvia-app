@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Zum ersten Mal selbständig · Ordasio</title>
+<meta name="theme-color" content="#F4FAF6" />
+<link rel="stylesheet" href="../schrift.css" />
+<script src="../konfig.js"></script>
+<style>
+:root{--papier:#F4FAF6;--flaeche:#E8F4EE;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--linie:rgba(11,59,46,.14)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:16px/1.6 'League Spartan',-apple-system,system-ui,sans-serif;background:var(--papier);color:var(--tinte)}
+.wrap{max-width:880px;margin:0 auto;padding:0 18px 60px}
+header{padding:24px 0 6px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+header a{color:var(--elektrik);text-decoration:none;font-weight:600}
+h1{font-size:clamp(30px,6vw,46px);letter-spacing:-.03em;line-height:1.05;margin:14px 0 10px}
+.unter{color:var(--text);max-width:42em;font-size:17px}
+.fortschritt{position:sticky;top:0;z-index:5;background:rgba(244,250,246,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:12px 0;margin:14px 0 4px}
+.fortschritt div{display:flex;align-items:center;gap:12px;background:#fff;border-radius:100px;padding:10px 16px;box-shadow:0 10px 30px -20px rgba(11,59,46,.5)}
+.balken{flex:1;height:10px;border-radius:10px;background:var(--flaeche);overflow:hidden}
+.balken i{display:block;height:100%;background:linear-gradient(90deg,var(--elektrik),#34D399);border-radius:10px;transition:width .4s}
+.fortschritt b{font-variant-numeric:tabular-nums;white-space:nowrap}
+h2{font-size:24px;margin:34px 0 12px;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+h2 span{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--blau);color:#fff;font-size:16px}
+.karte{background:#fff;border-radius:18px;padding:18px 20px;margin-bottom:10px;box-shadow:0 1px 2px rgba(12,18,38,.05),0 10px 26px -18px rgba(12,18,38,.28)}
+.punkt{display:grid;grid-template-columns:28px minmax(0,1fr);gap:12px;align-items:start;cursor:pointer}
+.punkt input{width:22px;height:22px;margin-top:3px;accent-color:var(--elektrik);cursor:pointer}
+.punkt b{display:block;font-size:17px}
+.punkt p{color:var(--text);margin-top:4px}
+.punkt.fertig b{text-decoration:line-through;text-decoration-color:rgba(14,122,85,.5);color:var(--leise)}
+.tipp{background:var(--flaeche);border-radius:12px;padding:10px 14px;margin-top:10px;font-size:15px;color:var(--text)}
+.tipp b{color:var(--blau)}
+.rechner{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:10px}
+.rechner label{display:grid;gap:4px;font-size:14px;color:var(--text)}
+.rechner input{border:1.5px solid var(--linie);border-radius:10px;padding:10px 12px;font:inherit;font-size:16px}
+.ergebnis{margin-top:12px;font-size:18px}
+.ergebnis b{font-size:26px;color:var(--blau)}
+a.los{display:inline-block;margin-top:10px;border-radius:100px;padding:9px 16px;background:var(--blau);color:#fff;font-weight:600;font-size:14px;text-decoration:none}
+.quelle{font-size:13px;color:var(--leise);margin-top:28px}
+.quelle a{color:var(--elektrik)}
+.hinweis{font-size:14px;color:var(--leise);margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><span class="kopf-links" style="display:flex;align-items:center;gap:10px"><a href="../start/">← Zurück zum Start</a></span><a href="../hilfe/">Anleitung zum Programm</a></header>
+  <h1>Zum ersten Mal selbständig?</h1>
+  <p class="unter">Die wichtigsten Schritte und Tipps für den Start in der Schweiz, einfach erklärt. Haken Sie ab, was erledigt ist. Ihr Fortschritt bleibt auf diesem Gerät gespeichert.</p>
+  <div class="fortschritt"><div><span>Ihr Start</span><div class="balken"><i id="balken" style="width:0"></i></div><b id="zahl">0 von 0</b></div></div>
+
+  <div id="inhalt"></div>
+
+  <h2><span>7</span>Was kostet mich eine Stunde?</h2>
+  <div class="karte">
+    <p style="color:var(--text)">Der häufigste Fehler beim Start: zu tiefe Preise. Rechnen Sie Ihren Stundenansatz einmal durch.</p>
+    <div class="rechner">
+      <label>Gewünschter Lohn pro Jahr (CHF)<input id="rLohn" inputmode="decimal" value="80000"></label>
+      <label>Geschäftskosten pro Jahr (CHF)<input id="rKosten" inputmode="decimal" value="15000"></label>
+      <label>Arbeitswochen pro Jahr<input id="rWochen" inputmode="decimal" value="44"></label>
+      <label>Verrechenbare Stunden pro Woche<input id="rStunden" inputmode="decimal" value="28"></label>
+    </div>
+    <p class="ergebnis">Mindestens <b id="rAnsatz">–</b> CHF pro Stunde <span class="hinweis" id="rDetail"></span></p>
+    <p class="hinweis">Dazu kommen Sozialversicherungen (AHV/IV/EO rund 10 % des Einkommens), Vorsorge und Steuern. Ferien, Krankheit, Offerten, Weiterbildung und Buchhaltung sind nicht verrechenbar, deshalb rechnen viele mit 25 bis 30 verrechenbaren Stunden pro Woche.</p>
+  </div>
+
+  <p class="quelle">Stand November 2026, ohne Gewähr. Bei Fragen zu Ihrer Situation hilft die AHV-Ausgleichskasse Ihres Kantons, die Steuerverwaltung oder ein Treuhänder. Gute Übersicht des Bundes: <a href="https://www.kmu.admin.ch" target="_blank" rel="noopener">kmu.admin.ch</a> und <a href="https://www.easygov.swiss" target="_blank" rel="noopener">easygov.swiss</a>.</p>
+</div>
+<script src="../ui.js"></script>
+<script>
+(() => {
+  const KEY = 'ordasio.selbstaendig';
+  const erledigt = (() => { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch { return {}; } })();
+  // Neutrale Beispiele: Malerin, Grafiker, Coiffeuse, Gärtner
+  const KAPITEL = [
+    ['1', 'Anmelden und richtig aufstellen', [
+      ['ahv', 'Bei der AHV-Ausgleichskasse als Selbständige oder Selbständiger anmelden', 'Die Ausgleichskasse prüft, ob Sie wirklich selbständig sind (eigene Kunden, eigenes Risiko, eigene Rechnungen). Arbeiten Sie nur für einen einzigen Auftraggeber, gelten Sie oft als angestellt.', 'Melden Sie sich an, bevor Sie die erste Rechnung schreiben. Die Anmeldung geht online über die Ausgleichskasse Ihres Kantons oder easygov.swiss.'],
+      ['rechtsform', 'Rechtsform wählen', 'Einzelfirma: einfach und günstig, Sie haften aber mit Ihrem Privatvermögen. GmbH: mindestens CHF 20’000 Stammkapital, Haftung auf die Firma beschränkt. AG: mindestens CHF 100’000 Aktienkapital (davon mindestens 50’000 einbezahlt).', 'Für den Start reicht meistens die Einzelfirma. Ein Wechsel in eine GmbH ist später möglich, wenn das Geschäft wächst.'],
+      ['hr', 'Handelsregister prüfen', 'Eine Einzelfirma muss ins Handelsregister, sobald der Umsatz CHF 100’000 im Jahr erreicht. GmbH und AG sind immer eingetragen. Freiwillig eintragen geht jederzeit und schützt Ihren Firmennamen.', ''],
+      ['konto', 'Ein eigenes Geschäftskonto eröffnen', 'Privat und Geschäft strikt trennen. So sehen Sie jederzeit, was das Geschäft verdient, und die Buchhaltung wird viel einfacher.', 'In Ordasio laden Sie den Auszug dieses Kontos hoch. Die Zahlungen werden vorgeschlagen und mit Ihren Rechnungen abgeglichen.'],
+    ]],
+    ['2', 'Absichern', [
+      ['unfall', 'Unfallversicherung klären', 'Als Selbständige sind Sie nicht mehr automatisch über den Arbeitgeber gegen Unfall versichert. Schliessen Sie den Unfall bei der Krankenkasse ein oder eine freiwillige Unfallversicherung ab.', 'Das wird beim Start oft vergessen. Am besten am ersten Tag erledigen.'],
+      ['taggeld', 'Krankentaggeld überlegen', 'Wenn Sie krank sind, verdienen Sie nichts. Eine Krankentaggeld-Versicherung zahlt dann einen Teil Ihres Einkommens.', ''],
+      ['haftpflicht', 'Betriebshaftpflicht abschliessen', 'Geht beim Kunden etwas kaputt (die Malerin tropft auf das Parkett, der Gärtner beschädigt eine Leitung), zahlt die Betriebshaftpflicht.', ''],
+      ['vorsorge', 'Für das Alter vorsorgen', 'Ohne Pensionskasse dürfen Sie in die Säule 3a bis 20 % Ihres Erwerbseinkommens einzahlen, 2026 höchstens CHF 36’288. Das spart auch Steuern. Ab 2027 sind es höchstens CHF 36’864.', ''],
+    ]],
+    ['3', 'Geld und Steuern', [
+      ['ruecklage', 'Jeden Monat Geld für AHV und Steuern zur Seite legen', 'Als Selbständige zahlen Sie AHV/IV/EO selbst: 10 % des Einkommens ab CHF 60’500, darunter etwas weniger (sinkende Skala), mindestens CHF 530 im Jahr. Dazu kommen die Steuern.', 'Faustregel: 25 bis 30 % jedes Zahlungseingangs auf ein separates Konto. Dann ist das Geld da, wenn die Rechnung kommt.'],
+      ['mwst', 'MWST im Auge behalten', 'Ab CHF 100’000 Umsatz im Jahr müssen Sie sich bei der Eidgenössischen Steuerverwaltung anmelden. Freiwillig geht es auch früher, das lohnt sich manchmal bei hohen Investitionen.', 'Ordasio zeigt Ihnen, wie nahe Sie an der Grenze sind, und rechnet die MWST-Abrechnung mit den Ziffern des Formulars.'],
+      ['reserve', 'Reserve aufbauen', 'Planen Sie drei bis sechs Monate Ihrer Fixkosten als Reserve. Kunden zahlen nicht immer pünktlich, und am Anfang schwanken die Einnahmen.', ''],
+      ['preise', 'Preise richtig rechnen', 'Ihr Stundenansatz muss Lohn, Sozialversicherungen, Vorsorge, Ferien, Geschäftskosten und unverrechenbare Zeit decken. Rechnen Sie unten nach.', 'Zu tiefe Preise sind der häufigste Grund, warum Selbständige aufgeben. Lieber etwas höher starten.'],
+    ]],
+    ['4', 'Kunden und Rechnungen', [
+      ['offerte', 'Offerten schriftlich machen', 'Was ist inbegriffen, was nicht? Bis wann gilt die Offerte? Schriftlich vermeiden Sie Streit, etwa wenn der Kunde beim Umbau plötzlich mehr will.', 'In Ordasio wird aus der Offerte mit einem Klick die Rechnung.'],
+      ['rechnung', 'Korrekte Rechnungen schreiben', 'Name und Adresse von Ihnen und vom Kunden, Datum, Leistung, Betrag und Zahlungsfrist. Mit MWST zusätzlich Ihre MWST-Nummer und den Satz. Am einfachsten mit QR-Zahlteil.', 'Schicken Sie Rechnungen sofort nach der Arbeit. Je später die Rechnung, desto später das Geld.'],
+      ['mahnen', 'Offene Rechnungen nachfassen', 'Nach Ablauf der Frist freundlich erinnern, danach mahnen. Ordasio zeigt überfällige Rechnungen und erstellt Erinnerung und Mahnung.', ''],
+      ['agb', 'Eigene Bedingungen festhalten', 'Zahlungsfrist, Annullierung, Material, Garantie: kurz und verständlich auf der Offerte oder in den AGB.', ''],
+    ]],
+    ['5', 'Buchhaltung und Ordnung', [
+      ['belege', 'Belege sofort fotografieren', 'Jede Quittung gleich nach dem Einkauf fotografieren und ablegen. Belege müssen 10 Jahre aufbewahrt werden.', 'In Ordasio: Foto machen, Betrag und Datum werden gelesen, Sie bestätigen nur noch.'],
+      ['monatlich', 'Einmal im Monat buchen', 'Eine Stunde pro Monat reicht meistens: Kontoauszug hochladen, Belege prüfen, offene Rechnungen anschauen. Am Jahresende ist dann alles bereit für die Steuererklärung.', ''],
+      ['fahrten', 'Fahrten und Spesen festhalten', 'Kilometer für das Geschäft mit dem Privatauto sind Geschäftskosten. Notieren Sie sie laufend, nachträglich ist es mühsam.', ''],
+      ['treuhand', 'Wenn nötig, einen Treuhänder beiziehen', 'Für Steuererklärung, Abschluss oder bei einer GmbH lohnt sich ein Treuhänder. Mit dem Treuhänder-Zugang in Ordasio sieht er alles direkt, ohne dass Sie Ordner schicken.', ''],
+    ]],
+    ['6', 'Sichtbar werden', [
+      ['google', 'Google-Unternehmensprofil anlegen', 'Gratis und sehr wirksam: Ihr Geschäft erscheint auf Google Maps mit Öffnungszeiten, Fotos und Bewertungen.', ''],
+      ['website', 'Eine einfache Website', 'Wer Sie sucht, will sehen, was Sie machen und wie man Sie erreicht. Eine klare Seite mit Leistungen, Bildern und Kontakt reicht.', 'Wir gestalten Ihnen gerne eine Website, den ersten Entwurf gratis.'],
+      ['empfehlung', 'Zufriedene Kunden um eine Empfehlung bitten', 'Die meisten neuen Kunden kommen über Empfehlungen. Fragen Sie nach einem gelungenen Auftrag direkt nach einer Google-Bewertung.', ''],
+      ['termine', 'Online buchen lassen', 'Für Coiffeure, Therapeuten oder Fahrlehrer: Kunden buchen selbst einen freien Termin, auch abends um zehn.', ''],
+    ]],
+  ];
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const alle = KAPITEL.flatMap((k) => k[2]);
+  function zeichnen() {
+    document.getElementById('inhalt').innerHTML = KAPITEL.map(([nr, titel, punkte]) => `<h2><span>${nr}</span>${esc(titel)}</h2>` + punkte.map(([id, t, text, tipp]) =>
+      `<div class="karte"><label class="punkt ${erledigt[id] ? 'fertig' : ''}"><input type="checkbox" data-id="${id}" ${erledigt[id] ? 'checked' : ''}><span><b>${esc(t)}</b><p>${esc(text)}</p>${tipp ? `<div class="tipp"><b>Tipp:</b> ${esc(tipp)}</div>` : ''}</span></label></div>`).join('')).join('');
+    const n = alle.filter(([id]) => erledigt[id]).length;
+    document.getElementById('balken').style.width = Math.round(n / alle.length * 100) + '%';
+    document.getElementById('zahl').textContent = `${n} von ${alle.length}`;
+  }
+  document.addEventListener('change', (e) => {
+    const c = e.target.closest('[data-id]'); if (!c) return;
+    erledigt[c.dataset.id] = c.checked;
+    try { localStorage.setItem(KEY, JSON.stringify(erledigt)); } catch {}
+    zeichnen();
+  });
+  // Stundenansatz
+  const zahl = (id) => Number(String(document.getElementById(id).value).replace(/[’'\s]/g, '').replace(',', '.')) || 0;
+  function rechnen() {
+    const lohn = zahl('rLohn'), kosten = zahl('rKosten'), wochen = zahl('rWochen'), std = zahl('rStunden');
+    const sozial = lohn * 0.10, vorsorge = lohn * 0.10; // AHV/IV/EO rund 10 %, Vorsorge rund 10 %
+    const total = lohn + sozial + vorsorge + kosten, stunden = wochen * std;
+    document.getElementById('rAnsatz').textContent = stunden ? Math.ceil(total / stunden).toLocaleString('de-CH') : '–';
+    document.getElementById('rDetail').textContent = stunden ? `(${Math.round(total).toLocaleString('de-CH')} CHF im Jahr geteilt durch ${Math.round(stunden).toLocaleString('de-CH')} verrechenbare Stunden, mit rund 10 % AHV und 10 % Vorsorge, ohne Steuern)` : '';
+  }
+  document.addEventListener('input', (e) => { if (e.target.closest('.rechner')) rechnen(); });
+  zeichnen(); rechnen();
+})();
+</script>
+</body>
+</html>
