@@ -715,10 +715,32 @@
     [/miete|immobilien|verwaltung/i, 'buero'],
     [/estv|steueramt|gemeinde|strassenverkehrsamt|gebühr/i, 'gebuehren'],
   ];
+  // Lernender Bankabgleich: Partner vereinfachen (ohne AG, GmbH, Ort, Nummern), damit „MIGROS ZUERICH 1234“ und „Migros“ gleich sind
+  const partnerSchluessel = (t) => {
+    const roh = String(t.partner || '').trim() || String(t.text || '').replace(/^(einkauf|zahlung|lastschrift|gutschrift|e-banking|twint|debit|kartenzahlung|maestro|visa|mastercard)[\s:,-]*/i, '');
+    return roh.toLowerCase().replace(/\b(ag|gmbh|sa|sàrl|sarl|ltd|inc|co|kg|ch|schweiz|suisse|svizzera|switzerland)\b/g, ' ').replace(/[0-9]+/g, ' ').replace(/[^a-zäöüéèàç ]+/g, ' ')
+      .split(/\s+/).filter((w) => w.length > 2).reduce((a, w, i, l) => (i === 0 ? (w.length >= 4 ? [w] : l.slice(0, 2)) : a), []).join(' ');
+  };
+  const regelVon = (t, typ) => { const k = partnerSchluessel(t); return k ? (Z.einst.bankRegeln || []).find((x) => x.typ === typ && x.muster === k) : null; };
+  async function regelnLernen(liste) {
+    const alle = [...(Z.einst.bankRegeln || [])];
+    let neu = 0;
+    for (const v of liste) {
+      const k = partnerSchluessel(v); if (!k || !v.kategorie || v.rechnung) continue;
+      const i = alle.findIndex((x) => x.typ === v.typ && x.muster === k);
+      if (i >= 0) { if (alle[i].kategorie !== v.kategorie) { alle[i] = { ...alle[i], kategorie: v.kategorie, mal: 1 }; neu++; } else alle[i] = { ...alle[i], mal: (alle[i].mal || 1) + 1 }; }
+      else if (v.geaendert || v.gelernt === undefined) { alle.push({ typ: v.typ, muster: k, kategorie: v.kategorie, mal: 1 }); if (v.geaendert) neu++; }
+    }
+    await einstSpeichern({ bankRegeln: alle.slice(-800) });
+    return neu;
+  }
   function kategorieRaten(t, typ) {
+    const regel = regelVon(t, typ);
+    if (regel && (typ === 'ausgabe' ? KAT_AUS : KAT_EIN).some((k) => k.id === regel.kategorie)) { t.gelernt = true; return regel.kategorie; }
+    const key = partnerSchluessel(t);
+    const frueher = key && sortiert(Z.buchungen).find((b) => b.typ === typ && (b.partner || b.text) && partnerSchluessel(b) === key);
+    if (frueher) { t.gelernt = true; return frueher.kategorie; }
     if (typ === 'einnahme') return 'dienstleistung';
-    const frueher = sortiert(Z.buchungen).find((b) => b.typ === 'ausgabe' && b.partner && t.partner && b.partner.toLowerCase() === t.partner.toLowerCase());
-    if (frueher) return frueher.kategorie;
     const text = `${t.partner} ${t.text}`;
     const r = REGELN.find(([re]) => re.test(text));
     return r ? r[1] : 'uebrig';
@@ -795,12 +817,15 @@
       const typ = t.betragRappen > 0 ? 'einnahme' : 'ausgabe';
       const betrag = Math.abs(t.betragRappen);
       const schluessel = importSchluessel(t);
-      const rechnung = typ === 'einnahme' ? offen.find((b) => b.betragRappen === betrag && !vergeben.has(b.id)) : null;
+      const txt = `${t.text || ''} ${t.ref || ''}`;
+      const rechnung = typ === 'einnahme' ? (offen.find((b) => !vergeben.has(b.id) && b.rechnungNr && b.betragRappen === betrag && new RegExp('(^|\\D)' + String(b.rechnungNr).replace(/[^0-9A-Za-z-]/g, '') + '(\\D|$)').test(txt))
+        || offen.find((b) => b.betragRappen === betrag && !vergeben.has(b.id))) : null;
       if (rechnung) vergeben.add(rechnung.id);
       // Gleiche Bewegung aus einer anderen Datei (z. B. erst CSV, dann camt): gleiches Datum, gleicher Betrag
       const aehnlich = Z.buchungen.some((b) => b.quelle === 'bank' && b.datum === t.datum && b.betragRappen === betrag && b.typ === typ);
       const nachName = t.kategorieName ? (typ === 'ausgabe' ? KAT_AUS : KAT_EIN).find((k) => k.name.toLowerCase() === t.kategorieName.toLowerCase() || k.name.toLowerCase().includes(t.kategorieName.toLowerCase().slice(0, 6))) : null;
-      return { ...t, typ, betrag, schluessel, doppelt: bekannt.has(schluessel) || aehnlich, rechnung, kategorie: nachName ? nachName.id : kategorieRaten(t, typ) };
+      const kat = nachName ? nachName.id : kategorieRaten(t, typ);
+      return { ...t, typ, betrag, schluessel, doppelt: bekannt.has(schluessel) || aehnlich, rechnung, kategorie: kat, gelernt: !!t.gelernt };
     });
     const dlg = $('dlg');
     const optionen = (v) => sichtbar(v.typ === 'ausgabe' ? KAT_AUS : KAT_EIN, v.kategorie).map((k) => `<option value="${k.id}" ${k.id === v.kategorie ? 'selected' : ''}>${esc(k.name)}</option>`).join('');
@@ -813,13 +838,15 @@
           <input type="checkbox" data-i="${i}" checked aria-label="Übernehmen" />
           <div class="import-text"><b>${esc(v.partner || v.text || '—')}</b><small>${datumKurz(v.datum)} · ${esc((v.text || '').slice(0, 80))}${v.doppelt ? ' · schon importiert' : ''}</small></div>
           <div class="import-betrag ${v.typ === 'einnahme' ? 'plus' : ''}">${v.typ === 'einnahme' ? '+' : '−'} ${chf(v.betrag)}</div>
-          ${v.rechnung ? `<div class="import-kat"><span class="marke marke-ok">Rechnung ${esc(v.rechnung.rechnungNr || '')} bezahlt</span></div>` : `<select class="auswahl-klein import-kat" data-kat="${i}">${optionen(v)}</select>`}
+          ${v.rechnung ? `<div class="import-kat"><span class="marke marke-ok">Rechnung ${esc(v.rechnung.rechnungNr || '')} bezahlt</span></div>` : `<select class="auswahl-klein import-kat" data-kat="${i}" title="${v.gelernt ? 'Von früher gelernt' : 'Vorschlag'}">${optionen(v)}</select>${v.gelernt ? '<span class="marke marke-info" style="justify-self:end">gelernt</span>' : ''}`}
         </div>`).join('')}</div>
       </div>
       <div class="dlg-fuss"><div class="rechts"><button type="button" class="btn" data-zu>Abbrechen</button><button type="submit" class="btn btn-haupt">Ausgewählte übernehmen</button></div></div>
     </form>`;
     dlg.onclick = (e) => { if (e.target === dlg || e.target.closest('[data-zu]')) dlg.close(); };
-    dlg.onchange = (e) => { const k = e.target.closest('[data-kat]'); if (k) vorschlaege[Number(k.dataset.kat)].kategorie = k.value; };
+    dlg.onchange = (e) => { const k = e.target.closest('[data-kat]'); if (k) { const v = vorschlaege[Number(k.dataset.kat)]; v.kategorie = k.value; v.geaendert = true;
+      // Gleicher Partner weiter unten: gleich mitziehen, damit man nur einmal korrigieren muss
+      const key = partnerSchluessel(v); if (key) vorschlaege.forEach((w, j) => { if (w !== v && !w.geaendert && !w.rechnung && w.typ === v.typ && partnerSchluessel(w) === key) { w.kategorie = v.kategorie; const sel = dlg.querySelector(`[data-kat="${j}"]`); if (sel) sel.value = v.kategorie; } }); } };
     dlg.oninput = null;
     $('iForm').onsubmit = async (e) => {
       e.preventDefault();
@@ -835,6 +862,8 @@
           text: (v.text || '').slice(0, 120), partner: (v.partner || '').slice(0, 80), zahlung: 'Bank', importSchluessel: v.schluessel, imp, impAm, impName });
       }
       await Speicher.mehrereSpeichern('buchungen', speichern);
+      const gelerntNeu = await regelnLernen(gewaehlt).catch(() => 0);
+      if (gelerntNeu) setTimeout(() => toast(`✓ ${gelerntNeu} ${gelerntNeu === 1 ? 'Korrektur' : 'Korrekturen'} gemerkt: beim nächsten Auszug macht Ordasio das selbst`, 5000), 1500);
       dlg.close();
       const bezahlt = gewaehlt.filter((v) => v.rechnung).length;
       await neuLaden(`${speichern.length - bezahlt} Buchungen übernommen${bezahlt ? `, ${bezahlt} Rechnungen als bezahlt vermerkt` : ''}`);
@@ -2338,6 +2367,11 @@
     return d ? `Letzte Sicherung auf diesem Gerät: ${datumKurz(d.slice(0, 10))}` : 'Auf diesem Gerät wurde noch keine Sicherung gespeichert.';
   }
 
+  document.addEventListener('click', async (e) => {
+    const w = e.target.closest('[data-regel-weg]'); if (!w) return;
+    const [typ, ...m] = w.dataset.regelWeg.split('|'); const muster = m.join('|');
+    await einstSpeichern({ bankRegeln: (Z.einst.bankRegeln || []).filter((x) => !(x.typ === typ && x.muster === muster)) }); zeichnen(); toast('Vergessen');
+  });
   function mehr() {
     const v = Z.einst.abrechnung;
     return `
@@ -2346,6 +2380,12 @@
       <div class="card">
         <h2>Rechtsform und Buchhaltung</h2>
         ${einstRechtsform()}
+      </div>
+      <div class="card">
+        <h2>Gelernte Kategorien (Bankauszug)</h2>
+        <p class="hinweis">Wenn Sie beim Bankimport eine Kategorie korrigieren, merkt sich Ordasio das und macht es beim nächsten Mal selbst.</p>
+        ${(Z.einst.bankRegeln || []).length ? `<div class="liste" style="max-height:260px;overflow:auto">${(Z.einst.bankRegeln || []).slice().sort((a, b) => a.muster.localeCompare(b.muster)).map((x) => `<div class="zeile" style="grid-template-columns:minmax(0,1fr) auto auto"><div style="min-width:0"><div class="titel">${esc(x.muster)}</div><div class="info"><span>${x.typ === 'einnahme' ? 'Einnahme' : 'Ausgabe'}</span><span>${esc(((x.typ === 'einnahme' ? KAT_EIN : KAT_AUS).find((k) => k.id === x.kategorie) || {}).name || x.kategorie)}</span></div></div><span></span><button class="link" data-regel-weg="${esc(x.typ + '|' + x.muster)}">Vergessen</button></div>`).join('')}</div>`
+          : '<p class="leer">Noch nichts gelernt. Laden Sie einen Bankauszug und korrigieren Sie, wo nötig.</p>'}
       </div>
       <div class="card">
         <h2>Rechnungen übernehmen</h2>
