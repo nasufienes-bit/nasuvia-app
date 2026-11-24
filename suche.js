@@ -28,6 +28,16 @@
       'Standort aus, beim Stempeln oder pro Person. Live-Standort schalten Sie pro Einsatz im Einsatzplan ein.',
       'Pausen automatisch nach Gesetz, Auftrag oder Tätigkeit als Pflicht, Kilometer, wie weit zurück nachgetragen werden darf und ob die Stempeluhr rundet.',
       'Mit „Übernehmen“ gilt die Empfehlung für Ihre Branche. Änderungen gelten sofort für alle.'], WURZEL + 'zeit/#mitarbeiter'],
+    ['ablage', 'Firmenablage', 'Ordner anlegen und Dokumente ablegen', 'ablage ordner dokumente dateien hochladen arbeitszeugnis kündigung beförderung vertrag marketing ferien personal dossier', [
+      'Im Menü „Firmenablage“ öffnen und „+ Ordner“ tippen oder eine der Ideen antippen. Name, Farbe und Symbol wählen Sie selbst.',
+      'Ordner öffnen und Dateien hineinziehen oder antippen zum Auswählen (PDF, Fotos, Word, Excel bis 25 MB).',
+      'Mit ••• bei einer Datei: umbenennen, verschieben, einem Mitarbeiter zuordnen, „Gültig bis“ setzen (Erinnerung unter „Läuft bald ab“).'], WURZEL + 'ablage/'],
+    ['ablage-personal', 'Firmenablage', 'Personaldossier und Dokumente für Mitarbeitende', 'personal dossier mitarbeiter dokument teilen lohnausweis zeugnis handy sehen', [
+      'Firmenablage, Personal, Person wählen: alle Dokumente dieser Person nach Ordnern.',
+      '„Dokument ablegen“ und „Der Mitarbeiter darf die Datei sehen“ ankreuzen: Sie erscheint auf seinem Handy-Link unter „Meine Dokumente“. Sie sehen, wann er sie geöffnet hat.'], WURZEL + 'ablage/?tab=personal'],
+    ['ablage-team', 'Firmenablage', 'Mitteilungen ans Team und Ferienanträge', 'mitteilung info team nachricht ferien antrag absenz krank bewilligen ablehnen urlaub', [
+      'Firmenablage, Mitteilungen, „+ Mitteilung“: an alle oder an eine Person. Sie sehen, wer sie gelesen hat.',
+      'Mitarbeitende melden Ferien und Absenzen auf ihrem Handy-Link. Unter „Anträge“ bewilligen oder ablehnen Sie mit einem Tipp.'], WURZEL + 'ablage/?tab=mitteilungen'],
     ['dienste', 'Erste Schritte', 'Website oder Instagram von uns gestalten lassen', 'website homepage webseite instagram highlights design gestalten entwurf gratis', [
       'Auf der Startseite „Ihre Website, von uns gestaltet“ tippen.',
       'Gewünschten Dienst und Stil wählen und die Anfrage senden. Den ersten Website-Entwurf machen wir kostenlos.'], WURZEL + 'dienste/'],

@@ -140,6 +140,7 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
     if (data.fehler) { setz('ze.token', null); fehler('Link nicht mehr gültig', data.fehler); return; }
     Z.daten = data;
     zeichnen();
+    sb.rpc('ab_ich', { p_token: token }).then(({ data: ab }) => { if (ab && !ab.fehler) { Z.ab = ab; if (!Z.form) zeichnen(); } });
     if (Z.auftrag && !Z.form) fotosLaden(Z.auftrag);
   }
 
@@ -157,6 +158,7 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
         ${zeitAn ? `<div class="summen"><div><b>${std(summe(E.filter((e) => e.datum === heute())))}</b><span>Heute</span></div><div><b>${std(summe(E.filter((e) => e.datum >= montag(heute()) && e.datum <= heute())))}</b><span>Diese Woche</span></div><div><b>${std(summe(E.filter((e) => e.datum.slice(0, 7) === heute().slice(0, 7))))}</b><span>${MONATE[new Date().getMonth()]}</span></div></div>` : '<p style="margin-top:6px;color:rgba(255,255,255,.8)">Ihre Aufträge und Einsätze</p>'}
       </div></header>
       <main class="wrap">
+        ${mitteilungenKarte()}
         ${!d.aktiv ? '<div class="karte hoch"><h2>Zurzeit pausiert</h2><p class="hinweis">Die Zeiterfassung Ihrer Firma ist gerade nicht aktiv. Ihre Stunden sind gespeichert. Bitte melden Sie sich im Büro.</p></div>' : !zeitAn ? '<div style="height:44px"></div>' : Z.form ? formular() : `
         <div class="karte hoch uhr">
           ${start ? `<div class="zeit" id="laeuft">${std((Date.now() - Number(start)) / 60000)}</div><p>Arbeit läuft seit ${new Date(Number(start)).toTimeString().slice(0, 5)} Uhr</p>
@@ -174,6 +176,7 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
           <label style="margin:12px 0 0">Bestimmten Tag ansehen<input type="date" id="tag" max="${heute()}"></label>
           ${tage.length ? tage.map((t) => { const l = imMonat.filter((e) => e.datum === t); return `<div class="tag-titel" id="tag-${t}"><span>${wt(t).slice(0, 2)} ${dk(t)}</span><span>${std(summe(l))}</span></div>` + l.map((e) => `<div class="zeile" data-eintrag="${e.id}"><div><b>${e.von ? `${e.von}–${e.bis}` : 'Dauer'}${e.verrechnet ? '<span class="marke-s">verrechnet</span>' : ''}</b><small>${esc([af(e.auftrag_id) ? af(e.auftrag_id).name : '', e.taetigkeit, e.pause_min ? e.pause_min + ' Min. Pause' : '', Number(e.km) ? e.km + ' km' : ''].filter(Boolean).join(' · ')) || 'Ohne Beschreibung'}</small></div><div class="std">${std(e.minuten)}</div></div>`).join(''); }).join('') : '<p class="leer">In diesem Monat ist noch nichts erfasst.</p>'}
         </div>` : ''}
+        ${teamKarte()}
         <p class="fuss">${zeitAn ? 'Sie sehen nur Ihre eigenen Stunden.' : 'Sie sehen nur die Aufträge, die Ihnen zugewiesen sind.'} Tipp: Seite zum Home-Bildschirm hinzufügen, dann ist sie wie eine App.</p>
       </main>`;
     if (start && !Z.form) { clearInterval(Z.uhr); Z.uhr = setInterval(() => { const e = $('laeuft'); if (e) e.textContent = std((Date.now() - Number(lies(K_START))) / 60000); else clearInterval(Z.uhr); }, 15000); }
@@ -262,6 +265,54 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
   }
   // Standort nur, wenn der Arbeitgeber das eingeschaltet hat
   const ortHolen = () => new Promise((ok) => { if (!Z.daten || !Z.daten.standort || !navigator.geolocation) return ok(null); navigator.geolocation.getCurrentPosition((p) => ok([+p.coords.latitude.toFixed(5), +p.coords.longitude.toFixed(5), Math.round(p.coords.accuracy)]), () => ok(null), { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }); });
+
+  /* ---------- Brücke zum Büro: Mitteilungen, Dokumente, Anträge ---------- */
+  const ANTRAG = { ferien: 'Ferien', frei: 'Frei / Kompensation', krank: 'Krankheit', unfall: 'Unfall', weiterbildung: 'Weiterbildung', anderes: 'Anderes' };
+  const ANTRAG_ST = { offen: 'wartet auf Antwort', bewilligt: '✓ bewilligt', abgelehnt: 'abgelehnt', zurueckgezogen: 'zurückgezogen' };
+  function mitteilungenKarte() {
+    const l = ((Z.ab || {}).mitteilungen || []).filter((m) => !m.gelesen || Z.offeneMitteilung === m.id).slice(0, 5);
+    return l.map((m) => `<div class="karte" style="border-left:4px solid ${m.wichtig ? '#E5484D' : '#0E7A55'}"><div style="display:flex;justify-content:space-between;gap:8px"><b>${m.wichtig ? '❗ ' : '📣 '}${esc(m.titel)}</b><small class="hinweis">${dk(String(m.erstellt).slice(0, 10))}</small></div>
+      ${m.text ? `<p style="margin-top:6px;white-space:pre-wrap">${esc(m.text)}</p>` : ''}<button class="gross leicht" style="margin-top:10px" data-gelesen="${m.id}">Gelesen</button></div>`).join('');
+  }
+  function teamKarte() {
+    const ab = Z.ab; if (!ab) return '';
+    const doks = ab.dokumente || [], antr = ab.antraege || [], alt = (ab.mitteilungen || []).filter((m) => m.gelesen);
+    return `${doks.length ? `<div class="karte"><h2>Meine Dokumente</h2>${doks.map((d) => `<div class="zeile" data-dok="${d.id}" style="cursor:pointer"><div><b>${esc(d.name)}${d.gelesen ? '' : ' <span style="color:#0E7A55">• neu</span>'}</b><small>${dk(String(d.erstellt).slice(0, 10))}${d.notiz ? ' · ' + esc(d.notiz) : ''}</small></div><span>Öffnen ›</span></div>`).join('')}</div>` : ''}
+      <div class="karte"><h2>Ferien oder Abwesenheit</h2>
+        ${antr.slice(0, 6).map((a) => `<div class="zeile"><div><b>${esc(ANTRAG[a.art])}: ${dk(a.von)}${a.bis !== a.von ? ' bis ' + dk(a.bis) : ''}</b><small>${esc(ANTRAG_ST[a.status])}${a.antwort ? ' · ' + esc(a.antwort) : ''}</small></div>${a.status === 'offen' ? `<button class="loeschen" style="margin:0" data-antrag-zurueck="${a.id}">Zurückziehen</button>` : ''}</div>`).join('')}
+        <button class="gross leicht" data-a="antrag" style="margin-top:10px">Ferien oder Abwesenheit melden</button></div>
+      ${alt.length ? `<details class="karte"><summary style="cursor:pointer"><b>Frühere Mitteilungen (${alt.length})</b></summary>${alt.map((m) => `<div class="zeile"><div><b>${esc(m.titel)}</b><small>${dk(String(m.erstellt).slice(0, 10))}${m.text ? ' · ' + esc(m.text.slice(0, 120)) : ''}</small></div></div>`).join('')}</details>` : ''}`;
+  }
+  function antragFenster() {
+    const dlg = document.createElement('dialog'); dlg.className = 'ui-frage';
+    dlg.innerHTML = `<form method="dialog"><h3>Ferien oder Abwesenheit</h3>
+      <label>Was?<select name="art">${Object.entries(ANTRAG).map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select></label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label>Von<input type="date" name="von" value="${heute()}" required></label><label>Bis<input type="date" name="bis" value="${heute()}" required></label></div>
+      <label>Bemerkung <small class="hinweis">(freiwillig)</small><input type="text" name="text" maxlength="300" placeholder="z. B. Arztzeugnis folgt"></label>
+      <div class="ui-knoepfe"><button type="button" class="nein" data-zu>Abbrechen</button><button class="ja">Senden</button></div></form>`;
+    document.body.appendChild(dlg);
+    dlg.addEventListener('close', () => dlg.remove());
+    dlg.querySelector('[data-zu]').onclick = () => dlg.close();
+    dlg.querySelector('form').onsubmit = async (e) => {
+      e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
+      if (f.bis < f.von) { toast('Das Enddatum liegt vor dem Beginn'); return; }
+      const { error } = await sb.rpc('ab_antrag_stellen', { p_token: token, p_art: f.art, p_von: f.von, p_bis: f.bis, p_text: f.text || '' });
+      if (error) { toast(fehlerText(error), 4000); return; }
+      dlg.close(); toast('✓ Gesendet. Sie sehen hier, wenn das Büro antwortet.'); laden();
+    };
+    dlg.showModal();
+  }
+  document.addEventListener('click', async (ev) => {
+    const g = ev.target.closest('[data-gelesen]');
+    if (g) { const m = (Z.ab.mitteilungen || []).find((x) => x.id === g.dataset.gelesen); if (m) m.gelesen = true; zeichnen(); sb.rpc('ab_gelesen', { p_token: token, p_mitteilung: g.dataset.gelesen }); return; }
+    const dk2 = ev.target.closest('[data-dok]');
+    if (dk2) { const f = window.open('', '_blank'); const { data, error } = await sb.functions.invoke('ablage-ma', { body: { token, id: dk2.dataset.dok } });
+      if (error || !data || !data.url) { if (f) f.close(); toast((data && data.fehler) || 'Dokument kann nicht geöffnet werden'); return; }
+      if (f) f.location = data.url; else location.href = data.url; const d = Z.ab.dokumente.find((x) => x.id === dk2.dataset.dok); if (d) { d.gelesen = true; zeichnen(); } return; }
+    const az = ev.target.closest('[data-antrag-zurueck]');
+    if (az) { if (!await UI.frage('Diesen Antrag zurückziehen?')) return; await sb.rpc('ab_antrag_zurueck', { p_token: token, p_id: az.dataset.antragZurueck }); laden(); return; }
+    if (ev.target.closest('[data-a="antrag"]')) antragFenster();
+  });
 
   function formular() {
     const f = Z.form, d = Z.daten;

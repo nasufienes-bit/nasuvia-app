@@ -119,6 +119,7 @@ body[data-dichte=gross] .aufgabe{padding:26px}
   const setz = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
   const svg = (p) => `<svg viewBox="0 0 24 24">${p}</svg>`;
   const I = {
+    ordner: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
     rechnung: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>', buch: '<path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2 2 2 0 0 0 2 2h13"/><path d="M9 8h6M9 12h4"/>',
     lohn: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M17 8h4M19 6v4"/>', uhr: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/>',
     kalender: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>', lager: '<path d="M3 8 12 3l9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
@@ -145,12 +146,15 @@ body[data-dichte=gross] .aufgabe{padding:26px}
       schritte: [['tb1', 'Leistungen und Öffnungszeiten eintragen', '../termine/?tab=einstellungen']] },
     { id: 'lager', name: 'Lager und Material', text: 'Bestand und Nachbestellen', ic: I.lager, farbe: '#F59E0B', bereich: 'lager',
       aufgaben: [['Lager', 'Artikel und Bestand', '../lager/', I.lager]], schritte: [['lg1', 'Ersten Artikel erfassen', '../lager/']] },
+    { id: 'ablage', name: 'Dokumente und Personal', text: 'Ordner, Zeugnisse, Verträge, Mitteilungen', ic: I.ordner, farbe: '#0891B2', bereich: 'ablage',
+      aufgaben: [['Firmenablage', 'Ordner und Dokumente', '../ablage/', I.ordner], ['Mitteilung ans Team', 'Erscheint auf dem Handy', '../ablage/?tab=mitteilungen', I.ordner]],
+      schritte: [['ab1', 'Ersten Ordner anlegen, z. B. Arbeitszeugnisse', '../ablage/']] },
     { id: 'privat', name: 'Private Finanzen', text: 'Konto, Abos, Rechnungen, Sparen', ic: I.haus, farbe: '#EC4899', bereich: 'privat',
       aufgaben: [['Kontoauszug laden', 'Sehen, wohin das Geld geht', '../privat/?tab=konto', I.bank], ['Private Rechnung', 'Mit Frist und Erinnerung', '../privat/?tab=rechnungen', I.rechnung]],
       schritte: [['hb1', 'Kontoauszug im Home-Büro hochladen', '../privat/?tab=konto']] },
   ];
   const BEREICH_NAME = { buchhaltung: ['Buchhaltung', '../?bereich=buchhaltung', I.buch, '#0E9F6E'], rechnungen: ['Rechnungen', '../rechnungen/', I.rechnung, '#0E7A55'], zeit: ['Zeiterfassung', '../zeit/', I.uhr, '#6366F1'],
-    termine: ['Termine', '../termine/', I.kalender, '#A855F7'], lager: ['Lager', '../lager/', I.lager, '#F59E0B'], privat: ['Home-Büro', '../privat/', I.haus, '#EC4899'] };
+    termine: ['Termine', '../termine/', I.kalender, '#A855F7'], lager: ['Lager', '../lager/', I.lager, '#F59E0B'], ablage: ['Firmenablage', '../ablage/', I.ordner, '#0891B2'], privat: ['Home-Büro', '../privat/', I.haus, '#EC4899'] };
 
   // Was das Paket enthält (ohne Lizenz, z. B. eigene Nutzung: alles)
   const O = window.ORDASIO;

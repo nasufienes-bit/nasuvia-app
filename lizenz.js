@@ -6,7 +6,7 @@
   if (!K.produkt) return;
   const skript = document.currentScript || {};
   const PRODUKT = (skript.dataset && skript.dataset.produkt) || 'buchhaltung';
-  const NAME = { buchhaltung: 'die Buchhaltung', rechnungen: 'das Rechnungsprogramm', privat: 'das Home-Büro', zeit: 'die Zeiterfassung', termine: 'die Online-Terminbuchung', lager: 'das Lager', start: 'Ordasio' }[PRODUKT];
+  const NAME = { buchhaltung: 'die Buchhaltung', rechnungen: 'das Rechnungsprogramm', privat: 'das Home-Büro', zeit: 'die Zeiterfassung', termine: 'die Online-Terminbuchung', lager: 'das Lager', ablage: 'die Firmenablage', start: 'Ordasio' }[PRODUKT];
   // Pakete und Rechtsformen kommen aus pakete.js (vor lizenz.js einbinden)
   const O = window.ORDASIO || null;
   const paketName = (id) => (O && O.paket(id) ? O.paket(id).name : id);
