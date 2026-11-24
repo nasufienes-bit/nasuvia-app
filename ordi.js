@@ -41,30 +41,30 @@
 
   const css = document.createElement('style');
   css.textContent = `
-  .ordi-knopf{position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:70;width:58px;height:58px;border-radius:20px;border:0;background:#fff;box-shadow:0 14px 34px -14px rgba(11,59,46,.55),0 1px 2px rgba(0,0,0,.06);display:grid;place-items:center;cursor:pointer;transition:transform .2s}
+  .ordi-knopf{position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:70;width:58px;height:58px;border-radius:20px;border:0;background:#fff;box-shadow:0 14px 34px -14px color-mix(in srgb,var(--blau,#0B3B2E) 55%,transparent),0 1px 2px rgba(0,0,0,.06);display:grid;place-items:center;cursor:pointer;transition:transform .2s}
   .ordi-knopf:hover{transform:translateY(-2px) rotate(-3deg)}
   .ordi-knopf .ordi-blase{position:absolute;right:66px;bottom:8px;background:#0A1F17;color:#fff;font:600 13px/1.3 'League Spartan',system-ui,sans-serif;border-radius:14px 14px 4px 14px;padding:8px 12px;white-space:nowrap;box-shadow:0 10px 24px -12px rgba(0,0,0,.5);animation:ordiRein .4s ease}
   body:has(.nr-status) .ordi-knopf{bottom:calc(66px + env(safe-area-inset-bottom))}
   @keyframes ordiRein{from{opacity:0;transform:translateY(6px)}}
   @media(max-width:820px){.ordi-knopf{bottom:calc(84px + env(safe-area-inset-bottom));width:52px;height:52px;border-radius:18px}body:has(.fab) .ordi-knopf{bottom:calc(146px + env(safe-area-inset-bottom))}}
-  .ordi-panel{position:fixed;right:16px;bottom:calc(86px + env(safe-area-inset-bottom));z-index:9500;width:min(380px,calc(100vw - 24px));height:min(560px,calc(100vh - 140px));background:#fff;border-radius:22px;box-shadow:0 40px 90px -30px rgba(12,18,38,.55),0 0 0 1px rgba(11,59,46,.08);display:flex;flex-direction:column;overflow:hidden;font:15px/1.45 'League Spartan',system-ui,sans-serif;color:#0A1F17;animation:ordiRein .25s ease}
+  .ordi-panel{position:fixed;right:16px;bottom:calc(86px + env(safe-area-inset-bottom));z-index:9500;width:min(380px,calc(100vw - 24px));height:min(560px,calc(100vh - 140px));background:#fff;border-radius:22px;box-shadow:0 40px 90px -30px rgba(12,18,38,.55),0 0 0 1px color-mix(in srgb,var(--blau,#0B3B2E) 8%,transparent);display:flex;flex-direction:column;overflow:hidden;font:15px/1.45 'League Spartan',system-ui,sans-serif;color:#0A1F17;animation:ordiRein .25s ease}
   @media(max-width:820px){.ordi-panel{left:8px;right:8px;width:auto;bottom:calc(8px + env(safe-area-inset-bottom));height:min(78vh,620px)}}
-  .ordi-kopf{display:flex;align-items:center;gap:10px;padding:14px 14px 12px;background:linear-gradient(135deg,#0A1F17,#0B3B2E);color:#fff}
+  .ordi-kopf{display:flex;align-items:center;gap:10px;padding:14px 14px 12px;background:linear-gradient(135deg,#0A1F17,var(--blau,#0B3B2E));color:#fff}
   .ordi-kopf b{font-size:16px;display:block}.ordi-kopf small{opacity:.75;font-size:12px}
   .ordi-kopf button{margin-left:auto;border:0;background:rgba(255,255,255,.12);color:#fff;width:32px;height:32px;border-radius:10px;font-size:18px;cursor:pointer}
   .ordi-kopf .ordi-menue{margin-left:auto}.ordi-kopf [data-ordi-zu]{margin-left:6px}
   .ordi-verlauf{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:#F7FAF8}
   .ordi-msg{max-width:88%;border-radius:16px;padding:10px 12px;white-space:pre-wrap;word-wrap:break-word}
-  .ordi-msg.ordi{background:#fff;border:1px solid rgba(11,59,46,.1);border-bottom-left-radius:4px;align-self:flex-start}
-  .ordi-msg.ich{background:#0B3B2E;color:#fff;border-bottom-right-radius:4px;align-self:flex-end}
+  .ordi-msg.ordi{background:#fff;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 10%,transparent);border-bottom-left-radius:4px;align-self:flex-start}
+  .ordi-msg.ich{background:var(--blau,#0B3B2E);color:#fff;border-bottom-right-radius:4px;align-self:flex-end}
   .ordi-msg.fakt{background:linear-gradient(135deg,#FFF8E6,#FDF2D0);border:1px solid #F5D58A}
   .ordi-msg ol{margin:6px 0 0 18px;padding:0}.ordi-msg li{margin:2px 0}
-  .ordi-msg a.ordi-hin{display:inline-block;margin-top:8px;font-weight:700;color:#0E7A55;text-decoration:none}
+  .ordi-msg a.ordi-hin{display:inline-block;margin-top:8px;font-weight:700;color:var(--elektrik,#0E7A55);text-decoration:none}
   .ordi-chips{display:flex;gap:6px;flex-wrap:wrap}
-  .ordi-chips button{border:1px solid rgba(11,59,46,.18);background:#fff;border-radius:100px;padding:6px 11px;font:inherit;font-size:13px;color:#0B3B2E;cursor:pointer}
-  .ordi-eingabe{display:flex;gap:8px;padding:10px;border-top:1px solid rgba(11,59,46,.1);background:#fff}
-  .ordi-eingabe input{flex:1;border:1px solid rgba(11,59,46,.22);border-radius:100px;padding:11px 14px;font:inherit;font-size:16px;min-width:0}
-  .ordi-eingabe button{border:0;border-radius:100px;background:#0B3B2E;color:#fff;padding:0 16px;font:inherit;font-weight:700;cursor:pointer}
+  .ordi-chips button{border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 18%,transparent);background:#fff;border-radius:100px;padding:6px 11px;font:inherit;font-size:13px;color:var(--blau,#0B3B2E);cursor:pointer}
+  .ordi-eingabe{display:flex;gap:8px;padding:10px;border-top:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 10%,transparent);background:#fff}
+  .ordi-eingabe input{flex:1;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 22%,transparent);border-radius:100px;padding:11px 14px;font:inherit;font-size:16px;min-width:0}
+  .ordi-eingabe button{border:0;border-radius:100px;background:var(--blau,#0B3B2E);color:#fff;padding:0 16px;font:inherit;font-weight:700;cursor:pointer}
   .ordi-tippt span{display:inline-block;width:7px;height:7px;border-radius:50%;background:#7C8499;margin-right:3px;animation:ordiPunkt 1s infinite}
   .ordi-tippt span:nth-child(2){animation-delay:.15s}.ordi-tippt span:nth-child(3){animation-delay:.3s}
   @keyframes ordiPunkt{50%{opacity:.25;transform:translateY(-2px)}}

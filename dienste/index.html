@@ -11,12 +11,12 @@
 <script src="../konfig.js"></script>
 <script src="../branchen.js"></script>
 <style>
-:root{--papier:#F4FAF6;--flaeche:#E8F4EE;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--gold:#C9A45C;--linie:rgba(11,59,46,.14)}
+:root{--papier:#F4FAF6;--flaeche:#E8F4EE;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--gold:#C9A45C;--linie:color-mix(in srgb,var(--blau,#0B3B2E) 14%,transparent)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font:16px/1.6 'League Spartan',-apple-system,system-ui,sans-serif;background:var(--papier);color:var(--tinte)}
 a{color:inherit}
 .wrap{max-width:1040px;margin:0 auto;padding:0 20px}
-.held{background:radial-gradient(900px 500px at 85% -10%,rgba(201,164,92,.28),transparent 60%),radial-gradient(800px 600px at -10% 120%,rgba(14,122,85,.45),transparent 60%),#0A1F17;color:#fff;padding:22px 0 70px;overflow:hidden}
+.held{background:radial-gradient(900px 500px at 85% -10%,rgba(201,164,92,.28),transparent 60%),radial-gradient(800px 600px at -10% 120%,color-mix(in srgb,var(--elektrik,#0E7A55) 45%,transparent),transparent 60%),#0A1F17;color:#fff;padding:22px 0 70px;overflow:hidden}
 .held header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:46px}
 .held header a{color:rgba(255,255,255,.85);text-decoration:none;font-weight:600}
 .held .eyebrow{font-family:ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}

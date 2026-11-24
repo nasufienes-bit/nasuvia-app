@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="../schrift.css" />
 <script src="../konfig.js"></script>
 <style>
-:root{--papier:#F4FAF6;--flaeche:#E8F4EE;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--linie:rgba(11,59,46,.14)}
+:root{--papier:#F4FAF6;--flaeche:#E8F4EE;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--linie:color-mix(in srgb,var(--blau,#0B3B2E) 14%,transparent)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font:16px/1.6 'League Spartan',-apple-system,system-ui,sans-serif;background:var(--papier);color:var(--tinte)}
 .wrap{max-width:880px;margin:0 auto;padding:0 18px 60px}
@@ -17,8 +17,8 @@ header{padding:24px 0 6px;display:flex;justify-content:space-between;align-items
 header a{color:var(--elektrik);text-decoration:none;font-weight:600}
 h1{font-size:clamp(30px,6vw,46px);letter-spacing:-.03em;line-height:1.05;margin:14px 0 10px}
 .unter{color:var(--text);max-width:42em;font-size:17px}
-.fortschritt{position:sticky;top:0;z-index:5;background:rgba(244,250,246,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:12px 0;margin:14px 0 4px}
-.fortschritt div{display:flex;align-items:center;gap:12px;background:#fff;border-radius:100px;padding:10px 16px;box-shadow:0 10px 30px -20px rgba(11,59,46,.5)}
+.fortschritt{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--papier,#F4FAF6) 95%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:12px 0;margin:14px 0 4px}
+.fortschritt div{display:flex;align-items:center;gap:12px;background:#fff;border-radius:100px;padding:10px 16px;box-shadow:0 10px 30px -20px color-mix(in srgb,var(--blau,#0B3B2E) 50%,transparent)}
 .balken{flex:1;height:10px;border-radius:10px;background:var(--flaeche);overflow:hidden}
 .balken i{display:block;height:100%;background:linear-gradient(90deg,var(--elektrik),#34D399);border-radius:10px;transition:width .4s}
 .fortschritt b{font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -29,7 +29,7 @@ h2 span{display:inline-grid;place-items:center;width:34px;height:34px;border-rad
 .punkt input{width:22px;height:22px;margin-top:3px;accent-color:var(--elektrik);cursor:pointer}
 .punkt b{display:block;font-size:17px}
 .punkt p{color:var(--text);margin-top:4px}
-.punkt.fertig b{text-decoration:line-through;text-decoration-color:rgba(14,122,85,.5);color:var(--leise)}
+.punkt.fertig b{text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--elektrik,#0E7A55) 50%,transparent);color:var(--leise)}
 .tipp{background:var(--flaeche);border-radius:12px;padding:10px 14px;margin-top:10px;font-size:15px;color:var(--text)}
 .tipp b{color:var(--blau)}
 .rechner{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:10px}

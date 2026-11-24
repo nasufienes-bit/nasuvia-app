@@ -12,7 +12,7 @@
 <script src="../branchen.js"></script>
 <script src="../lib/supabase.js"></script>
 <style>
-:root{--papier:#F4FAF6;--flaeche:#E8F4EE;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--gruen:#0E9F6E;--rot:#E5484D;--linie:rgba(11,59,46,.14);--schatten:0 1px 2px rgba(12,18,38,.05),0 14px 34px -20px rgba(12,18,38,.3)}
+:root{--papier:#F4FAF6;--flaeche:#E8F4EE;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--gruen:#0E9F6E;--rot:#E5484D;--linie:color-mix(in srgb,var(--blau,#0B3B2E) 14%,transparent);--schatten:0 1px 2px rgba(12,18,38,.05),0 14px 34px -20px rgba(12,18,38,.3)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font:16px/1.55 'League Spartan',-apple-system,system-ui,sans-serif;background:var(--papier);color:var(--tinte)}
 [hidden]{display:none!important}
@@ -35,11 +35,11 @@ h1{font-size:clamp(30px,6vw,42px);letter-spacing:-.03em;line-height:1.05;margin:
 .empf{max-width:640px;margin:14px auto 0;display:grid;gap:10px}
 .empf .felder{display:grid;grid-template-columns:1.4fr 1fr;gap:8px}
 .empf label{display:grid;gap:4px;font-size:13px;color:var(--text,#3F5A4F)}
-.empf select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.22);border-radius:12px;padding:10px 12px;background:#fff;width:100%}
+.empf select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 22%,transparent);border-radius:12px;padding:10px 12px;background:#fff;width:100%}
 .empf p{font-size:14px;color:var(--text,#3F5A4F);margin:0}
-.paket .empf-marke{display:inline-block;background:#0E7A55;color:#fff;border-radius:100px;padding:3px 10px;font-size:12px;font-weight:700;margin-bottom:6px}
+.paket .empf-marke{display:inline-block;background:var(--elektrik,#0E7A55);color:#fff;border-radius:100px;padding:3px 10px;font-size:12px;font-weight:700;margin-bottom:6px}
 .rf-wahl{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:18px 0 4px}
-.rf-wahl button{font:inherit;font-weight:600;border:1px solid rgba(11,59,46,.2);background:#fff;border-radius:100px;padding:9px 16px;cursor:pointer;color:var(--tinte)}
+.rf-wahl button{font:inherit;font-weight:600;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 20%,transparent);background:#fff;border-radius:100px;padding:9px 16px;cursor:pointer;color:var(--tinte)}
 .rf-wahl button.an{background:var(--gruen,#0B3B2E);border-color:transparent;color:#fff}
 .rf-text{text-align:center;color:var(--text);font-size:14px;margin:4px 0 0}
 .paket .kurz{color:var(--text);font-size:13.5px;margin-top:4px}
@@ -62,7 +62,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 .dlg{padding:24px;display:grid;gap:10px}
 .dlg h2{font-size:22px}
 .dlg label{display:grid;gap:4px;font-size:13px;color:var(--text)}
-.dlg input,.dlg select,.dlg textarea{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);border-radius:12px;padding:10px 12px}
+.dlg input,.dlg select,.dlg textarea{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 26%,transparent);border-radius:12px;padding:10px 12px}
 .summe{background:var(--flaeche);border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;font-weight:700}
 .meldung{min-height:1.2em;font-size:14px;color:#C53030}
 .fertig{text-align:center;padding:10px 0}

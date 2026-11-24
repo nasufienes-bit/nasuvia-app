@@ -30,19 +30,19 @@
   .lz-karte{width:min(440px,100%);background:#fff;border-radius:24px;padding:26px;box-shadow:0 30px 80px -30px rgba(12,18,38,.45)}
   .lz-karte h2{font-size:1.6rem;line-height:1.15;margin:10px 0 6px;letter-spacing:-.02em}
   .lz-karte p{color:#3F5A4F;font-size:15px;line-height:1.5;margin:0 0 14px}
-  .lz-symbol{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#0B3B2E,#0E7A55);display:grid;place-items:center}
+  .lz-symbol{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,var(--blau,#0B3B2E),var(--elektrik,#0E7A55));display:grid;place-items:center}
   .lz-symbol svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-  .lz-reiter{display:flex;background:#E8F4EE;border-radius:100px;padding:4px;margin:4px 0 16px}
+  .lz-reiter{display:flex;background:var(--flaeche,#E8F4EE);border-radius:100px;padding:4px;margin:4px 0 16px}
   .lz-reiter button{flex:1;border:0;background:none;border-radius:100px;padding:9px;font:inherit;font-weight:500;color:#3F5A4F;cursor:pointer}
-  .lz-reiter button.an{background:#fff;color:#0B3B2E;font-weight:700;box-shadow:0 2px 8px rgba(12,18,38,.08)}
+  .lz-reiter button.an{background:#fff;color:var(--blau,#0B3B2E);font-weight:700;box-shadow:0 2px 8px rgba(12,18,38,.08)}
   .lz-karte label{display:grid;gap:4px;font-size:13px;color:#3F5A4F;margin-bottom:10px}
-  .lz-karte input,.lz-karte select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);border-radius:12px;padding:11px 12px;background:#fff;color:#0A1F17;width:100%}
-  .lz-knopf{display:block;width:100%;border:0;border-radius:100px;padding:13px;font:inherit;font-weight:700;font-size:16px;cursor:pointer;background:#0B3B2E;color:#fff;text-align:center;text-decoration:none;margin-top:6px}
-  .lz-knopf.zweit{background:#E8F4EE;color:#0B3B2E}
-  .lz-link{display:block;margin:12px auto 0;background:none;border:0;color:#0E7A55;font:inherit;font-size:14px;cursor:pointer}
+  .lz-karte input,.lz-karte select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 26%,transparent);border-radius:12px;padding:11px 12px;background:#fff;color:#0A1F17;width:100%}
+  .lz-knopf{display:block;width:100%;border:0;border-radius:100px;padding:13px;font:inherit;font-weight:700;font-size:16px;cursor:pointer;background:var(--blau,#0B3B2E);color:#fff;text-align:center;text-decoration:none;margin-top:6px}
+  .lz-knopf.zweit{background:var(--flaeche,#E8F4EE);color:var(--blau,#0B3B2E)}
+  .lz-link{display:block;margin:12px auto 0;background:none;border:0;color:var(--elektrik,#0E7A55);font:inherit;font-size:14px;cursor:pointer}
   .lz-hinweis{font-size:13px!important;margin:-4px 0 10px!important;color:#3F5A4F}
   .lz-meldung{min-height:1.3em;font-size:14px;color:#C53030;margin:4px 0 6px}
-  .lz-meldung.ok{color:#0A7150}
+  .lz-meldung.ok{color:var(--elektrik,#0A7150)}
   .lz-pille{position:fixed;left:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:9000;background:#0A1F17;color:#fff;border-radius:100px;padding:8px 14px;font:600 13px 'League Spartan',system-ui,sans-serif;box-shadow:0 10px 30px -10px rgba(12,18,38,.5);text-decoration:none}
   .lz-pille b{color:#6EE7A8}
   .lz-pille.lesen{background:#B4282D}

@@ -13,13 +13,13 @@
 <script src="../konfig.js"></script>
 <script src="../lib/supabase.js"></script>
 <style>
-:root{--papier:#F4FAF6;--flaeche:#E8F4EE;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--gruen:#0E9F6E;--rot:#E5484D;--linie:rgba(11,59,46,.14);--schatten:0 1px 2px rgba(12,18,38,.04),0 14px 34px -22px rgba(11,59,46,.4);--display:'League Spartan',-apple-system,system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+:root{--papier:#F4FAF6;--flaeche:#E8F4EE;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--gruen:#0E9F6E;--rot:#E5484D;--linie:color-mix(in srgb,var(--blau,#0B3B2E) 14%,transparent);--schatten:0 1px 2px rgba(12,18,38,.04),0 14px 34px -22px color-mix(in srgb,var(--blau,#0B3B2E) 40%,transparent);--display:'League Spartan',-apple-system,system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font:16px/1.5 var(--display);background:var(--papier);color:var(--tinte);min-height:100vh;padding-bottom:40px}
 [hidden]{display:none!important}
 button{font:inherit;cursor:pointer}
 .wrap{max-width:620px;margin:0 auto;padding:0 16px}
-.oben{background:linear-gradient(160deg,#0B3B2E,#0E7A55);color:#fff;padding:calc(26px + env(safe-area-inset-top,0px)) 0 64px}
+.oben{background:linear-gradient(160deg,var(--blau,#0B3B2E),var(--elektrik,#0E7A55));color:#fff;padding:calc(26px + env(safe-area-inset-top,0px)) 0 64px}
 .oben small{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.7)}
 .oben h1{font-size:30px;letter-spacing:-.02em;line-height:1.1;margin:4px 0 6px}
 .oben p{color:rgba(255,255,255,.85);font-size:15px}
@@ -31,7 +31,7 @@ h2 i{font-style:normal;width:26px;height:26px;border-radius:50%;background:var(-
 .wahl{display:grid;gap:8px}
 .wahl button{border:1.5px solid var(--linie);background:#fff;border-radius:14px;padding:12px 14px;text-align:left;display:flex;justify-content:space-between;gap:10px;color:var(--tinte)}
 .wahl button small{color:var(--leise);display:block;font-size:13px}
-.wahl button.an{border-color:var(--elektrik);background:rgba(14,122,85,.06)}
+.wahl button.an{border-color:var(--elektrik);background:color-mix(in srgb,var(--elektrik,#0E7A55) 6%,transparent)}
 .tage{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
 .tage::-webkit-scrollbar{display:none}
 .tage button{flex:none;border:1.5px solid var(--linie);background:#fff;border-radius:14px;width:64px;padding:8px 0;text-align:center;color:var(--tinte)}
@@ -44,7 +44,7 @@ h2 i{font-style:normal;width:26px;height:26px;border-radius:50%;background:var(-
 .slots button{border:1.5px solid var(--linie);background:#fff;border-radius:12px;padding:10px 0;font-weight:600;color:var(--blau);font-variant-numeric:tabular-nums}
 .slots button.an{background:var(--blau);color:#fff;border-color:var(--blau)}
 label{display:grid;gap:4px;font-size:13px;color:var(--text);margin-bottom:10px}
-input,textarea{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);border-radius:12px;padding:11px 12px;background:#fff;color:var(--tinte);width:100%}
+input,textarea{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 26%,transparent);border-radius:12px;padding:11px 12px;background:#fff;color:var(--tinte);width:100%}
 .gross{display:block;width:100%;border:0;border-radius:16px;padding:16px;font-weight:700;font-size:18px;background:var(--blau);color:#fff;text-align:center;text-decoration:none}
 .gross:disabled{opacity:.5}
 .gross.leicht{background:var(--flaeche);color:var(--blau);font-size:16px;padding:13px;margin-top:8px}

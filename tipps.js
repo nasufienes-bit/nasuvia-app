@@ -42,12 +42,12 @@
   };
   const ZIEL = { rechnungen: 'aside.panel' };
   const css = document.createElement('style');
-  css.textContent = `.tp-leiste{position:relative;margin:0 0 16px;border-radius:18px;background:linear-gradient(135deg,rgba(14,122,85,.09),rgba(201,164,92,.12));padding:12px 40px 12px 12px;font-family:inherit}
+  css.textContent = `.tp-leiste{position:relative;margin:0 0 16px;border-radius:18px;background:linear-gradient(135deg,color-mix(in srgb,var(--elektrik,#0E7A55) 9%,transparent),rgba(201,164,92,.12));padding:12px 40px 12px 12px;font-family:inherit}
   .tp-band{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}.tp-band::-webkit-scrollbar{display:none}
   .tp-karte{flex:0 0 min(320px,86%);scroll-snap-align:start;background:rgba(255,255,255,.85);border-radius:14px;padding:10px 12px;display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:start}
   .tp-karte span{font-size:22px;grid-row:span 2;line-height:1.2}.tp-karte b{font-size:14.5px;color:#0A1F17}.tp-karte p{font-size:13px;color:#3F5A4F;margin:0;line-height:1.4}
   .tp-zu{position:absolute;top:8px;right:8px;width:28px;height:28px;border:0;border-radius:50%;background:rgba(255,255,255,.8);color:#3F5A4F;font-size:16px;cursor:pointer}
-  .tp-punkte{display:flex;gap:5px;justify-content:center;margin-top:8px}.tp-punkte i{width:6px;height:6px;border-radius:50%;background:rgba(11,59,46,.2)}.tp-punkte i.an{background:#0E7A55;width:16px;border-radius:4px}
+  .tp-punkte{display:flex;gap:5px;justify-content:center;margin-top:8px}.tp-punkte i{width:6px;height:6px;border-radius:50%;background:color-mix(in srgb,var(--blau,#0B3B2E) 20%,transparent)}.tp-punkte i.an{background:var(--elektrik,#0E7A55);width:16px;border-radius:4px}
   @media print{.tp-leiste{display:none}}`;
   document.head.appendChild(css);
   function bauen() {

@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="../schrift.css" />
 <script src="../konfig.js"></script>
 <style>
-:root{--papier:#F4FAF6;--flaeche:#E8F4EE;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--linie:rgba(11,59,46,.14)}
+:root{--papier:#F4FAF6;--flaeche:#E8F4EE;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--linie:color-mix(in srgb,var(--blau,#0B3B2E) 14%,transparent)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font:16px/1.55 'League Spartan',-apple-system,system-ui,sans-serif;background:var(--papier);color:var(--tinte)}
 .wrap{max-width:900px;margin:0 auto;padding:0 18px 60px}
@@ -18,7 +18,7 @@ header a{color:var(--elektrik);text-decoration:none;font-weight:600}
 h1{font-size:clamp(30px,6vw,44px);letter-spacing:-.03em;line-height:1.05;margin:10px 0 8px}
 .unter{color:var(--text);max-width:40em}
 .such{position:sticky;top:0;z-index:5;background:rgba(247,249,253,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:14px 0;margin:10px 0}
-.such div{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--linie);border-radius:100px;padding:12px 18px;box-shadow:0 10px 30px -18px rgba(11,59,46,.45)}
+.such div{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--linie);border-radius:100px;padding:12px 18px;box-shadow:0 10px 30px -18px color-mix(in srgb,var(--blau,#0B3B2E) 45%,transparent)}
 .such svg{width:20px;height:20px;stroke:var(--elektrik);fill:none;stroke-width:2.2;stroke-linecap:round;flex:none}
 .such input{flex:1;border:0;outline:0;font:inherit;font-size:17px;background:none;min-width:0}
 .bereiche{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
@@ -28,7 +28,7 @@ h2{font-size:22px;margin:30px 0 12px;letter-spacing:-.01em}
 .artikel h3{font-size:18px;margin-bottom:6px}
 .artikel ol{margin-left:20px;display:grid;gap:6px;color:var(--text)}
 .artikel a.los{display:inline-block;margin-top:12px;border-radius:100px;padding:8px 14px;background:var(--blau);color:#fff;font-weight:600;font-size:14px;text-decoration:none}
-.artikel:target{outline:3px solid rgba(14,122,85,.35)}
+.artikel:target{outline:3px solid color-mix(in srgb,var(--elektrik,#0E7A55) 35%,transparent)}
 .leer{color:var(--leise);padding:20px 0}
 .kontakt{margin-top:30px;background:linear-gradient(135deg,var(--blau),var(--elektrik));color:#fff;border-radius:20px;padding:22px}
 .kontakt a{color:#fff;font-weight:700}
