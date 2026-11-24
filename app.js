@@ -1953,8 +1953,22 @@
         ${istFestJahr ? `<p class="hinweis"><b>${Z.jahr} ist festgeschrieben</b> (bis ${datumKurz(festBis())}). Buchungen bis zu diesem Datum lassen sich nicht mehr ändern oder löschen. Korrekturen machen Sie mit einer Storno-Buchung im offenen Jahr.</p>`
           : `<p class="hinweis">Nach dem Abschluss schreiben Sie das Jahr fest. Danach lassen sich die Buchungen nicht mehr ändern, so wie es die Geschäftsbücherverordnung (GeBüV) verlangt. Bewahren Sie Jahresrechnung, Journal und Belege 10 Jahre auf.</p>
              ${kannFest ? `<button class="btn btn-haupt abstand" data-festschreiben="${Z.jahr}">Jahr ${Z.jahr} festschreiben</button>` : `<p class="hinweis abstand">${bis ? 'Zum Festschreiben „Ganzes Jahr“ wählen.' : `Festschreiben ist ab dem 01.01.${Number(Z.jahr) + 1} möglich.`}</p>`}`}
+        ${window.NASUVIA_SB ? '<button class="btn abstand" data-protokoll>Änderungsprotokoll ansehen</button>' : ''}
       </div>
     </div>`;
+  }
+  // Änderungsprotokoll vom Server: jede Erfassung, Änderung und Löschung von Buchungen (GeBüV)
+  async function protokollZeigen() {
+    const sb = window.NASUVIA_SB; if (!sb) return;
+    const { data, error } = await sb.from('aenderungen').select('art,datensatz_id,aktion,alt,neu,zeit').order('zeit', { ascending: false }).limit(300);
+    if (error) { toast('Protokoll nicht erreichbar: ' + error.message); return; }
+    const NAME = { erfasst: 'Erfasst', geaendert: 'Geändert', geloescht: 'Gelöscht', entfernt: 'Entfernt', abgelehnt: 'Abgelehnt (festgeschrieben)', festschreiben: 'Festgeschrieben' };
+    const zeile = (x) => { const d = x.neu || x.alt || {}; const betrag = d.betragRappen != null ? chf(d.betragRappen) : ''; return `<tr><td>${esc(new Date(x.zeit).toLocaleString('de-CH', { dateStyle: 'short', timeStyle: 'short' }))}</td><td>${esc(NAME[x.aktion] || x.aktion)}</td><td>${esc(x.aktion === 'festschreiben' ? 'bis ' + datumKurz((x.neu || {}).festBis || '') : [d.datum ? datumKurz(d.datum) : '', d.text || d.partner || d.kategorie || x.datensatz_id].filter(Boolean).join(' · '))}</td><td style="text-align:right">${esc(betrag)}</td></tr>`; };
+    const dlg = document.createElement('dialog');
+    dlg.innerHTML = `<form method="dialog" style="width:min(760px,calc(100vw - 24px))"><div class="dlg-kopf"><h3>Änderungsprotokoll</h3><button class="x" value="zu" aria-label="Schliessen">×</button></div>
+      <p class="hinweis">Der Server hält jede Änderung an Buchungen fest, mit Zeitpunkt sowie altem und neuem Stand. Änderungen in festgeschriebenen Jahren lehnt er ab. Die letzten 300 Einträge:</p>
+      <div style="overflow:auto;max-height:60vh"><table><thead><tr><th>Zeit</th><th>Aktion</th><th>Buchung</th><th style="text-align:right">Betrag</th></tr></thead><tbody>${(data || []).map(zeile).join('') || '<tr><td colspan="4">Noch keine Einträge.</td></tr>'}</tbody></table></div></form>`;
+    document.body.appendChild(dlg); dlg.addEventListener('close', () => dlg.remove()); dlg.showModal();
   }
   async function festschreiben(jahr) {
     const bis = jahr + '-12-31';
@@ -2050,6 +2064,7 @@
     const ku = t.closest('[data-konto-umbenennen]'); if (ku) { kontoAnpassen(ku.dataset.kontoUmbenennen); return; }
     if (t.closest('[data-konto-neu]')) { kontoAnpassen(null); return; }
     const fs = t.closest('[data-festschreiben]'); if (fs) { festschreiben(fs.dataset.festschreiben); return; }
+    if (t.closest('[data-protokoll]')) { protokollZeigen(); return; }
     const rf = t.closest('[data-rechtsform]'); if (rf) { await einstSpeichern({ rechtsform: rf.dataset.rechtsform }); zeichnen(); toast('Rechtsform gespeichert'); }
   });
   document.addEventListener('change', async (e) => {
