@@ -229,6 +229,18 @@
   const firmenName = () => ((lizenzJetzt() || {}).firma) || ((window.Marke && Marke.daten && Marke.daten()) || {}).name || '';
 
   /* ================= Navigation ================= */
+  // Zurück-Knopf: innerhalb der Buchhaltung zuerst die vorherige Ansicht
+  const ansichtVorher = [];
+  const ANS_NAME = { uebersicht: 'Übersicht', buchungen: 'Buchungen', konten: 'Konten', auswertung: 'Auswertung', liquiditaet: 'Liquidität', loehne: 'Löhne', mwst: 'MWST', abschluss: 'Abschluss', mehr: 'Einstellungen' };
+  window.OrdasioZurueck = window.OrdasioZurueck || {};
+  window.OrdasioZurueck.kannIntern = () => (ansichtVorher.length ? ANS_NAME[ansichtVorher[ansichtVorher.length - 1]] || 'zurück' : Z.ansicht !== 'uebersicht' ? 'Übersicht' : false);
+  window.OrdasioZurueck.intern = () => {
+    if (document.querySelector('dialog[open]')) { document.querySelector('dialog[open]').close(); return true; }
+    if (!ansichtVorher.length && Z.ansicht === 'uebersicht') return false;
+    Z.ansicht = ansichtVorher.pop() || 'uebersicht';
+    try { localStorage.setItem('nb.ansicht', Z.ansicht); } catch {}
+    zeichnen(); window.scrollTo(0, 0); return true;
+  };
   function navZeichnen() {
     if (!ansichten().some(([id]) => id === Z.ansicht)) Z.ansicht = 'uebersicht';
     $('navPc').innerHTML = ansichten().map(([id, name]) =>
@@ -239,7 +251,9 @@
   document.addEventListener('click', (e) => {
     const k = e.target.closest('[data-ansicht]');
     if (!k) return;
+    if (k.dataset.ansicht !== Z.ansicht) { ansichtVorher.push(Z.ansicht); if (ansichtVorher.length > 20) ansichtVorher.shift(); }
     Z.ansicht = k.dataset.ansicht;
+    if (window.OrdasioZurueck && OrdasioZurueck.aktualisieren) OrdasioZurueck.aktualisieren();
     try { localStorage.setItem('nb.ansicht', Z.ansicht); } catch {}
     zeichnen();
     window.scrollTo(0, 0);

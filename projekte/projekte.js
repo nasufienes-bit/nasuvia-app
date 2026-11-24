@@ -108,7 +108,7 @@
     const proMa = {}; for (const e of z.ein) { const k = e.mitarbeiter_id; proMa[k] = (proMa[k] || 0) + e.minuten; }
     const proArt = {}; for (const b of z.mat) { proArt[b.artikel_id] = (proArt[b.artikel_id] || 0) + Math.abs(Number(b.menge) || 0); }
     const rp = Z.rapporte.filter((r) => r.auftrag_id === a.id);
-    return `<div class="kopf"><div><button class="btn klein" data-a="zurueck">‹ Alle Projekte</button><h1 style="margin-top:8px">${esc(a.name)}</h1><p class="unter">${esc([a.kunde, a.adresse, a.kostenstelle ? 'Kostenstelle ' + a.kostenstelle : ''].filter(Boolean).join(' · '))}</p></div>
+    return `<div class="kopf"><div><h1>${esc(a.name)}</h1><p class="unter">${esc([a.kunde, a.adresse, a.kostenstelle ? 'Kostenstelle ' + a.kostenstelle : ''].filter(Boolean).join(' · '))}</p></div>
       <div class="aktionen"><button class="btn" data-a="bearbeiten">Budget und Kostenstelle</button><button class="btn" data-a="rapport">Rapport erstellen</button><button class="btn haupt" data-a="rechnung" ${z.offenMin || z.matOffen ? '' : 'disabled'}>Offenes verrechnen</button></div></div>
       <div class="pj-kz"><div class="card"><div class="label">Stunden</div><div class="wert">${std(z.min)}</div><small class="hinweis">${z.offenMin ? std(z.offenMin) + ' noch offen' : 'alles verrechnet'}</small></div>
         <div class="card"><div class="label">${a.pauschal_rappen ? 'Pauschale' : 'Leistung'}</div><div class="wert">${chf(z.ertrag)}</div></div>
@@ -218,8 +218,8 @@
   /* ---------- Klicks ---------- */
   document.addEventListener('click', async (e) => {
     const t = e.target;
-    const tab = t.closest('[data-tab]'); if (tab) { Z.tab = tab.dataset.tab; Z.offen = null; zeichnen(); scrollTo(0, 0); return; }
-    const pj = t.closest('[data-projekt]'); if (pj) { Z.offen = pj.dataset.projekt; Z.fotos = []; zeichnen(); scrollTo(0, 0); return; }
+    const tab = t.closest('[data-tab]'); if (tab) { Z.tab = tab.dataset.tab; Z.offen = null; zeichnen(); scrollTo(0, 0); if (window.OrdasioZurueck && OrdasioZurueck.aktualisieren) OrdasioZurueck.aktualisieren(); return; }
+    const pj = t.closest('[data-projekt]'); if (pj) { Z.offen = pj.dataset.projekt; Z.fotos = []; zeichnen(); scrollTo(0, 0); if (window.OrdasioZurueck && OrdasioZurueck.aktualisieren) OrdasioZurueck.aktualisieren(); return; }
     const rp = t.closest('[data-rapport]'); if (rp) { const r = Z.rapporte.find((x) => x.id === rp.dataset.rapport); if (r) rapportZeigen(r); return; }
     const a = t.closest('[data-a]'); if (!a) return;
     const af = Z.offen && auftrag(Z.offen);
@@ -301,6 +301,9 @@
     }
   });
 
+  window.OrdasioZurueck = window.OrdasioZurueck || {};
+  window.OrdasioZurueck.kannIntern = () => (Z.offen ? 'Projekte' : Z.tab !== 'projekte' ? 'Projekte' : false);
+  window.OrdasioZurueck.intern = () => { if (Z.offen) { Z.offen = null; zeichnen(); return true; } if (Z.tab !== 'projekte') { Z.tab = 'projekte'; zeichnen(); return true; } return false; };
   zeichnen();
   (async function warten(n = 0) { const { data: { session } } = await sb.auth.getSession(); if (session) laden(); else if (n < 600) setTimeout(() => warten(n + 1), 500); })();
 })();

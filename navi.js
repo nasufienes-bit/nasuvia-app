@@ -70,6 +70,10 @@
     '.nv-knopf{display:inline-grid;place-items:center;gap:6px;grid-auto-flow:column;height:40px;min-width:40px;padding:0 10px;border:0;border-radius:100px;background:#fff;color:var(--blau,#0B3B2E);cursor:pointer;font:600 .92rem inherit;font-family:inherit;box-shadow:0 1px 2px rgba(12,18,38,.06),0 8px 22px -12px color-mix(in srgb,var(--blau,#0B3B2E) 45%,transparent);transition:transform .25s cubic-bezier(.3,1.5,.5,1),box-shadow .25s;flex:none;-webkit-tap-highlight-color:transparent}',
     '.nv-knopf:hover{transform:translateY(-1px);box-shadow:0 1px 2px rgba(12,18,38,.06),0 12px 26px -12px color-mix(in srgb,var(--blau,#0B3B2E) 55%,transparent)}',
     '.nv-knopf:active{transform:scale(.94)}',
+    '.nv-zurueck{gap:4px;padding:0 12px 0 8px;font:inherit;font-weight:600;font-size:14px}.nv-zurueck[hidden]{display:none}',
+    '.nv-zurueck span{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '@media (max-width:560px){.nv-zurueck span{display:none}.nv-zurueck{padding:0;min-width:40px}}',
+    '@media (max-width:480px){.nv-kz:has(.nv-zurueck:not([hidden])) .nv-app-name{display:none}.nv-kz:has(.nv-zurueck:not([hidden])){gap:6px}}',
     '.nv-knopf svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}',
     '.nv-knopf svg path{transition:transform .35s cubic-bezier(.3,1.4,.5,1)}',
     '.nv-knopf:hover svg .nv-zwei{transform:translateX(3px)}',
@@ -181,6 +185,46 @@
     b.addEventListener('click', oeffnen);
     return b;
   }
+  /* ---------- Intelligenter Zurück-Knopf ----------
+     Merkt sich die Seiten dieser Sitzung (ohne doppelte Einträge). Seiten mit eigenen Ansichten melden sich über
+     OrdasioZurueck.intern = function(){ return true, wenn sie selbst einen Schritt zurück gemacht haben }. */
+  var WEGE = 'ordasio.wege';
+  var NAMEN = { '': 'Start', start: 'Start', rechnungen: 'Rechnungen', zeit: 'Zeiterfassung', termine: 'Termine', lager: 'Lager', ablage: 'Firmenablage', vorlagen: 'Vorlagen', privat: 'Home-Büro', hilfe: 'Anleitung', lizenz: 'Lizenz', konto: 'Mein Konto', projekte: 'Projekte', wechsel: 'Wechsel', selbstaendig: 'Selbständig', dienste: 'Website', treuhand: 'Treuhand', buchhaltung: 'Buchhaltung' };
+  function seitenName(u){
+    try { var x = new URL(u, location.href), teil = x.pathname.replace(new URL(WURZEL).pathname, '').split('/')[0];
+      if (!teil && /bereich=buchhaltung/.test(x.search)) teil = 'buchhaltung'; return NAMEN[teil] || 'zurück'; } catch (e) { return 'zurück'; }
+  }
+  var wege = []; try { wege = JSON.parse(sessionStorage.getItem(WEGE) || '[]'); } catch (e) {}
+  var jetzt = location.pathname + location.search;
+  if (wege.length && wege[wege.length - 1] === jetzt) { /* Neu geladen */ }
+  else if (wege.length > 1 && wege[wege.length - 2] === jetzt) wege.pop();
+  else wege.push(jetzt);
+  wege = wege.slice(-30);
+  try { sessionStorage.setItem(WEGE, JSON.stringify(wege)); } catch (e) {}
+  window.OrdasioZurueck = window.OrdasioZurueck || { intern: null };
+  window.OrdasioZurueck.aktualisieren = function(){ [].forEach.call(document.querySelectorAll('.nv-zurueck'), zurueckMalen); };
+  function zurueckMalen(b){
+    var intern = window.OrdasioZurueck.kannIntern && window.OrdasioZurueck.kannIntern();
+    var vorher = wege.length > 1 ? wege[wege.length - 2] : '';
+    var ziel = intern ? (typeof intern === 'string' ? intern : 'zurück') : vorher ? seitenName(vorher) : (hier === 'start' ? '' : 'Start');
+    b.hidden = !ziel;
+    b.setAttribute('aria-label', 'Zurück' + (ziel && ziel !== 'zurück' ? ' zu ' + ziel : ''));
+    b.title = b.getAttribute('aria-label');
+    var t = b.querySelector('span'); if (t) t.textContent = ziel && ziel !== 'zurück' ? ziel : 'Zurück';
+  }
+  function zurueckKnopf(){
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'nv-knopf nv-zurueck';
+    b.innerHTML = svg('<path d="M15 18l-6-6 6-6"/>') + '<span></span>';
+    b.addEventListener('click', function(){
+      var z = window.OrdasioZurueck;
+      if (z.intern && z.intern()) { setTimeout(z.aktualisieren, 30); return; }
+      if (wege.length > 1) { wege.pop(); try { sessionStorage.setItem(WEGE, JSON.stringify(wege)); } catch (e) {} location.href = wege[wege.length - 1]; return; }
+      location.href = WURZEL + 'start/';
+    });
+    setTimeout(function(){ zurueckMalen(b); }, 0);
+    return b;
+  }
   window.NasuviaNavi = { knopf: knopf, oeffnen: oeffnen, schliessen: schliessen };
 
   // Kopfzeile
@@ -195,6 +239,7 @@
     if (ds.titel) {
       var kz = document.createElement('div'); kz.className = 'nv-kz';
       kz.appendChild(knopf());
+      kz.appendChild(zurueckKnopf());
       var bIcon = (BEREICHE.filter(function(b){ return b.id === hier; })[0] || {}).icon || '<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/>';
       kz.insertAdjacentHTML('beforeend', (PRODUKT ? '<a class="nv-logo nv-app" href="' + WURZEL + 'start/" aria-label="Zur Startseite"><span class="nv-app-ic"><svg viewBox="0 0 24 24">' + bIcon + '</svg></span><span class="nv-app-name">' + ds.titel + '</span></a>' : '<a class="nv-logo" href="https://www.nasuvia.ch/admin/" aria-label="Nasuvia Admin"><i></i><img src="https://www.nasuvia.ch/logo-wort.png" alt="Nasuvia" width="94" height="18"></a>') + (PRODUKT ? '' : '<span class="nv-bereich">' + ds.titel + '</span>'));
       kz.appendChild(rechtsSlot);
@@ -214,7 +259,7 @@
       h.innerHTML = '<b>Neue Adresse:</b> www.nasuvia.ch/buchhaltung <span>Jetzt öffnen →</span>';
       document.body.insertBefore(h, document.body.firstChild);
     }
-    if (ds.einfuegen) [].forEach.call(document.querySelectorAll(ds.einfuegen), function(z){ z.insertBefore(knopf(), z.firstChild); });
+    if (ds.einfuegen) [].forEach.call(document.querySelectorAll(ds.einfuegen), function(z){ z.insertBefore(zurueckKnopf(), z.firstChild); z.insertBefore(knopf(), z.firstChild); });
     if (ds.schwebend) {
       var s = knopf();
       s.classList.add('nv-schwebend');
