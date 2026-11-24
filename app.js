@@ -1214,7 +1214,7 @@
     return `
     <div class="kopf">
       <div><h1>Buchungen</h1><p class="unter">${f.suche.trim() ? 'Suche in allen Jahren: ' : ''}${liste.length} Einträge, Einnahmen ${chf(s.ein)}, Ausgaben ${chf(s.aus)} (ohne MWST)</p></div>
-      <div class="kopf-aktionen">${jahrWahl()}<button class="btn" onclick="NB.korb()">Zuletzt gelöscht</button>${bankImportGruppen().length ? '<button class="btn" onclick="NB.importe()">Importe</button>' : ''}<button class="btn" onclick="NB.bankImport()">Bankauszug oder Daten importieren</button><button class="btn" onclick="NB.belege()">Belege hochladen</button><button class="btn" onclick="NB.fahrt()">Fahrt erfassen</button><button class="btn btn-haupt nur-pc" onclick="NB.neu()">+ Neue Buchung</button></div>
+      <div class="kopf-aktionen">${jahrWahl()}<button class="btn" onclick="NB.korb()">Zuletzt gelöscht</button>${bankImportGruppen().length ? '<button class="btn" onclick="NB.importe()">Importe</button>' : ''}<button class="btn" onclick="NB.bankImport()">Bankauszug oder Daten importieren</button><button class="btn" onclick="NB.shopImport()">Onlineshop</button><button class="btn" onclick="NB.belege()">Belege hochladen</button><button class="btn" onclick="NB.fahrt()">Fahrt erfassen</button><button class="btn btn-haupt nur-pc" onclick="NB.neu()">+ Neue Buchung</button></div>
     </div>
     <div class="filter">
       <div class="segment">${typen.map(([id, n]) => `<button class="${f.typ === id ? 'an' : ''}" data-ftyp="${id}">${n}</button>`).join('')}</div>
@@ -1548,6 +1548,53 @@
     };
     dlg.onclose = () => URL.revokeObjectURL(url);
     dlg.showModal();
+  }
+
+  /* ---------- Onlineshop-Bestellungen (Verkauf Plus): Shopify, WooCommerce und andere CSV-Exporte ---------- */
+  async function shopImport() {
+    const l = lizenzJetzt();
+    if (O && l && O.darf && !O.darf(l, 'verkauf')) { if (window.OrdasioZusatz) OrdasioZusatz.erklaeren('verkauf'); return; }
+    const datei = await new Promise((ok) => { const i = document.createElement('input'); i.type = 'file'; i.accept = '.csv,text/csv'; i.onchange = () => ok(i.files[0] || null); i.click(); });
+    if (!datei || !window.Auszug || !Auszug.zerlegen) return;
+    const zeilen = Auszug.zerlegen(await datei.text()).filter((z) => z.some((x) => x));
+    if (zeilen.length < 2) { toast('In dieser Datei habe ich keine Bestellungen gefunden'); return; }
+    const kopf = zeilen[0].map((x) => x.toLowerCase().trim());
+    const spalte = (...re) => { for (const x of re) { const i = kopf.findIndex((h) => x.test(h)); if (i >= 0) return i; } return -1; };
+    const S = {
+      nr: spalte(/^name$/, /order number/, /bestellnummer/, /^order id$/, /^bestellung$/, /^order$/),
+      datum: spalte(/paid at/, /^order date/, /bestelldatum/, /^created at/, /^datum/, /^date/),
+      total: spalte(/^total$/, /order total amount/, /^order total$/, /gesamtsumme/, /bestellsumme/, /^summe/, /^betrag/),
+      mwst: spalte(/^taxes$/, /order total tax/, /^tax total/, /mwst/, /steuer/),
+      status: spalte(/financial status/, /order status/, /bestellstatus/, /^status$/),
+      kunde: spalte(/billing name/, /^billing first name/, /kunde/, /^customer/, /^email$/),
+      waehrung: spalte(/^currency$/, /währung/),
+    };
+    if (S.total < 0 || S.datum < 0) { toast('Spalten für Datum und Betrag nicht erkannt. Bitte den Bestell-Export als CSV laden.', 6000); return; }
+    const bekannt = new Set(Z.buchungen.map((b) => b.importSchluessel).filter(Boolean));
+    const liste = [], gesehen = new Set();
+    let uebersprungen = 0;
+    for (const z of zeilen.slice(1)) {
+      const nr = S.nr >= 0 ? z[S.nr] : '', datum = Auszug.tagLesen ? Auszug.tagLesen(String(z[S.datum] || '').slice(0, 25)) : String(z[S.datum] || '').slice(0, 10);
+      const betrag = Auszug.geld ? Auszug.geld(z[S.total]) : Math.round(Number(String(z[S.total]).replace(/[^0-9.,-]/g, '').replace(',', '.')) * 100);
+      const status = S.status >= 0 ? String(z[S.status] || '').toLowerCase() : '';
+      // Shopify: mehrere Zeilen pro Bestellung (eine pro Artikel); nur die erste mit Betrag zählt
+      if (!datum || !betrag || (nr && gesehen.has(nr))) continue;
+      if (/refund|erstatt|cancel|storn|fail|pending|ausstehend|abgebrochen/.test(status)) { uebersprungen++; continue; }
+      if (nr) gesehen.add(nr);
+      const schluessel = 'shop-' + (nr || datum + '-' + betrag);
+      if (bekannt.has(schluessel)) { uebersprungen++; continue; }
+      const mwst = S.mwst >= 0 && Auszug.geld ? Math.abs(Auszug.geld(z[S.mwst]) || 0) : 0;
+      liste.push({ id: 'shop-' + Date.now().toString(36) + '-' + liste.length, typ: 'einnahme', quelle: 'shop', importSchluessel: schluessel, datum, betragRappen: Math.abs(betrag), mwstRappen: mwst, mwstSatz: mwst ? 8.1 : 0,
+        kategorie: 'materialverkauf', partner: S.kunde >= 0 ? String(z[S.kunde] || '').slice(0, 80) : '', text: `Onlineshop ${nr || ''}`.trim(), zahlung: 'Bank', imp: 'shop-' + Date.now(), impAm: new Date().toISOString(), impName: datei.name,
+        ...(S.waehrung >= 0 && z[S.waehrung] && z[S.waehrung].toUpperCase() !== 'CHF' ? { waehrungHinweis: z[S.waehrung].toUpperCase() } : {}) });
+    }
+    if (!liste.length) { toast(uebersprungen ? `Keine neuen Bestellungen (${uebersprungen} schon da oder nicht bezahlt)` : 'Keine Bestellungen gefunden', 5000); return; }
+    const summe = liste.reduce((a, b) => a + b.betragRappen, 0);
+    const fremd = liste.filter((b) => b.waehrungHinweis).length;
+    if (!await UI.frage(`${liste.length} bezahlte Bestellungen über CHF ${chf(summe)} als Einnahmen buchen?${uebersprungen ? `\n\n${uebersprungen} übersprungen (schon gebucht, storniert oder offen).` : ''}${fremd ? `\n\nAchtung: ${fremd} Bestellungen sind nicht in CHF. Bitte die Beträge prüfen.` : ''}`, { ja: 'Buchen', gefahr: false })) return;
+    await Speicher.mehrereSpeichern('buchungen', liste.map((b) => ({ ...b, geaendert: new Date().toISOString() })));
+    await neuLaden(`${liste.length} Bestellungen gebucht`);
+    if (window.Rueckgaengig) setTimeout(() => Rueckgaengig.zeigen(`${liste.length} Bestellungen gebucht`, async () => { await Speicher.mehrereLoeschen('buchungen', liste.map((b) => b.id)); await neuLaden('Import rückgängig gemacht'); }), 700);
   }
 
   async function neuLaden(meldung) {
@@ -2547,6 +2594,7 @@
       async (fd) => { await einstSpeichern({ start: Object.fromEntries(START_KARTEN.map(([id]) => [id, fd.get(id) === 'on'])) }); zeichnen(); toast('Übersicht angepasst'); });
   }
   window.NB = {
+    shopImport: () => shopImport(),
     korb: () => korbDialog(),
     importe: () => importeZeigen(),
     ansicht: (id) => { Z.ansicht = id; zeichnen(); window.scrollTo(0, 0); },

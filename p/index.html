@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" type="image/png" href="../favicon.png" />
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Kundenportal</title>
+<link rel="stylesheet" href="../schrift.css">
+<style>
+:root { --farbe: #0B3B2E; --text: #3F5A4F; --tinte: #0A1F17; --flaeche: #F4FAF6; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'League Spartan', -apple-system, system-ui, sans-serif; background: var(--flaeche); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 880px; margin: 0 auto; padding: max(28px, env(safe-area-inset-top)) 18px 40px; }
+.karte { background: #fff; border-radius: 22px; padding: 26px; box-shadow: 0 1px 2px rgba(12,18,38,.06), 0 24px 60px -34px rgba(12,18,38,.35); }
+.kopf { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+.kopf img { max-height: 54px; max-width: 220px; object-fit: contain; display: block; }
+.kopf .name { font-size: 1.3rem; font-weight: 700; color: var(--farbe); }
+.art { font-size: .8rem; letter-spacing: .14em; text-transform: uppercase; color: #7C8499; }
+h1 { font-size: 1.15rem; color: var(--tinte); margin-top: 4px; font-weight: 600; }
+.betrag { font-size: clamp(2.2rem, 7vw, 3rem); font-weight: 700; color: var(--tinte); margin: 18px 0 6px; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.betrag small { font-size: 1rem; color: #7C8499; font-weight: 600; margin-right: 6px; }
+.stand { display: inline-flex; align-items: center; gap: 8px; border-radius: 100px; padding: 8px 14px; font-weight: 600; font-size: .95rem; background: #EEF2FF; color: #3730A3; }
+.stand.bezahlt { background: rgba(14,159,110,.12); color: #0A7150; }
+.stand.ueber { background: rgba(229,72,77,.1); color: #C7383D; }
+.knoepfe { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+.knopf { display: inline-flex; align-items: center; gap: 8px; border-radius: 100px; padding: 13px 20px; font: 600 1rem inherit; font-family: inherit; text-decoration: none; cursor: pointer; border: 0; background: var(--farbe); color: #fff; }
+.knopf.zweit { background: #EEF2F0; color: var(--tinte); }
+.knopf svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.zahlen { margin-top: 22px; background: var(--flaeche); border-radius: 16px; padding: 16px 18px; font-size: .98rem; line-height: 1.5; }
+.zahlen b { color: var(--tinte); }
+.pdf { margin-top: 20px; border-radius: 16px; overflow: hidden; border: 1px solid rgba(11,59,46,.1); background: #fff; }
+.pdf iframe { width: 100%; height: 78vh; border: 0; display: block; }
+.kontakt { margin-top: 18px; font-size: .92rem; display: flex; gap: 6px 18px; flex-wrap: wrap; }
+.kontakt a { color: var(--farbe); text-decoration: none; font-weight: 600; }
+.fuss { text-align: center; font-size: .78rem; color: #9AA1B2; margin-top: 22px; }
+.fuss a { color: inherit; }
+.laden, .fehler { text-align: center; padding: 60px 10px; font-size: 1.05rem; }
+.annahme { margin-top: 22px; padding: 18px; border-radius: 16px; background: #F4F8F6; display: grid; gap: 10px; }
+.annahme h2 { margin: 0; font-size: 1.15rem; } .annahme p { margin: 0; color: #3F5A4F; font-size: .95rem; line-height: 1.5; }
+.annahme label { display: grid; gap: 4px; font-size: .85rem; font-weight: 600; color: #3F5A4F; }
+.annahme input, .annahme textarea { font: inherit; font-size: 16px; padding: 11px 13px; border: 1.5px solid #D5E0DA; border-radius: 12px; background: #fff; width: 100%; box-sizing: border-box; }
+.annahme canvas { width: 100%; height: 170px; background: #fff; border: 1.5px dashed #B9C9C0; border-radius: 12px; touch-action: none; display: block; }
+.annahme .reihe { display: flex; gap: 8px; flex-wrap: wrap; } .annahme .klein { font-size: .82rem; color: #7C8499; background: none; border: 0; cursor: pointer; padding: 0; text-decoration: underline; justify-self: start; }
+.annahme .ok { color: #0A7150; font-weight: 700; } .annahme .fehl { color: #C7383D; font-size: .9rem; min-height: 1em; }
+@media (max-width: 640px) { .karte { padding: 20px; border-radius: 18px; } .pdf { display: none; } .knopf { flex: 1; justify-content: center; } }
+.dok { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 2px 14px; align-items: center; padding: 14px 0; border-top: 1px solid rgba(11,59,46,.1); text-decoration: none; color: inherit; }
+.dok:first-of-type { border-top: 0; } .dok b { color: var(--tinte); } .dok small { display: block; font-size: .85rem; color: #7C8499; }
+.dok .rechts { text-align: right; font-weight: 700; color: var(--tinte); font-variant-numeric: tabular-nums; }
+.dok .stand { padding: 3px 9px; font-size: .75rem; margin-top: 4px; }
+.summen { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 4px 0 18px; }
+.summen div { background: var(--flaeche); border-radius: 14px; padding: 12px 14px; } .summen b { display: block; font-size: 1.3rem; color: var(--tinte); } .summen span { font-size: .85rem; }
+.filter { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; } .filter button { border: 0; border-radius: 100px; padding: 7px 13px; font: inherit; font-size: .9rem; background: #EEF2F0; color: var(--tinte); cursor: pointer; } .filter button.an { background: var(--farbe); color: #fff; }
+</style>
+</head>
+<body>
+<div class="wrap"><div class="karte" id="inhalt"><p class="laden">Wird geladen …</p></div>
+<p class="fuss">Sicher übermittelt mit <a href="https://ordasio.ch" rel="noopener">Ordasio</a> · Schweizer Software für KMU</p></div>
+<script src="../konfig.js"></script>
+<script src="../lib/supabase.js"></script>
+<script>
+(async () => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const chf = (r) => ((r || 0) / 100).toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const datum = (iso) => iso ? new Date(String(iso).slice(0, 10) + 'T12:00:00').toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+  const WORT = { rechnung: 'Rechnung', offerte: 'Offerte', gutschrift: 'Gutschrift', mahnung: 'Mahnung' };
+  const token = new URLSearchParams(location.search).get('t') || '';
+  const K = window.NASUVIA_KONFIG && window.NASUVIA_KONFIG.produkt ? window.NASUVIA_KONFIG : { url: 'https://poyilrmwcsyqdajsykpt.supabase.co', key: 'sb_publishable_312jPWJKkZNlWWc51a6Ucw_Ku-xF8Vw' };
+  const fehler = (t) => { $('inhalt').innerHTML = `<p class="fehler">${esc(t)}</p>`; };
+  if (!/^[a-f0-9]{20,}$/.test(token)) { fehler('Dieser Link ist unvollständig. Bitte öffnen Sie ihn nochmals aus der E-Mail.'); return; }
+  try {
+    const sb = window.supabase.createClient(K.url, K.key, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: d, error } = await sb.rpc('kp_ansehen', { p_token: token });
+    if (error) throw error;
+    if (!d) { fehler('Dieses Kundenportal wurde nicht gefunden. Bitte fragen Sie beim Absender nach einem neuen Link.'); return; }
+    if (d.gesperrt) { fehler('Dieses Kundenportal ist zurzeit nicht verfügbar. Ihre Dokumente erhalten Sie weiterhin per E-Mail.'); return; }
+    const f = d.firma || {}, heute = new Date().toISOString().slice(0, 10);
+    if (f.farbe && /^#[0-9a-f]{6}$/i.test(f.farbe)) document.documentElement.style.setProperty('--farbe', f.farbe);
+    document.title = `Kundenportal${f.name ? ' · ' + f.name : ''}`;
+    const docs = d.dokumente || [];
+    const offen = docs.filter((x) => (x.art === 'rechnung' || x.art === 'mahnung') && !x.bezahlt);
+    const offerten = docs.filter((x) => x.art === 'offerte' && x.antwort !== 'angenommen' && x.antwort !== 'abgelehnt');
+    let filter = 'alle';
+    const zeichnen = () => {
+      const l = docs.filter((x) => filter === 'alle' || (filter === 'offen' ? offen.includes(x) : filter === 'offerten' ? x.art === 'offerte' : x.art === filter));
+      $('liste').innerHTML = l.length ? l.map((x) => {
+        const ueber = !x.bezahlt && x.faellig && x.faellig < heute && x.art !== 'offerte';
+        const st = x.art === 'offerte' ? (x.antwort === 'angenommen' ? '<span class="stand bezahlt">angenommen</span>' : x.antwort === 'abgelehnt' ? '<span class="stand">abgelehnt</span>' : '<span class="stand">offen</span>')
+          : x.art === 'gutschrift' ? '' : x.bezahlt ? '<span class="stand bezahlt">bezahlt</span>' : ueber ? '<span class="stand ueber">überfällig</span>' : '<span class="stand">offen</span>';
+        return `<a class="dok" href="../r/?t=${esc(x.t)}"><div><b>${WORT[x.art] || 'Dokument'} ${esc(x.nr || '')}</b><small>vom ${datum(x.datum)}${x.faellig && x.art !== 'offerte' && !x.bezahlt ? ' · zahlbar bis ' + datum(x.faellig) : ''}</small></div><div class="rechts">CHF ${chf(x.betragRappen)}<br>${st}</div></a>`;
+      }).join('') : '<p class="laden" style="padding:20px">Nichts in dieser Auswahl.</p>';
+      $('inhalt').querySelectorAll('[data-f]').forEach((b) => b.classList.toggle('an', b.dataset.f === filter));
+    };
+    $('inhalt').innerHTML = `
+      <div class="kopf">${f.logo ? `<img src="${esc(f.logo)}" alt="${esc(f.name || '')}">` : `<span class="name">${esc(f.name || '')}</span>`}<span class="art">Kundenportal</span></div>
+      <h1>Ihre Dokumente${d.kunde ? ', ' + esc(d.kunde) : ''}</h1>
+      <p style="margin:4px 0 16px">Alle Offerten und Rechnungen an einem Ort. Tippen Sie auf ein Dokument, um es zu öffnen, zu bezahlen oder eine Offerte anzunehmen.</p>
+      <div class="summen"><div><b>CHF ${chf(offen.reduce((s, x) => s + (x.betragRappen || 0), 0))}</b><span>${offen.length} offene ${offen.length === 1 ? 'Rechnung' : 'Rechnungen'}</span></div><div><b>${offerten.length}</b><span>${offerten.length === 1 ? 'Offerte wartet' : 'Offerten warten'} auf Ihre Antwort</span></div><div><b>${docs.length}</b><span>Dokumente insgesamt</span></div></div>
+      <div class="filter"><button data-f="alle">Alle</button><button data-f="offen">Offen</button><button data-f="offerten">Offerten</button><button data-f="rechnung">Rechnungen</button></div>
+      <div id="liste"></div>
+      <div class="kontakt">${f.tel ? `<a href="tel:${esc(String(f.tel).replace(/\s/g, ''))}">${esc(f.tel)}</a>` : ''}${f.mail ? `<a href="mailto:${esc(f.mail)}">${esc(f.mail)}</a>` : ''}</div>`;
+    $('inhalt').addEventListener('click', (e) => { const b = e.target.closest('[data-f]'); if (b) { filter = b.dataset.f; zeichnen(); } });
+    zeichnen();
+  } catch (e) { fehler('Das Kundenportal konnte gerade nicht geladen werden. Bitte versuchen Sie es in einem Moment nochmals.'); }
+})();
+</script>
+</body>
+</html>

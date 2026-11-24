@@ -859,6 +859,9 @@ Herzlichen Dank für das entgegengebrachte Vertrauen. Wir stellen Ihnen folgende
       <div id="aboListe"><p class="archiv-leer">Noch keine wiederkehrenden Rechnungen.</p></div>
     </section>
 
+    <!-- Mahn-Assistent (Verkauf Plus) -->
+    <section class="card mahn-card" id="mahnBox" hidden></section>
+
     <!-- Archiv -->
     <section class="card archiv-card" data-teil="archiv">
       <h2>Gesicherte Rechnungen</h2>
@@ -2180,7 +2183,7 @@ ${[[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' — '), [FIRMA.strasse, FIR
       const { rechnungen, ordner } = await (await fetch('/api/rechnungen')).json();
       $('archivOrdner').textContent = (ordner || '').replace(/^.*\/Desktop\//, 'Schreibtisch › ');
       archivDaten = rechnungen || [];
-      zeichneArchiv();
+      zeichneArchiv(); mahnBoxZeichnen();
     } catch { /* Archiv bleibt leer */ }
   };
 
@@ -2328,6 +2331,40 @@ ${[[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' — '), [FIRMA.strasse, FIR
       toast(`Kopie von ${r.nr} — jetzt ${dokTitel()} Nr. ${$('rgNr').value}`, 4500);
       $('rgNr').scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (e) { toast(e.message, 5000); }
+  };
+  // Mahn-Assistent: findet überfällige Rechnungen nach Ihren Regeln und bereitet Erinnerung oder Mahnung vor
+  const mahnRegeln = () => { try { return Object.assign({ tage: 5, abstand: 14 }, JSON.parse(localStorage.getItem('nr.mahnRegeln') || '{}')); } catch { return { tage: 5, abstand: 14 }; } };
+  const verkaufErlaubt = () => { const O = window.ORDASIO, l = window.NASUVIA_LIZENZ; return !O || !l || !O.darf || O.darf(l, 'verkauf'); };
+  const mahnFaellig = () => {
+    const g = mahnRegeln(), h = heuteIso();
+    return archivDaten.filter((r) => (r.dokArt || 'rechnung') === 'rechnung' && !r.bezahlt && r.faellig && r.bearbeitbar && (r.mahnStufe || 0) < 3)
+      .map((r) => ({ r, tage: Math.round((Date.parse(h) - Date.parse(r.faellig)) / 864e5) }))
+      .filter((x) => x.tage >= g.tage + (x.r.mahnStufe || 0) * g.abstand)
+      .sort((a, b) => b.tage - a.tage);
+  };
+  const mahnBoxZeichnen = () => {
+    const box = $('mahnBox'); if (!box) return;
+    const l = mahnFaellig();
+    if (!l.length) { box.hidden = true; return; }
+    box.hidden = false;
+    const summe = l.reduce((s, x) => s + (x.r.betragRappen || 0), 0), g = mahnRegeln();
+    if (!verkaufErlaubt()) {
+      box.innerHTML = `<h2>⏰ ${l.length} ${l.length === 1 ? 'Rechnung ist' : 'Rechnungen sind'} überfällig</h2><p class="hint" style="margin-top:0">CHF ${chf(summe)} warten auf Zahlung. Mit dem Mahn-Assistenten sehen Sie jeden Morgen, wer eine Erinnerung braucht, und bereiten sie mit einem Klick vor.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-zusatz-info="verkauf">So funktioniert es</button><button class="btn" data-zusatz-buchen="verkauf">Verkauf Plus dazubuchen</button></div>`;
+      return;
+    }
+    box.innerHTML = `<h2>⏰ Mahn-Assistent: ${l.length} ${l.length === 1 ? 'Rechnung braucht' : 'Rechnungen brauchen'} eine Erinnerung</h2>
+      <p class="hint" style="margin-top:0">CHF ${chf(summe)} überfällig. Regel: erste Erinnerung ${g.tage} Tage nach Fälligkeit, danach alle ${g.abstand} Tage die nächste Stufe. <button type="button" class="link" data-mahn-regeln>Ändern</button></p>
+      ${l.map((x, i) => `<div class="archiv-zeile"><div class="archiv-info"><strong>Nr. ${esc(x.r.nr || '')}${x.r.kunde ? ' · ' + esc(x.r.kunde) : ''}</strong><span>${x.tage} Tage überfällig · CHF ${chf(x.r.betragRappen)} · nächste Stufe: ${['Zahlungserinnerung', '1. Mahnung', '2. Mahnung'][x.r.mahnStufe || 0]}</span></div>
+        <div class="archiv-knoepfe"><button class="btn" data-mahn-jetzt="${i}">Vorbereiten</button></div></div>`).join('')}`;
+    box.querySelectorAll('[data-mahn-jetzt]').forEach((b) => { b.onclick = () => mahnen(l[Number(b.dataset.mahnJetzt)].r); });
+    const rg = box.querySelector('[data-mahn-regeln]');
+    if (rg) rg.onclick = async () => {
+      const t = await UI.eingabe('Erste Erinnerung wie viele Tage nach Fälligkeit?', { vorgabe: String(g.tage) }); if (t === null) return;
+      const a = await UI.eingabe('Danach alle wie viele Tage die nächste Stufe?', { vorgabe: String(g.abstand) }); if (a === null) return;
+      try { localStorage.setItem('nr.mahnRegeln', JSON.stringify({ tage: Math.max(0, parseInt(t, 10) || 0), abstand: Math.max(1, parseInt(a, 10) || 14) })); } catch {}
+      mahnBoxZeichnen();
+    };
   };
   const mahnen = async (r) => {
     try {

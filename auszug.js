@@ -642,5 +642,5 @@
     });
   }
 
-  window.Auszug = { vorbereiten, pdfBewegungen, pdfSeiten, kontrolle, pruefen, csvLesen, camtLesen, geld, tagLesen };
+  window.Auszug = { zerlegen, vorbereiten, pdfBewegungen, pdfSeiten, kontrolle, pruefen, csvLesen, camtLesen, geld, tagLesen };
 })();

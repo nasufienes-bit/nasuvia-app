@@ -214,7 +214,7 @@
   async function linkNachfuehren(r) { try { if (linkMoeglich()) await sb.from('rg_links').update({ daten: linkDaten(r) }).eq('rechnung_id', r.id); } catch {} }
   async function geoeffnetListe() {
     if (!linkMoeglich()) return new Map();
-    try { const { data } = await sb.from('rg_links').select('rechnung_id,token,geoeffnet_erst,geoeffnet_zuletzt,anzahl'); return new Map((data || []).map((x) => [x.rechnung_id, x])); } catch { return new Map(); }
+    try { const { data } = await sb.from('rg_links').select('rechnung_id,token,geoeffnet_erst,geoeffnet_zuletzt,anzahl,antwort,antwort_am,antwort_name,antwort_text'); return new Map((data || []).map((x) => [x.rechnung_id, x])); } catch { return new Map(); }
   }
 
   /* ---------- Antworten auf die Aufrufe der App ---------- */
@@ -709,8 +709,9 @@
       if (!liste.length) { box.innerHTML = '<p class="nr-ue-leer">Keine Rechnung passt zu dieser Auswahl.</p>'; return; }
       box.innerHTML = liste.map((r) => {
         const an = adresseVon(r), g = geoeffnet.get(r.id);
-        const stand = r.bezahlt ? 'bezahlt' : ueberfaellig(r) ? 'ueber' : g && g.anzahl ? 'geoeffnet' : r.gesendet ? 'gesendet' : 'neu';
-        const STAND = { bezahlt: 'Bezahlt', ueber: 'Überfällig', geoeffnet: 'Geöffnet', gesendet: 'Gesendet', neu: 'Nicht gesendet' };
+        const antwort = artVon(r) === 'offerte' && g && g.antwort;
+        const stand = antwort === 'angenommen' ? 'bezahlt' : antwort ? 'ueber' : r.bezahlt ? 'bezahlt' : ueberfaellig(r) ? 'ueber' : g && g.anzahl ? 'geoeffnet' : r.gesendet ? 'gesendet' : 'neu';
+        const STAND = { bezahlt: antwort === 'angenommen' ? 'Angenommen' : 'Bezahlt', ueber: antwort === 'abgelehnt' ? 'Abgelehnt' : antwort === 'frage' ? 'Frage' : 'Überfällig', geoeffnet: 'Geöffnet', gesendet: 'Gesendet', neu: 'Nicht gesendet' };
         const schritt = (an_, text, titel) => `<span class="nr-st ${an_ ? 'ja' : ''}" title="${esc(titel || '')}"><i></i>${text}</span>`;
         const offenSeit = g && g.anzahl ? `Geöffnet ${zeitText(g.geoeffnet_erst)}${g.anzahl > 1 ? ` (${g.anzahl}×, zuletzt ${zeitText(g.geoeffnet_zuletzt)})` : ''}` : r.gesendet ? 'Noch nicht geöffnet' : '';
         return `<div class="nr-zeile" data-id="${esc(r.id)}">
@@ -724,8 +725,9 @@
               ${schritt(true, 'Erstellt', zeitText(r.zuletztGesichert || r.erstellt))}
               ${schritt(r.gesendet, 'Gesendet', r.gesendetAm ? zeitText(r.gesendetAm) + (an ? ' an ' + an : '') : '')}
               ${schritt(g && g.anzahl, 'Geöffnet', offenSeit)}
-              ${schritt(r.bezahlt, 'Bezahlt', r.bezahltAm ? datumText(r.bezahltAm) : '')}
+              ${artVon(r) === 'offerte' ? schritt(antwort === 'angenommen', 'Angenommen', antwort === 'angenommen' ? zeitText(g.antwort_am) + ' · ' + (g.antwort_name || '') : '') : schritt(r.bezahlt, 'Bezahlt', r.bezahltAm ? datumText(r.bezahltAm) : '')}
             </div>
+            ${antwort ? `<p class="nr-info"><b>${antwort === 'angenommen' ? '✓ Online angenommen' : antwort === 'abgelehnt' ? 'Abgelehnt' : 'Frage des Kunden'}</b> ${zeitText(g.antwort_am)}${g.antwort_name ? ' von ' + esc(g.antwort_name) : ''}${g.antwort_text ? ': „' + esc(g.antwort_text) + '“' : ''}</p>` : ''}
             <p class="nr-info">${[
               r.gesendet ? `Gesendet ${r.gesendetAm ? zeitText(r.gesendetAm) : ''}${an ? ' an ' + esc(an) : ''}` : 'Noch nicht gesendet',
               offenSeit,
@@ -734,6 +736,7 @@
             <div class="nr-ue-knoepfe">
               <button data-a="pdf">PDF ansehen</button>
               ${K.produkt ? '<button data-a="link">Link für den Kunden</button>' : ''}
+              ${K.produkt && r.kunde ? '<button data-a="portal">Kundenportal</button>' : ''}
               <button data-a="bearbeiten">Bearbeiten</button>
               <button data-a="bezahlt" class="${r.bezahlt ? '' : 'gruen'}">${r.bezahlt ? 'Wieder offen' : 'Bezahlt'}</button>
               <button data-a="archivieren">${r.archiviert ? 'Aus dem Archiv holen' : 'Archivieren'}</button>
@@ -756,6 +759,19 @@
         await speichern('rechnung', [{ ...r, archiviert: !r.archiviert }]);
         zeichnen();
         if (window.Rueckgaengig) Rueckgaengig.zeigen(r.archiviert ? `Nr. ${r.nr} aus dem Archiv geholt` : `Nr. ${r.nr} archiviert`, async () => { await speichern('rechnung', [{ ...r }]); zeichnen(); });
+        return;
+      }
+      if (a === 'portal') {
+        const O = window.ORDASIO, l = window.NASUVIA_LIZENZ;
+        if (O && l && O.darf && !O.darf(l, 'verkauf')) { if (window.OrdasioZusatz) OrdasioZusatz.erklaeren('verkauf'); return; }
+        try {
+          let { data: p } = await sb.from('kp_portale').select('token').eq('kunde', r.kunde).maybeSingle();
+          if (!p) { const n = await sb.from('kp_portale').insert({ kunde: r.kunde }).select('token').single(); if (n.error) throw n.error; p = n.data; }
+          const url = new URL('../p/?t=' + p.token, location.href).href;
+          const teilen = navigator.share ? await UI.frage(`Kundenportal für ${r.kunde}:\n${url}\n\nDort sieht ${r.kunde} alle Offerten und Rechnungen, die Sie per Link geteilt haben, kann bezahlen und Offerten annehmen.`, { ja: 'Teilen', nein: 'Kopieren' }) : false;
+          if (teilen) { try { await navigator.share({ title: 'Kundenportal', url }); } catch {} }
+          else { try { await navigator.clipboard.writeText(url); toast('Portal-Link kopiert'); } catch { await UI.eingabe('Link kopieren:', { vorgabe: url }); } }
+        } catch (f) { await UI.hinweis(f.message || 'Das Portal konnte nicht erstellt werden.'); }
         return;
       }
       if (a === 'link') {

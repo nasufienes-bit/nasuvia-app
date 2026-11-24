@@ -37,6 +37,13 @@ h1 { font-size: 1.15rem; color: var(--tinte); margin-top: 4px; font-weight: 600;
 .fuss { text-align: center; font-size: .78rem; color: #9AA1B2; margin-top: 22px; }
 .fuss a { color: inherit; }
 .laden, .fehler { text-align: center; padding: 60px 10px; font-size: 1.05rem; }
+.annahme { margin-top: 22px; padding: 18px; border-radius: 16px; background: #F4F8F6; display: grid; gap: 10px; }
+.annahme h2 { margin: 0; font-size: 1.15rem; } .annahme p { margin: 0; color: #3F5A4F; font-size: .95rem; line-height: 1.5; }
+.annahme label { display: grid; gap: 4px; font-size: .85rem; font-weight: 600; color: #3F5A4F; }
+.annahme input, .annahme textarea { font: inherit; font-size: 16px; padding: 11px 13px; border: 1.5px solid #D5E0DA; border-radius: 12px; background: #fff; width: 100%; box-sizing: border-box; }
+.annahme canvas { width: 100%; height: 170px; background: #fff; border: 1.5px dashed #B9C9C0; border-radius: 12px; touch-action: none; display: block; }
+.annahme .reihe { display: flex; gap: 8px; flex-wrap: wrap; } .annahme .klein { font-size: .82rem; color: #7C8499; background: none; border: 0; cursor: pointer; padding: 0; text-decoration: underline; justify-self: start; }
+.annahme .ok { color: #0A7150; font-weight: 700; } .annahme .fehl { color: #C7383D; font-size: .9rem; min-height: 1em; }
 @media (max-width: 640px) { .karte { padding: 20px; border-radius: 18px; } .pdf { display: none; } .knopf { flex: 1; justify-content: center; } }
 </style>
 </head>
@@ -68,7 +75,7 @@ h1 { font-size: 1.15rem; color: var(--tinte); margin-top: 4px; font-weight: 600;
     const pdf = `${K.url}/storage/v1/object/public/${d.pdf}`;
     const heute = new Date().toISOString().slice(0, 10);
     const ueber = !d.bezahlt && d.faellig && d.faellig < heute;
-    const stand = d.art === 'offerte' ? `<span class="stand">Gültig gemäss Offerte</span>`
+    const stand = d.art === 'offerte' ? (d.antwort === 'angenommen' ? `<span class="stand bezahlt">✓ Angenommen am ${datum(String(d.antwort_am).slice(0, 10))}</span>` : `<span class="stand">Gültig gemäss Offerte</span>`)
       : d.art === 'gutschrift' ? `<span class="stand bezahlt">Gutschrift</span>`
       : d.bezahlt ? `<span class="stand bezahlt">✓ Bezahlt, vielen Dank</span>`
       : ueber ? `<span class="stand ueber">Fällig seit ${datum(d.faellig)}</span>`
@@ -85,8 +92,44 @@ h1 { font-size: 1.15rem; color: var(--tinte); margin-top: 4px; font-weight: 600;
         <a class="knopf zweit" href="${pdf}" download="${esc(art + ' ' + (d.nr || '') + '.pdf')}">${svgLaden}Herunterladen</a>
       </div>
       ${d.art === 'rechnung' || d.art === 'mahnung' ? (d.bezahlt ? '' : `<div class="zahlen"><b>So bezahlen Sie:</b> Öffnen Sie die ${art} und scannen Sie den QR-Code im Zahlteil mit Ihrer E-Banking-App. Betrag, Konto und Referenz sind dann schon ausgefüllt.</div>`) : ''}
+      ${d.art === 'offerte' && d.annehmen && d.antwort !== 'angenommen' ? `<form class="annahme" id="annahme">
+        <h2>Offerte annehmen</h2><p>Passt alles? Dann nehmen Sie die Offerte hier verbindlich an. ${esc(f.name || 'Der Absender')} erhält sofort Bescheid.</p>
+        <label>Ihr Name<input name="name" autocomplete="name" required value="${esc(d.kunde || '')}"></label>
+        <div><p style="margin-bottom:4px">Unterschrift (mit dem Finger oder der Maus):</p><canvas id="sig"></canvas></div>
+        <button type="button" class="klein" id="sigLeer">Unterschrift löschen</button>
+        <p class="fehl" id="fehl"></p>
+        <div class="reihe"><button class="knopf" data-antwort="angenommen">✓ Verbindlich annehmen</button><button type="button" class="knopf zweit" data-antwort="frage">Frage stellen</button><button type="button" class="knopf zweit" data-antwort="abgelehnt">Ablehnen</button></div>
+      </form>` : ''}
+      ${d.art === 'offerte' && d.antwort === 'angenommen' ? `<div class="annahme"><p class="ok">✓ Sie haben diese Offerte am ${datum(String(d.antwort_am).slice(0, 10))} angenommen${d.antwort_name ? ' (' + esc(d.antwort_name) + ')' : ''}. Vielen Dank für Ihren Auftrag!</p></div>` : ''}
       <div class="pdf"><iframe src="${pdf}#view=FitH" title="${art}"></iframe></div>
       <div class="kontakt">${f.tel ? `<a href="tel:${esc(f.tel.replace(/\s/g, ''))}">${esc(f.tel)}</a>` : ''}${f.mail ? `<a href="mailto:${esc(f.mail)}">${esc(f.mail)}</a>` : ''}${f.web ? `<a href="${/^https?:/i.test(f.web) ? esc(f.web) : 'https://' + esc(f.web)}" rel="noopener" target="_blank">${esc(f.web.replace(/^https?:\/\//, ''))}</a>` : ''}</div>`;
+    const form = $('annahme');
+    if (form) {
+      const c = $('sig'), dpr = window.devicePixelRatio || 1, rc = c.getBoundingClientRect();
+      c.width = rc.width * dpr; c.height = rc.height * dpr;
+      const g = c.getContext('2d'); g.scale(dpr, dpr); g.lineWidth = 2.4; g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = '#0A1F17';
+      let zieht = false, leer = true;
+      const pt = (e) => { const r = c.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+      c.onpointerdown = (e) => { zieht = true; c.setPointerCapture(e.pointerId); const [x, y] = pt(e); g.beginPath(); g.moveTo(x, y); };
+      c.onpointermove = (e) => { if (!zieht) return; const [x, y] = pt(e); g.lineTo(x, y); g.stroke(); leer = false; };
+      c.onpointerup = c.onpointercancel = () => { zieht = false; };
+      $('sigLeer').onclick = () => { g.clearRect(0, 0, c.width, c.height); leer = true; };
+      const senden = async (antwort) => {
+        const name = form.name.value.trim(); $('fehl').textContent = '';
+        let text = '';
+        if (antwort === 'angenommen' && (!name || leer)) { $('fehl').textContent = 'Bitte Ihren Namen eintragen und unterschreiben.'; return; }
+        if (antwort !== 'angenommen') { text = prompt(antwort === 'frage' ? 'Ihre Frage an ' + (f.name || 'den Absender') + ':' : 'Möchten Sie uns kurz sagen, warum? (freiwillig)') || ''; if (antwort === 'frage' && !text.trim()) return; }
+        let bild = null;
+        if (antwort === 'angenommen') { const k = document.createElement('canvas'); k.width = 600; k.height = Math.round(600 * c.height / c.width); k.getContext('2d').drawImage(c, 0, 0, k.width, k.height); bild = k.toDataURL('image/png'); }
+        form.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+        const { error } = await sb.rpc('rg_antworten', { p_token: token, p_antwort: antwort, p_name: name, p_unterschrift: bild, p_text: text });
+        if (error) { $('fehl').textContent = error.message; form.querySelectorAll('button').forEach((b) => { b.disabled = false; }); return; }
+        form.innerHTML = antwort === 'angenommen' ? '<p class="ok">✓ Vielen Dank! Die Offerte ist angenommen. ' + esc(f.name || 'Der Absender') + ' meldet sich bei Ihnen.</p>'
+          : antwort === 'frage' ? '<p class="ok">✓ Ihre Frage ist angekommen. Sie erhalten bald eine Antwort.</p>' : '<p>Danke für Ihre Rückmeldung.</p>';
+      };
+      form.onsubmit = (e) => { e.preventDefault(); senden('angenommen'); };
+      form.querySelectorAll('[data-antwort]').forEach((b) => { if (b.dataset.antwort !== 'angenommen') b.onclick = () => senden(b.dataset.antwort); });
+    }
   } catch (e) {
     fehler('Die Rechnung konnte gerade nicht geladen werden. Bitte versuchen Sie es in einem Moment nochmals.');
   }
