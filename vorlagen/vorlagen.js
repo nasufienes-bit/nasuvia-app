@@ -3,6 +3,7 @@
 (() => {
   'use strict';
   const K = window.NASUVIA_KONFIG || {};
+  try { const lz = JSON.parse(localStorage.getItem('ordasio.lizenz') || 'null'); if (K.produkt && lz && lz.paket === 'privat') { location.replace('../privat/'); return; } } catch {}
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const dk = (d) => (d ? d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4) : '');

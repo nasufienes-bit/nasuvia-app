@@ -1,5 +1,5 @@
 // Hält die App offline verfügbar. Bei jeder neuen Fassung VERSION erhöhen.
-const VERSION = 'app-1795503252';
+const VERSION = 'app-1795503477';
 const DATEIEN = ['./', 'index.html', 'app.js', 'navi.js', 'speicher.js', 'abgleich.js', 'konfig.js', 'pakete.js', 'branchen.js', 'leser.js', 'doppelt.js', 'lizenz.js', 'marke.js', 'privat/', 'privat/index.html', 'zeit/', 'zeit/index.html', 'zeit/erfassen/', 'zeit/erfassen/index.html', 'termine/', 'termine/index.html', 'lager/', 'lager/index.html', 'ablage/', 'ablage/index.html', 'ablage/ablage.js', 'vorlagen/', 'vorlagen/index.html', 'vorlagen/vorlagen.js', 'treuhand/', 'treuhand/index.html', 'lizenz/', 'lizenz/index.html', 'hilfe/', 'hilfe/index.html', 'suche.js', 'ordi.js', 'erinnerungen.js', 'tipps.js', 'ui.js', 'start/', 'start/index.html', 'selbstaendig/', 'selbstaendig/index.html', 'dienste/', 'dienste/index.html', 'korb.js', 'auszug.js', 'privat/mehr.js', 'lib/supabase.js', 'schrift.css', 'logo.png', 'logo-weiss.png', 'favicon.png', 'ordasio-zeichen.svg', 'ordasio-zeichen-weiss.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'manifest.webmanifest',
   'lib/html2canvas.min.js', 'lib/jspdf.umd.min.js', 'lib/qrcode.js', 'rechnungen/', 'rechnungen/index.html', 'rechnungen/dienst.js', 'rechnungen/manifest.webmanifest'];
 

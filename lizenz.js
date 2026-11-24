@@ -86,7 +86,7 @@
       <div class="lz-reiter"><button class="${modus === 'anmelden' ? 'an' : ''}" data-lz-modus="anmelden">Anmelden</button><button class="${modus === 'neu' ? 'an' : ''}" data-lz-modus="neu">Konto erstellen</button></div>
       <form data-lz-form="${modus}">
         ${modus === 'neu' ? `<label>Vor- und Nachname<input name="name" autocomplete="name" required></label>
-          ${O ? `<label>Ihre Firma ist …<select name="rechtsform" data-lz-rechtsform>${Object.entries(O.RECHTSFORMEN).map(([k, r]) => `<option value="${k}" ${k === rfVorgabe ? 'selected' : ''}>${esc(r.name)}${k === 'privat' ? ' (nur private Finanzen)' : ''}</option>`).join('')}</select></label>` : ''}
+          ${O ? `<label>Rechtsform<select name="rechtsform" data-lz-rechtsform>${Object.entries(O.RECHTSFORMEN).map(([k, r]) => `<option value="${k}" ${k === rfVorgabe ? 'selected' : ''}>${esc(r.name)}${k === 'privat' ? ' (nur private Finanzen)' : ''}</option>`).join('')}</select></label>` : ''}
           <label data-lz-firmafeld ${rfVorgabe === 'privat' ? 'hidden' : ''}>Firmenname <span>(freiwillig)</span><input name="firma" autocomplete="organization"></label>
           ${O && BR ? `<div data-lz-firmafeld ${rfVorgabe === 'privat' ? 'hidden' : ''} style="display:grid;grid-template-columns:1.4fr 1fr;gap:8px"><label>Branche<select name="branche" data-lz-empf><option value="">Bitte wählen</option>${BR.LISTE.map((b) => `<option value="${b.id}">${b.icon} ${esc(b.name)}</option>`).join('')}</select></label>
             <label>Mitarbeitende<select name="ma" data-lz-empf><option value="0">Nur ich</option><option value="2">1 bis 3</option><option value="5">4 bis 5</option><option value="8">Mehr als 5</option></select></label></div>` : ''}
@@ -199,6 +199,7 @@
     try { document.dispatchEvent(new CustomEvent('ordasio-lizenz', { detail: l })); } catch {}
     const h = heute();
     const gueltig = l.status !== 'gesperrt' && ((l.status === 'test' && l.test_bis >= h) || (l.status === 'aktiv' && (l.gueltig_bis || '') >= h));
+    if (PRODUKT === 'start' && l.paket === 'privat') { location.replace(KAUFEN.replace(/lizenz\/$/, 'privat/')); return; }
     if (!darf(l.paket)) {
       const besser = O && O.ab(PRODUKT === 'start' ? 'start' : PRODUKT, l.rechtsform || 'einzel');
       const text = `Ihr Paket „${esc(paketName(l.paket))}“ enthält ${NAME} nicht.` + (besser ? ` Das gibt es ab dem Paket „${esc(besser.name)}“ (CHF ${besser.monat} pro Monat).` : '');
