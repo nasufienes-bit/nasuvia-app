@@ -13,6 +13,7 @@
 <script src="../konfig.js"></script>
 <script src="../lib/supabase.js"></script>
 <script src="../pakete.js"></script>
+<script src="../branchen.js"></script>
 <script src="../lizenz.js" data-produkt="rechnungen"></script>
 <script src="../marke.js"></script>
 <script src="../lib/html2canvas.min.js"></script>
@@ -1003,8 +1004,8 @@ Herzlichen Dank für das entgegengebrachte Vertrauen. Wir stellen Ihnen folgende
 <dialog id="empfDlg">
   <h3 id="empfDlgTitel">Neuer Zahlungsempfänger</h3>
   <p class="dlg-sub">Wer das Geld erhält — Ihr eigenes Konto oder eine Factoring-Gesellschaft.</p>
-  <div class="field-row"><label for="eBez">Anzeigename</label><input type="text" id="eBez" placeholder="z. B. Nasuvia (direkt)" /></div>
-  <div class="field-row"><label for="eName">Kontoinhaber</label><input type="text" id="eName" placeholder="Nasuvia" /></div>
+  <div class="field-row"><label for="eBez">Anzeigename</label><input type="text" id="eBez" placeholder="z. B. Muster GmbH (direkt)" /></div>
+  <div class="field-row"><label for="eName">Kontoinhaber</label><input type="text" id="eName" placeholder="Muster GmbH" /></div>
   <div class="field-row"><label for="eIban">IBAN</label><input type="text" id="eIban" placeholder="CH.. .... .... .... .... ." /></div>
   <div class="field-row"><label for="eStrasse">Strasse</label><input type="text" id="eStrasse" /></div>
   <div class="field-row"><label for="eNr">Nummer</label><input type="text" id="eNr" /></div>
@@ -1306,6 +1307,12 @@ const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
   const vorlageFuer = (art) => vorlagen().find((v) => v.art === art);
 
   /* ---------- Positionen ---------- */
+  // Beispiele passend zur Branche (branchen.js), sonst neutral
+  const beispielPosition = (i) => {
+    const br = window.Branchen && Branchen.finde(Branchen.aktuell());
+    const l = br ? br.leistungen : ['Dienstleistung gemäss Offerte', 'Arbeitsstunden', 'Material', 'Anfahrt'];
+    return l[i % l.length];
+  };
   const posList = $('posList');
   const zeichnePositionen = () => {
     posList.innerHTML = '';
@@ -1313,7 +1320,7 @@ const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
       const row = document.createElement('div');
       row.className = 'pos-row';
       row.innerHTML = `
-        <input type="text" placeholder="z. B. Kabelzug" aria-label="Bezeichnung Position ${i + 1}" />
+        <input type="text" placeholder="z. B. ${esc(beispielPosition(i))}" aria-label="Bezeichnung Position ${i + 1}" />
         <input type="text" class="n" inputmode="decimal" placeholder="1" aria-label="Menge Position ${i + 1}" />
         <input type="text" class="n" inputmode="decimal" placeholder="0.00" aria-label="Preis Position ${i + 1}" />
         <button type="button" class="icon-btn" aria-label="Position ${i + 1} entfernen">
@@ -2635,7 +2642,7 @@ ${[[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' — '), [FIRMA.strasse, FIR
     inp.click();
   });
   if (window.UI && UI.teile) UI.teile.anwenden('rechnungen');
-  $('btnAnpassen').addEventListener('click', () => UI.teile.dialog('rechnungen', [['statistik', 'Übersicht mit Umsatz und Offenem'], ['entwuerfe', 'Entwürfe'], ['abos', 'Wiederkehrende Rechnungen'], ['archiv', 'Gesicherte Rechnungen']])));
+  $('btnAnpassen').addEventListener('click', () => UI.teile.dialog('rechnungen', [['statistik', 'Übersicht mit Umsatz und Offenem'], ['entwuerfe', 'Entwürfe'], ['abos', 'Wiederkehrende Rechnungen'], ['archiv', 'Gesicherte Rechnungen']]));
   $('btnFirma').addEventListener('click', () => window.Marke && Marke.dialog({ beiSpeichern: () => { firmaAnwenden(); aktualisiere({ sofort: true }); toast('Design gespeichert'); } }));
   window.addEventListener('storage', (e) => { if (e.key === 'nasuvia.firma.v1') { firmaAnwenden(); aktualisiere({ sofort: true }); } });
   $('btnOrdner').addEventListener('click', () =>

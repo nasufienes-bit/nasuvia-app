@@ -3,10 +3,15 @@
 // programme: welche Bereiche das Paket öffnet (Namen wie data-produkt in lizenz.js; „lohn“ ist die Lohnabrechnung in der Buchhaltung).
 (() => {
   const RECHTSFORMEN = {
-    einzel: { name: 'Einzelunternehmen', kurz: 'Einzelfirma', text: 'Selbständig, Einzelfirma, auch nebenberuflich' },
-    gmbh: { name: 'GmbH', kurz: 'GmbH', text: 'Gesellschaft mit beschränkter Haftung' },
-    ag: { name: 'AG', kurz: 'AG', text: 'Aktiengesellschaft' },
-    privat: { name: 'Privatperson', kurz: 'Privat', text: 'Nur private Finanzen (Home-Büro)' },
+    // basis: welche Pakete passen (einzel = Personenunternehmen, gmbh = Kapitalgesellschaft)
+    // doppeltPflicht: doppelte Buchhaltung immer an; person: Inhaber mit Privatkonto statt Gewinnreserven; kapital: Name des Grundkapitals
+    einzel: { name: 'Einzelunternehmen', kurz: 'Einzelfirma', text: 'Selbständig, Einzelfirma, auch nebenberuflich', basis: 'einzel', person: true },
+    klg: { name: 'Kollektivgesellschaft', kurz: 'KlG', text: 'Zwei oder mehr Personen führen das Geschäft gemeinsam', basis: 'einzel', person: true },
+    gmbh: { name: 'GmbH', kurz: 'GmbH', text: 'Gesellschaft mit beschränkter Haftung', basis: 'gmbh', doppeltPflicht: true, kapital: 'Stammkapital' },
+    ag: { name: 'AG', kurz: 'AG', text: 'Aktiengesellschaft', basis: 'gmbh', doppeltPflicht: true, kapital: 'Aktienkapital' },
+    genossenschaft: { name: 'Genossenschaft', kurz: 'Genossenschaft', text: 'Gemeinsam getragene Firma', basis: 'gmbh', doppeltPflicht: true, kapital: 'Genossenschaftskapital' },
+    verein: { name: 'Verein oder Stiftung', kurz: 'Verein', text: 'Verein, Stiftung, Non-Profit', basis: 'einzel' },
+    privat: { name: 'Privatperson', kurz: 'Privat', text: 'Nur private Finanzen (Home-Büro)', basis: 'privat' },
   };
 
   const PAKETE = [
@@ -41,11 +46,13 @@
   const EINRICHTUNG = 190;
 
   const paket = (id) => PAKETE.find((p) => p.id === (FRUEHER[id] || id)) || null;
-  const fuer = (rechtsform) => PAKETE.filter((p) => p.rechtsformen.includes(rechtsform));
-  const vorgabe = (rechtsform) => ({ einzel: 'solo', gmbh: 'business', ag: 'business', privat: 'privat' }[rechtsform] || 'solo');
+  const basis = (rechtsform) => (RECHTSFORMEN[rechtsform] || RECHTSFORMEN.einzel).basis;
+  const fuer = (rechtsform) => PAKETE.filter((p) => p.rechtsformen.includes(basis(rechtsform)));
+  const vorgabe = (rechtsform) => ({ einzel: 'solo', gmbh: 'business', privat: 'privat' }[basis(rechtsform)] || 'solo');
   // Passt ein Paket nicht zur Rechtsform, das entsprechende der anderen Seite nehmen
   function passend(id, rechtsform) {
     const p = paket(id);
+    rechtsform = basis(rechtsform);
     if (p && p.rechtsformen.includes(rechtsform)) return p.id;
     const tausch = { solo: 'business', team: 'business_team', business: 'solo', business_team: 'team' }[p && p.id];
     const t = tausch && paket(tausch);
@@ -54,7 +61,7 @@
   const darf = (paketId, programm) => { const p = paket(paketId); return !!p && p.programme.includes(programm); };
   // Kleinstes Paket der Rechtsform, das ein Programm enthält (für „ab Paket …“-Hinweise)
   const ab = (programm, rechtsform) => fuer(rechtsform).find((p) => p.programme.includes(programm)) || null;
-  const doppelt = (rechtsform) => rechtsform === 'gmbh' || rechtsform === 'ag';
+  const doppelt = (rechtsform) => !!(RECHTSFORMEN[rechtsform] || {}).doppeltPflicht;
 
-  window.ORDASIO = { RECHTSFORMEN, PAKETE, FRUEHER, ZUSATZ_MITARBEITER, EINRICHTUNG, paket, fuer, vorgabe, passend, darf, ab, doppelt };
+  window.ORDASIO = { RECHTSFORMEN, PAKETE, basis, FRUEHER, ZUSATZ_MITARBEITER, EINRICHTUNG, paket, fuer, vorgabe, passend, darf, ab, doppelt };
 })();

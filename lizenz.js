@@ -16,6 +16,7 @@
   const heute = () => new Date().toLocaleDateString('sv-SE');
   const dk = (d) => (d ? d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4) : '');
   const sb = window.supabase.createClient(K.url, K.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: K.speicher, detectSessionInUrl: true } });
+  window.NASUVIA_SB = sb;
   // Vorzeige-Modus (konfig.js → demo): ohne Anmeldung ins Demo-Konto. Wer sich bewusst abmeldet oder ?anmelden an die Adresse hängt, sieht wieder die Anmeldung.
   const OHNE_DEMO = 'nk.ohneDemo';
   try { if (/[?&]anmelden\b/.test(location.search)) sessionStorage.setItem(OHNE_DEMO, '1'); } catch {}
@@ -59,11 +60,22 @@
   const SYMBOL = '<img src="' + KAUFEN.replace(/lizenz\/$/, 'logo.png') + '" alt="Ordasio" style="height:34px;display:block">';
 
   /* ---------- Anmelden und Konto erstellen ---------- */
-  function paketOptionen(rechtsform, gewaehlt) {
+  function paketOptionen(rechtsform, gewaehlt, empfohlen = '') {
     if (!O) return '';
     const liste = O.fuer(rechtsform);
     const wahl = liste.some((p) => p.id === gewaehlt) ? gewaehlt : O.vorgabe(rechtsform);
-    return liste.map((p) => `<option value="${p.id}" ${p.id === wahl ? 'selected' : ''}>${esc(p.name)} · ${esc(p.kurz)} · CHF ${p.monat}/Mt.</option>`).join('');
+    return liste.map((p) => `<option value="${p.id}" ${p.id === wahl ? 'selected' : ''}>${p.id === empfohlen ? '★ ' : ''}${esc(p.name)} · ${esc(p.kurz)} · CHF ${p.monat}/Mt.${p.id === empfohlen ? ' (empfohlen)' : ''}</option>`).join('');
+  }
+  const BR = window.Branchen || null;
+  // Empfehlung aus Rechtsform, Branche und Mitarbeitenden ins Formular übernehmen
+  function empfehlen(f) {
+    const r = f.querySelector('[data-lz-rechtsform]'), p = f.querySelector('[data-lz-paket]'), h = f.querySelector('[data-lz-rfhinweis]');
+    if (!r || !p) return;
+    const e = BR ? BR.empfehlung({ rechtsform: r.value, branche: (f.querySelector('[name=branche]') || {}).value || '', mitarbeiter: Number((f.querySelector('[name=ma]') || {}).value || 0) }) : null;
+    const id = e ? e.paket : O.passend(p.value, r.value);
+    p.innerHTML = paketOptionen(r.value, id, e && e.paket);
+    if (h) h.innerHTML = esc(rechtsformHinweis(r.value)) + (e && e.gruende.length ? `<br><b>Empfehlung ${esc((O.paket(id) || {}).name || '')}:</b> ${esc(e.gruende.slice(0, 2).join(' '))}` : '');
+    f.querySelectorAll('[data-lz-firmafeld]').forEach((x) => { x.hidden = r.value === 'privat'; });
   }
   function anmelden(modus = 'anmelden', meldung = '') {
     const q = new URLSearchParams(location.search);
@@ -76,6 +88,8 @@
         ${modus === 'neu' ? `<label>Vor- und Nachname<input name="name" autocomplete="name" required></label>
           ${O ? `<label>Ihre Firma ist …<select name="rechtsform" data-lz-rechtsform>${Object.entries(O.RECHTSFORMEN).map(([k, r]) => `<option value="${k}" ${k === rfVorgabe ? 'selected' : ''}>${esc(r.name)}${k === 'privat' ? ' (nur private Finanzen)' : ''}</option>`).join('')}</select></label>` : ''}
           <label data-lz-firmafeld ${rfVorgabe === 'privat' ? 'hidden' : ''}>Firmenname <span>(freiwillig)</span><input name="firma" autocomplete="organization"></label>
+          ${O && BR ? `<div data-lz-firmafeld ${rfVorgabe === 'privat' ? 'hidden' : ''} style="display:grid;grid-template-columns:1.4fr 1fr;gap:8px"><label>Branche<select name="branche" data-lz-empf><option value="">Bitte wählen</option>${BR.LISTE.map((b) => `<option value="${b.id}">${b.icon} ${esc(b.name)}</option>`).join('')}</select></label>
+            <label>Mitarbeitende<select name="ma" data-lz-empf><option value="0">Nur ich</option><option value="2">1 bis 3</option><option value="5">4 bis 5</option><option value="8">Mehr als 5</option></select></label></div>` : ''}
           ${O ? `<label>Paket<select name="paket" data-lz-paket>${paketOptionen(rfVorgabe, paketVorgabe)}</select></label>
           <p class="lz-hinweis" data-lz-rfhinweis>${rechtsformHinweis(rfVorgabe)}</p>` : ''}` : ''}
         <label>E-Mail<input name="email" type="email" autocomplete="username" required></label>
@@ -87,16 +101,16 @@
   }
   function rechtsformHinweis(rf) {
     return { einzel: 'Einfache Buchhaltung ohne Fachbegriffe. Die doppelte Buchhaltung lässt sich jederzeit zuschalten.',
+      klg: 'Einfache Buchhaltung mit Privatkonten der Gesellschafter. Die doppelte Buchhaltung lässt sich jederzeit zuschalten.',
+      genossenschaft: 'Mit doppelter Buchhaltung nach Schweizer KMU-Kontenrahmen, Bilanz und Erfolgsrechnung nach OR.',
+      verein: 'Einnahmen und Ausgaben einfach erfassen, Mitgliederbeiträge als Rechnung. Doppelte Buchhaltung zuschaltbar.',
       gmbh: 'Mit doppelter Buchhaltung nach Schweizer KMU-Kontenrahmen, Bilanz und Erfolgsrechnung nach OR.',
       ag: 'Mit doppelter Buchhaltung nach Schweizer KMU-Kontenrahmen, Bilanz und Erfolgsrechnung nach OR.',
       privat: 'Für Ihre privaten Finanzen: Konto, Abos, Rechnungen und Fristen.' }[rf] || '';
   }
   decke.addEventListener('change', (e) => {
-    const r = e.target.closest('[data-lz-rechtsform]'); if (!r) return;
-    const f = r.form, p = f.querySelector('[data-lz-paket]');
-    if (p) p.innerHTML = paketOptionen(r.value, O.passend(p.value, r.value));
-    const h = f.querySelector('[data-lz-rfhinweis]'); if (h) h.textContent = rechtsformHinweis(r.value);
-    const ff = f.querySelector('[data-lz-firmafeld]'); if (ff) ff.hidden = r.value === 'privat';
+    const r = e.target.closest('[data-lz-rechtsform],[data-lz-empf]'); if (!r || !O) return;
+    empfehlen(r.form);
   });
   decke.addEventListener('click', async (e) => {
     const t = e.target.closest('button,a'); if (!t) return;
@@ -127,7 +141,8 @@
     try {
       if (f.dataset.lzForm === 'neu') {
         const { data, error } = await sb.auth.signUp({ email: d.email.trim(), password: d.passwort,
-          options: { emailRedirectTo: location.origin + location.pathname, data: { name: d.name.trim(), firma: (d.firma || '').trim(), paket: d.paket || '', rechtsform: d.rechtsform || 'einzel', zyklus: 'jahr' } } });
+          options: { emailRedirectTo: location.origin + location.pathname, data: { name: d.name.trim(), firma: (d.firma || '').trim(), paket: d.paket || '', rechtsform: d.rechtsform || 'einzel', branche: d.branche || '', zyklus: 'jahr' } } });
+        try { if (d.branche) localStorage.setItem('ordasio.branche', d.branche); } catch {}
         if (error) throw error;
         if (!data.session) { anmelden('anmelden', '✓ Fast geschafft: Bitte bestätigen Sie Ihre E-Mail über den Link, den wir Ihnen gerade geschickt haben.'); return; }
         location.reload();

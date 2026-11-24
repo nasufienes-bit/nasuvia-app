@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="../schrift.css" />
 <script src="../konfig.js"></script>
 <script src="../pakete.js"></script>
+<script src="../branchen.js"></script>
 <script src="../lib/supabase.js"></script>
 <style>
 :root{--papier:#F4FAF6;--flaeche:#E8F4EE;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--gruen:#0E9F6E;--rot:#E5484D;--linie:rgba(11,59,46,.14);--schatten:0 1px 2px rgba(12,18,38,.05),0 14px 34px -20px rgba(12,18,38,.3)}
@@ -30,6 +31,12 @@ h1{font-size:clamp(30px,6vw,42px);letter-spacing:-.03em;line-height:1.05;margin:
 .umschalter button{border:0;background:none;border-radius:100px;padding:10px 18px;font:inherit;font-weight:500;color:var(--text);cursor:pointer}
 .umschalter button.an{background:var(--blau);color:#fff;font-weight:700}
 .pakete{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.empf{max-width:640px;margin:14px auto 0;display:grid;gap:10px}
+.empf .felder{display:grid;grid-template-columns:1.4fr 1fr;gap:8px}
+.empf label{display:grid;gap:4px;font-size:13px;color:var(--text,#3F5A4F)}
+.empf select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.22);border-radius:12px;padding:10px 12px;background:#fff;width:100%}
+.empf p{font-size:14px;color:var(--text,#3F5A4F);margin:0}
+.paket .empf-marke{display:inline-block;background:#0E7A55;color:#fff;border-radius:100px;padding:3px 10px;font-size:12px;font-weight:700;margin-bottom:6px}
 .rf-wahl{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:18px 0 4px}
 .rf-wahl button{font:inherit;font-weight:600;border:1px solid rgba(11,59,46,.2);background:#fff;border-radius:100px;padding:9px 16px;cursor:pointer;color:var(--tinte)}
 .rf-wahl button.an{background:var(--gruen,#0B3B2E);border-color:transparent;color:#fff}
@@ -76,6 +83,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   <h2 style="text-align:center;margin-top:22px">Ihre Firma ist …</h2>
   <div class="rf-wahl" id="rfWahl"></div>
   <p class="rf-text" id="rfText"></p>
+  <div class="karte empf" id="empf"></div>
   <div class="umschalter"><div><button data-z="monat">Monatlich</button><button data-z="jahr" class="an">Jährlich · 2 Monate gratis</button></div></div>
   <div class="pakete" id="pakete"></div>
   <div class="karte zusatz"><b>Mehr Mitarbeitende in der Zeiterfassung</b><span>In „Team“ sind 3, in „Business Team“ 5 Mitarbeitende inklusive. Jede weitere Person: CHF 5 pro Monat oder CHF 50 pro Jahr. Im Gratis-Test unbegrenzt.</span></div>
@@ -135,6 +143,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   var O = window.ORDASIO;
   var PAKETE = O.PAKETE;
   var rf = 'einzel';
+  var BR = window.Branchen || null, branche = BR ? BR.aktuell() : '', ma = 0;
   var paketVon = function(id){ return O.paket(id); };
   var zyklus = 'jahr', lizenz = null, benutzer = null, gewaehlt = null, zeitLeute = 0;
   var ZEIT = O.ZUSATZ_MITARBEITER;
@@ -145,6 +154,9 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     $('dPreis').textContent = 'CHF ' + (grund + z) + (zyklus === 'jahr' ? '/Jahr' : '/Monat') + ($('dEinrichtung').checked ? ' + 190 einmalig' : '');
   }
   var sb = window.supabase.createClient(K.url, K.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: K.speicher } });
+  if (!window.NASUVIA_SB) window.NASUVIA_SB = sb;
+  // Mitarbeitende fürs Empfehlen: aus dem aktuellen Paket ableiten
+  function zeitLeuteVorab(l){ var p = l && O.paket(l.paket); return p && p.mitarbeiter ? 2 : 0; }
 
   function standZeichnen(){
     if (!benutzer) {
@@ -165,24 +177,37 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   }
   function rfZeichnen(){
     $('rfWahl').innerHTML = Object.keys(O.RECHTSFORMEN).map(function(k){ return '<button data-rf="' + k + '" class="' + (k === rf ? 'an' : '') + '">' + esc(O.RECHTSFORMEN[k].name) + '</button>'; }).join('');
-    $('rfText').textContent = { einzel: 'Einfache Buchhaltung ohne Fachbegriffe, die doppelte Buchhaltung lässt sich zuschalten.', gmbh: 'Doppelte Buchhaltung nach KMU-Kontenrahmen, Bilanz und Erfolgsrechnung nach OR.', ag: 'Doppelte Buchhaltung nach KMU-Kontenrahmen, Bilanz und Erfolgsrechnung nach OR.', privat: 'Nur private Finanzen: Konto, Abos, Rechnungen, Fristen.' }[rf];
+    $('rfText').textContent = { klg: 'Einfache Buchhaltung mit Privatkonten der Gesellschafter, die doppelte Buchhaltung lässt sich zuschalten.', genossenschaft: 'Doppelte Buchhaltung nach KMU-Kontenrahmen, Bilanz und Erfolgsrechnung nach OR.', verein: 'Einnahmen, Ausgaben und Mitgliederbeiträge einfach erfassen, doppelte Buchhaltung zuschaltbar.', einzel: 'Einfache Buchhaltung ohne Fachbegriffe, die doppelte Buchhaltung lässt sich zuschalten.', gmbh: 'Doppelte Buchhaltung nach KMU-Kontenrahmen, Bilanz und Erfolgsrechnung nach OR.', ag: 'Doppelte Buchhaltung nach KMU-Kontenrahmen, Bilanz und Erfolgsrechnung nach OR.', privat: 'Nur private Finanzen: Konto, Abos, Rechnungen, Fristen.' }[rf];
   }
   function paketeZeichnen(){
     rfZeichnen();
     [].forEach.call(document.querySelectorAll('[data-z]'), function(b){ b.classList.toggle('an', b.dataset.z === zyklus); });
     var test = lizenz && lizenz.status === 'test';
+    var e = BR ? BR.empfehlung({ rechtsform: rf, branche: branche, mitarbeiter: ma }) : null;
+    if (BR && rf !== 'privat') {
+      if (!$('empf').querySelector('select')) $('empf').innerHTML = '<b>Welches Paket passt zu Ihnen?</b><div class="felder"><label>Branche<select id="empfBranche"><option value="">Bitte wählen</option>' +
+        BR.LISTE.map(function(b){ return '<option value="' + b.id + '"' + (b.id === branche ? ' selected' : '') + '>' + b.icon + ' ' + esc(b.name) + '</option>'; }).join('') + '</select></label>' +
+        '<label>Mitarbeitende<select id="empfMa"><option value="0">Nur ich</option><option value="2">1 bis 3</option><option value="5">4 bis 5</option><option value="8">Mehr als 5</option></select></label></div><p id="empfText"></p>';
+      if ($('empfMa')) $('empfMa').value = String(ma);
+      $('empfText').innerHTML = e ? '<b>Empfohlen: ' + esc((O.paket(e.paket) || {}).name || '') + '.</b> ' + esc(e.gruende.join(' ')) : '';
+      $('empf').hidden = false;
+    } else $('empf').hidden = true;
     $('pakete').innerHTML = O.fuer(rf).map(function(p){
       var jetzt = lizenz && O.paket(lizenz.paket) && O.paket(lizenz.paket).id === p.id && lizenz.rechtsform === rf;
-      var top = p.top && p.top.indexOf(rf) >= 0;
+      var top = e ? e.paket === p.id : (p.top && p.top.indexOf(O.basis(rf)) >= 0);
       var knoepfe = jetzt
         ? '<button class="btn haupt" data-paket="' + p.id + '">' + (lizenz.status === 'aktiv' ? 'Verlängern' : 'Lizenz kaufen') + '</button>'
         : (test ? '<button class="btn' + (top ? ' haupt' : '') + '" data-wechsel="' + p.id + '">Gratis zu diesem Paket wechseln</button><button class="btn" data-paket="' + p.id + '">Direkt bestellen</button>'
           : '<button class="btn' + (top ? ' haupt' : '') + '" data-paket="' + p.id + '">Dieses Paket wählen</button>');
-      return '<div class="paket' + (top ? ' top' : '') + (jetzt ? ' jetzt' : '') + '"><h3>' + esc(p.name) + '</h3><div class="kurz">' + esc(p.kurz) + '</div>' +
+      return '<div class="paket' + (top ? ' top' : '') + (jetzt ? ' jetzt' : '') + '">' + (top && e ? '<span class="empf-marke">Empfohlen für Sie</span>' : '') + '<h3>' + esc(p.name) + '</h3><div class="kurz">' + esc(p.kurz) + '</div>' +
         '<div class="preis">' + (zyklus === 'jahr' ? p.jahr : p.monat) + ' <span>CHF / ' + (zyklus === 'jahr' ? 'Jahr' : 'Monat') + '</span></div>' +
         '<ul>' + p.was.map(function(w){ return '<li>' + esc(w) + '</li>'; }).join('') + '</ul>' + knoepfe + '</div>';
     }).join('');
   }
+  document.addEventListener('change', function(e){
+    if (e.target.id === 'empfBranche') { branche = e.target.value; if (BR) BR.setzen(branche); paketeZeichnen(); }
+    if (e.target.id === 'empfMa') { ma = Number(e.target.value) || 0; paketeZeichnen(); }
+  });
   document.addEventListener('click', async function(e){
     var r = e.target.closest('[data-rf]'); if (r) { rf = r.dataset.rf; paketeZeichnen(); return; }
     var w = e.target.closest('[data-wechsel]'); if (!w) return;
@@ -316,7 +341,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       if (benutzer) {
         var r = await sb.from('lizenzen').select('*').eq('user_id', benutzer.id).maybeSingle();
         lizenz = r.data || null;
-        if (lizenz) { zyklus = lizenz.zyklus || 'jahr'; rf = lizenz.rechtsform || 'einzel'; }
+        if (lizenz) { zyklus = lizenz.zyklus || 'jahr'; rf = lizenz.rechtsform || 'einzel'; if (lizenz.branche) branche = lizenz.branche; window.NASUVIA_LIZENZ = window.NASUVIA_LIZENZ || lizenz; }
+        ma = zeitLeuteVorab(lizenz);
         try { var zm = await sb.from('ze_mitarbeiter').select('id', { count: 'exact', head: true }).eq('aktiv', true); zeitLeute = zm.count || 0; } catch (f2) { zeitLeute = 0; }
       }
     } catch (f) { benutzer = null; }

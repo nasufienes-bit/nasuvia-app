@@ -59,6 +59,10 @@ h1{font-size:clamp(30px,6vw,44px);letter-spacing:-.03em;line-height:1.05}
 .einf .punkte i.an{background:var(--blau)}
 .einf h2{font-size:clamp(28px,6vw,40px);letter-spacing:-.03em;line-height:1.08;margin-bottom:8px}
 .einf p{color:var(--text);font-size:17px;margin-bottom:18px}
+.branchen{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;margin:0 -2px 6px;scrollbar-width:none}
+.branchen::-webkit-scrollbar{display:none}
+.branchen button{flex:none;border:1.5px solid rgba(11,59,46,.16);background:#fff;border-radius:100px;padding:8px 13px;font-size:14px;color:#0A1F17;white-space:nowrap}
+.branchen button.an{background:#0B3B2E;color:#fff;border-color:transparent}
 .ziele{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .ziel{display:flex;gap:12px;align-items:center;background:#fff;border:2px solid transparent;border-radius:18px;padding:16px;text-align:left;box-shadow:var(--schatten);color:var(--tinte)}
 .ziel.an{border-color:var(--blau);background:rgba(14,122,85,.05)}
@@ -100,6 +104,7 @@ body[data-dichte=gross] .aufgabe{padding:26px}
 <header class="kopfzeile"><div class="wrap"><span id="kopfLinks" style="display:flex;align-items:center;gap:10px"></span><span style="margin-left:auto" data-suche-hier></span></div></header>
 <main class="wrap" id="inhalt" style="padding-top:18px"></main>
 <script src="../pakete.js"></script>
+<script src="../branchen.js"></script>
 <script src="../lizenz.js" data-produkt="start"></script>
 <script src="../marke.js"></script>
 <script src="../suche.js"></script>
@@ -178,6 +183,7 @@ body[data-dichte=gross] .aufgabe{padding:26px}
     const punkte = `<div class="punkte">${[1, 2, 3].map((i) => `<i class="${i <= schritt ? 'an' : ''}"></i>`).join('')}</div>`;
     if (schritt === 1) {
       el.innerHTML = `<div class="box">${punkte}<h2>Willkommen bei Ordasio 👋</h2><p>Was möchten Sie damit machen? Wählen Sie alles, was passt. Sie sehen danach nur, was Sie brauchen. Ändern geht jederzeit.</p>
+        ${window.Branchen ? `<p style="margin:4px 0 8px"><b>Ihre Branche</b> <span class="leise">(wählt passende Bereiche vor)</span></p><div class="branchen">${Branchen.LISTE.map((b) => `<button data-branche="${b.id}" class="${Branchen.aktuell() === b.id ? 'an' : ''}">${b.icon} ${esc(b.name)}</button>`).join('')}</div>` : ''}
         <div class="ziele">${ZIELE.filter(zielOffen).map(zielFuerRechtsform).map((z) => `<button class="ziel ${wahl.has(z.id) ? 'an' : ''}" data-ziel="${z.id}"><span class="ic" style="background:${z.farbe}">${svg(z.ic)}</span><span><b>${esc(z.name)}</b><small>${esc(z.text)}</small></span><span class="h">${wahl.has(z.id) ? '✓' : ''}</span></button>`).join('')}</div>
         ${ZIELE.some((z) => !zielOffen(z)) ? `<p class="leise" style="margin:12px 0 0">In einem grösseren Paket: ${ZIELE.filter((z) => !zielOffen(z)).map((z) => `${esc(z.name)}${zielAb(z) ? ' (ab ' + esc(zielAb(z).name) + ')' : ''}`).join(', ')}. <a class="link" href="../lizenz/">Pakete ansehen</a></p>` : ''}
         <button class="knopf" data-weiter ${wahl.size ? '' : 'disabled'}>Weiter</button></div>`;
@@ -196,6 +202,14 @@ body[data-dichte=gross] .aufgabe{padding:26px}
     }
   }
   document.addEventListener('click', (e) => {
+    const br = e.target.closest('[data-branche]');
+    if (br && window.Branchen) {
+      Branchen.setzen(br.dataset.branche);
+      const b = Branchen.finde(br.dataset.branche);
+      wahl = new Set(b.ziele.filter((id) => ZIELE.some((z) => z.id === id && zielOffen(z))));
+      if (b.mitarbeiter && ZIELE.some((z) => z.id === 'loehne' && zielOffen(z)) && wahl.has('zeit')) wahl.add('loehne');
+      einfuehrung(); const an = document.querySelector('.branchen .an'); if (an) an.parentElement.scrollLeft = an.offsetLeft - 40; return;
+    }
     const z = e.target.closest('[data-ziel]');
     if (z) { const id = z.dataset.ziel; wahl.has(id) ? wahl.delete(id) : wahl.add(id); einfuehrung(); return; }
     if (e.target.closest('[data-weiter]')) { if (schritt === 1) speichern([...wahl]); schritt++; einfuehrung(); return; }

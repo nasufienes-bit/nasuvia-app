@@ -40,7 +40,10 @@
       for (const e of eigene || []) if (e && e.id) map.set(e.id, { ...(map.get(e.id) || { ziffer: 405, satz: 8.1 }), ...e });
       return [...map.values()];
     };
-    KAT_AUS = mischen(KAT_AUS_STD, k.aus).map((x) => (x.nurFirma && !istFirma() ? { ...x, versteckt: true } : x));
+    // Branche: passende Kategorien zusätzlich anbieten (vor „Übriges“)
+    const br = window.Branchen ? Branchen.finde(Branchen.aktuell()) : null;
+    const std = br && br.kat.length ? [...KAT_AUS_STD.slice(0, -2), ...br.kat.filter((x) => !KAT_AUS_STD.some((y) => y.id === x.id)), ...KAT_AUS_STD.slice(-2)] : KAT_AUS_STD;
+    KAT_AUS = mischen(std, k.aus).map((x) => (x.nurFirma && !istFirma() ? { ...x, versteckt: true } : x));
     KAT_EIN = mischen(KAT_EIN_STD, k.ein);
   }
   const sichtbar = (liste, aktuell) => liste.filter((x) => !x.versteckt || x.id === aktuell);
@@ -189,11 +192,15 @@
   const lizenzJetzt = () => window.NASUVIA_LIZENZ || null;
   function rechtsform() {
     const l = lizenzJetzt();
-    if (l && ['einzel', 'gmbh', 'ag'].includes(l.rechtsform)) return l.rechtsform;
-    return ['einzel', 'gmbh', 'ag'].includes(Z.einst.rechtsform) ? Z.einst.rechtsform : 'einzel';
+    const gueltig = (r) => !!r && r !== 'privat' && (O ? !!O.RECHTSFORMEN[r] : ['einzel', 'gmbh', 'ag'].includes(r));
+    if (l && gueltig(l.rechtsform)) return l.rechtsform;
+    return gueltig(Z.einst.rechtsform) ? Z.einst.rechtsform : 'einzel';
   }
-  const istFirma = () => rechtsform() !== 'einzel';
-  const doppeltAktiv = () => !!D && (istFirma() || !!Z.einst.doppelt);
+  // Firma = juristische Person (Gewinnreserven, Steuern); Personenunternehmen haben ein Privatkonto
+  const istFirma = () => (D ? !D.person(rechtsform()) : rechtsform() !== 'einzel');
+  const doppeltPflicht = () => (O ? O.doppelt(rechtsform()) : istFirma());
+  const kapitalName = () => ((O && O.RECHTSFORMEN[rechtsform()]) || {}).kapital || '';
+  const doppeltAktiv = () => !!D && (doppeltPflicht() || !!Z.einst.doppelt);
   const lohnErlaubt = () => { const l = lizenzJetzt(); return !O || !l || O.darf(l.paket, 'lohn'); };
   const kontenplan = () => D.kontenplan(rechtsform(), Z.einst.konten || []);
   const katKonto = (b) => D.kategorieKonto(Z.einst, b.typ, b.kategorie);
@@ -1470,7 +1477,7 @@
   function eroeffnungHinweis() {
     if (eroeffnung()) return '';
     return `<div class="card abstand-unten" style="border:1px solid rgba(183,121,31,.3)"><h2>Zuerst die Eröffnungsbilanz</h2>
-      <p class="hinweis">Tragen Sie einmal ein, womit Ihre Buchhaltung startet: ${istFirma() ? 'das einbezahlte ' + (rechtsform() === 'ag' ? 'Aktienkapital' : 'Stammkapital') + ', ' : ''}Bankguthaben, Kasse, offene Rechnungen, Fahrzeuge, Darlehen. Bei einer Neugründung reicht meist eine Zeile: Bank an Kapital.</p>
+      <p class="hinweis">Tragen Sie einmal ein, womit Ihre Buchhaltung startet: ${kapitalName() ? 'das einbezahlte ' + kapitalName() + ', ' : ''}Bankguthaben, Kasse, offene Rechnungen, Fahrzeuge, Darlehen. Bei einer Neugründung reicht meist eine Zeile: Bank an Kapital.</p>
       <button class="btn btn-haupt abstand" onclick="NB.eroeffnung()">Eröffnungsbilanz erfassen</button></div>`;
   }
 
@@ -1587,7 +1594,7 @@
     if (!j.zeilen || !j.zeilen.length) j.zeilen = [{ soll: '', haben: '', betrag: null }];
     const gesperrt = !!(vorhanden && istFest(vorhanden.datum));
     const dlg = $('dlg');
-    const vorlagen = VORLAGEN.filter((v) => !v.nur || (v.nur === 'firma' ? istFirma() : !istFirma()));
+    const vorlagen = VORLAGEN.filter((v) => !v.nur || (v.nur === 'firma' ? istFirma() : !istFirma())).filter((v) => !(rechtsform() === 'verein' && ['kapital', 'reserve', 'ausschuettung', 'ausschuettung_zahlung'].includes(v.id)));
     const merken = () => {
       j.datum = $('jDatum').value; j.beleg = $('jBeleg').value.trim(); j.text = $('jText').value.trim();
       j.zeilen = [...dlg.querySelectorAll('[data-jz]')].map((r) => { const x = betragLesen(r.querySelector('[data-betrag]').value); return { soll: r.querySelector('[data-soll]').value, haben: r.querySelector('[data-haben]').value, betrag: Number.isFinite(x) ? x : null }; });
@@ -1676,7 +1683,7 @@
     const konten = plan.filter((k) => D.istBilanzkonto(k.nr) && !['2891', '2979'].includes(k.nr));
     const feld = (k) => `<label class="eb-zeile"><span><span class="kontonr">${k.nr}</span> ${esc(k.name)}</span><input data-eb="${k.nr}" inputmode="decimal" placeholder="0.00" value="${werte[k.nr] ? chf(werte[k.nr]).replace(/’/g, '') : ''}" ${gesperrt ? 'disabled' : ''} /></label>`;
     const d = kleinerDialog(`<h3 style="margin:0">Eröffnungsbilanz</h3>
-      <p class="hinweis">Die Bestände am ersten Tag in Ordasio, zum Beispiel aus der Schlussbilanz des Vorjahres. ${istFirma() ? `Bei einer Neugründung: Bank und ${rechtsform() === 'ag' ? 'Aktienkapital' : 'Stammkapital'} mit dem einbezahlten Betrag.` : 'Bei einem Neustart: Bank, Kasse und Eigenkapital.'}</p>
+      <p class="hinweis">Die Bestände am ersten Tag in Ordasio, zum Beispiel aus der Schlussbilanz des Vorjahres. ${kapitalName() ? `Bei einer Neugründung: Bank und ${kapitalName()} mit dem einbezahlten Betrag.` : istFirma() ? 'Bei einem Neustart: Bank, Kasse und Vereinsvermögen.' : 'Bei einem Neustart: Bank, Kasse und Eigenkapital.'}</p>
       ${gesperrt ? `<p class="hinweis"><b>Festgeschrieben.</b> Die Eröffnungsbilanz kann nicht mehr geändert werden.</p>` : ''}
       <div class="feld"><label>Datum</label><input type="date" name="datum" value="${datum}" required ${gesperrt ? 'disabled' : ''}></div>
       <div class="eb-raster"><div><h4>Aktiven</h4>${konten.filter((k) => k.art === 'aktiv').map(feld).join('')}</div><div><h4>Passiven und Eigenkapital</h4>${konten.filter((k) => k.art === 'passiv').map(feld).join('')}</div></div>
@@ -1886,9 +1893,9 @@
   function einstRechtsform() {
     const l = lizenzJetzt(), rf = rechtsform(), name = O ? O.RECHTSFORMEN[rf].name : rf;
     const auswahl = l ? `<p class="hinweis">Ihre Firma: <b>${esc(name)}</b>. Ändern unter <a href="lizenz/">Lizenz und Konto</a>.</p>`
-      : `<div class="segment">${['einzel', 'gmbh', 'ag'].map((k) => `<button class="${rf === k ? 'an' : ''}" data-rechtsform="${k}">${O ? O.RECHTSFORMEN[k].kurz : k}</button>`).join('')}</div>`;
-    const schalter = rf === 'einzel'
-      ? `<label class="haken abstand"><input type="checkbox" data-doppelt ${Z.einst.doppelt ? 'checked' : ''} /> Doppelte Buchhaltung (Soll und Haben, Bilanz nach OR)</label><p class="hinweis">Für Einzelfirmen ab CHF 500’000 Umsatz Pflicht. Ihre bisherigen Buchungen werden automatisch übernommen.</p>`
+      : `<div class="segment" style="flex-wrap:wrap">${(O ? Object.keys(O.RECHTSFORMEN).filter((k) => k !== 'privat') : ['einzel', 'gmbh', 'ag']).map((k) => `<button class="${rf === k ? 'an' : ''}" data-rechtsform="${k}">${O ? O.RECHTSFORMEN[k].kurz : k}</button>`).join('')}</div>`;
+    const schalter = !doppeltPflicht()
+      ? `<label class="haken abstand"><input type="checkbox" data-doppelt ${Z.einst.doppelt ? 'checked' : ''} /> Doppelte Buchhaltung (Soll und Haben, Bilanz nach OR)</label><p class="hinweis">Für Einzelfirmen und Kollektivgesellschaften ab CHF 500’000 Umsatz Pflicht, für Vereine im Handelsregister immer. Ihre bisherigen Buchungen werden automatisch übernommen.</p>`
       : `<p class="hinweis abstand">Als ${esc(name)} führen Sie die doppelte Buchhaltung. Einnahmen, Ausgaben, Rechnungen und Löhne werden automatisch in Soll und Haben verbucht.</p>`;
     const links = doppeltAktiv() ? `<div class="abstand" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-ansicht="konten">Konten und Journal</button><button class="btn" onclick="NB.eroeffnung()">Eröffnungsbilanz</button></div>` : '';
     return auswahl + schalter + links;

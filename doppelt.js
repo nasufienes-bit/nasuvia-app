@@ -27,6 +27,12 @@
     gmbh: [K('2261', 'Beschlossene Gewinnausschüttungen', 'passiv'), K('2800', 'Stammkapital', 'passiv'), K('2900', 'Gesetzliche Kapitalreserve', 'passiv'),
       K('2950', 'Gesetzliche Gewinnreserve', 'passiv'), K('2960', 'Freiwillige Gewinnreserven', 'passiv'), K('2970', 'Gewinnvortrag oder Verlustvortrag', 'passiv'),
       K('2979', 'Jahresgewinn oder Jahresverlust', 'passiv')],
+    klg: [K('2800', 'Kapital der Gesellschafter', 'passiv'), K('2850', 'Privatkonten der Gesellschafter', 'passiv'), K('2891', 'Jahresgewinn oder Jahresverlust', 'passiv')],
+    genossenschaft: [K('2261', 'Beschlossene Gewinnausschüttungen', 'passiv'), K('2800', 'Genossenschaftskapital', 'passiv'), K('2900', 'Gesetzliche Kapitalreserve', 'passiv'),
+      K('2950', 'Gesetzliche Gewinnreserve', 'passiv'), K('2960', 'Freiwillige Gewinnreserven', 'passiv'), K('2970', 'Gewinnvortrag oder Verlustvortrag', 'passiv'),
+      K('2979', 'Jahresgewinn oder Jahresverlust', 'passiv')],
+    verein: [K('2800', 'Vereinsvermögen (Organisationskapital)', 'passiv'), K('2960', 'Fonds und Reserven', 'passiv'), K('2970', 'Ergebnisvortrag', 'passiv'),
+      K('2979', 'Jahresergebnis', 'passiv')],
     ag: [K('2261', 'Beschlossene Dividenden', 'passiv'), K('2800', 'Aktienkapital', 'passiv'), K('2900', 'Gesetzliche Kapitalreserve', 'passiv'),
       K('2950', 'Gesetzliche Gewinnreserve', 'passiv'), K('2960', 'Freiwillige Gewinnreserven', 'passiv'), K('2970', 'Gewinnvortrag oder Verlustvortrag', 'passiv'),
       K('2979', 'Jahresgewinn oder Jahresverlust', 'passiv')],
@@ -54,10 +60,12 @@
     return k === '1' ? 'aktiv' : k === '2' ? 'passiv' : k === '3' ? 'ertrag' : k === '9' ? 'abschluss' : 'aufwand';
   };
   // eigene: [{ nr, name, art }] neue oder umbenannte Konten; versteckt: Nummern, die im Plan nicht erscheinen sollen
+  // Personenunternehmen (Einzelfirma, Kollektivgesellschaft): Privatkonto, Gewinn ins Eigenkapital, keine Gewinnsteuer
+  const person = (rf) => !EIGENKAPITAL[rf] || rf === 'einzel' || rf === 'klg';
   function kontenplan(rechtsform = 'einzel', eigene = []) {
     const rf = EIGENKAPITAL[rechtsform] ? rechtsform : 'einzel';
     const map = new Map();
-    for (const k of [...BASIS, ...EIGENKAPITAL[rf], ...ERFOLG, ...(rf === 'einzel' ? [] : [STEUERN]), ...ABSCHLUSS]) map.set(k.nr, { ...k, standard: true });
+    for (const k of [...BASIS, ...EIGENKAPITAL[rf], ...ERFOLG, ...(person(rf) ? [] : [STEUERN]), ...ABSCHLUSS]) map.set(k.nr, { ...k, standard: true });
     for (const e of eigene || []) {
       if (!e || !/^\d{4}$/.test(String(e.nr || ''))) continue;
       const alt = map.get(e.nr);
@@ -78,7 +86,7 @@
   const STD_ZAHLUNG = { Bank: '1020', Karte: '1020', TWINT: '1020', Bar: '1000' };
   function kategorieKonto(einst, typ, kategorie) {
     const z = (einst && einst.kontoZuordnung) || {};
-    return z[kategorie] || STD_KONTO[kategorie] || (typ === 'einnahme' ? '3600' : '6700');
+    return z[kategorie] || STD_KONTO[kategorie] || (typeof window !== 'undefined' && window.Branchen && window.Branchen.konto(kategorie)) || (typ === 'einnahme' ? '3600' : '6700');
   }
   const zahlungKonto = (einst, zahlung) => (((einst && einst.zahlungKonten) || {})[zahlung]) || STD_ZAHLUNG[zahlung] || '1020';
 
@@ -114,7 +122,7 @@
         dazu({ id: 'b:' + b.id, ref: b.id, art: 'auto', datum: b.datum, beleg, text, zeilen: [zeile(konto, '2270', B)] });
         continue;
       }
-      const gegen = b.kreditor ? '2000' : b.quelle === 'fahrt' ? (rechtsform === 'einzel' ? '2850' : '2210') : geld;
+      const gegen = b.kreditor ? '2000' : b.quelle === 'fahrt' ? (person(rechtsform) ? '2850' : '2210') : geld;
       dazu({ id: 'b:' + b.id, ref: b.id, art: 'auto', datum: b.datum, beleg, text, zeilen: [zeile(konto, gegen, N), zeile('1170', gegen, M)] });
       if (b.kreditor && b.bezahlt) dazu({ id: 'b:' + b.id + ':z', ref: b.id, art: 'auto', datum: b.bezahltAm || b.datum, beleg, text: 'Zahlung ' + text, zeilen: [zeile('2000', geld, B)] });
     }
@@ -189,7 +197,7 @@
     for (const [nr, x] of vor) if (istErfolgskonto(nr)) vorErgebnis += artVon(plan, nr) === 'ertrag' ? saldoVon('ertrag', x) : -saldoVon('aufwand', x);
     const salden = new Map();
     for (const nr of alleNr) if (istBilanzkonto(nr)) salden.set(nr, saldoVon(artVon(plan, nr), bil.get(nr)));
-    if (rechtsform === 'einzel') {
+    if (person(rechtsform)) {
       const privatVor = saldoVon('passiv', vor.get('2850'));
       salden.set('2850', (salden.get('2850') || 0) - privatVor);
       salden.set('2800', (salden.get('2800') || 0) + privatVor + vorErgebnis);
@@ -203,7 +211,7 @@
     const erfolg = [];
     let laufend = 0;
     for (const g of ERFOLGSRECHNUNG) {
-      if (g.zwischen) { if (g.nurFirma && rechtsform === 'einzel') continue; erfolg.push({ zwischen: g.zwischen, betrag: laufend }); continue; }
+      if (g.zwischen) { if (g.nurFirma && person(rechtsform)) continue; erfolg.push({ zwischen: g.zwischen, betrag: laufend }); continue; }
       const konten = erKonten.filter((nr) => inBereich(nr, g.von, g.bis)).map((nr) => ({ nr, name: nameVon(plan, nr), betrag: erWert(nr) })).filter((k) => k.betrag);
       const summe = konten.reduce((a, k) => a + k.betrag, 0);
       laufend += summe;
@@ -212,7 +220,7 @@
     const gewinn = laufend;
 
     // Bilanz
-    const gewinnKonto = rechtsform === 'einzel' ? '2891' : '2979';
+    const gewinnKonto = person(rechtsform) ? '2891' : '2979';
     salden.set(gewinnKonto, (salden.get(gewinnKonto) || 0) + gewinn);
     const seite = (gruppen) => gruppen.map((g) => {
       const teile = g.teile.map(([titel, a, b]) => {
@@ -284,6 +292,6 @@
     return '';
   }
 
-  window.Doppelt = { kontenplan, istBilanzkonto, istErfolgskonto, artNachNummer, STD_KONTO, STD_ZAHLUNG, kategorieKonto, zahlungKonto,
+  window.Doppelt = { kontenplan, person, istBilanzkonto, istErfolgskonto, artNachNummer, STD_KONTO, STD_ZAHLUNG, kategorieKonto, zahlungKonto,
     journalAus, bewegungen, saldoVon, bericht, saldenliste, kontoblatt, journalCsv, pruefen, nameVon };
 })();
