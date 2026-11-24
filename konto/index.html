@@ -94,6 +94,12 @@ input:focus{outline:0;border-color:var(--elektrik)}
     </section>
 
     <section class="karte">
+      <h2><span class="ic">☀️</span>Briefing und Erinnerungen</h2>
+      <p>Die wichtigsten Punkte auf einen Blick: Kontostand, überfällige Rechnungen, MWST-Frist, Abwesenheiten im Team. Auf der Startseite und als Termin aufs Handy. Sie wählen, was und wann.</p>
+      <div class="knoepfe"><button class="btn haupt" data-br-einst>Briefing einstellen</button><button class="btn" data-nv-erinnerung>Kalender aufs Handy</button></div>
+    </section>
+
+    <section class="karte">
       <h2><span class="ic">📦</span>Lizenz und Zusatzpakete</h2>
       <div id="lizenzKurz"><p>Wird geladen …</p></div>
       <div class="knoepfe"><a class="btn haupt" href="../lizenz/#zusatzpakete">Zusatzpakete ansehen</a><a class="btn" href="../lizenz/">Lizenz verwalten</a></div>
@@ -127,6 +133,8 @@ input:focus{outline:0;border-color:var(--elektrik)}
 <script src="../lizenz.js" data-produkt="konto"></script>
 <script src="../ui.js"></script>
 <script src="../zusatz.js"></script>
+<script src="../briefing.js"></script>
+<script src="../erinnerungen.js" defer></script>
 <script src="../navi.js" data-hier="konto" data-einfuegen=".kopf-links"></script>
 <script>
 (function(){
