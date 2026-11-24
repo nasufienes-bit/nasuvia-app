@@ -44,6 +44,7 @@
   .ordi-knopf{position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:70;width:58px;height:58px;border-radius:20px;border:0;background:#fff;box-shadow:0 14px 34px -14px rgba(11,59,46,.55),0 1px 2px rgba(0,0,0,.06);display:grid;place-items:center;cursor:pointer;transition:transform .2s}
   .ordi-knopf:hover{transform:translateY(-2px) rotate(-3deg)}
   .ordi-knopf .ordi-blase{position:absolute;right:66px;bottom:8px;background:#0A1F17;color:#fff;font:600 13px/1.3 'League Spartan',system-ui,sans-serif;border-radius:14px 14px 4px 14px;padding:8px 12px;white-space:nowrap;box-shadow:0 10px 24px -12px rgba(0,0,0,.5);animation:ordiRein .4s ease}
+  body:has(.nr-status) .ordi-knopf{bottom:calc(66px + env(safe-area-inset-bottom))}
   @keyframes ordiRein{from{opacity:0;transform:translateY(6px)}}
   @media(max-width:820px){.ordi-knopf{bottom:calc(84px + env(safe-area-inset-bottom));width:52px;height:52px;border-radius:18px}body:has(.fab) .ordi-knopf{bottom:calc(146px + env(safe-area-inset-bottom))}}
   .ordi-panel{position:fixed;right:16px;bottom:calc(86px + env(safe-area-inset-bottom));z-index:71;width:min(380px,calc(100vw - 24px));height:min(560px,calc(100vh - 140px));background:#fff;border-radius:22px;box-shadow:0 40px 90px -30px rgba(12,18,38,.55),0 0 0 1px rgba(11,59,46,.08);display:flex;flex-direction:column;overflow:hidden;font:15px/1.45 'League Spartan',system-ui,sans-serif;color:#0A1F17;animation:ordiRein .25s ease}

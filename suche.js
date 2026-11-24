@@ -47,6 +47,10 @@
       'Home-Büro, Planen, Steuern öffnen. Oben steht die Anleitung für das gewählte Jahr.',
       'Schritt für Schritt abhaken: Zugang und Frist, Unterlagen sammeln, Einkommen, Abzüge, Vermögen, Schulden, einreichen.',
       'Ordasio zeigt dazu Ihre gesammelten Abzüge, Lohneingänge, Bargeld und Guthaben als Hilfe.'], WURZEL + 'privat/'],
+    ['darstellung-app', 'Erste Schritte', 'Hintergrund, eigenes Bild und Schriftgrösse', 'hintergrund farbe bild foto design aussehen schrift gross darstellung theme', [
+      'Menü oben links öffnen und „Darstellung“ tippen.',
+      'Farbe oder Verlauf wählen, oder „Eigenes Bild“ für ein Foto als Hintergrund. Mit dem Regler wird es heller oder kräftiger.',
+      '„Etwas grösser“ macht die Schrift in allen Bereichen grösser. Gilt für dieses Gerät.'], WURZEL + 'start/'],
     ['dienste', 'Erste Schritte', 'Website oder Instagram von uns gestalten lassen', 'website homepage webseite instagram highlights design gestalten entwurf gratis', [
       'Auf der Startseite „Ihre Website, von uns gestaltet“ tippen.',
       'Gewünschten Dienst und Stil wählen und die Anfrage senden. Den ersten Website-Entwurf machen wir kostenlos.'], WURZEL + 'dienste/'],

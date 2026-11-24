@@ -265,3 +265,76 @@
   }
   window.Rueckgaengig = { zeigen };
 })();
+
+// Darstellung für die ganze App (nur optisch, pro Gerät): Hintergrund, eigenes Bild, Schriftgrösse
+(() => {
+  const KEY = 'ordasio.darstellung', BILD = 'ordasio.hintergrundBild';
+  const lies = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch { return {}; } };
+  const HINTERGRUENDE = [
+    ['standard', 'Mint', '#F4FAF6'], ['weiss', 'Weiss', '#FAFAF8'], ['sand', 'Sand', '#F6F0E6'], ['salbei', 'Salbei', '#ECF2EA'],
+    ['himmel', 'Himmel', '#EDF3FD'], ['lavendel', 'Lavendel', '#F2EFFA'], ['rose', 'Rosé', '#FAF0F0'], ['grau', 'Stein', '#EFF1F3'],
+    ['morgen', 'Morgen', 'linear-gradient(160deg,#FFF1E6 0%,#F4FAF6 55%,#E6F6EE 100%)'], ['ozean', 'Ozean', 'linear-gradient(160deg,#E8F1FF 0%,#F2FAF7 60%,#E3F5EE 100%)'],
+    ['abend', 'Abend', 'linear-gradient(160deg,#F3EEFC 0%,#FBF1F3 60%,#FFF6EC 100%)'], ['wald', 'Wald', 'linear-gradient(160deg,#E4F1EA 0%,#F4F7EF 60%,#EFF3E6 100%)'],
+  ];
+  const css = document.createElement('style'); css.id = 'ui-darstellung';
+  document.head.appendChild(css);
+  function anwenden() {
+    const d = lies(), h = HINTERGRUENDE.find((x) => x[0] === d.hintergrund);
+    let bild = ''; if (d.hintergrund === 'bild') { try { bild = localStorage.getItem(BILD) || ''; } catch {} }
+    const schleier = Math.min(0.92, Math.max(0.3, Number(d.schleier ?? 0.72)));
+    let regeln = '';
+    // Startseite mit eigenem Farbthema (z. B. dunkel) behält ihr Thema
+    const B = 'body:is(:not([data-thema]),[data-thema=hell])';
+    if (bild) regeln += `${B}{background:transparent!important}html{background:#F4FAF6}${B}::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-gradient(rgba(250,252,251,${schleier}),rgba(250,252,251,${schleier})),url("${bild}") center/cover no-repeat;pointer-events:none}`;
+    else if (h && h[0] !== 'standard') {
+      const flach = !h[2].startsWith('linear');
+      regeln += `:root{--papier:${flach ? h[2] : '#F6F8F7'}}${B}{background:${h[2]}!important;background-attachment:fixed!important}`;
+    }
+    if (d.schrift === 'gross') regeln += 'body{zoom:1.08}';
+    css.textContent = regeln;
+  }
+  function verkleinern(datei) {
+    return new Promise((ok, f) => { const url = URL.createObjectURL(datei), img = new Image();
+      img.onload = () => { const s = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement('canvas');
+        c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); ok(c.toDataURL('image/jpeg', 0.72)); };
+      img.onerror = f; img.src = url; });
+  }
+  function dialog() {
+    const dlg = document.createElement('dialog'); dlg.className = 'ui-frage'; dlg.style.width = 'min(520px,calc(100vw - 24px))';
+    const malen = () => {
+      const d = lies(); let hatBild = false; try { hatBild = !!localStorage.getItem(BILD); } catch {}
+      dlg.innerHTML = `<form method="dialog"><h3>Darstellung</h3><p>Gilt für alle Bereiche auf diesem Gerät. Nur das Aussehen ändert sich.</p>
+        <div class="ui-hg">${HINTERGRUENDE.map(([k, n, w]) => `<button type="button" data-hg="${k}" class="${(d.hintergrund || 'standard') === k ? 'an' : ''}"><i style="background:${w}"></i>${n}</button>`).join('')}
+          <label class="${d.hintergrund === 'bild' ? 'an' : ''}" style="cursor:pointer"><i style="background:${hatBild && d.hintergrund === 'bild' ? 'center/cover url(' + localStorage.getItem(BILD) + ')' : 'repeating-linear-gradient(45deg,#E8EEEB 0 8px,#F7FAF8 8px 16px)'}">${hatBild ? '' : '<span>＋</span>'}</i>Eigenes Bild<input type="file" accept="image/*" hidden data-hg-bild></label></div>
+        ${d.hintergrund === 'bild' ? `<label class="ui-regler">Bild heller oder kräftiger<input type="range" min="0.3" max="0.92" step="0.02" value="${d.schleier ?? 0.72}" data-hg-schleier></label>` : ''}
+        <p style="margin-top:10px"><b style="color:#0A1F17">Schrift</b></p><div class="ui-hg zwei">${[['normal', 'Normal'], ['gross', 'Etwas grösser']].map(([k, n]) => `<button type="button" data-schrift="${k}" class="${(d.schrift || 'normal') === k ? 'an' : ''}">${n}</button>`).join('')}</div>
+        <div class="ui-knoepfe"><button type="button" class="nein" data-hg-zurueck>Zurücksetzen</button><button class="ja">Fertig</button></div></form>`;
+    };
+    const setz = (neu) => { try { localStorage.setItem(KEY, JSON.stringify({ ...lies(), ...neu })); } catch {} anwenden(); malen(); };
+    malen(); document.body.appendChild(dlg);
+    dlg.addEventListener('click', (e) => {
+      const h = e.target.closest('[data-hg]'); if (h) setz({ hintergrund: h.dataset.hg });
+      const s = e.target.closest('[data-schrift]'); if (s) setz({ schrift: s.dataset.schrift });
+      if (e.target.closest('[data-hg-zurueck]')) { try { localStorage.removeItem(KEY); localStorage.removeItem(BILD); } catch {} anwenden(); malen(); }
+    });
+    dlg.addEventListener('input', (e) => { if (e.target.matches('[data-hg-schleier]')) { try { localStorage.setItem(KEY, JSON.stringify({ ...lies(), schleier: Number(e.target.value) })); } catch {} anwenden(); } });
+    dlg.addEventListener('change', async (e) => {
+      if (!e.target.matches('[data-hg-bild]') || !e.target.files[0]) return;
+      try { const b = await verkleinern(e.target.files[0]); localStorage.setItem(BILD, b); setz({ hintergrund: 'bild' }); }
+      catch { if (window.UI) UI.hinweis('Das Bild ist zu gross für dieses Gerät. Bitte ein kleineres wählen.'); }
+    });
+    dlg.querySelector('form') && dlg.addEventListener('submit', (e) => { e.preventDefault(); dlg.close(); });
+    dlg.addEventListener('close', () => dlg.remove());
+    dlg.showModal();
+  }
+  const stil = document.createElement('style');
+  stil.textContent = `.ui-hg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:8px}.ui-hg.zwei{grid-template-columns:1fr 1fr}
+  .ui-hg button,.ui-hg label{border:2px solid transparent;border-radius:14px;padding:6px;background:#fff;box-shadow:0 0 0 1px rgba(11,59,46,.14);font:inherit;font-size:12.5px;color:#0A1F17;display:grid;gap:5px;text-align:center}
+  .ui-hg i{display:grid;place-items:center;height:40px;border-radius:9px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);font-style:normal;color:#7C8499;font-size:18px}
+  .ui-hg .an{border-color:#0E7A55}.ui-regler{display:grid;gap:4px;margin-top:10px;font-size:13px;color:#3F5A4F}.ui-regler input{width:100%;accent-color:#0E7A55}
+  @media(max-width:420px){.ui-hg{grid-template-columns:repeat(3,minmax(0,1fr))}}`;
+  document.head.appendChild(stil);
+  anwenden();
+  addEventListener('storage', (e) => { if (e.key === KEY || e.key === BILD) anwenden(); });
+  window.UI = Object.assign(window.UI || {}, { darstellung: dialog });
+})();

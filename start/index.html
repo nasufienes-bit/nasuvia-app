@@ -242,6 +242,7 @@ body[data-dichte=gross] .aufgabe{padding:26px}
       <div class="themen">${[['kompakt', 'Kompakt'], ['normal', 'Normal'], ['gross', 'Gross']].map(([k, n]) => `<button type="button" data-dichte-wahl="${k}" class="${d.dichte === k ? 'an' : ''}">${n}</button>`).join('')}</div>
       ${(() => { const alle = ZIELE.filter((z) => (ziele || []).includes(z.id) && zielOffen(z)).map(zielFuerRechtsform).flatMap((z) => z.aufgaben.map((a) => a[0])); const aus = lies('ordasio.startAus', []);
         return alle.length ? `<p style="margin-top:4px"><b style="color:#0A1F17">Schnellzugriffe</b></p><div style="display:grid;gap:6px;max-height:34vh;overflow:auto">${alle.map((t) => `<label style="display:flex;gap:10px;align-items:center;color:#0A1F17;font-size:15px"><input type="checkbox" data-kachel="${esc(t)}" ${aus.includes(t) ? '' : 'checked'} style="width:20px;height:20px;accent-color:#0E7A55">${esc(t)}</label>`).join('')}</div>` : ''; })()}
+      <p style="margin-top:6px"><button type="button" class="link" data-hg-app style="border:0;background:none;color:#0E7A55;font:inherit;font-weight:700;cursor:pointer;padding:0">Hintergrund und Schrift für die ganze App ›</button></p>
       <div class="ui-knoepfe"><button class="ja">Fertig</button></div></form>`;
     document.body.appendChild(dlg);
     dlg.addEventListener('change', (e) => {
@@ -250,6 +251,7 @@ body[data-dichte=gross] .aufgabe{padding:26px}
       setz('ordasio.startAus', [...aus]); zeichnen();
     });
     dlg.addEventListener('click', (e) => {
+      if (e.target.closest('[data-hg-app]')) { dlg.close(); if (window.UI && UI.darstellung) UI.darstellung(); return; }
       const t = e.target.closest('[data-thema-wahl],[data-dichte-wahl]'); if (!t) return;
       const neu = { ...design(), ...(t.dataset.themaWahl ? { thema: t.dataset.themaWahl } : { dichte: t.dataset.dichteWahl }) };
       setz(DESIGN_KEY, neu); designAnwenden();
