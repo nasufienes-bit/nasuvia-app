@@ -37,9 +37,13 @@
     vorlagen: [['🖨️', 'Drucken oder PDF', 'Vorlage wählen, links ausfüllen, rechts sehen Sie das fertige Blatt.'],
       ['📁', 'In die Ablage', 'Als PDF direkt beim richtigen Ordner und Mitarbeiter ablegen.']],
     start: [['👋', 'Willkommen', 'Hier sehen Sie, was als Nächstes zu tun ist. Erledigtes verschwindet.'],
-      ['🧭', 'Menü', 'Oben links finden Sie alle Bereiche, Erinnerungen und die Darstellung.'],
-      ['💬', 'Ordi', 'Unten rechts beantwortet Ordi Ihre Fragen und zeigt den Weg.']],
+      ['🧭', 'Menü', 'Oben rechts finden Sie alle Bereiche, Erinnerungen und die Darstellung. Oben links geht es zurück.'],
+      ['💬', 'Ordi', 'Ordi oben rechts beantwortet Fragen und erledigt Aufgaben für Sie.']],
   };
+  // Pro Bereich eine Idee „Mit Ordi ganz einfach“ (mit Knopf zum Ausprobieren)
+  const ORDI = { buchhaltung: 'Buche 45.20 Migros als Material', rechnungen: 'Rechnung an Müller über 3 Stunden à 95', zeit: 'Füge Mitarbeiter Tom Keller hinzu und teile ihm den Auftrag Garten Huber zu',
+    ablage: 'Schick dem Team: Morgen Start um 7 Uhr beim Lager', termine: 'Termin mit Frau Keller am Freitag um 14 Uhr', lager: '6 Meter Kupferrohr auf Badsanierung Müller', start: 'Briefing jeden Montag um 7', privat: 'Erinnere mich am 30. an die Krankenkasse' };
+  Object.keys(ORDI).forEach((k) => { if (TIPPS[k]) TIPPS[k].splice(1, 0, ['💬', 'Mit Ordi ganz einfach', 'Schreiben Sie Ordi: «' + ORDI[k] + '». Er bereitet alles vor, Sie bestätigen.', ORDI[k]]); });
   const ZIEL = { rechnungen: 'aside.panel' };
   const css = document.createElement('style');
   // Immer nur ganze Karten zeigen (Handy 1, Tablet 2, Computer 3), nichts ragt über den Rand; × unten neben den Punkten
@@ -48,9 +52,9 @@
   @container (min-width:560px){.tp-band{grid-auto-columns:calc((100% - 10px) / 2)}}
   @container (min-width:880px){.tp-band{grid-auto-columns:calc((100% - 20px) / 3)}}
   .tp-karte{min-width:0;scroll-snap-align:start;background:rgba(255,255,255,.88);border-radius:14px;padding:12px 14px;display:grid;grid-template-columns:28px 1fr;gap:3px 10px;align-items:start}
-  .tp-karte span{font-size:22px;grid-row:span 2;line-height:28px;text-align:center}.tp-karte b{font-size:14.5px;line-height:1.3;color:#0A1F17;align-self:center;min-height:20px}.tp-karte p{font-size:13px;color:#3F5A4F;margin:0;line-height:1.45}
+  .tp-karte > span{font-size:22px;grid-row:span 3;height:28px;display:grid;place-items:center;align-self:start}.tp-karte > span .oi{width:22px;height:22px;vertical-align:0}.tp-ordi{grid-column:2;justify-self:start;margin-top:6px;border:0;border-radius:100px;padding:7px 14px;background:var(--blau,#0B3B2E);color:#fff;font:600 13px/1.2 inherit;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px}.tp-karte b{font-size:14.5px;line-height:1.3;color:#0A1F17;align-self:center;min-height:20px}.tp-karte p{font-size:13px;color:#3F5A4F;margin:0;line-height:1.45}
   .tp-fuss{display:flex;align-items:center;gap:6px;margin-top:10px;min-height:28px}
-  .tp-fuss button{flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.85);color:#3F5A4F;font:600 15px/1 system-ui,sans-serif;cursor:pointer}
+  .tp-fuss button{flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.85);color:#3F5A4F;font:600 15px/1 system-ui,sans-serif;cursor:pointer}.tp-fuss button svg{width:15px;height:15px;display:block;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
   .tp-fuss button:disabled{opacity:.35;cursor:default}
   .tp-fuss .tp-zu{margin-left:auto;width:auto;padding:0 12px;border-radius:100px;font:500 12.5px/1 inherit;font-family:inherit;gap:6px}
   .tp-punkte{display:flex;gap:5px;align-items:center;justify-content:center;flex:1}.tp-punkte i{width:6px;height:6px;border-radius:50%;background:color-mix(in srgb,var(--blau,#0B3B2E) 20%,transparent);cursor:pointer;transition:width .2s}.tp-punkte i.an{background:var(--elektrik,#0E7A55);width:16px;border-radius:4px}
@@ -61,8 +65,8 @@
     const l = TIPPS[hier]; if (!l) return null;
     const d = lies(); if (d.alle === false || d[hier]) return null;
     const el = document.createElement('div'); el.className = 'tp-leiste'; el.setAttribute('aria-label', 'Tipps');
-    el.innerHTML = `<div class="tp-band">${l.map(([ic, t, x]) => `<div class="tp-karte"><span>${ic}</span><b>${esc(t)}</b><p>${esc(x)}</p></div>`).join('')}</div>
-      <div class="tp-fuss"><button type="button" data-tp="-1" aria-label="Zurück">‹</button><div class="tp-punkte"></div><button type="button" data-tp="1" aria-label="Weiter">›</button><button class="tp-zu" type="button" title="Tipps ausblenden">× Ausblenden</button></div>`;
+    el.innerHTML = `<div class="tp-band">${l.map(([ic, t, x, f]) => `<div class="tp-karte"><span>${ic}</span><b>${esc(t)}</b><p>${esc(x)}</p>${f ? `<button type="button" class="tp-ordi" data-tp-ordi="${esc(f)}">Ausprobieren</button>` : ''}</div>`).join('')}</div>
+      <div class="tp-fuss"><button type="button" data-tp="-1" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button><div class="tp-punkte"></div><button type="button" data-tp="1" aria-label="Weiter"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button><button class="tp-zu" type="button" title="Tipps ausblenden">× Ausblenden</button></div>`;
     const band = el.querySelector('.tp-band'), punkte = el.querySelector('.tp-punkte');
     // Seiten = so viele ganze Karten, wie nebeneinander Platz haben
     const proSeite = () => { const k = band.querySelector('.tp-karte'); return k ? Math.max(1, Math.round((band.clientWidth + 10) / (k.offsetWidth + 10))) : 1; };
@@ -76,7 +80,7 @@
     };
     const gehe = (i) => { const k = band.querySelector('.tp-karte'); if (k) band.scrollTo({ left: Math.max(0, i) * (k.offsetWidth + 10) * proSeite(), behavior: 'smooth' }); };
     band.addEventListener('scroll', malen, { passive: true });
-    el.addEventListener('click', (e) => { const b = e.target.closest('[data-tp]'); if (b) gehe(jetzt() + Number(b.dataset.tp)); const p = e.target.closest('[data-seite]'); if (p) gehe(Number(p.dataset.seite)); });
+    el.addEventListener('click', (e) => { const b = e.target.closest('[data-tp]'); if (b) gehe(jetzt() + Number(b.dataset.tp)); const p = e.target.closest('[data-seite]'); if (p) gehe(Number(p.dataset.seite)); const o = e.target.closest('[data-tp-ordi]'); if (o) { if (window.Ordi && Ordi.vorschlag) Ordi.vorschlag(o.dataset.tpOrdi); else if (window.UI) UI.hinweis('Öffnen Sie Ordi oben rechts und schreiben Sie: «' + o.dataset.tpOrdi + '»'); } });
     if (window.ResizeObserver) new ResizeObserver(malen).observe(band);
     setTimeout(malen, 50);
     el.querySelector('.tp-zu').addEventListener('click', () => { const v = lies(); v[hier] = true; setz(v); el.remove(); beobachter && beobachter.disconnect(); if (window.UI && UI.hinweis && !v.gesagt) { v.gesagt = true; setz(v); UI.hinweis('Tipps ausgeblendet. Unter „Darstellung“ im Menü schalten Sie sie wieder ein.'); } });

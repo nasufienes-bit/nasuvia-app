@@ -48,13 +48,13 @@
       'Schritt für Schritt abhaken: Zugang und Frist, Unterlagen sammeln, Einkommen, Abzüge, Vermögen, Schulden, einreichen.',
       'Ordasio zeigt dazu Ihre gesammelten Abzüge, Lohneingänge, Bargeld und Guthaben als Hilfe.'], WURZEL + 'privat/'],
     ['darstellung-app', 'Erste Schritte', 'Farben, Kopfzeile, Hintergrund und Schrift', 'hintergrund farbe farben akzent akzentfarbe bordeaux rot blau violett gold verlauf kopfzeile bild foto design aussehen schrift gross darstellung theme', [
-      'Menü oben links öffnen und „Darstellung“ tippen. Oben sehen Sie sofort eine Vorschau.',
+      'Menü oben rechts öffnen und „Darstellung“ tippen. Oben sehen Sie sofort eine Vorschau.',
       '„Akzentfarbe“: zum Beispiel Bordeaux, Ozean, Aubergine oder Gold, oder mit „Eigene“ jede Farbe. Knöpfe, Symbole und Menü nehmen diese Farbe an. Rechnungen und Vorlagen behalten die Farben Ihrer Firma.',
       '„Kopfzeile“: hell, in der Akzentfarbe oder als Farbverlauf.',
       'Farbe oder Verlauf wählen, oder „Eigenes Bild“ für ein Foto als Hintergrund. Mit dem Regler wird es heller oder kräftiger.',
       '„Etwas grösser“ macht die Schrift in allen Bereichen grösser. Gilt für dieses Gerät.'], WURZEL + 'start/'],
     ['erinnerungen', 'Erste Schritte', 'Erinnerungen und Kalender aufs Handy', 'erinnerung erinnern wecker frist kalender handy iphone google outlook abo termine synchronisieren benachrichtigung', [
-      'Menü oben links, „Erinnerungen“: Titel, Datum, Zeit und Wiederholung eingeben. Fällige Erinnerungen erscheinen oben in Ordasio.',
+      'Menü oben rechts, „Erinnerungen“: Titel, Datum, Zeit und Wiederholung eingeben. Fällige Erinnerungen erscheinen oben in Ordasio.',
       '„Kalender-Link erstellen“ und dann „iPhone, iPad, Mac“ oder „Google Kalender“ tippen. Termine, Einsätze und Erinnerungen erscheinen in Ihrem Kalender, mit Hinweis vorher.',
       'Mitarbeitende verbinden ihre Einsätze auf ihrem Handy-Link mit „Kalender verbinden“.'], WURZEL + 'start/'],
     ['bewerbungen', 'Firmenablage', 'Bewerbungen mit eigenem Link', 'bewerbung bewerber stelle inserat job lebenslauf zeugnis einladung absage personal suchen', [

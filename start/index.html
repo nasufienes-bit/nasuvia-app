@@ -4,7 +4,8 @@
 <script src="../ikonen.js"></script>
 <meta charset="UTF-8" />
 <meta name="robots" content="noindex, nofollow, noai, noimageai">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<script src="../stabil.js"></script>
 <link rel="icon" type="image/png" href="../favicon.png" />
 <title>Start</title>
 <meta name="theme-color" content="#F4FAF6" />
@@ -51,6 +52,7 @@ h1{font-size:clamp(30px,6vw,44px);letter-spacing:-.03em;line-height:1.05}
 .bereiche{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .bereich{display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:12px 14px;text-decoration:none;color:var(--tinte);box-shadow:var(--schatten);font-weight:600}
 .bereich i{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:#fff;font-style:normal;flex:none}
+.bereich span{display:flex;flex-direction:column;min-width:0}.bereich small{font:600 .6rem ui-monospace,"JetBrains Mono",monospace;letter-spacing:.1em;text-transform:uppercase;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bereich i svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .leise{color:var(--leise);font-size:14px}
 .link{background:none;border:0;color:var(--elektrik);font-weight:600;padding:0}
@@ -139,30 +141,30 @@ body[data-dichte=gross] .aufgabe{padding:26px}
   };
   // Was jemand mit Ordasio machen will -> Bereiche im Menü, Aufgaben und erste Schritte
   const ZIELE = [
-    { id: 'rechnungen', name: 'Rechnungen schreiben', text: 'QR-Rechnungen, Offerten, Mahnungen', ic: I.rechnung, farbe: '#0E7A55', bereich: 'rechnungen',
+    { id: 'rechnungen', name: 'Rechnungen schreiben', text: 'QR-Rechnungen, Offerten, Mahnungen', ic: I.rechnung, farbe: '#0B6B47', bereich: 'rechnungen',
       aufgaben: [['Neue Rechnung', 'In einer Minute fertig', '../rechnungen/', I.plus], ['Neue Offerte', 'Später mit einem Klick zur Rechnung', '../rechnungen/?dok=offerte', I.rechnung]],
       schritte: [['rechnung1', 'Erste Rechnung schreiben', '../rechnungen/']] },
-    { id: 'buchhaltung', name: 'Buchhaltung und MWST', text: 'Einnahmen, Ausgaben, Belege', ic: I.buch, farbe: '#0E9F6E', bereich: 'buchhaltung',
+    { id: 'buchhaltung', name: 'Buchhaltung und MWST', text: 'Einnahmen, Ausgaben, Belege', ic: I.buch, farbe: '#0B6B47', bereich: 'buchhaltung',
       aufgaben: [['Ausgabe erfassen', 'Mit Foto vom Beleg', '../?aktion=neu', I.foto], ['Bankauszug laden', 'Alles wird sortiert', '../?aktion=bankImport', I.bank], ['MWST-Abrechnung', 'Mit den ESTV-Ziffern', '../?ansicht=mwst', I.mwst]],
       schritte: [['bank1', 'Bankauszug hochladen', '../?aktion=bankImport'], ['beleg1', 'Ersten Beleg fotografieren', '../?aktion=neu']] },
-    { id: 'loehne', name: 'Löhne', text: 'Lohnabrechnung für Mitarbeiter', ic: I.lohn, farbe: '#14B8A6', bereich: 'buchhaltung',
+    { id: 'loehne', name: 'Löhne', text: 'Lohnabrechnung für Mitarbeiter', ic: I.lohn, farbe: '#0B6B47', bereich: 'buchhaltung',
       aufgaben: [['Löhne', 'Monatslohn oder Stunden', '../?ansicht=loehne', I.lohn]], schritte: [['lohn1', 'Ersten Mitarbeiter für den Lohn erfassen', '../?ansicht=loehne']] },
-    { id: 'zeit', name: 'Mitarbeiter und Aufträge', text: 'Stunden, Aufträge, Fotos', ic: I.uhr, farbe: '#6366F1', bereich: 'zeit',
+    { id: 'zeit', name: 'Mitarbeiter und Aufträge', text: 'Stunden, Aufträge, Fotos', ic: I.uhr, farbe: '#4F46E5', bereich: 'zeit',
       aufgaben: [['Mitarbeiter einladen', 'Link per WhatsApp', '../zeit/?tab=mitarbeiter', I.teilen], ['Aufträge', 'In Ordnern, mit Fotos', '../zeit/?tab=auftraege', I.ordner], ['Einsatz planen', 'Wer geht wann wohin', '../zeit/?tab=plan', I.kalender]],
       schritte: [['ma1', 'Ersten Mitarbeiter einladen', '../zeit/?tab=mitarbeiter'], ['af1', 'Ersten Auftrag anlegen', '../zeit/?tab=auftraege']] },
-    { id: 'termine', name: 'Online-Termine', text: 'Kunden buchen selbst', ic: I.kalender, farbe: '#A855F7', bereich: 'termine',
+    { id: 'termine', name: 'Online-Termine', text: 'Kunden buchen selbst', ic: I.kalender, farbe: '#9333EA', bereich: 'termine',
       aufgaben: [['Termine', 'Heute und diese Woche', '../termine/', I.kalender], ['Buchungslink teilen', 'Website, Google, Instagram', '../termine/?tab=einstellungen', I.teilen]],
       schritte: [['tb1', 'Leistungen und Öffnungszeiten eintragen', '../termine/?tab=einstellungen']] },
-    { id: 'lager', name: 'Lager und Material', text: 'Bestand und Nachbestellen', ic: I.lager, farbe: '#F59E0B', bereich: 'lager',
+    { id: 'lager', name: 'Lager und Material', text: 'Bestand und Nachbestellen', ic: I.lager, farbe: '#4F46E5', bereich: 'lager',
       aufgaben: [['Lager', 'Artikel und Bestand', '../lager/', I.lager]], schritte: [['lg1', 'Ersten Artikel erfassen', '../lager/']] },
-    { id: 'ablage', name: 'Dokumente und Personal', text: 'Ordner, Zeugnisse, Verträge, Mitteilungen', ic: I.ordner, farbe: '#0891B2', bereich: 'ablage',
+    { id: 'ablage', name: 'Dokumente und Personal', text: 'Ordner, Zeugnisse, Verträge, Mitteilungen', ic: I.ordner, farbe: '#0E7490', bereich: 'ablage',
       aufgaben: [['Firmenablage', 'Ordner und Dokumente', '../ablage/', I.ordner], ['Mitteilung ans Team', 'Erscheint auf dem Handy', '../ablage/?tab=mitteilungen', I.ordner]],
       schritte: [['ab1', 'Ersten Ordner anlegen, z. B. Arbeitszeugnisse', '../ablage/']] },
-    { id: 'privat', name: 'Private Finanzen', text: 'Konto, Abos, Rechnungen, Sparen', ic: I.haus, farbe: '#EC4899', bereich: 'privat',
+    { id: 'privat', name: 'Private Finanzen', text: 'Konto, Abos, Rechnungen, Sparen', ic: I.haus, farbe: '#DB2777', bereich: 'privat',
       aufgaben: [['Kontoauszug laden', 'Sehen, wohin das Geld geht', '../privat/?tab=konto', I.bank], ['Private Rechnung', 'Mit Frist und Erinnerung', '../privat/?tab=rechnungen', I.rechnung]],
       schritte: [['hb1', 'Kontoauszug im Home-Büro hochladen', '../privat/?tab=konto']] },
   ];
-  const BEREICH_NAME = { buchhaltung: ['Buchhaltung', '../?bereich=buchhaltung', I.buch, '#0E9F6E'], rechnungen: ['Rechnungen', '../rechnungen/', I.rechnung, '#0E7A55'], zeit: ['Zeiterfassung', '../zeit/', I.uhr, '#6366F1'],
+  const BEREICH_NAME = { buchhaltung: ['Buchhaltung', '../?bereich=buchhaltung', I.buch, '#0B6B47'], rechnungen: ['Rechnungen', '../rechnungen/', I.rechnung, '#0B6B47'], zeit: ['Zeiterfassung', '../zeit/', I.uhr, '#6366F1'],
     termine: ['Termine', '../termine/', I.kalender, '#A855F7'], lager: ['Lager', '../lager/', I.lager, '#F59E0B'], ablage: ['Firmenablage', '../ablage/', I.ordner, '#0891B2'], privat: ['Home-Büro', '../privat/', I.haus, '#EC4899'] };
 
   // Was das Paket enthält (ohne Lizenz, z. B. eigene Nutzung: alles)
@@ -211,7 +213,7 @@ body[data-dichte=gross] .aufgabe{padding:26px}
       const gewaehlt = ZIELE.filter((z) => wahl.has(z.id) && zielOffen(z));
       el.innerHTML = `<div class="box">${punkte}<h2>Fertig! So geht es los</h2><p>Auf Ihrer Startseite finden Sie die wichtigsten Knöpfe und eine kurze Liste mit ersten Schritten.</p>
         <div class="karte">${gewaehlt.map((z) => `<div class="schritt"><span class="haken" style="background:${z.farbe};border-color:${z.farbe}">✓</span><b>${esc(z.name)}</b></div>`).join('')}</div>
-        <p class="leise" style="margin-top:14px">Tipp: Oben links öffnet das Menü alle Bereiche. Oben rechts finden Sie mit der Suche jede Funktion und die Anleitung.</p>
+        <p class="leise" style="margin-top:14px">Tipp: Oben rechts öffnet das Menü alle Bereiche, daneben finden Sie mit der Suche jede Funktion. Oben links geht es zurück.</p>
         <button class="knopf" data-fertig>Zur Startseite</button></div>`;
     }
   }
@@ -299,7 +301,8 @@ body[data-dichte=gross] .aufgabe{padding:26px}
       ${!lizenz() || ['einzel', undefined, null].includes((lizenz() || {}).rechtsform) ? `<div class="abschnitt"><a class="selbst" href="../selbstaendig/"><span><b>Zum ersten Mal selbständig?</b><span>Anmeldung, Versicherungen, AHV, MWST, Preise: die wichtigsten Schritte und Tipps zum Abhaken.</span></span><em>Tipps ansehen ›</em></a></div>` : ''}
       <div class="abschnitt"><a class="selbst" href="../dienste/" style="background:radial-gradient(500px 240px at 90% 0%,rgba(201,164,92,.35),transparent 60%),#0A1F17"><span><b>Ihre Website, von uns gestaltet</b><span>Massgeschneidert statt Baukasten. Der erste Entwurf ist kostenlos.</span></span><em style="background:linear-gradient(135deg,#E9D7A9,#C9A45C);color:#0A1F17">Ansehen ›</em></a></div>
       <div class="abschnitt"><h2>Ihre Bereiche</h2><div class="bereiche">
-        ${bereiche.map((b) => BEREICH_NAME[b]).filter(Boolean).map(([n, url, ic, f]) => `<a class="bereich" href="${url}"><i style="background:${f}">${svg(ic)}</i>${n}</a>`).join('')}
+        ${(() => { const G = window.OrdasioGruppen, gf = (b, f) => (G ? G.von(b).farbe : f), reihe = ['buchhaltung', 'rechnungen', 'zeit', 'projekte', 'lager', 'termine', 'ablage', 'vorlagen', 'privat'];
+          return bereiche.slice().sort((x, y) => reihe.indexOf(x) - reihe.indexOf(y)).filter((b) => BEREICH_NAME[b]).map((b) => { const [n, url, ic, f] = BEREICH_NAME[b]; return `<a class="bereich" href="${url}"><i style="background:${gf(b, f)}">${svg(ic)}</i><span>${n}${G && G.von(b).name ? `<small style="color:${gf(b, f)}">${G.von(b).name}</small>` : ''}</span></a>`; }).join(''); })()}
         <a class="bereich" href="../hilfe/"><i style="background:#7C8499">${svg(I.hilfe)}</i>Anleitung</a>
       </div>
       <p class="leise" style="margin-top:14px">Etwas fehlt oder ist zu viel? <button class="link" data-anpassen>Bereiche anpassen</button> · <button class="link" data-design>Startseite anpassen</button> · <a class="link" href="../selbstaendig/" style="text-decoration:none">Tipps für Selbständige</a> · <a class="link" href="../lizenz/" style="text-decoration:none">Lizenz und Konto</a></p></div>`;

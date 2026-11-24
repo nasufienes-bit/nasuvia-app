@@ -2729,6 +2729,18 @@
       <div style="display:grid;gap:8px">${START_KARTEN.map(([id, n]) => `<label class="haken"><input type="checkbox" name="${id}" ${startKarten()[id] ? 'checked' : ''} />${n}</label>`).join('')}</div>`,
       async (fd) => { await einstSpeichern({ start: Object.fromEntries(START_KARTEN.map(([id]) => [id, fd.get(id) === 'on'])) }); zeichnen(); toast('Übersicht angepasst'); });
   }
+  // Von Ordi vorbereitete Buchung: Fenster ausgefüllt öffnen, gespeichert wird erst durch den Nutzer
+  setTimeout(() => {
+    let v = null; try { v = JSON.parse(sessionStorage.getItem('ordasio.buchung') || 'null'); sessionStorage.removeItem('ordasio.buchung'); } catch {}
+    if (!v || !v.betrag) return;
+    const typ = v.art === 'einnahme' ? 'einnahme' : 'ausgabe', liste = typ === 'ausgabe' ? KAT_AUS : KAT_EIN;
+    const kn = String(v.kategorie || '').toLowerCase();
+    const kat = (kn && liste.find((k) => k.name.toLowerCase() === kn || k.name.toLowerCase().includes(kn) || kn.includes(k.name.toLowerCase().split(' ')[0]))) || null;
+    const vorlage = { typ, betragRappen: v.betrag, datum: v.datum || heute(), partner: v.partner || '', text: v.text || '', kategorie: kat ? kat.id : kategorieRaten({ partner: v.partner || '', text: v.text || '' }, typ), zahlung: 'Bank' };
+    vorlage.mwstSatz = (liste.find((k) => k.id === vorlage.kategorie) || {}).satz ?? 8.1;
+    vorlage.mwstRappen = mwstAus(vorlage.betragRappen, vorlage.mwstSatz);
+    buchungBearbeiten(null, vorlage);
+  }, 900);
   window.NB = {
     shopImport: () => shopImport(),
     korb: () => korbDialog(),

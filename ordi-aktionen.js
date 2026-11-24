@@ -112,8 +112,48 @@
     return schritte;
   }
 
+  /* ---------- Lizenz: jedes Werkzeug gehört zu einem Bereich ---------- */
+  const BRAUCHT = {
+    rechnung: ['rechnungen'], offerte: ['rechnungen'], kunde: ['rechnungen'], mahnen: ['rechnungen'],
+    buchung: ['buchhaltung'],
+    mitarbeiter: ['zeit'], zuweisen: ['zeit'], einsatz: ['zeit'], spesen: ['zeit'], ferien: ['zeit'], mitteilung: ['zeit'],
+    auftrag: ['zeit', 'projekte'], auftrag_rechnung: ['rechnungen', ['zeit', 'projekte']],
+    lager: ['lager'], termin: ['termine'], stelle: ['bewerbungen'],
+    erinnerung: [], briefing: [], navigieren: [], zusatz: [],
+  };
+  const lizenz = () => { if (window.NASUVIA_LIZENZ) return window.NASUVIA_LIZENZ; try { return JSON.parse(localStorage.getItem('ordasio.lizenz') || 'null'); } catch { return null; } };
+  const darf = (p) => { const O = window.ORDASIO, l = lizenz(); return !O || !l || !O.darf || O.darf(l, p); };
+  // Fehlender Bereich für ein Werkzeug (oder null, wenn erlaubt)
+  function fehltFuer(typ) {
+    for (const b of BRAUCHT[typ] || []) { const eines = Array.isArray(b) ? b : [b]; if (!eines.some(darf)) return eines[0]; }
+    return null;
+  }
+  const BEREICH_NAME = { rechnungen: 'Rechnungen', buchhaltung: 'Buchhaltung', zeit: 'Team & Zeit', projekte: 'Projekte & Lager', lager: 'Projekte & Lager', termine: 'Online-Termine', bewerbungen: 'Bewerbungen' };
+  // Empfehlung statt Ausführen: Zusatzpaket (per Knopfdruck) oder grössere Hauptlizenz
+  function empfehlung(programm, was) {
+    const O = window.ORDASIO, l = lizenz() || {};
+    const m = O && O.modulFuer && O.modulFuer(programm);
+    if (m && O.kannBuchen(l, m.id)) return { html: `${esc(was)} gehört zum Zusatzpaket <b>${esc(m.name)}</b>, das in Ihrer Lizenz noch nicht drin ist. ${esc(m.erklaerung.split('. ')[0])}.<div class="ordi-chips" style="margin-top:8px"><button data-zusatz-info="${m.id}">So funktioniert es</button><button data-zusatz-buchen="${m.id}">Dazubuchen (CHF ${m.monat}/Mt.)</button></div>`, text: 'Empfehlung ' + m.name };
+    const ab = O && O.ab ? O.ab(programm, l.rechtsform || 'einzel') : null;
+    if (l.paket === 'privat') return { html: `${esc(was)} gibt es in den Firmenlizenzen. Ihr Home-Büro ist für die privaten Finanzen. Wenn Sie selbständig sind oder eine Firma führen: <b>${esc(ab ? ab.name : 'Selbständig')}</b> ab CHF ${ab ? ab.monat : 29} pro Monat, 30 Tage gratis.<div class="ordi-chips" style="margin-top:8px"><a class="ordi-hin" href="${WURZEL}lizenz/">Lizenzen ansehen ›</a></div>`, text: 'Empfehlung Firmenlizenz' };
+    return { html: `${esc(was)} ist in Ihrer Lizenz nicht enthalten${ab ? `. Das gibt es ab <b>${esc(ab.name)}</b> (CHF ${ab.monat} pro Monat)` : ''}.<div class="ordi-chips" style="margin-top:8px"><a class="ordi-hin" href="${WURZEL}lizenz/">Lizenzen ansehen ›</a></div>`, text: 'Empfehlung' };
+  }
+  const WAS = { rechnung: 'Rechnungen schreiben', offerte: 'Offerten', kunde: 'Kunden verwalten', mahnen: 'Mahnen', buchung: 'Buchen', mitarbeiter: 'Mitarbeitende erfassen', zuweisen: 'Aufträge zuteilen', einsatz: 'Einsätze planen', spesen: 'Spesen', ferien: 'Ferienanträge', mitteilung: 'Mitteilungen ans Team', auftrag: 'Aufträge', auftrag_rechnung: 'Rechnungen zu Aufträgen', lager: 'Das Lager', termin: 'Online-Termine', stelle: 'Offene Stellen' };
+  // Prüft eine Aktion (auch Pläne). Gibt { aktion } mit den erlaubten Schritten zurück, oder die Empfehlung.
+  function pruefen(a) {
+    if (!a) return null;
+    const schritte = a.typ === 'plan' ? a.schritte : [a];
+    const ok = [], nein = [];
+    for (const z of schritte) { const f = fehltFuer(z.typ); if (f) nein.push({ z, f }); else ok.push(z); }
+    if (!nein.length) return { aktion: a };
+    const emp = empfehlung(nein[0].f, WAS[nein[0].z.typ] || 'Das');
+    if (!ok.length) return emp;
+    return { aktion: ok.length > 1 ? { typ: 'plan', schritte: ok } : ok[0], hinweis: emp };
+  }
+
   // Ohne KI: die häufigsten Aufträge selbst verstehen
-  async function erkennen(frage) {
+  async function erkennen(frage) { const e = await erkennenRoh(frage); if (e && e.aktion) { const p = pruefen(e.aktion); return p && p.hinweis ? { ...p, vorher: p.hinweis } : p; } return e; }
+  async function erkennenRoh(frage) {
     const t = frage.trim(), n = t.toLowerCase(); let m;
     if (/(mitarbeiter|auftrag|teile .* zu|weise .* zu|plane )/i.test(t) && !/^\s*rechnung\s+(an|für)\b/i.test(t)) {
       const s2 = teamPlan(t);
@@ -123,6 +163,52 @@
       if (fehlt) return { text: !fehlt.auftrag ? 'Welchen Auftrag soll ich zuteilen? Sagen Sie z. B.: «Erstelle den Auftrag Badsanierung Müller und teile ihn Luca zu».' : 'Wem soll ich den Auftrag zuteilen? Nennen Sie bitte den Namen.' };
       if (s2.length > 1) return { aktion: { typ: 'plan', schritte: s2 } };
       if (s2.length === 1) return { aktion: s2[0] };
+    }
+    // Zusatzpaket: „Ich möchte das Paket Verkauf Plus“
+    if ((m = n.match(/(?:buche|buchen|will|möchte|interessiert|was ist|was bringt)\b.*?\b(team & zeit|team|löhne|lohn|projekte|lager|verkauf plus|verkauf|finanzen plus|finanzen|bewerbungen)\b/)) && /(paket|zusatz|buchen|möchte|will|was bringt|was ist)/.test(n)) {
+      const id = { 'team & zeit': 'team', team: 'team', löhne: 'lohn', lohn: 'lohn', projekte: 'projekte', lager: 'projekte', 'verkauf plus': 'verkauf', verkauf: 'verkauf', 'finanzen plus': 'finanzen', finanzen: 'finanzen', bewerbungen: 'bewerbungen' }[m[1]];
+      if (id) return { aktion: { typ: 'zusatz', modul: id } };
+    }
+    // Briefing: „Briefing jeden Montag um 7“, „Briefing täglich“, „Briefing aus“
+    if (/\bbriefing\b/.test(n) && /(jeden|täglich|werktags|wöchentlich|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag|um \d|aus|ein|an)\b/.test(n)) {
+      const TAGE = ['montag', 'dienstag', 'mittwoch', 'donnerstag', 'freitag', 'samstag', 'sonntag'];
+      const tag = TAGE.findIndex((x) => n.includes(x));
+      return { aktion: { typ: 'briefing', an: !/\baus\b|ausschalten|stopp/.test(n), rhythmus: /täglich|jeden tag/.test(n) ? 'taeglich' : /werktag|montag bis freitag/.test(n) ? 'werktags' : 'woechentlich', tag: tag >= 0 ? tag + 1 : 1, zeit: zeitAus(t) || '07:30' } };
+    }
+    // Buchung: „Buche 45.20 Migros als Material“, „Ausgabe 89 Swisscom Telefon“, „Einnahme 500 von Huber“
+    if ((m = t.match(/^(?:buche|verbuche|erfasse|ausgabe|einnahme|bezahlt|bezahlte)\b\s*(?:eine\s+)?(?:ausgabe|einnahme)?\s*(?:von\s+)?(?:chf|fr\.?)?\s*(\d+(?:['’]\d{3})*(?:[.,]\d+)?)\s*(?:chf|franken|fr\.)?\s+(?:bei|an|von|für)?\s*(.+?)(?:\s+(?:als|unter|kategorie)\s+(.+?))?(?:\s+(?:am|vom)\s+(.+))?$/i)) && !/\b(m|meter|stk|stück)\b/i.test(t)) {
+      const ein = /einnahme|von\s/i.test(t.slice(0, 30)) && !/ausgabe/i.test(t);
+      return { aktion: { typ: 'buchung', art: ein ? 'einnahme' : 'ausgabe', betrag: Math.round(zahl(m[1]) * 100), partner: m[2].trim(), kategorie: (m[3] || '').trim(), datum: (m[4] && datumAus(m[4])) || heute() } };
+    }
+    // Lager: „6 Meter Kupferrohr auf Badsanierung Müller“, „Eingang 20 Stück Silikon“
+    if ((m = t.match(/^(?:(eingang|ausgang|nimm|verbrauche|brauche|buche)\s+)?(\d+(?:[.,]\d+)?)\s*(m|meter|stk\.?|stück|kg|l|liter|rollen?|packungen?|säcke?|dosen?)\s+(.+?)(?:\s+(?:auf|für)\s+(?:den\s+)?(?:auftrag\s+)?(.+))?$/i))) {
+      return { aktion: { typ: 'lager', art: /eingang/i.test(m[1] || '') ? 'eingang' : 'ausgang', menge: zahl(m[2]), artikel: m[4].trim(), auftrag: (m[5] || '').trim() } };
+    }
+    // Kunde: „Neuer Kunde Huber AG, Seestrasse 4, 6006 Luzern, info@huber.ch“
+    if ((m = t.match(/^(?:neuer\s+kunde|kunde\s+(?:anlegen|erfassen|hinzufügen)|(?:erfasse|lege|füge)\s+(?:den\s+|einen\s+)?(?:neuen\s+)?kunden?)\s*(?:an|hinzu)?[:,]?\s*(.+)$/i))) {
+      const teile = m[1].split(',').map((x) => x.trim()).filter(Boolean);
+      const mail = (teile.find((x) => /@/.test(x)) || ''), plzOrt = teile.find((x) => /^\d{4}\s+\S/.test(x)) || '';
+      const str = teile.find((x, i) => i > 0 && x !== mail && x !== plzOrt && /\d/.test(x)) || '';
+      return { aktion: { typ: 'kunde', name: teile[0].replace(/\s+(an|hinzu)$/i, ''), strasse: str, plz: (plzOrt.match(/^\d{4}/) || [''])[0], ort: plzOrt.replace(/^\d{4}\s+/, ''), mail } };
+    }
+    // Termin: „Termin mit Frau Keller am Freitag um 14 Uhr, 45 Minuten“
+    if ((m = t.match(/^(?:trag\w*\s+)?(?:einen\s+)?termin\s+(?:mit|für)\s+(.+?)\s+((?:am|heute|morgen|übermorgen|nächsten?|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag|in \d+).*)$/i))) {
+      const datum = datumAus(m[2]), zeit = zeitAus(m[2]), dauer = (m[2].match(/(\d+)\s*(?:min|minuten)/i) || [])[1] || ((m[2].match(/(\d+(?:[.,]\d+)?)\s*(?:std|stunden?)/i) || [])[1] ? Math.round(zahl(m[2].match(/(\d+(?:[.,]\d+)?)\s*(?:std|stunden?)/i)[1]) * 60) : 60);
+      if (datum && zeit) return { aktion: { typ: 'termin', name: m[1].replace(/^(frau|herr|herrn)\s+/i, (x) => x).trim(), datum, zeit, dauer: Number(dauer) } };
+      return { text: 'Wann soll der Termin sein? Sagen Sie z. B.: «Termin mit Frau Keller am Freitag um 14 Uhr».' };
+    }
+    // Ferien und Spesen: „Genehmige die Ferien von Sara“, „Lehne die Spesen von Tom ab“
+    if ((m = t.match(/^(genehmige|bewillige|akzeptiere|lehne)\s+(?:die\s+|den\s+)?(ferien|ferienantrag|antrag|anträge|abwesenheit|spesen)\s+(?:von\s+)?([a-zäöüé]+(?:\s+[a-zäöüé]+)?)/i))) {
+      return { aktion: { typ: /spesen/i.test(m[2]) ? 'spesen' : 'ferien', entscheid: /lehne/i.test(m[1]) ? 'abgelehnt' : 'genehmigt', mitarbeiter: m[3].replace(/\s+ab$/i, '') } };
+    }
+    // Mitteilung: „Schick dem Team: Morgen Start um 7 Uhr beim Lager“
+    if ((m = t.match(/^(?:schick\w*|send\w*|schreib\w*)\s+(?:eine\s+)?(?:mitteilung\s+)?(?:an\s+)?(?:alle|dem\s+team|das\s+team|ans\s+team|den\s+mitarbeitenden)\s*[:,]?\s*(.+)$/i))) {
+      return { aktion: { typ: 'mitteilung', titel: m[1].split(/[.!?]/)[0].slice(0, 80), text: m[1], wichtig: /wichtig|dringend|achtung/i.test(m[1]) } };
+    }
+    // Offerte wie Rechnung
+    if ((m = t.match(/offerte\s+(?:an|für)\s+(.+?)\s+(?:über|für|mit)\s+(.+)$/i))) {
+      const r2 = await erkennenRoh('Rechnung an ' + m[1] + ' über ' + m[2]);
+      if (r2 && r2.aktion && r2.aktion.typ === 'rechnung') return { aktion: { ...r2.aktion, typ: 'offerte' } };
     }
     // Rechnung: „Rechnung an Müller über 3 Stunden à 95“, „Rechnung für Huber AG über CHF 500 für Gartenarbeit“
     if ((m = t.match(/rechnung\s+(?:an|für)\s+(.+?)\s+(?:über|für|mit)\s+(.+)$/i))) {
@@ -165,19 +251,29 @@
   }
 
   // Vorschau-Karte
-  const TITEL = { auftrag_rechnung: '🧾 Rechnung zum Auftrag', plan: '📋 Mehrere Schritte', mitarbeiter: '👤 Mitarbeiter erfassen', auftrag: '📍 Auftrag erstellen', zuweisen: '🔗 Auftrag zuteilen', rechnung: '🧾 Rechnung vorbereiten', erinnerung: '🔔 Erinnerung eintragen', mahnen: '⏰ Überfällige erinnern', stelle: '🧑‍💼 Offene Stelle vorbereiten', einsatz: '🗓️ Einsatz planen', navigieren: '➡️ Hinführen' };
+  const TITEL = { offerte: '🧾 Offerte vorbereiten', buchung: '🧾 Buchung erfassen', lager: '📦 Material buchen', kunde: '👤 Kunde erfassen', termin: '📅 Termin eintragen', ferien: '🏖 Ferienantrag', spesen: '🧾 Spesen', mitteilung: '📣 Mitteilung ans Team', briefing: '☀ Briefing einstellen', zusatz: '📦 Zusatzpaket', auftrag_rechnung: '🧾 Rechnung zum Auftrag', plan: '📋 Mehrere Schritte', mitarbeiter: '👤 Mitarbeiter erfassen', auftrag: '📍 Auftrag erstellen', zuweisen: '🔗 Auftrag zuteilen', rechnung: '🧾 Rechnung vorbereiten', erinnerung: '🔔 Erinnerung eintragen', mahnen: '⏰ Überfällige erinnern', stelle: '🧑‍💼 Offene Stelle vorbereiten', einsatz: '🗓️ Einsatz planen', navigieren: '➡️ Hinführen' };
   const schrittText = (a) => ({
     mitarbeiter: () => `Mitarbeiter <b>${esc(a.name)}</b> erfassen${a.stundenlohn ? ', Stundenlohn ' + chf(a.stundenlohn) : ''}${a.ansatz ? ', Ansatz ' + chf(a.ansatz) : ''}`,
     auftrag: () => `Auftrag <b>${esc(a.name)}</b> erstellen${a.kunde ? ' für ' + esc(a.kunde) : ''}${a.adresse ? ', ' + esc(a.adresse) : ''}`,
     zuweisen: () => `Auftrag <b>${esc(a.auftrag)}</b> an <b>${esc(a.mitarbeiter)}</b> zuteilen`,
     rechnung: () => `Rechnung${a.kunde ? ' an <b>' + esc(a.kunde) + '</b>' : a.auftrag ? ' zum Auftrag <b>' + esc(a.auftrag) + '</b>' : ''}: ${(a.positionen || []).map((p) => `${esc(p.text)} ${Number(p.menge).toLocaleString('de-CH')} × ${chf(p.preis)}`).join(', ')} vorbereiten`,
+    offerte: () => `Offerte an <b>${esc(a.kunde)}</b>: ${(a.positionen || []).map((p) => `${esc(p.text)} ${Number(p.menge).toLocaleString('de-CH')} × ${chf(p.preis)}`).join(', ')}`,
+    buchung: () => `${a.art === 'einnahme' ? 'Einnahme' : 'Ausgabe'} <b>${chf(a.betrag)}</b>${a.partner ? ' · ' + esc(a.partner) : ''}${a.kategorie ? ' · Kategorie ' + esc(a.kategorie) : ''} · ${dk(a.datum)}<br><small>Das Buchungsfenster öffnet sich ausgefüllt, Sie speichern selbst.</small>`,
+    lager: () => `${a.art === 'eingang' ? 'Eingang' : 'Verbrauch'}: <b>${Number(a.menge).toLocaleString('de-CH')} ${esc(a.artikel)}</b>${a.auftrag ? ' auf Auftrag <b>' + esc(a.auftrag) + '</b>' : ''}`,
+    kunde: () => `<b>${esc(a.name)}</b>${a.strasse ? '<br>' + esc(a.strasse) : ''}${a.plz || a.ort ? '<br>' + esc([a.plz, a.ort].filter(Boolean).join(' ')) : ''}${a.mail ? '<br>' + esc(a.mail) : ''}`,
+    termin: () => `<b>${esc(a.name)}</b><br>${dk(a.datum)} um ${esc(a.zeit)}, ${a.dauer || 60} Minuten`,
+    ferien: () => `Offene Anträge von <b>${esc(a.mitarbeiter)}</b> ${a.entscheid === 'abgelehnt' ? 'ablehnen' : 'genehmigen'}`,
+    spesen: () => `Offene Spesen von <b>${esc(a.mitarbeiter)}</b> ${a.entscheid === 'abgelehnt' ? 'ablehnen' : 'genehmigen'}`,
+    mitteilung: () => `An alle Mitarbeitenden${a.wichtig ? ' (wichtig)' : ''}:<br>„${esc(a.text)}“`,
+    briefing: () => a.an === false ? 'Briefing ausschalten' : `Briefing ${a.rhythmus === 'taeglich' ? 'täglich' : a.rhythmus === 'werktags' ? 'werktags' : 'jeden ' + ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'][(a.tag || 1) - 1]} um ${esc(a.zeit || '07:30')}`,
+    zusatz: () => { const m = window.ORDASIO && ORDASIO.modul(a.modul); return m ? `<b>${esc(m.name)}</b>: ${esc(m.kurz)}, CHF ${m.monat} pro Monat<br><small>Ich zeige Ihnen, wie es funktioniert. Buchen entscheiden Sie dort.</small>` : esc(a.modul); },
     auftrag_rechnung: () => `Rechnung zum Auftrag <b>${esc(a.auftrag)}</b> vorbereiten (alle noch nicht verrechneten Stunden, Material und Fahrspesen)`,
     einsatz: () => `Einsatz für <b>${esc(a.mitarbeiter)}</b> am ${dk(a.datum)}${a.von ? ' um ' + esc(a.von) : ''}${a.auftrag ? ' (' + esc(a.auftrag) + ')' : ''}`,
   }[a.typ] || (() => esc(TITEL[a.typ] || a.typ)))();
   function karte(a) {
     let inhalt = '';
     if (a.typ === 'plan') inhalt = `<ol style="margin:0;padding-left:18px">${(a.schritte || []).map((z) => `<li>${schrittText(z)}</li>`).join('')}</ol>`;
-    if (['mitarbeiter', 'auftrag', 'zuweisen', 'auftrag_rechnung'].includes(a.typ)) inhalt = schrittText(a) + (a.typ === 'auftrag_rechnung' ? '<br><small>Sie sehen die Rechnung danach und senden sie selbst.</small>' : '');
+    if (['mitarbeiter', 'auftrag', 'zuweisen', 'auftrag_rechnung', 'offerte', 'buchung', 'lager', 'kunde', 'termin', 'ferien', 'spesen', 'mitteilung', 'briefing', 'zusatz'].includes(a.typ)) inhalt = schrittText(a) + (a.typ === 'auftrag_rechnung' ? '<br><small>Sie sehen die Rechnung danach und senden sie selbst.</small>' : '');
     if (a.typ === 'rechnung') inhalt = `An: <b>${esc(a.kunde)}</b><br>${(a.positionen || []).map((p) => `${esc(p.text)}: ${Number(p.menge).toLocaleString('de-CH')} × ${chf(p.preis)} = <b>${chf(Math.round(p.menge * p.preis))}</b>`).join('<br>')}<br><small>Sie sehen die Rechnung danach und senden sie selbst.</small>`;
     if (a.typ === 'erinnerung') inhalt = `<b>${esc(a.titel)}</b><br>${dk(a.datum)}${a.zeit ? ' um ' + esc(a.zeit) : ' (ganzer Tag)'}`;
     if (a.typ === 'mahnen') inhalt = 'Ich öffne die Rechnungen mit dem Mahn-Assistenten. Dort sehen Sie alle Überfälligen und bereiten Erinnerung oder Mahnung mit einem Klick vor.';
@@ -224,6 +320,48 @@
       const { error } = await sb.from('ze_auftraege').update({ zugewiesen: zu }).eq('id', f.id);
       return error ? 'Das hat nicht geklappt: ' + error.message : `✓ „${f.name}“ ist ${m.name} zugeteilt. ${m.name} sieht den Auftrag jetzt auf dem Handy.`;
     }
+    // Lizenz auch beim Ausführen prüfen (falls die Lizenz inzwischen anders ist)
+    const fehlt = fehltFuer(a.typ); if (fehlt) return `${WAS[a.typ] || 'Das'} ist in Ihrer Lizenz nicht enthalten.`;
+    if (a.typ === 'zusatz') { if (window.OrdasioZusatz) window.OrdasioZusatz.erklaeren(a.modul); return 'Hier ist die Übersicht.'; }
+    if (a.typ === 'briefing') {
+      if (!sb) return 'Bitte zuerst anmelden.';
+      const { data: { user } } = await sb.auth.getUser();
+      const z = { user_id: user.id, an: a.an !== false, rhythmus: a.rhythmus || 'woechentlich', tag: a.tag || 1, zeit: a.zeit || '07:30', geaendert: new Date().toISOString() };
+      const { error } = await sb.from('br_einstellungen').upsert(z);
+      return error ? 'Das hat nicht geklappt: ' + error.message : (z.an ? '✓ Briefing eingestellt.' : '✓ Briefing ausgeschaltet.');
+    }
+    if (a.typ === 'buchung') { try { sessionStorage.setItem('ordasio.buchung', JSON.stringify(a)); } catch {} location.href = WURZEL + '?bereich=buchhaltung'; return 'Ich öffne die Buchung …'; }
+    if (a.typ === 'kunde') { try { sessionStorage.setItem('ordasio.kunde', JSON.stringify(a)); } catch {} location.href = WURZEL + 'rechnungen/'; return 'Ich erfasse den Kunden in den Rechnungen …'; }
+    if (a.typ === 'offerte') { try { sessionStorage.setItem('ordasio.zeit.rechnung', JSON.stringify({ dokArt: 'offerte', positionen: a.positionen.map((p) => ({ text: p.text, menge: String(p.menge), preis: p.preis ? (p.preis / 100).toFixed(2) : '' })), kunde: a.kunde, quelle: 'Ordi' })); } catch {} location.href = WURZEL + 'rechnungen/'; return 'Ich öffne die Offerte …'; }
+    if (a.typ === 'lager') {
+      if (!sb) return 'Bitte zuerst anmelden.';
+      const ar = await finde('lg_artikel', a.artikel); if (!ar) return `Ich finde keinen Artikel „${a.artikel}“ im Lager. Erfassen Sie ihn zuerst im Lager.`;
+      let auf = null; if (a.auftrag) { auf = await finde('ze_auftraege', a.auftrag); if (!auf) return `Ich finde keinen Auftrag „${a.auftrag}“.`; }
+      const menge = Math.abs(Number(a.menge) || 0); if (!menge) return 'Bitte eine Menge angeben.';
+      const { error } = await sb.from('lg_bewegungen').insert({ artikel_id: ar.id, art: a.art === 'eingang' ? 'eingang' : 'ausgang', menge: a.art === 'eingang' ? menge : -menge, auftrag_id: auf ? auf.id : null, notiz: 'Über Ordi' });
+      return error ? 'Das hat nicht geklappt: ' + error.message : `✓ ${menge} ${ar.einheit || ''} ${ar.name} ${a.art === 'eingang' ? 'eingebucht' : 'ausgebucht'}${auf ? ' auf ' + auf.name : ''}. Neuer Bestand: ${(Number(ar.bestand) || 0) + (a.art === 'eingang' ? menge : -menge)} ${ar.einheit || ''}.`;
+    }
+    if (a.typ === 'termin') {
+      if (!sb) return 'Bitte zuerst anmelden.';
+      const beginn = new Date(`${a.datum}T${a.zeit}:00`), ende = new Date(beginn.getTime() + (Number(a.dauer) || 60) * 60000);
+      const { error } = await sb.from('tb_termine').insert({ name: String(a.name).slice(0, 120), beginn: beginn.toISOString(), ende: ende.toISOString(), status: 'bestaetigt', quelle: 'manuell', notiz: a.notiz || '' });
+      return error ? 'Das hat nicht geklappt: ' + error.message : `✓ Termin mit ${a.name} am ${dk(a.datum)} um ${a.zeit} eingetragen.`;
+    }
+    if (a.typ === 'ferien' || a.typ === 'spesen') {
+      if (!sb) return 'Bitte zuerst anmelden.';
+      const m = await finde('ze_mitarbeiter', a.mitarbeiter); if (!m) return `Ich finde niemanden namens „${a.mitarbeiter}“.`;
+      const tab = a.typ === 'ferien' ? 'ab_antraege' : 'ze_spesen';
+      const upd = a.typ === 'ferien' ? { status: a.entscheid, entschieden: new Date().toISOString() } : { status: a.entscheid };
+      const { data, error } = await sb.from(tab).update(upd).eq('mitarbeiter_id', m.id).eq('status', 'offen').select('id');
+      if (error) return 'Das hat nicht geklappt: ' + error.message;
+      const n = (data || []).length;
+      return n ? `✓ ${n} ${a.typ === 'ferien' ? (n === 1 ? 'Antrag' : 'Anträge') : 'Spesen'} von ${m.name} ${a.entscheid === 'abgelehnt' ? 'abgelehnt' : 'genehmigt'}. ${m.name} sieht es auf dem Handy.` : `Von ${m.name} ist nichts offen.`;
+    }
+    if (a.typ === 'mitteilung') {
+      if (!sb) return 'Bitte zuerst anmelden.';
+      const { error } = await sb.from('ab_mitteilungen').insert({ mitarbeiter_id: null, titel: String(a.titel || a.text).slice(0, 120), text: a.text || null, wichtig: !!a.wichtig });
+      return error ? 'Das hat nicht geklappt: ' + error.message : '✓ Mitteilung verschickt. Alle sehen sie auf dem Handy.';
+    }
     if (a.typ === 'auftrag_rechnung') {
       if (!sb) return 'Bitte zuerst anmelden.';
       const f = await finde('ze_auftraege', a.auftrag); if (!f) return `Ich finde keinen Auftrag „${a.auftrag}“.`;
@@ -267,5 +405,5 @@
     if (a.typ === 'navigieren' && a.ziel) { location.href = new URL(a.ziel, WURZEL).href; return 'Ich führe Sie hin …'; }
     return 'Das kann ich noch nicht.';
   }
-  window.OrdiAktionen = { erkennen, karte, ausfuehren, kontext };
+  window.OrdiAktionen = { erkennen, karte, ausfuehren, kontext, pruefen };
 })();

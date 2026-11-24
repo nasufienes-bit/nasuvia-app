@@ -204,12 +204,17 @@
     let auf = null; try { auf = window.OrdiAktionen ? await window.OrdiAktionen.erkennen(frage) : null; } catch {}
     const ki = auf ? null : await mitKi(frage);
     verlauf.pop();
-    const a = (auf && auf.aktion) || (ki && ki.aktion);
+    let a = (auf && auf.aktion) || (ki && ki.aktion);
+    // KI-Vorschläge ebenfalls an die Lizenz anpassen
+    if (!auf && a && window.OrdiAktionen && OrdiAktionen.pruefen) { const p = OrdiAktionen.pruefen(a); if (p && !p.aktion) { a = null; auf = p; } else if (p) { a = p.aktion; if (p.hinweis) verlauf.push({ rolle: 'ordi', html: p.hinweis.html, text: p.hinweis.text }); } }
+    if (auf && auf.vorher) verlauf.push({ rolle: 'ordi', html: auf.vorher.html, text: auf.vorher.text });
     if (a && window.OrdiAktionen) verlauf.push({ rolle: 'ordi', html: (ki && ki.text ? md(ki.text) + '<br>' : '') + window.OrdiAktionen.karte(a), text: 'Vorschlag', aktion: a });
     else if (auf) verlauf.push({ rolle: 'ordi', ...auf });
     else verlauf.push(ki ? { rolle: 'ordi', text: ki.text, ziel: ki.ziel } : { rolle: 'ordi', ...lokal(frage) });
     sichern(); malen();
   }
-  window.Ordi = { auf, zu, an: () => { setz(AUS, false); knopfZeigen(); }, aus: () => { setz(AUS, true); zu(); if (knopf) { knopf.remove(); knopf = null; } }, istAn: () => !lies(AUS, false) };
+  // Text ins Eingabefeld legen, damit man ihn anpassen und selbst abschicken kann
+  function vorschlag(text) { if (!panel) auf(); const f = panel && panel.querySelector('#ordiFrage'); if (f) { f.value = text; f.focus(); try { f.setSelectionRange(text.length, text.length); } catch {} } }
+  window.Ordi = { vorschlag, fragen: (t) => { if (!panel) auf(); fragen(t); }, auf, zu, an: () => { setz(AUS, false); knopfZeigen(); }, aus: () => { setz(AUS, true); zu(); if (knopf) { knopf.remove(); knopf = null; } }, istAn: () => !lies(AUS, false) };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', knopfZeigen); else knopfZeigen();
 })();

@@ -3,7 +3,8 @@
 <head>
 <script src="../ikonen.js"></script>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<script src="../stabil.js"></script>
 <link rel="icon" type="image/png" href="../favicon.png" />
 <title>Rechnungen · Ordasio</title>
 <link rel="manifest" href="manifest.webmanifest" />
@@ -2613,7 +2614,7 @@ ${[[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' — '), [FIRMA.strasse, FIR
     faelligManuell = false;
     $('rgFaellig').value = plusTage(heuteIso(), $('frist').value);
     if (vorgabe) {
-      dokArt = 'rechnung'; textVorlage(dokArt); dokUi();
+      dokArt = vorgabe.dokArt === 'offerte' ? 'offerte' : 'rechnung'; textVorlage(dokArt); dokUi();
       positionen = vorgabe.positionen.map((p) => ({ text: String(p.text || ''), menge: String(p.menge || '1'), preis: String(p.preis || '') }));
       if (vorgabe.projekt && zusatz.projekt) { zusatz.projekt.wert = vorgabe.projekt; zusatz.projekt.an = true; zusatzZeichnen(); }
       // Kunde übernehmen: vorhandenen wählen oder neu anlegen
@@ -2633,6 +2634,13 @@ ${[[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' — '), [FIRMA.strasse, FIR
     let ze = null;
     try { ze = JSON.parse(sessionStorage.getItem('ordasio.zeit.rechnung') || 'null'); sessionStorage.removeItem('ordasio.zeit.rechnung'); } catch {}
     if (ze && Array.isArray(ze.positionen) && ze.positionen.length) setTimeout(() => neuBeginnen(ze), 700);
+    // Von Ordi: neuen Kunden erfassen
+    let kd = null; try { kd = JSON.parse(sessionStorage.getItem('ordasio.kunde') || 'null'); sessionStorage.removeItem('ordasio.kunde'); } catch {}
+    if (kd && kd.name) setTimeout(() => {
+      let k = kunden.find((x) => (x.name || '').toLowerCase() === String(kd.name).toLowerCase());
+      if (!k) { k = { id: 'k' + Date.now(), name: kd.name, strasse: kd.strasse ? kd.strasse.replace(/\s+\d+\s*[a-z]?$/i, '') : '', nr: kd.strasse ? ((kd.strasse.match(/(\d+\s*[a-z]?)$/i) || [])[1] || '') : '', plz: kd.plz || '', ort: kd.ort || '', land: 'CH', mail: kd.mail || '' }; kunden = kunden.filter((x) => x.name && x.name !== 'Neuer Kunde').concat(k); sichere(KEY_KUNDEN, kunden); }
+      fuelleKunden(k.id); aktualisiere({ sofort: true }); toast(`✓ Kunde „${k.name}“ erfasst`, 4000);
+    }, 800);
   }
   $('btnHilfe').addEventListener('click', () => $('hilfeDlg').showModal());
   $('hilfeSchliessen').addEventListener('click', () => $('hilfeDlg').close());
