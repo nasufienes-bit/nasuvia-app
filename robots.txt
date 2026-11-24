@@ -1,8 +1,36 @@
-# Vorzeige-Phase: Bots dürfen die App lesen (z. B. damit eine KI sie bewerten kann).
-# Später wieder sperren mit:  User-agent: *  /  Disallow: /
+# Ordasio: KI-Crawler dürfen die App nicht lesen oder zum Training verwenden.
+User-agent: GPTBot
+User-agent: ChatGPT-User
+User-agent: OAI-SearchBot
+User-agent: ClaudeBot
+User-agent: Claude-Web
+User-agent: Claude-User
+User-agent: Claude-SearchBot
+User-agent: anthropic-ai
+User-agent: Google-Extended
+User-agent: GoogleOther
+User-agent: CCBot
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Bytespider
+User-agent: Amazonbot
+User-agent: Applebot-Extended
+User-agent: meta-externalagent
+User-agent: Meta-ExternalFetcher
+User-agent: FacebookBot
+User-agent: Diffbot
+User-agent: cohere-ai
+User-agent: cohere-training-data-crawler
+User-agent: Omgilibot
+User-agent: YouBot
+User-agent: ImagesiftBot
+User-agent: Timpibot
+User-agent: DuckAssistBot
+User-agent: MistralAI-User
+User-agent: AI2Bot
+User-agent: PanguBot
+Disallow: /
+
+# Alle anderen: die App ist kein öffentlicher Inhalt
 User-agent: *
-Allow: /
-Disallow: /treuhand/
-Disallow: /zeit/erfassen/
-Disallow: /buchen/
-Disallow: /r/
+Disallow: /
