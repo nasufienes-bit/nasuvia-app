@@ -320,10 +320,24 @@
   ].map(([id, bereich, titel, woerter, schritte, ziel]) => ({ id, bereich, titel, woerter, schritte, ziel }));
 
   const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss');
+  // Nur Artikel zum eigenen Paket zeigen (wer nur das Home-Büro hat, sieht keine Firmen-Anleitungen)
+  const PROG = { Buchhaltung: 'buchhaltung', Rechnungen: 'rechnungen', Zeiterfassung: 'zeit', Termine: 'termine', Lager: 'lager', 'Home-Büro': 'privat', Firmenablage: 'ablage', Vorlagen: 'ablage', Löhne: 'lohn' };
+  function passt(a) {
+    const l = window.NASUVIA_LIZENZ, O = window.ORDASIO;
+    if (!l || !l.paket || !O || !O.darf) return true;
+    const p = PROG[a.bereich];
+    if (!p) return l.paket !== 'privat' || a.bereich === 'Konto und Lizenz';
+    return O.darf(l.paket, p);
+  }
+  const passende = () => ARTIKEL.filter(passt);
   function finden(q) {
-    const t = norm(q).split(/\s+/).filter(Boolean);
-    if (!t.length) return ARTIKEL.slice(0, 8);
-    return ARTIKEL.map((a) => {
+    const STOPP = new Set('wie wo was wann warum kann konnen muss ich man mein meine meinen den die das der dem des ein eine einen einem einer und oder mit zu zum zur fur auf im in bei von es mich mir wird werden soll sollen ist sind hat habe mache machen geht gibt bitte hier dort da so auch noch nicht kein keine'.split(' '));
+    const alle = norm(q).replace(/[?!.,;:]/g, ' ').split(/\s+/).filter(Boolean);
+    const t = alle.filter((w) => !STOPP.has(w)).length ? alle.filter((w) => !STOPP.has(w)) : alle;
+    if (!t.length) return passende().slice(0, 8);
+    // Wortstamm: Endungen weg, damit „lade“ auch „laden“ findet
+    const stamm = (w) => (w.length > 5 ? w.replace(/(ungen|ung|en|er|es|e|n|s)$/, '') : w);
+    const streng = passende().map((a) => {
       const titel = norm(a.titel), alles = norm(`${a.titel} ${a.woerter} ${a.bereich} ${a.schritte.join(' ')}`);
       let p = 0;
       for (const w of t) {
@@ -331,6 +345,13 @@
       }
       return { a, p };
     }).filter(Boolean).sort((x, y) => y.p - x.p).map((x) => x.a).slice(0, 10);
+    if (streng.length) return streng;
+    // Locker: Artikel mit den meisten Treffern (für ganze Fragen wie im Chat)
+    return passende().map((a) => {
+      const titel = norm(a.titel), alles = norm(`${a.titel} ${a.woerter} ${a.bereich} ${a.schritte.join(' ')}`);
+      let p = 0; for (const w of t) { const st = stamm(w); if (titel.includes(st)) p += 4; else if (norm(a.woerter).includes(st)) p += 3; else if (alles.includes(st)) p += 1; }
+      return { a, p };
+    }).filter((x) => x.p >= 3).sort((x, y) => y.p - x.p).map((x) => x.a).slice(0, 8);
   }
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -421,7 +442,7 @@
   document.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); oeffnen(); }
   });
-  window.NasuviaSuche = { oeffnen, finden, artikel: ARTIKEL, wurzel: WURZEL };
+  window.NasuviaSuche = { oeffnen, finden, passt, passende, artikel: ARTIKEL, wurzel: WURZEL };
   if (!skript.dataset || skript.dataset.ohneKnopf === undefined) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(einbauen, 200)); else setTimeout(einbauen, 200);
   }
