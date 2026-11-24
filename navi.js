@@ -121,6 +121,7 @@
       }).join('') +
       '<div class="nv-trenner"></div>' +
       '<a class="nv-ziel' + (WEBSITE.id && WEBSITE.id === hier ? ' nv-hier' : '') + '" href="' + WEBSITE.href + '"' + (PRODUKT ? '' : ' target="_blank" rel="noopener"') + ' style="transition-delay:' + (60 + BEREICHE.length * 45) + 'ms"><span class="nv-ic">' + svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>') + '</span><span><b>' + WEBSITE.name + '</b><small>' + WEBSITE.text + '</small></span><span class="nv-pfeil">↗</span></a>' +
+      (PRODUKT ? '<button type="button" class="nv-ziel" data-nv-erinnerung style="border:0;background:none;width:100%;text-align:left;font:inherit;cursor:pointer;transition-delay:' + (80 + BEREICHE.length * 45) + 'ms"><span class="nv-ic">' + svg('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.3 20a1.9 1.9 0 0 0 3.4 0"/>') + '</span><span><b>Erinnerungen</b><small>Und Kalender aufs Handy</small></span></button>' : '') +
       (PRODUKT ? '<button type="button" class="nv-ziel" data-nv-darstellung style="border:0;background:none;width:100%;text-align:left;font:inherit;cursor:pointer;transition-delay:' + (100 + BEREICHE.length * 45) + 'ms"><span class="nv-ic">' + svg('<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18c1.2 0 2-.8 2-1.8 0-1.4-1.6-1.6-1.6-3 0-1 .8-1.7 1.8-1.7H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7.5" r="1"/><circle cx="15" cy="7.5" r="1"/>') + '</span><span><b>Darstellung</b><small>Hintergrund, Farben, Schrift</small></span></button>' : '') +
       '<p class="nv-fuss">Ordasio · Daten sicher in der Schweiz</p>' +
     '</nav>';
@@ -142,6 +143,7 @@
   }
   huelle.addEventListener('click', function(e){
     if (e.target.closest('[data-nv-zu]')) { schliessen(); return; }
+    if (e.target.closest('[data-nv-erinnerung]')) { schliessen(); if (window.Erinnerungen) Erinnerungen.dialog(); return; }
     if (e.target.closest('[data-nv-darstellung]')) { schliessen(); if (window.UI && UI.darstellung) UI.darstellung(); return; }
     var a = e.target.closest('a.nv-hier'); if (a) { e.preventDefault(); schliessen(); }
   });

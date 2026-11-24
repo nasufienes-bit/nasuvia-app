@@ -51,6 +51,10 @@
       'Menü oben links öffnen und „Darstellung“ tippen.',
       'Farbe oder Verlauf wählen, oder „Eigenes Bild“ für ein Foto als Hintergrund. Mit dem Regler wird es heller oder kräftiger.',
       '„Etwas grösser“ macht die Schrift in allen Bereichen grösser. Gilt für dieses Gerät.'], WURZEL + 'start/'],
+    ['erinnerungen', 'Erste Schritte', 'Erinnerungen und Kalender aufs Handy', 'erinnerung erinnern wecker frist kalender handy iphone google outlook abo termine synchronisieren benachrichtigung', [
+      'Menü oben links, „Erinnerungen“: Titel, Datum, Zeit und Wiederholung eingeben. Fällige Erinnerungen erscheinen oben in Ordasio.',
+      '„Kalender-Link erstellen“ und dann „iPhone, iPad, Mac“ oder „Google Kalender“ tippen. Termine, Einsätze und Erinnerungen erscheinen in Ihrem Kalender, mit Hinweis vorher.',
+      'Mitarbeitende verbinden ihre Einsätze auf ihrem Handy-Link mit „Kalender verbinden“.'], WURZEL + 'start/'],
     ['dienste', 'Erste Schritte', 'Website oder Instagram von uns gestalten lassen', 'website homepage webseite instagram highlights design gestalten entwurf gratis', [
       'Auf der Startseite „Ihre Website, von uns gestaltet“ tippen.',
       'Gewünschten Dienst und Stil wählen und die Anfrage senden. Den ersten Website-Entwurf machen wir kostenlos.'], WURZEL + 'dienste/'],
