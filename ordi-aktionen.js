@@ -54,9 +54,61 @@
   }
   const zeitAus = (t) => { const m = t.match(/um (\d{1,2})(?:[:.](\d{2}))?\s*(uhr)?/i); return m ? `${m[1].padStart(2, '0')}:${m[2] || '00'}` : ''; };
 
+  // Team-Aufträge, auch mehrere in einem Satz:
+  // „Füge einen Mitarbeiter namens Luca Meier hinzu, erstelle den Auftrag Badsanierung Müller und teile ihm diesen Auftrag zu“
+  const STOP = new Set(['füge', 'fuege', 'erfasse', 'lege', 'nimm', 'mach', 'erstelle', 'eröffne', 'teile', 'weise', 'gib', 'plane', 'einen', 'eine', 'ein', 'neuen', 'neue', 'neu', 'mitarbeiter', 'mitarbeiterin', 'mitarbeitende', 'namens', 'name', 'namen', 'heisst', 'hinzu', 'an', 'auf', 'ist', 'mit', 'dem', 'den', 'die', 'der', 'das', 'ihm', 'ihn', 'ihr', 'ihnen', 'sie', 'diesen', 'dieser', 'diese', 'auftrag', 'zu', 'bitte', 'noch', 'dazu', 'person', 'als']);
+  const BRUCH = /^(mit|stundenlohn|lohn|ansatz|und|als|für|ab|per)$/i;
+  const nameAus = (x) => {
+    const w = x.replace(/[:,.!?]/g, ' ').split(/\s+/).filter(Boolean), out = [];
+    let start = false;
+    for (const t of w) {
+      const k = t.toLowerCase();
+      if (!start) { if (STOP.has(k)) continue; start = true; }
+      if (BRUCH.test(k) || STOP.has(k) || /\d/.test(k)) { if (out.length) break; else continue; }
+      out.push(t.charAt(0).toUpperCase() + t.slice(1)); if (out.length === 2) break;
+    }
+    return out.join(' ');
+  };
+  function teamPlan(t) {
+    const teile = t.split(/\s*(?:,|;|\bund dann\b|\bdann\b|\bund\b(?=\s+(?:füge|erstelle|lege|teile|weise|plane|gib|mach|erfasse)))\s*/i).filter(Boolean);
+    const schritte = []; let ma = null, af = null, m;
+    const geld = (x) => { const g = x && x.match(/(\d+(?:[.,]\d+)?)/); return g ? Math.round(zahl(g[1]) * 100) : 0; };
+    for (const teil of teile) {
+      const x = teil.trim();
+      if (/\bmitarbeiter(in)?\b/i.test(x) && /(füge|fuege|erfasse|lege|nimm|neue[nr]?)\b/i.test(x) && !/\bauftrag\b/i.test(x)) {
+        const name = nameAus(x); if (!name) continue;
+        ma = name;
+        const lohn = x.match(/(?:stundenlohn|lohn)\D{0,12}(\d+(?:[.,]\d+)?)/i), ans = x.match(/(?:ansatz|verrechnen|für kunden)\D{0,12}(\d+(?:[.,]\d+)?)/i);
+        schritte.push({ typ: 'mitarbeiter', name, stundenlohn: lohn ? geld(lohn[1]) : 0, ansatz: ans ? geld(ans[1]) : 0 }); continue;
+      }
+      if ((m = x.match(/(?:erstelle|lege|mach|eröffne|füge)\b.*?\bauftrag\b\s*(?:namens|mit\s+(?:dem\s+)?namen|:)?\s*[„"«]?([^„"«»"]+?)[“"»]?(?:\s+(?:für|bei)\s+(?:den\s+|die\s+|kunde[n]?\s+)?(.+?))?(?:\s+(?:an|in)\s+(?:der\s+)?(.+?))?(?:\s+(?:an|hinzu|auf))?\s*$/i)) && !/^(an|hinzu|auf|zu|diesen|den)$/i.test(m[1].trim())) {
+        af = m[1].trim(); schritte.push({ typ: 'auftrag', name: af, kunde: (m[2] || '').trim(), adresse: (m[3] || '').trim() }); continue;
+      }
+      if (/(teile|weise|gib)\b.*\bzu\b/i.test(x)) {
+        const was = (x.match(/auftrag\s+[„"«]?([^„"«»"]+?)[“"»]?\s+(?:zu\b|an\b)/i) || [])[1];
+        const auftrag = (was && !/^(diesen|den|dem|neuen)$/i.test(was) ? was : '') || af;
+        const wer = nameAus(was ? x.replace(was, ' ') : x) || ma;
+        schritte.push({ typ: 'zuweisen', mitarbeiter: wer || '', auftrag: auftrag || '' }); continue;
+      }
+      const ein = x.match(/plane\s+(.+?)\s+(?:für|am)\s+(.+?)(?:\s+(?:bei|auf|für)\s+(.+))?$/i);
+      if (ein) { const d = datumAus(ein[2]); if (d) { schritte.push({ typ: 'einsatz', mitarbeiter: /^(ihn|sie|ihm|ihr)$/i.test(ein[1]) ? ma : nameAus(ein[1]) || ma, datum: d, von: zeitAus(ein[2]), auftrag: ein[3] || af || '' }); continue; } }
+    }
+    const ord = { mitarbeiter: 0, auftrag: 1, zuweisen: 2, einsatz: 3 };
+    schritte.sort((a, b) => ord[a.typ] - ord[b.typ]);
+    for (const z of schritte) { if (z.typ === 'zuweisen' || z.typ === 'einsatz') { z.mitarbeiter = z.mitarbeiter || ma || ''; if (z.typ === 'zuweisen') z.auftrag = z.auftrag || af || ''; } }
+    return schritte;
+  }
+
   // Ohne KI: die häufigsten Aufträge selbst verstehen
   async function erkennen(frage) {
     const t = frage.trim(), n = t.toLowerCase(); let m;
+    if (/(mitarbeiter|auftrag|teile .* zu|weise .* zu|plane )/i.test(t)) {
+      const s2 = teamPlan(t);
+      const fehlt = s2.find((z) => z.typ === 'zuweisen' && (!z.mitarbeiter || !z.auftrag));
+      if (fehlt) return { text: !fehlt.auftrag ? 'Welchen Auftrag soll ich zuteilen? Sagen Sie z. B.: «Erstelle den Auftrag Badsanierung Müller und teile ihn Luca zu».' : 'Wem soll ich den Auftrag zuteilen? Nennen Sie bitte den Namen.' };
+      if (s2.length > 1) return { aktion: { typ: 'plan', schritte: s2 } };
+      if (s2.length === 1) return { aktion: s2[0] };
+    }
     // Rechnung: „Rechnung an Müller über 3 Stunden à 95“, „Rechnung für Huber AG über CHF 500 für Gartenarbeit“
     if ((m = t.match(/rechnung\s+(?:an|für)\s+(.+?)\s+(?:über|für|mit)\s+(.+)$/i))) {
       const kunde = m[1].trim(), rest = m[2]; let pos = null, x;
@@ -98,9 +150,17 @@
   }
 
   // Vorschau-Karte
-  const TITEL = { rechnung: '🧾 Rechnung vorbereiten', erinnerung: '🔔 Erinnerung eintragen', mahnen: '⏰ Überfällige erinnern', stelle: '🧑‍💼 Offene Stelle vorbereiten', einsatz: '🗓️ Einsatz planen', navigieren: '➡️ Hinführen' };
+  const TITEL = { plan: '📋 Mehrere Schritte', mitarbeiter: '👤 Mitarbeiter erfassen', auftrag: '📍 Auftrag erstellen', zuweisen: '🔗 Auftrag zuteilen', rechnung: '🧾 Rechnung vorbereiten', erinnerung: '🔔 Erinnerung eintragen', mahnen: '⏰ Überfällige erinnern', stelle: '🧑‍💼 Offene Stelle vorbereiten', einsatz: '🗓️ Einsatz planen', navigieren: '➡️ Hinführen' };
+  const schrittText = (a) => ({
+    mitarbeiter: () => `Mitarbeiter <b>${esc(a.name)}</b> erfassen${a.stundenlohn ? ', Stundenlohn ' + chf(a.stundenlohn) : ''}${a.ansatz ? ', Ansatz ' + chf(a.ansatz) : ''}`,
+    auftrag: () => `Auftrag <b>${esc(a.name)}</b> erstellen${a.kunde ? ' für ' + esc(a.kunde) : ''}${a.adresse ? ', ' + esc(a.adresse) : ''}`,
+    zuweisen: () => `Auftrag <b>${esc(a.auftrag)}</b> an <b>${esc(a.mitarbeiter)}</b> zuteilen`,
+    einsatz: () => `Einsatz für <b>${esc(a.mitarbeiter)}</b> am ${dk(a.datum)}${a.von ? ' um ' + esc(a.von) : ''}${a.auftrag ? ' (' + esc(a.auftrag) + ')' : ''}`,
+  }[a.typ] || (() => esc(TITEL[a.typ] || a.typ)))();
   function karte(a) {
     let inhalt = '';
+    if (a.typ === 'plan') inhalt = `<ol style="margin:0;padding-left:18px">${(a.schritte || []).map((z) => `<li>${schrittText(z)}</li>`).join('')}</ol>`;
+    if (['mitarbeiter', 'auftrag', 'zuweisen'].includes(a.typ)) inhalt = schrittText(a);
     if (a.typ === 'rechnung') inhalt = `An: <b>${esc(a.kunde)}</b><br>${(a.positionen || []).map((p) => `${esc(p.text)}: ${Number(p.menge).toLocaleString('de-CH')} × ${chf(p.preis)} = <b>${chf(Math.round(p.menge * p.preis))}</b>`).join('<br>')}<br><small>Sie sehen die Rechnung danach und senden sie selbst.</small>`;
     if (a.typ === 'erinnerung') inhalt = `<b>${esc(a.titel)}</b><br>${dk(a.datum)}${a.zeit ? ' um ' + esc(a.zeit) : ' (ganzer Tag)'}`;
     if (a.typ === 'mahnen') inhalt = 'Ich öffne die Rechnungen mit dem Mahn-Assistenten. Dort sehen Sie alle Überfälligen und bereiten Erinnerung oder Mahnung mit einem Klick vor.';
@@ -112,6 +172,41 @@
 
   async function ausfuehren(a) {
     const sb = window.NASUVIA_SB;
+    if (a.typ === 'plan') {
+      const aus = [];
+      for (const z of a.schritte || []) { const t = await ausfuehren(z); aus.push(t); if (/^Das hat nicht geklappt|^Ich finde/.test(t)) break; }
+      return aus.join('\n');
+    }
+    const finde = async (tabelle, name) => {
+      const { data } = await sb.from(tabelle).select('*').is('geloescht_am', null).limit(1000);
+      const n = String(name || '').toLowerCase().trim();
+      return (data || []).find((x) => x.name.toLowerCase() === n) || (data || []).find((x) => x.name.toLowerCase().includes(n) || n.includes(x.name.toLowerCase().split(' ')[0]));
+    };
+    if (a.typ === 'mitarbeiter') {
+      if (!sb) return 'Mitarbeiter gibt es nach der Anmeldung.';
+      const alt = await finde('ze_mitarbeiter', a.name);
+      if (alt && alt.name.toLowerCase() === a.name.toLowerCase()) return `✓ ${alt.name} ist schon erfasst.`;
+      const { data, error } = await sb.from('ze_mitarbeiter').insert({ name: a.name.slice(0, 120), stundenlohn_rappen: a.stundenlohn || 0, ansatz_rappen: a.ansatz || 0 }).select('name,token').single();
+      if (error) return 'Das hat nicht geklappt: ' + error.message;
+      const link = new URL('zeit/erfassen/?t=' + data.token, WURZEL).href;
+      return `✓ ${data.name} ist erfasst. Persönlicher Handy-Link (per WhatsApp schicken): ${link}${a.stundenlohn ? '' : '\nTipp: Stundenlohn und Ansatz tragen Sie in der Zeiterfassung unter „Mitarbeiter“ nach.'}`;
+    }
+    if (a.typ === 'auftrag') {
+      if (!sb) return 'Aufträge gibt es nach der Anmeldung.';
+      const alt = await finde('ze_auftraege', a.name);
+      if (alt && alt.name.toLowerCase() === a.name.toLowerCase()) return `✓ Auftrag „${alt.name}“ gibt es schon.`;
+      const { error } = await sb.from('ze_auftraege').insert({ name: a.name.slice(0, 160), kunde: (a.kunde || '').slice(0, 160), adresse: (a.adresse || '').slice(0, 200) });
+      return error ? 'Das hat nicht geklappt: ' + error.message : `✓ Auftrag „${a.name}“ erstellt${a.kunde ? ' für ' + a.kunde : ''}.`;
+    }
+    if (a.typ === 'zuweisen') {
+      if (!sb) return 'Bitte zuerst anmelden.';
+      const [m, f] = await Promise.all([finde('ze_mitarbeiter', a.mitarbeiter), finde('ze_auftraege', a.auftrag)]);
+      if (!m) return `Ich finde keine Mitarbeiterin und keinen Mitarbeiter „${a.mitarbeiter}“.`;
+      if (!f) return `Ich finde keinen Auftrag „${a.auftrag}“.`;
+      const zu = [...new Set([...(f.zugewiesen || []), m.id])];
+      const { error } = await sb.from('ze_auftraege').update({ zugewiesen: zu }).eq('id', f.id);
+      return error ? 'Das hat nicht geklappt: ' + error.message : `✓ „${f.name}“ ist ${m.name} zugeteilt. ${m.name} sieht den Auftrag jetzt auf dem Handy.`;
+    }
     if (a.typ === 'rechnung') {
       try { sessionStorage.setItem('ordasio.zeit.rechnung', JSON.stringify({ positionen: a.positionen.map((p) => ({ text: p.text, menge: String(p.menge), preis: (p.preis / 100).toFixed(2) })), kunde: a.kunde, quelle: 'Ordi' })); } catch {}
       location.href = WURZEL + 'rechnungen/'; return 'Ich öffne die Rechnung …';

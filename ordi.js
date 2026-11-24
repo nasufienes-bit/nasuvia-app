@@ -31,8 +31,8 @@
     termine: ['Wie buchen Kunden online?', 'Öffnungszeiten ändern'],
     lager: ['Artikel erfassen', 'Was muss ich nachbestellen?'],
   };
-  const AUFGABEN = ['Umsatz diesen Monat?', 'Offene Rechnungen?', 'Erinnere mich morgen um 9 an die Offerte'];
-  const vorschlaege = () => [...(VORSCHLAEGE[hier] || ['Was kann Ordasio?', 'Wie schreibe ich eine Rechnung?']).slice(0, 2), ...AUFGABEN.slice(0, 2)];
+  const AUFGABEN = ['Umsatz diesen Monat?', 'Offene Rechnungen?', 'Erinnere mich morgen um 9 an die Offerte', 'Füge Mitarbeiter Luca Meier hinzu und erstelle den Auftrag Badsanierung Müller und teile ihn Luca zu'];
+  const vorschlaege = () => [...(VORSCHLAEGE[hier] || ['Was kann Ordasio?', 'Wie schreibe ich eine Rechnung?']).slice(0, 2), ...(hier === 'zeit' ? [AUFGABEN[3]] : AUFGABEN.slice(0, 2))];
   // Aufgaben-Teil nachladen (Rechnung, Erinnerung, Zahlen …)
   try { if (!window.OrdiAktionen) { const sc = document.createElement('script'); sc.src = new URL('ordi-aktionen.js', skript.src).href; document.head.appendChild(sc); } } catch {}
 
@@ -146,7 +146,7 @@
     verlauf.push({ rolle: 'ordi', text: 'Was möchten Sie?', chips: ['Funfact', 'Verlauf löschen', 'Ordi ausblenden'] });
     malen();
   }
-  const md = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(^|\n)(\d+)\. /g, '$1<b>$2.</b> ');
+  const md = (t) => esc(t).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener" style="word-break:break-all">$1</a>').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(^|\n)(\d+)\. /g, '$1<b>$2.</b> ');
   function malen() {
     const v = panel && panel.querySelector('#ordiVerlauf'); if (!v) return;
     v.innerHTML = verlauf.map((m) => `<div class="ordi-msg ${m.rolle} ${m.fakt ? 'fakt' : ''}">${m.html || md(m.text)}${m.ziel ? `<br><a class="ordi-hin" href="${esc(m.ziel)}">Hinführen ›</a>` : ''}</div>${m.chips ? `<div class="ordi-chips">${m.chips.map((c) => `<button data-ordi-frage="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}`).join('')
