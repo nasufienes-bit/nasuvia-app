@@ -124,6 +124,24 @@ select { appearance: none; -webkit-appearance: none; cursor: pointer; padding-ri
 .feld { display: grid; gap: 5px; }
 .feld > label { font-size: 12.5px; color: var(--leise); }
 .feld-zeile { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.lq-stand { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+.lq-stand .kopf-aktionen { flex-wrap: wrap; }
+.lq-balken { display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; height: 190px; align-items: end; margin-top: 10px; }
+.lq-woche { display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; min-width: 0; }
+.lq-saeule { flex: 1; width: 100%; display: flex; flex-direction: column; }
+.lq-oben { display: flex; align-items: flex-end; justify-content: center; border-bottom: 1.5px solid color-mix(in srgb, var(--blau) 25%, transparent); }
+.lq-unten { flex: 1; display: flex; align-items: flex-start; justify-content: center; }
+.lq-saeule i { display: block; width: min(30px, 80%); border-radius: 8px 8px 3px 3px; background: var(--elektrik); }
+.lq-unten i { border-radius: 3px 3px 8px 8px; }
+.lq-saeule i.knapp { background: #F59E0B; } .lq-saeule i.minus { background: var(--rot, #E5484D); }
+.lq-woche span { font-size: 11px; color: var(--leise, #7C8499); white-space: nowrap; }
+.lq-warnung { background: #FFF6E5; border: 1px solid #F5C46B; } .lq-gut { background: color-mix(in srgb, var(--elektrik) 8%, #fff); }
+.lq-vorschau { filter: blur(3px); opacity: .55; pointer-events: none; user-select: none; max-height: 520px; overflow: hidden; }
+@media (max-width: 560px) { .lq-balken { gap: 3px; height: 150px; } .lq-woche span { font-size: 9.5px; } .lq-woche:nth-child(even) span { visibility: hidden; } }
+.lq-kurz { display: flex; align-items: center; gap: 14px; cursor: pointer; } .lq-kurz .ic { font-size: 26px; } .lq-kurz .txt { flex: 1; min-width: 0; } .lq-kurz .txt b { display: block; }
+.fw { margin: -2px 0 10px; } .fw[data-zu] .fw-felder, .fw[data-zu] .fw-info { display: none; } .fw .fw-knopf:empty { display: none; }
+.fw .fw-felder { grid-template-columns: 0.8fr 1.1fr 1fr; } .fw .fw-info { margin: 2px 0 0; font-size: 12.5px; }
+@media (max-width: 560px) { .fw .fw-felder { grid-template-columns: 1fr 1fr; } .fw .fw-felder .feld:first-child { grid-column: 1 / -1; } }
 .segment { display: inline-flex; background: var(--flaeche); border-radius: 100px; padding: 3px; gap: 2px; }
 .segment button { border: 0; background: none; border-radius: 100px; padding: 6px 14px; font-size: 13.5px; cursor: pointer; color: var(--text); }
 .segment button.an { background: var(--karte); color: var(--blau); font-weight: 600; box-shadow: var(--schatten-karte); }

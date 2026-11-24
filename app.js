@@ -58,16 +58,17 @@
     mwst: '<svg viewBox="0 0 24 24"><path d="M19 5L5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg>',
     abschluss: '<svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/></svg>',
     auswertung: '<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+    liquiditaet: '<svg viewBox="0 0 24 24"><path d="M3 17l5-5 4 3 8-8"/><path d="M15 7h5v5"/><path d="M3 21h18"/></svg>',
     konten: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16M3 9h18M6 13h3M15 13h3M6 16h3M15 16h3"/></svg>',
     loehne: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2A5 5 0 0 1 21 19"/></svg>',
     mehr: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
   };
   const ANSICHTEN = [
-    ['uebersicht', 'Übersicht'], ['buchungen', 'Buchungen'], ['konten', 'Konten'], ['auswertung', 'Auswertung'], ['loehne', 'Löhne'], ['mwst', 'MWST'], ['abschluss', 'Abschluss'], ['mehr', 'Einstellungen'],
+    ['uebersicht', 'Übersicht'], ['buchungen', 'Buchungen'], ['konten', 'Konten'], ['auswertung', 'Auswertung'], ['liquiditaet', 'Liquidität'], ['loehne', 'Löhne'], ['mwst', 'MWST'], ['abschluss', 'Abschluss'], ['mehr', 'Einstellungen'],
   ];
   // Konten nur mit doppelter Buchhaltung, Löhne nur in Paketen mit Lohn
   const ansichten = () => ANSICHTEN.filter(([id]) => (id !== 'konten' || doppeltAktiv()) && (id !== 'loehne' || lohnErlaubt()));
-  const KURZ = { uebersicht: 'Start', buchungen: 'Buchen', konten: 'Konten', auswertung: 'Grafik', mwst: 'MWST', abschluss: 'Abschluss', mehr: 'Mehr' };
+  const KURZ = { liquiditaet: 'Geld', uebersicht: 'Start', buchungen: 'Buchen', konten: 'Konten', auswertung: 'Grafik', mwst: 'MWST', abschluss: 'Abschluss', mehr: 'Mehr' };
 
   /* ================= Hilfen ================= */
   const $ = (id) => document.getElementById(id);
@@ -190,6 +191,19 @@
   // In der Verkaufsversion kommt die Rechtsform aus der Lizenz, sonst aus den Einstellungen
   const O = window.ORDASIO, D = window.Doppelt;
   const lizenzJetzt = () => window.NASUVIA_LIZENZ || null;
+  // Zusatzpaket Finanzen Plus (Fremdwährungen, Liquiditätsvorschau); ohne Lizenz (eigene Nutzung) offen
+  const finanzenErlaubt = () => { const l = lizenzJetzt(); return !O || !l || !O.darf || O.darf(l, 'finanzen'); };
+  const WAEHRUNGEN = ['EUR', 'USD', 'GBP', 'JPY', 'SEK', 'NOK', 'DKK', 'PLN', 'CZK', 'CAD', 'AUD'];
+  const kursCache = {};
+  async function kursHolen(w, datum) {
+    const k = w + datum; if (kursCache[k]) return kursCache[k];
+    const tag = datum && datum < heute() ? datum : 'latest';
+    const r = await fetch(`https://api.frankfurter.app/${tag}?from=${w}&to=CHF`);
+    if (!r.ok) throw new Error('Kurs nicht erreichbar');
+    const j = await r.json(); const kurs = j && j.rates && j.rates.CHF;
+    if (!kurs) throw new Error('Kurs nicht gefunden');
+    return (kursCache[k] = { kurs, am: j.date });
+  }
   function rechtsform() {
     const l = lizenzJetzt();
     const gueltig = (r) => !!r && r !== 'privat' && (O ? !!O.RECHTSFORMEN[r] : ['einzel', 'gmbh', 'ag'].includes(r));
@@ -217,7 +231,7 @@
     if (!ansichten().some(([id]) => id === Z.ansicht)) Z.ansicht = 'uebersicht';
     $('navPc').innerHTML = ansichten().map(([id, name]) =>
       `<button class="nav-knopf ${Z.ansicht === id ? 'aktiv' : ''}" data-ansicht="${id}">${ICON[id]}${name}</button>`).join('');
-    $('navHandy').innerHTML = ansichten().filter(([id]) => id !== 'loehne' && !(id === 'auswertung' && doppeltAktiv())).map(([id, name]) =>
+    $('navHandy').innerHTML = ansichten().filter(([id]) => id !== 'loehne' && id !== 'liquiditaet' && !(id === 'auswertung' && doppeltAktiv())).map(([id, name]) =>
       `<button class="${Z.ansicht === id ? 'aktiv' : ''}" data-ansicht="${id}">${ICON[id]}${KURZ[id] || name}</button>`).join('');
   }
   document.addEventListener('click', (e) => {
@@ -239,7 +253,7 @@
 
   function zeichnen() {
     navZeichnen();
-    const f = { uebersicht: uebersicht, buchungen: buchungenAnsicht, konten: kontenAnsicht, auswertung: auswertung, loehne: loehneAnsicht, mwst: mwstAnsicht,
+    const f = { uebersicht: uebersicht, buchungen: buchungenAnsicht, konten: kontenAnsicht, auswertung: auswertung, liquiditaet: liquiditaet, loehne: loehneAnsicht, mwst: mwstAnsicht,
       abschluss: doppeltAktiv() ? abschlussDoppelt : abschluss, mehr: mehr }[Z.ansicht];
     $('inhalt').innerHTML = f();
     statusZeigen();
@@ -303,6 +317,110 @@
     if (bu) { const b = Z.buchungen.find((x) => x.id === bu.dataset.frageBuchung); if (b) buchungBearbeiten(b); }
   });
   document.addEventListener('ordasio-lizenz', () => fragenLaden());
+
+  /* ================= Liquidität (Finanzen Plus) ================= */
+  const tagePlus = (d, n) => { const x = new Date(d + 'T12:00'); x.setDate(x.getDate() + n); return x.toLocaleDateString('sv-SE'); };
+  const monatPlus = (d, n) => { const x = new Date(d + 'T12:00'); const t = x.getDate(); x.setDate(1); x.setMonth(x.getMonth() + n); x.setDate(Math.min(t, new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate())); return x.toLocaleDateString('sv-SE'); };
+  // Wiederkehrende Zahlungen der letzten 6 Monate erkennen: gleicher Partner/Kategorie, in mind. 2 Monaten, ähnlicher Betrag
+  function wiederkehrend() {
+    const seit = tagePlus(heute(), -185), gruppen = {};
+    for (const b of Z.buchungen) {
+      if (b.geloescht || b.datum < seit || b.quelle === 'rechnung' || b.zahlung === 'Bar') continue;
+      const k = b.typ + '|' + (b.partner || '').toLowerCase().trim() + '|' + b.kategorie;
+      (gruppen[k] = gruppen[k] || []).push(b);
+    }
+    const aus = [];
+    for (const liste of Object.values(gruppen)) {
+      const monate = new Set(liste.map((b) => b.datum.slice(0, 7)));
+      if (monate.size < 2) continue;
+      liste.sort((a, b) => a.datum.localeCompare(b.datum));
+      const betraege = liste.map((b) => b.betragRappen).sort((a, b) => a - b), mitte = betraege[Math.floor(betraege.length / 2)];
+      if (betraege.some((x) => Math.abs(x - mitte) > mitte * 0.25)) continue;
+      // Rhythmus: monatlich, oder alle 3 Monate
+      const schritt = monate.size >= 3 || liste.length >= 3 ? 1 : 3;
+      const letzte = liste[liste.length - 1];
+      const proMonat = liste.length / Math.max(1, monate.size);
+      aus.push({ b: letzte, betrag: Math.round(mitte * Math.max(1, Math.round(proMonat))), schritt, typ: letzte.typ, text: letzte.partner || letzte.text || katName(letzte) });
+    }
+    return aus;
+  }
+  function liquiPlan() {
+    const start = Z.einst.liquiStand || null, h = heute(), ende = tagePlus(h, 7 * 12), posten = [];
+    // offene Rechnungen: am Fälligkeitstag (überfällige diese Woche)
+    for (const b of Z.buchungen.filter(istOffen)) {
+      const f = b.faellig || tagePlus(b.datum, 30);
+      posten.push({ datum: f < h ? h : f, betrag: b.betragRappen, text: `Rechnung ${b.rechnungNr || ''} ${b.partner || ''}`.trim(), quelle: f < h ? 'überfällig' : 'Rechnung' });
+    }
+    for (const w of wiederkehrend()) {
+      let d = monatPlus(w.b.datum, w.schritt);
+      while (d <= ende) { if (d >= h) posten.push({ datum: d, betrag: w.typ === 'einnahme' ? w.betrag : -w.betrag, text: w.text, quelle: 'wiederkehrend' }); d = monatPlus(d, w.schritt); }
+    }
+    // MWST: laufendes Quartal, fällig 60 Tage nach Quartalsende
+    if (Z.einst.mwstPflicht !== false) {
+      const j = h.slice(0, 4), q = quartalVon(h), mw = mwstRechnen(j, q), qEnde = `${j}-${String(q * 3).padStart(2, '0')}-${q === 1 || q === 4 ? '31' : '30'}`;
+      const faellig = tagePlus(qEnde, 60);
+      if (mw.zahlen > 0 && faellig <= ende) posten.push({ datum: faellig, betrag: -mw.zahlen, text: `MWST ${q}. Quartal ${j} (Schätzung)`, quelle: 'MWST' });
+    }
+    for (const g of (Z.einst.liquiGeplant || [])) if (g.datum >= h && g.datum <= ende) posten.push({ datum: g.datum, betrag: g.betragRappen, text: g.text, quelle: 'geplant', id: g.id });
+    posten.sort((a, b) => a.datum.localeCompare(b.datum));
+    let stand = start ? start.betragRappen : 0;
+    const wochen = Array.from({ length: 12 }, (_, i) => ({ von: tagePlus(h, i * 7), bis: tagePlus(h, i * 7 + 6), ein: 0, aus: 0, stand: 0 }));
+    for (const p of posten) { const w = wochen.find((x) => p.datum >= x.von && p.datum <= x.bis); if (w) { if (p.betrag > 0) w.ein += p.betrag; else w.aus -= p.betrag; } }
+    for (const w of wochen) { stand += w.ein - w.aus; w.stand = stand; }
+    return { start, posten, wochen, tiefst: Math.min(...wochen.map((w) => w.stand)), reserve: Number(Z.einst.liquiReserve) || 0 };
+  }
+  function liquiditaet() {
+    const gesperrt = !finanzenErlaubt();
+    const p = liquiPlan(), st = p.start;
+    const posMax = Math.max(0, ...p.wochen.map((w) => w.stand)), negMax = Math.max(0, ...p.wochen.map((w) => -w.stand)), max = Math.max(1, posMax + negMax);
+    const obenPct = negMax ? posMax / max * 100 : 100;
+    const knapp = st && p.wochen.find((w) => w.stand < p.reserve);
+    const balken = p.wochen.map((w, i) => `<div class="lq-woche" title="Woche ab ${datumKurz(w.von)}: + ${chf(w.ein)} / − ${chf(w.aus)} → ${chf(w.stand)}">
+        <div class="lq-saeule"><div class="lq-oben" style="height:${obenPct}%">${w.stand >= 0 ? `<i class="${w.stand < p.reserve ? 'knapp' : ''}" style="height:${Math.max(2, w.stand / Math.max(1, posMax) * 100)}%"></i>` : ''}</div><div class="lq-unten">${w.stand < 0 ? `<i class="minus" style="height:${Math.max(2, -w.stand / Math.max(1, negMax) * 100)}%"></i>` : ''}</div></div><span>${i === 0 ? 'jetzt' : datumKurz(w.von).slice(0, 5)}</span></div>`).join('');
+    const QF = { Rechnung: 'marke-ok', 'überfällig': 'marke-offen', wiederkehrend: 'marke-info', MWST: 'marke-info', geplant: 'marke-info' };
+    const inhalt = `
+      <div class="card abstand-unten">
+        <div class="lq-stand">
+          <div><div class="label">Kontostand${st ? ' vom ' + datumKurz(st.datum) : ''}</div><div class="wert" style="font-size:1.9rem;font-weight:800">${st ? chf(st.betragRappen) + ' <span class="klein">CHF</span>' : '—'}</div>
+            <p class="hinweis">${st ? 'Wird beim nächsten Bankauszug automatisch aktualisiert.' : 'Tragen Sie Ihren Kontostand ein oder laden Sie einen Bankauszug mit Saldo.'}</p></div>
+          <div class="kopf-aktionen"><button class="btn ${st ? '' : 'btn-haupt'}" data-lq-stand>${st ? 'Kontostand ändern' : 'Kontostand eintragen'}</button><button class="btn" data-lq-plan>+ Geplante Zahlung</button><button class="btn" data-lq-reserve>Reserve: ${chf(p.reserve)}</button></div>
+        </div>
+      </div>
+      ${st ? `<div class="card abstand-unten ${knapp ? 'lq-warnung' : 'lq-gut'}"><b>${knapp ? `⚠️ Achtung: In der Woche ab ${datumKurz(knapp.von)} fällt der Kontostand auf ${chf(knapp.stand)} CHF.` : `✓ Ihr Geld reicht: tiefster Stand in 12 Wochen ${chf(p.tiefst)} CHF.`}</b>
+        ${knapp ? '<p class="hinweis" style="margin-top:4px">Tipp: Offene Rechnungen jetzt erinnern, grosse Ausgaben verschieben oder Reserve auflösen.</p>' : ''}</div>` : ''}
+      <div class="card abstand-unten"><h2>Kontostand der nächsten 12 Wochen</h2><div class="lq-balken">${balken}</div>
+        <div class="legende"><span><i style="background:var(--elektrik)"></i>genug</span><span><i style="background:#F59E0B"></i>unter Reserve</span><span><i style="background:var(--rot,#E5484D)"></i>im Minus</span></div></div>
+      <div class="card"><h2>Was kommt</h2>
+        ${p.posten.length ? `<div class="liste">${p.posten.map((x) => `<div class="zeile lq-zeile"><div class="datum">${datumKurz(x.datum)}</div><div style="min-width:0"><div class="titel">${esc(x.text)}</div><div class="info"><span class="nur-handy-datum">${datumKurz(x.datum)}</span><span class="marke ${QF[x.quelle] || 'marke-info'}">${esc(x.quelle)}</span>${x.id ? `<button class="link" data-lq-weg="${x.id}">entfernen</button>` : ''}</div></div><div class="betrag ${x.betrag > 0 ? 'plus' : ''}">${x.betrag > 0 ? '+' : '−'} ${chf(Math.abs(x.betrag))}</div></div>`).join('')}</div>`
+          : '<p class="leer">Noch nichts geplant. Offene Rechnungen, wiederkehrende Zahlungen und MWST erscheinen hier automatisch.</p>'}
+        <p class="hinweis abstand">Ordasio rechnet mit: offenen Rechnungen (am Fälligkeitstag), wiederkehrenden Zahlungen der letzten 6 Monate (Miete, Löhne, Abos), der MWST des laufenden Quartals und Ihren geplanten Zahlungen.</p></div>`;
+    return `<div class="kopf"><div><h1>Liquidität</h1><p class="unter">Reicht das Geld? Vorschau auf 12 Wochen</p></div></div>
+      ${gesperrt ? `${window.OrdasioZusatz ? OrdasioZusatz.karte('finanzen', { grund: 'Sehen Sie Wochen im Voraus, ob das Geld reicht: Kontostand, offene Rechnungen, Löhne, Miete und MWST in einer Vorschau.' }) : ''}<div class="lq-vorschau" aria-hidden="true">${inhalt}</div>` : inhalt}`;
+  }
+  document.addEventListener('click', async (e) => {
+    const t = e.target;
+    if (t.closest('[data-lq-stand]')) {
+      const v = await UI.eingabe('Aktueller Kontostand in CHF (Geschäftskonto)', { vorgabe: Z.einst.liquiStand ? (Z.einst.liquiStand.betragRappen / 100).toFixed(2) : '' });
+      if (v === null) return; const r = betragLesen(v); if (!Number.isFinite(r)) { toast('Bitte einen Betrag eingeben'); return; }
+      await einstSpeichern({ liquiStand: { betragRappen: r, datum: heute(), quelle: 'hand' } }); zeichnen();
+    }
+    if (t.closest('[data-lq-reserve]')) {
+      const v = await UI.eingabe('Mindestreserve in CHF: darunter warnt Ordasio', { vorgabe: Z.einst.liquiReserve ? (Z.einst.liquiReserve / 100).toFixed(2) : '0' });
+      if (v === null) return; const r = betragLesen(v); await einstSpeichern({ liquiReserve: Number.isFinite(r) ? Math.max(0, r) : 0 }); zeichnen();
+    }
+    if (t.closest('[data-lq-plan]')) {
+      const text = await UI.eingabe('Was ist geplant? (z. B. Leasing Fahrzeug, Steuern, Auftrag Müller)'); if (!text) return;
+      const v = await UI.eingabe('Betrag in CHF. Ausgabe mit Minus, z. B. -2500'); if (v === null) return;
+      const r = betragLesen(String(v).replace(/^\s*−/, '-')); if (!Number.isFinite(r) || !r) { toast('Bitte einen Betrag eingeben'); return; }
+      const d = await UI.eingabe('Datum (TT.MM.JJJJ)', { vorgabe: datumKurz(tagePlus(heute(), 14)) }); if (!d) return;
+      const m = String(d).match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/); if (!m) { toast('Datum bitte als TT.MM.JJJJ'); return; }
+      const datum = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+      const neg = /^\s*[-−]/.test(String(v));
+      await einstSpeichern({ liquiGeplant: [...(Z.einst.liquiGeplant || []), { id: 'g' + Date.now(), text: text.trim(), betragRappen: neg ? -Math.abs(r) : Math.abs(r), datum }] }); zeichnen();
+    }
+    const w = t.closest('[data-lq-weg]');
+    if (w) { await einstSpeichern({ liquiGeplant: (Z.einst.liquiGeplant || []).filter((g) => g.id !== w.dataset.lqWeg) }); zeichnen(); }
+  });
 
   function uebersicht() {
     const liste = imJahr(Z.jahr);
@@ -376,6 +494,10 @@
       <div class="kopf-aktionen">${jahrWahl()}<button class="btn" onclick="NB.startAnpassen()">Übersicht anpassen</button><button class="btn" onclick="NB.zwischenbilanz()">Zwischenbilanz</button><button class="btn" onclick="NB.fahrt()">Fahrt erfassen</button><a class="btn nv-weg" href="rechnungen/" style="text-decoration:none">Rechnung schreiben</a><button class="btn btn-haupt nur-pc" onclick="NB.neu()">+ Neue Buchung</button></div>
     </div>
     ${fragenKarte()}
+    ${(() => { if (!finanzenErlaubt()) return `<div class="card abstand-unten lq-kurz" data-ansicht="liquiditaet"><span class="ic">📈</span><span class="txt"><b>Reicht das Geld in den nächsten Wochen?</b><span class="hinweis">Liquiditätsvorschau mit Finanzen Plus ansehen</span></span><span class="marke marke-info">Zusatz</span></div>`;
+      if (!Z.einst.liquiStand) return `<div class="card abstand-unten lq-kurz" data-ansicht="liquiditaet"><span class="ic">📈</span><span class="txt"><b>Liquiditätsvorschau</b><span class="hinweis">Kontostand eintragen und sehen, ob das Geld 12 Wochen reicht</span></span><span>›</span></div>`;
+      const lp = liquiPlan(), knapp = lp.wochen.find((w) => w.stand < lp.reserve);
+      return `<div class="card abstand-unten lq-kurz ${knapp ? 'lq-warnung' : ''}" data-ansicht="liquiditaet"><span class="ic">${knapp ? '⚠️' : '📈'}</span><span class="txt"><b>${knapp ? 'Ab ' + datumKurz(knapp.von) + ' wird das Geld knapp' : 'Ihr Geld reicht die nächsten 12 Wochen'}</b><span class="hinweis">Tiefster Kontostand: ${chf(lp.tiefst)} CHF</span></span><span>›</span></div>`; })()}
     ${doppeltAktiv() ? kontostaendeKarte() : ''}
     ${k('ziel', ziel ? `<div class="card abstand-unten ziel-karte"><div class="ziel-kopf"><h2 style="margin:0">Jahresziel ${Z.jahr}</h2><span class="num">${chf(s.ein)} von ${chf(ziel)} CHF · ${zielPct} %</span></div><div class="spur gross"><i style="width:${zielPct}%"></i></div></div>` : '')}
     ${k('kennzahlen', `<div class="raster raster-4">`)}
@@ -660,6 +782,11 @@
       { doppelt: (t) => bekannt.has(importSchluessel(t)), datei, weiter: 'Weiter zu den Kategorien' });
     if (!geprueft || !geprueft.length) return;
     liste = geprueft;
+    // Endsaldo für die Liquiditätsvorschau merken (nur wenn neuer als der bisherige Stand)
+    if (v.ende != null && Number.isFinite(v.ende)) {
+      const bis = liste.reduce((m, t) => (t.datum > m ? t.datum : m), '');
+      if (bis && (!Z.einst.liquiStand || Z.einst.liquiStand.datum <= bis)) await einstSpeichern({ liquiStand: { betragRappen: Math.round(v.ende), datum: bis, quelle: 'bank' } });
+    }
     const offen = Z.buchungen.filter(istOffen);
     const vergeben = new Set();
     const vorschlaege = liste.map((t) => {
@@ -1054,7 +1181,7 @@
         <div class="datum">${datumKurz(b.datum)}</div>
         <div style="min-width:0">
           <div class="titel">${esc(b.text || b.partner || katName(b))}</div>
-          <div class="info"><span class="nur-handy-datum">${datumKurz(b.datum)}</span><span>${esc(katName(b))}</span>${b.partner && b.text ? `<span>${esc(b.partner)}</span>` : ''}${marke}${beleg}</div>
+          <div class="info"><span class="nur-handy-datum">${datumKurz(b.datum)}</span><span>${esc(katName(b))}</span>${b.partner && b.text ? `<span>${esc(b.partner)}</span>` : ''}${marke}${beleg}${b.waehrung ? `<span class="marke marke-info">${esc(b.waehrung)} ${(b.betragFremd / 100).toFixed(2)}</span>` : ''}</div>
         </div>
         <div class="betrag ${ein ? 'plus' : ''}">${ein ? '+' : '−'} ${chf(b.betragRappen)}<small>MWST ${chf(b.mwstRappen)}</small></div>
       </div>`;
@@ -1166,6 +1293,15 @@
             <div class="feld"><label for="fBetrag">Betrag inkl. MWST (CHF)</label><input type="text" id="fBetrag" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${b.betragRappen != null ? chf(b.betragRappen).replace(/’/g, '') : ''}" required /></div>
             <div class="feld"><label for="fDatum">Datum</label><input type="date" id="fDatum" value="${b.datum}" required /></div>
           </div>
+          <div class="fw" data-fw ${b.waehrung && b.waehrung !== 'CHF' ? '' : 'data-zu'}>
+            <button type="button" class="link fw-knopf" data-fw-auf>${b.waehrung && b.waehrung !== 'CHF' ? '' : '+ Betrag in Fremdwährung (EUR, USD …)'}</button>
+            <div class="feld-zeile fw-felder">
+              <div class="feld"><label for="fwWaehrung">Währung</label><select id="fwWaehrung">${WAEHRUNGEN.map((w) => `<option ${b.waehrung === w ? 'selected' : ''}>${w}</option>`).join('')}</select></div>
+              <div class="feld"><label for="fwBetrag">Betrag in Währung</label><input type="text" id="fwBetrag" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${b.betragFremd != null ? (b.betragFremd / 100).toFixed(2) : ''}" /></div>
+              <div class="feld"><label for="fwKurs">Kurs in CHF</label><input type="text" id="fwKurs" inputmode="decimal" autocomplete="off" placeholder="z. B. 0.9412" value="${b.kurs || ''}" /></div>
+            </div>
+            <p class="hinweis fw-info" data-fw-info>${b.kursAm ? 'Kurs vom ' + datumKurz(b.kursAm) + ' (Europäische Zentralbank)' : ''}</p>
+          </div>
           <div class="feld-zeile">
             <div class="feld"><label for="fSatz">MWST-Satz</label><select id="fSatz">${SAETZE.map((s) => `<option value="${s}" ${Number(b.mwstSatz) === s ? 'selected' : ''}>${s ? s.toFixed(1) + ' %' : 'ohne MWST'}</option>`).join('')}</select></div>
             <div class="feld"><label for="fMwst">${ein ? 'MWST' : 'Vorsteuer'} (CHF)</label><input type="text" id="fMwst" inputmode="decimal" autocomplete="off" value="${b.mwstRappen != null ? chf(b.mwstRappen).replace(/’/g, '') : ''}" /></div>
@@ -1240,6 +1376,10 @@
       const r = betragLesen($('fBetrag').value);
       b.betragRappen = Number.isFinite(r) ? r : null;
       b.datum = $('fDatum').value;
+      if ($('fwWaehrung') && !document.querySelector('[data-fw]').hasAttribute('data-zu')) {
+        const fb = betragLesen($('fwBetrag').value), ku = Number(String($('fwKurs').value).replace(',', '.'));
+        if (Number.isFinite(fb) && fb > 0) { b.waehrung = $('fwWaehrung').value; b.betragFremd = fb; b.kurs = ku || null; }
+      } else if (b.waehrung) { delete b.waehrung; delete b.betragFremd; delete b.kurs; delete b.kursAm; }
       b.mwstSatz = Number($('fSatz').value);
       const m = betragLesen($('fMwst').value);
       b.mwstRappen = Number.isFinite(m) ? m : null;
@@ -1256,11 +1396,31 @@
     if (!vorhanden && !matchMedia('(max-width: 820px)').matches) $('fBetrag').focus();
     if (_beleg && b.betragRappen == null) belegLesen(_beleg);
 
+    // Fremdwährung: Betrag × Kurs ergibt den CHF-Betrag; der Kurs kommt von der EZB (Tageskurs zum Buchungsdatum)
+    const fwRechnen = () => {
+      const fb = betragLesen($('fwBetrag').value), ku = Number(String($('fwKurs').value).replace(',', '.'));
+      if (Number.isFinite(fb) && fb > 0 && ku > 0) { $('fBetrag').value = (Math.round(fb * ku) / 100).toFixed(2); mwstNachfuehren(); }
+    };
+    const fwKurs = async () => {
+      const w = $('fwWaehrung').value, info = document.querySelector('[data-fw-info]');
+      info.textContent = 'Kurs wird geholt …';
+      try { const k = await kursHolen(w, $('fDatum').value || heute()); $('fwKurs').value = k.kurs.toFixed(4); b.kursAm = k.am; info.textContent = `Kurs vom ${datumKurz(k.am)} (Europäische Zentralbank). Sie können ihn anpassen, z. B. auf den Kurs Ihrer Bank.`; fwRechnen(); }
+      catch { info.textContent = 'Kein Kurs erreichbar. Bitte den Kurs von Hand eintragen.'; }
+    };
+    if (dlg._fwKlick) dlg.removeEventListener('click', dlg._fwKlick);
+    dlg.addEventListener('click', dlg._fwKlick = (e) => {
+      if (!e.target.closest('[data-fw-auf]')) return;
+      if (!finanzenErlaubt()) { if (window.OrdasioZusatz) OrdasioZusatz.erklaeren('finanzen'); return; }
+      const fw = document.querySelector('[data-fw]'); fw.removeAttribute('data-zu'); e.target.closest('[data-fw-auf]').textContent = '';
+      if (!$('fwKurs').value) fwKurs(); $('fwBetrag').focus();
+    });
     dlg.oninput = (e) => {
       if (e.target.id === 'fMwst') mwstVonHand = true;
       if (e.target.id === 'fBetrag') mwstNachfuehren();
+      if (e.target.id === 'fwBetrag' || e.target.id === 'fwKurs') fwRechnen();
     };
     dlg.onchange = (e) => {
+      if (e.target.id === 'fwWaehrung' || (e.target.id === 'fDatum' && $('fwWaehrung') && !document.querySelector('[data-fw]').hasAttribute('data-zu'))) fwKurs();
       if (e.target.id === 'fSatz') { mwstVonHand = false; mwstNachfuehren(); }
       if (e.target.id === 'fKat' && !vorhanden) {
         const k = (b.typ === 'ausgabe' ? KAT_AUS : KAT_EIN).find((x) => x.id === e.target.value);
@@ -2264,6 +2424,7 @@
         partner: r.kunde || r.empfaenger || '',
         text: alt && alt.text ? alt.text : `${gutschrift ? 'Gutschrift' : 'Rechnung'} ${nr}`,
         zahlung: alt ? alt.zahlung : 'Bank',
+        faellig: (r.faellig || '').slice(0, 10),
         bezahlt: alt && alt.bezahlt ? true : !!r.bezahlt,
         bezahltAm: alt && alt.bezahltAm ? alt.bezahltAm : (r.bezahlt ? (r.bezahltAm || (r.datum || '').slice(0, 10)) : ''),
         geaendert: undefined, geloescht: false, entferntDurchApp: false,
