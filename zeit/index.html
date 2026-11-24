@@ -231,6 +231,7 @@ a.live{text-decoration:none}
     if (m.error) throw m.error; if (a.error) throw a.error;
     const k = await sb.from('ze_konfig').select('*').maybeSingle();
     Z.zeitAn = !k.data || k.data.zeit_erfassen !== false;
+    Z.optionen = (k.data && k.data.optionen) || {};
     Z.mitarbeiter = m.data; Z.auftraege = a.data;
   }
   // Einträge: ganzes Jahr rund um den gewählten Monat und die gewählte Woche (reicht für Übersicht, Monat und offene Posten)
@@ -461,6 +462,56 @@ a.live{text-decoration:none}
         <button class="btn klein rot" data-a="loeschenGew">Löschen</button></div>` : ''}`;
   }
 
+  /* ---------- Wie erfasst wird (pro Firma wählbar) ---------- */
+  // Jede Option: [Schlüssel, Titel, [[Wert, Name, Erklärung]], Standard]
+  const OPTIONEN = [
+    ['art', 'Erfassung', [['stempeln', 'Stempeluhr', 'Start und Stopp auf dem Handy, Nachtragen möglich. Für die meisten Betriebe.'],
+      ['vonbis', 'Von–bis eintragen', 'Keine Uhr. Beginn, Ende und Pause werden eingetragen.'],
+      ['stunden', 'Nur Stunden pro Tag', 'Vereinfachte Erfassung nach Art. 73b ArGV 1. Nur mit schriftlicher Vereinbarung und für Mitarbeitende, die ihre Zeit weitgehend selbst einteilen.']], 'stempeln'],
+    ['standort', 'Standort', [['aus', 'Aus', 'Es wird kein Standort gespeichert.'], ['stempeln', 'Beim Starten und Stoppen', 'Für alle: Ort beim Stempeln, kein Mitverfolgen.'],
+      ['mitarbeiter', 'Pro Person wählen', 'Bei jedem Mitarbeiter einzeln einstellbar.']], 'mitarbeiter'],
+    ['pause', 'Pausen', [['manuell', 'Selbst eintragen', 'Mitarbeitende tragen die Pause ein.'], ['auto', 'Mindestpause automatisch', 'Nach Art. 15 ArG: 15 Min. ab 5½ Std., 30 Min. ab 7 Std., 60 Min. ab 9 Std.']], 'manuell'],
+    ['auftrag', 'Auftrag', [['frei', 'Freiwillig', ''], ['pflicht', 'Pflicht', 'Jede Zeit gehört zu einem Auftrag. Ideal zum Verrechnen.'], ['aus', 'Ausblenden', 'Nur Arbeitszeit, ohne Aufträge.']], 'frei'],
+    ['taetigkeit', 'Tätigkeit', [['frei', 'Freiwillig', ''], ['pflicht', 'Pflicht', 'Kurz beschreiben, was gemacht wurde (für Rapporte).'], ['aus', 'Ausblenden', '']], 'frei'],
+    ['km', 'Kilometer', [['ja', 'Erfassen', ''], ['nein', 'Ausblenden', '']], 'ja'],
+    ['nachtragen', 'Nachtragen bis', [['1', 'Gestern', 'Nur heute und gestern.'], ['7', '7 Tage', ''], ['31', '1 Monat', ''], ['400', 'Unbegrenzt', '']], '400'],
+    ['rundung', 'Stempeluhr runden', [['0', 'Genau', ''], ['5', 'Auf 5 Min.', ''], ['15', 'Auf 15 Min.', 'Start und Stopp werden auf die nächste Viertelstunde gerundet.']], '0'],
+  ];
+  // Vorschläge nach Branche
+  const BRANCHE_OPTIONEN = {
+    handwerk: { art: 'stempeln', standort: 'mitarbeiter', pause: 'auto', auftrag: 'pflicht', taetigkeit: 'frei', km: 'ja', nachtragen: '7', rundung: '0' },
+    garten: { art: 'stempeln', standort: 'mitarbeiter', pause: 'auto', auftrag: 'pflicht', taetigkeit: 'frei', km: 'ja', nachtragen: '7', rundung: '0' },
+    gastro: { art: 'stempeln', standort: 'aus', pause: 'auto', auftrag: 'aus', taetigkeit: 'aus', km: 'nein', nachtragen: '1', rundung: '15' },
+    beauty: { art: 'stempeln', standort: 'aus', pause: 'auto', auftrag: 'aus', taetigkeit: 'aus', km: 'nein', nachtragen: '7', rundung: '5' },
+    handel: { art: 'stempeln', standort: 'aus', pause: 'auto', auftrag: 'aus', taetigkeit: 'aus', km: 'nein', nachtragen: '7', rundung: '5' },
+    transport: { art: 'stempeln', standort: 'stempeln', pause: 'auto', auftrag: 'frei', taetigkeit: 'frei', km: 'ja', nachtragen: '7', rundung: '0' },
+    beratung: { art: 'stunden', standort: 'aus', pause: 'manuell', auftrag: 'pflicht', taetigkeit: 'pflicht', km: 'nein', nachtragen: '31', rundung: '0' },
+    kreativ: { art: 'stunden', standort: 'aus', pause: 'manuell', auftrag: 'pflicht', taetigkeit: 'pflicht', km: 'nein', nachtragen: '31', rundung: '0' },
+    gesundheit: { art: 'vonbis', standort: 'aus', pause: 'manuell', auftrag: 'aus', taetigkeit: 'frei', km: 'nein', nachtragen: '7', rundung: '0' },
+    bildung: { art: 'vonbis', standort: 'aus', pause: 'manuell', auftrag: 'frei', taetigkeit: 'frei', km: 'nein', nachtragen: '31', rundung: '0' },
+  };
+  const opt = (k) => { const o = OPTIONEN.find((x) => x[0] === k); return String((Z.optionen || {})[k] ?? o[3]); };
+  function optionenKarte() {
+    const br = window.Branchen ? Branchen.finde(Branchen.aktuell()) : null, vorschlag = br && BRANCHE_OPTIONEN[br.id];
+    const gleich = vorschlag && Object.entries(vorschlag).every(([k, v]) => opt(k) === v);
+    return `<details class="card" style="margin-bottom:14px" ${Object.keys(Z.optionen || {}).length ? '' : 'open'}><summary style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:10px;align-items:center"><span><b>So erfassen Ihre Mitarbeitenden</b><br><small class="hinweis">${esc(OPTIONEN.map(([k, , w]) => (w.find((x) => x[0] === opt(k)) || [])[1]).slice(0, 4).join(' · '))}</small></span><span class="btn klein">Anpassen</span></summary>
+      ${vorschlag ? `<div class="info-box" style="margin:12px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:200px">${gleich ? '✓ Eingestellt wie empfohlen' : 'Empfohlen'} für <b>${esc(br.name)}</b>.</span>${gleich ? '' : '<button class="btn klein haupt" data-opt-branche>Übernehmen</button>'}</div>` : ''}
+      <div style="display:grid;gap:14px;margin-top:12px">${OPTIONEN.map(([k, titel, werte]) => { const w = werte.find((x) => x[0] === opt(k)) || werte[0];
+        return `<div><div style="font-size:13px;color:var(--leise);margin-bottom:5px">${titel}</div><div class="segment" style="flex-wrap:wrap">${werte.map(([v, n]) => `<button class="${opt(k) === v ? 'an' : ''}" data-opt="${k}" data-wert="${v}">${n}</button>`).join('')}</div>${w[2] ? `<p class="hinweis" style="margin-top:5px">${esc(w[2])}</p>` : ''}</div>`; }).join('')}</div>
+      <p class="hinweis" style="margin-top:14px">Gesetz: Arbeitgeber müssen die Arbeitszeit erfassen (Art. 46 ArG, Art. 73 ArGV 1): Tages- und Wochenzeit, Pausen ab 30 Minuten, Aufbewahrung 5 Jahre. Live-Standort lässt sich zusätzlich pro Einsatz im Einsatzplan einschalten.</p></details>`;
+  }
+  async function optionenSpeichern(neu) {
+    const uid = (await sb.auth.getUser()).data.user.id, vorher = Z.optionen;
+    Z.optionen = { ...(Z.optionen || {}), ...neu }; zeichnen();
+    const { error } = await sb.from('ze_konfig').upsert({ user_id: uid, optionen: Z.optionen, geaendert: new Date().toISOString() });
+    if (error) { Z.optionen = vorher; zeichnen(); toast(fehlerText(error)); return; }
+    toast('✓ Gilt ab sofort für alle Mitarbeitenden');
+  }
+  document.addEventListener('click', (ev) => {
+    const o = ev.target.closest('[data-opt]'); if (o) { ev.preventDefault(); optionenSpeichern({ [o.dataset.opt]: o.dataset.wert }); return; }
+    if (ev.target.closest('[data-opt-branche]')) { ev.preventDefault(); const br = Branchen.finde(Branchen.aktuell()); optionenSpeichern(BRANCHE_OPTIONEN[br.id]); }
+  });
+
   /* ---------- Mitarbeiter ---------- */
   function mitarbeiter() {
     const monat = heute().slice(0, 7);
@@ -468,6 +519,7 @@ a.live{text-decoration:none}
         <div class="aktionen"><button class="btn" data-a="korb">Zuletzt gelöscht</button><button class="btn haupt" data-a="maNeu">+ Mitarbeiter</button></div></div>
       <div class="card" style="margin-bottom:14px"><label style="display:flex;gap:12px;align-items:flex-start;cursor:pointer"><input type="checkbox" data-zeit-an ${Z.zeitAn !== false ? 'checked' : ''} style="width:20px;height:20px;margin-top:2px;accent-color:var(--blau)">
         <span><b>Mitarbeiter erfassen ihre Arbeitszeit</b><br><small class="hinweis">Ausgeschaltet sehen Ihre Mitarbeiter auf dem Handy nur ihre Aufträge und Einsätze und laden Fotos hoch, ohne Stunden zu erfassen.</small></span></label></div>
+      ${Z.zeitAn !== false ? optionenKarte() : ''}
       <div class="card">${Z.mitarbeiter.map((m) => { const min = Z.eintraege.filter((e) => e.mitarbeiter_id === m.id && e.datum.slice(0, 7) === monat).reduce((s, e) => s + e.minuten, 0);
         return `<div class="zeile klick" data-ma="${m.id}"><div style="min-width:0"><b>${esc(m.name)}${m.aktiv ? '' : '<span class="marke-s m-grau">inaktiv</span>'}</b><small>${m.rolle === 'projektleiter' ? '<b style="display:inline;color:var(--elektrik)">Projektleiter</b> · ' : ''}${m.standort ? '📍 · ' : ''}${m.stundenlohn_rappen ? `Lohn CHF ${chf(m.stundenlohn_rappen)}/Std.` : 'Kein Stundenlohn'} · ${m.ansatz_rappen ? `Ansatz CHF ${chf(m.ansatz_rappen)}/Std.` : 'Kein Ansatz'}</small></div>
           <div class="aktionen">${m.aktiv ? `<button class="btn klein" data-link="${m.id}">Link senden</button>` : ''}<span class="betrag" style="min-width:56px">${std(min)}</span></div></div>`; }).join('')}</div>
@@ -596,7 +648,7 @@ a.live{text-decoration:none}
       <div class="drei"><label>Von<input type="time" name="von" value="${(e.von || '').slice(0, 5)}"></label><label>Bis<input type="time" name="bis" value="${(e.bis || '').slice(0, 5)}"></label><label>Pause (Min.)<input type="number" name="pause" min="0" max="600" value="${e.pause_min || ''}" placeholder="0"></label></div>
       <label>Oder nur Dauer (Stunden)<input type="text" inputmode="decimal" name="dauer" value="${e.id && !e.von ? stdDez(e.minuten) : ''}" placeholder="z. B. 7.5"></label>
       <label>Auftrag<select name="auftrag"><option value="">Ohne Auftrag</option>${Z.auftraege.filter((a) => a.aktiv || a.id === e.auftrag_id).map((a) => `<option value="${a.id}" ${a.id === e.auftrag_id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label>
-      <label>Tätigkeit<input type="text" name="taetigkeit" value="${esc(e.taetigkeit || '')}" maxlength="300" placeholder="z. B. Leitungen verlegt"></label>
+      <label>Tätigkeit<input type="text" name="taetigkeit" value="${esc(e.taetigkeit || '')}" maxlength="300" placeholder="z. B. Montage, Beratung, Unterhalt"></label>
       <div class="zwei"><label>Kilometer<input type="text" inputmode="decimal" name="km" value="${Number(e.km) || ''}" placeholder="0"></label>
       <label style="align-self:end;display:flex;gap:8px;align-items:center;font-size:14px;color:var(--tinte);padding-bottom:9px"><input type="checkbox" name="verrechnet" ${e.verrechnet ? 'checked' : ''}> Verrechnet</label></div>
       <div class="fuss">${e.id ? '<button type="button" class="btn rot" data-a="eintragLoeschen">Löschen</button>' : '<span></span>'}<span class="aktionen"><button type="button" class="btn" data-a="zu">Abbrechen</button><button class="btn haupt">Speichern</button></span></div>`);

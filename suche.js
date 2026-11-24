@@ -22,6 +22,12 @@
       'Auf der Startseite „Tipps für Selbständige“ tippen.',
       'Die Liste führt durch Anmeldung bei der AHV, Versicherungen, Rückstellungen für AHV und Steuern, MWST, Rechnungen und Werbung.',
       'Erledigtes abhaken. Unten rechnet der Stundenansatz-Rechner aus, wie viel Sie mindestens verlangen sollten.'], WURZEL + 'selbstaendig/'],
+    ['zeit-optionen', 'Zeiterfassung', 'Wie Mitarbeitende erfassen (Stempeluhr, Standort, Pausen)', 'stempeluhr stempeln standort gps live pause mindestpause auftrag pflicht tätigkeit kilometer nachtragen runden viertelstunde vereinfacht 73b', [
+      'Zeiterfassung, Mitarbeiter, „So erfassen Ihre Mitarbeitenden“ öffnen.',
+      'Erfassung wählen: Stempeluhr, Von–bis eintragen oder nur Stunden pro Tag (vereinfachte Erfassung, braucht eine schriftliche Vereinbarung).',
+      'Standort aus, beim Stempeln oder pro Person. Live-Standort schalten Sie pro Einsatz im Einsatzplan ein.',
+      'Pausen automatisch nach Gesetz, Auftrag oder Tätigkeit als Pflicht, Kilometer, wie weit zurück nachgetragen werden darf und ob die Stempeluhr rundet.',
+      'Mit „Übernehmen“ gilt die Empfehlung für Ihre Branche. Änderungen gelten sofort für alle.'], WURZEL + 'zeit/#mitarbeiter'],
     ['dienste', 'Erste Schritte', 'Website oder Instagram von uns gestalten lassen', 'website homepage webseite instagram highlights design gestalten entwurf gratis', [
       'Auf der Startseite „Ihre Website, von uns gestaltet“ tippen.',
       'Gewünschten Dienst und Stil wählen und die Anfrage senden. Den ersten Website-Entwurf machen wir kostenlos.'], WURZEL + 'dienste/'],

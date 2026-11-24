@@ -123,6 +123,12 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
   if (!token || !K.url) { fehler('Kein gültiger Link', 'Bitte öffnen Sie den Link, den Sie von Ihrem Arbeitgeber bekommen haben.'); return; }
   const sb = window.supabase.createClient(K.url, K.key, { auth: { persistSession: false, autoRefreshToken: false } });
 
+  // Optionen der Firma (Büro wählt, wie erfasst wird)
+  const O = () => (Z.daten && Z.daten.optionen) || {};
+  const art = () => O().art || 'stempeln';
+  const mindestPause = (brutto) => (brutto > 540 ? 60 : brutto > 420 ? 30 : brutto > 330 ? 15 : 0);
+  const runden = (ms) => { const r = Number(O().rundung) || 0; if (!r) return ms; const schritt = r * 60000; return Math.round(ms / schritt) * schritt; };
+  const zeitVon = (ms) => new Date(ms).toTimeString().slice(0, 5);
   function fehler(titel, text) { $('app').innerHTML = `<div class="fehler"><h1>${esc(titel)}</h1><p class="hinweis">${esc(text)}</p></div>`; }
 
   async function laden() {
@@ -155,6 +161,8 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
         <div class="karte hoch uhr">
           ${start ? `<div class="zeit" id="laeuft">${std((Date.now() - Number(start)) / 60000)}</div><p>Arbeit läuft seit ${new Date(Number(start)).toTimeString().slice(0, 5)} Uhr</p>
             <button class="gross stopp" data-a="stopp">Stoppen und speichern</button><button class="gross leicht" data-a="abbrechen">Uhr verwerfen</button>`
+          : art() !== 'stempeln' ? `<div class="zeit">${jetztZeit()}</div><p>${wt(heute())}, ${dk(heute())}</p>
+            <button class="gross" data-a="neu">+ Arbeitszeit eintragen</button>`
           : `<div class="zeit">${jetztZeit()}</div><p>${wt(heute())}, ${dk(heute())}</p>
             <button class="gross" data-a="start">▶ Arbeit starten</button><button class="gross leicht" data-a="neu">Stunden nachtragen</button>`}
         </div>`}
@@ -259,14 +267,15 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
     const f = Z.form, d = Z.daten;
     return `<div class="karte hoch"><h2>${f.id ? 'Eintrag ändern' : 'Stunden erfassen'}</h2>
       <form id="form">
-        <label>Datum<input type="date" name="datum" value="${f.datum}" max="${plusTage(heute(), 1)}" required></label>
-        <div class="segment"><button type="button" class="${Z.modus === 'zeit' ? 'an' : ''}" data-modus="zeit">Von – bis</button><button type="button" class="${Z.modus === 'dauer' ? 'an' : ''}" data-modus="dauer">Nur Stunden</button></div>
+        <label>Datum<input type="date" name="datum" value="${f.datum}" max="${plusTage(heute(), 1)}" min="${plusTage(heute(), -(Number(O().nachtragen) || 400))}" required></label>
+        ${art() === 'stempeln' ? `<div class="segment"><button type="button" class="${Z.modus === 'zeit' ? 'an' : ''}" data-modus="zeit">Von – bis</button><button type="button" class="${Z.modus === 'dauer' ? 'an' : ''}" data-modus="dauer">Nur Stunden</button></div>` : ''}
         ${Z.modus === 'zeit' ? `<div class="drei"><label>Von<input type="time" name="von" value="${f.von || ''}" required></label><label>Bis<input type="time" name="bis" value="${f.bis || ''}" required></label><label>Pause (Min.)<input type="number" inputmode="numeric" name="pause" min="0" max="600" value="${f.pause_min || ''}" placeholder="0"></label></div>`
           : `<label>Stunden<input type="text" inputmode="decimal" name="dauer" value="${f.minuten && !f.von ? Math.round(f.minuten / 60 * 100) / 100 : ''}" placeholder="z. B. 8 oder 7.5" required></label>`}
         <div class="vorschau" id="vorschau"></div>
-        ${d.auftraege.length ? `<label>Auftrag<select name="auftrag"><option value="">Ohne Auftrag</option>${d.auftraege.map((a) => `<option value="${a.id}" ${a.id === f.auftrag_id ? 'selected' : ''}>${esc(a.name)}${a.kunde ? ' · ' + esc(a.kunde) : ''}</option>`).join('')}</select></label>` : ''}
-        <label>Was haben Sie gemacht?<input type="text" name="taetigkeit" value="${esc(f.taetigkeit || '')}" maxlength="300" placeholder="z. B. Leitungen verlegt" enterkeyhint="done"></label>
-        <label>Gefahrene Kilometer (freiwillig)<input type="text" inputmode="decimal" name="km" value="${Number(f.km) || ''}" placeholder="0"></label>
+        ${O().pause === 'auto' && Z.modus === 'zeit' ? '<p class="hinweis" style="margin-top:-4px">Die gesetzliche Mindestpause wird automatisch abgezogen.</p>' : ''}
+        ${d.auftraege.length && O().auftrag !== 'aus' ? `<label>Auftrag<select name="auftrag" ${O().auftrag === 'pflicht' ? 'required' : ''}><option value="">${O().auftrag === 'pflicht' ? 'Bitte wählen' : 'Ohne Auftrag'}</option>${d.auftraege.map((a) => `<option value="${a.id}" ${a.id === f.auftrag_id ? 'selected' : ''}>${esc(a.name)}${a.kunde ? ' · ' + esc(a.kunde) : ''}</option>`).join('')}</select></label>` : ''}
+        ${O().taetigkeit === 'aus' ? '' : `<label>Was haben Sie gemacht?${O().taetigkeit === 'pflicht' ? '' : ' <small class="hinweis">(freiwillig)</small>'}<input type="text" name="taetigkeit" value="${esc(f.taetigkeit || '')}" maxlength="300" placeholder="z. B. Montage, Beratung, Unterhalt" enterkeyhint="done" ${O().taetigkeit === 'pflicht' ? 'required' : ''}></label>`}
+        ${O().km === 'nein' ? '' : `<label>Gefahrene Kilometer (freiwillig)<input type="text" inputmode="decimal" name="km" value="${Number(f.km) || ''}" placeholder="0"></label>`}
         <div class="knoepfe"><button type="button" class="gross leicht" data-a="zurueck" style="margin:0">Abbrechen</button><button class="gross" id="speichern">Speichern</button></div>
         ${f.id ? '<button type="button" class="loeschen" data-a="loeschen">Eintrag löschen</button>' : ''}
       </form></div>`;
@@ -277,13 +286,14 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
     if (Z.modus === 'zeit') {
       const von = d.get('von'), bis = d.get('bis'); if (!von || !bis) return 0;
       const [a, b] = [von, bis].map((t) => t.split(':').map(Number)).map(([h, m]) => h * 60 + m);
-      return (b - a + 1440) % 1440 - (Number(d.get('pause')) || 0);
+      const brutto = (b - a + 1440) % 1440, p = Number(d.get('pause')) || 0;
+      return brutto - (O().pause === 'auto' ? Math.max(p, mindestPause(brutto)) : p);
     }
     return Math.round(Number(String(d.get('dauer') || '').replace(',', '.')) * 60) || 0;
   }
   function vorschau() { const v = $('vorschau'); if (!v) return; const m = minutenAusForm(); v.textContent = m > 0 ? `= ${std(m)} Stunden` : 'Zeiten eingeben'; }
 
-  function formOeffnen(werte) { Z.form = werte; Z.modus = werte.id && !werte.von ? 'dauer' : 'zeit'; zeichnen(); vorschau(); window.scrollTo(0, 0); }
+  function formOeffnen(werte) { Z.form = werte; Z.modus = art() === 'stunden' ? 'dauer' : art() === 'vonbis' ? 'zeit' : (werte.id && !werte.von ? 'dauer' : 'zeit'); zeichnen(); vorschau(); window.scrollTo(0, 0); }
 
   document.addEventListener('click', async (ev) => {
     const mo = ev.target.closest('[data-modus]'); if (mo) { const f = $('form'); if (f) { const d = Object.fromEntries(new FormData(f)); Object.assign(Z.form, d, { pause_min: d.pause ?? Z.form.pause_min, auftrag_id: d.auftrag ?? Z.form.auftrag_id }); } Z.modus = mo.dataset.modus; zeichnen(); vorschau(); return; }
@@ -292,11 +302,11 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
     if (ev.target.closest('[data-zurueck-ordner]')) { Z.auftrag = null; zeichnen(); return; }
     const st = ev.target.closest('[data-status]');
     if (st) { const { error } = await sb.rpc('ze_auftrag_status', { p_token: token, p_id: Z.auftrag, p_status: st.dataset.status }); if (error) { toast(fehlerText(error)); return; } toast('✓ Gemeldet'); await laden(); fotosLaden(Z.auftrag); return; }
-    const as = ev.target.closest('[data-auftrag-start]'); if (as) { setz(K_START, String(Date.now())); setz(K_START + '.auftrag', as.dataset.auftragStart); ortHolen().then((o) => { if (o) setz(K_START + '.ort', JSON.stringify(o)); }); zeichnen(); fotosLaden(Z.auftrag); toast('Uhr läuft für diesen Auftrag.'); return; }
+    const as = ev.target.closest('[data-auftrag-start]'); if (as) { setz(K_START, String(runden(Date.now()))); setz(K_START + '.auftrag', as.dataset.auftragStart); ortHolen().then((o) => { if (o) setz(K_START + '.ort', JSON.stringify(o)); }); zeichnen(); fotosLaden(Z.auftrag); toast('Uhr läuft für diesen Auftrag.'); return; }
     const pr = ev.target.closest('[data-pruefen]'); if (pr) { await sb.functions.invoke('ze-foto', { body: { token, aktion: 'pruefen', foto_id: pr.dataset.pruefen, geprueft: pr.dataset.wert === '1' } }); fotosLaden(Z.auftrag); return; }
     const fw = ev.target.closest('[data-foto-weg]'); if (fw) { if (!await UI.frage('Dieses Foto löschen?')) return; await sb.functions.invoke('ze-foto', { body: { token, aktion: 'loeschen', foto_id: fw.dataset.fotoWeg } }); fotosLaden(Z.auftrag); return; }
     const hs = ev.target.closest('[data-hier-start]');
-    if (hs) { const s = Z.daten.einsaetze.find((x) => x.id === hs.dataset.hierStart); setz(K_START, String(Date.now())); setz(K_START + '.auftrag', s.auftrag_id || ''); zeichnen(); toast('Uhr läuft für diesen Einsatz.'); return; }
+    if (hs) { const s = Z.daten.einsaetze.find((x) => x.id === hs.dataset.hierStart); setz(K_START, String(runden(Date.now()))); setz(K_START + '.auftrag', s.auftrag_id || ''); zeichnen(); toast('Uhr läuft für diesen Einsatz.'); return; }
     const lv = ev.target.closest('[data-live]'); if (lv) { liveZuletzt = 0; liveStart(lv.dataset.live); return; }
     const ls = ev.target.closest('[data-live-stopp]'); if (ls) { liveStopp(); zeichnen(); toast('Standort wird nicht mehr geteilt'); return; }
     const er = ev.target.closest('[data-erledigt]');
@@ -311,9 +321,9 @@ input,select{font:inherit;font-size:16px;border:1px solid rgba(11,59,46,.26);bor
     }
     const a = ev.target.closest('[data-a]'); if (!a) return;
     switch (a.dataset.a) {
-      case 'start': setz(K_START, String(Date.now())); zeichnen(); toast('Uhr läuft. Sie können das Handy weglegen.'); ortHolen().then((o) => { if (o) setz(K_START + '.ort', JSON.stringify(o)); }); break;
+      case 'start': setz(K_START, String(runden(Date.now()))); zeichnen(); toast('Uhr läuft. Sie können das Handy weglegen.'); ortHolen().then((o) => { if (o) setz(K_START + '.ort', JSON.stringify(o)); }); break;
       case 'auftragNeu': auftragNeu(); break;
-      case 'stopp': { ortHolen().then((o) => { if (o) setz(K_START + '.ortEnde', JSON.stringify(o)); }); const s = new Date(Number(lies(K_START))); formOeffnen({ datum: iso(s), von: s.toTimeString().slice(0, 5), bis: jetztZeit(), pause_min: '', auftrag_id: lies(K_START + '.auftrag') || '' }); break; }
+      case 'stopp': { ortHolen().then((o) => { if (o) setz(K_START + '.ortEnde', JSON.stringify(o)); }); const s = new Date(Number(lies(K_START))); formOeffnen({ datum: iso(s), von: s.toTimeString().slice(0, 5), bis: zeitVon(runden(Date.now())), pause_min: '', auftrag_id: lies(K_START + '.auftrag') || '' }); break; }
       case 'abbrechen': if (await UI.frage('Laufende Uhr verwerfen? Es wird nichts gespeichert.')) { setz(K_START, null); setz(K_START + '.auftrag', null); zeichnen(); } break;
       case 'neu': formOeffnen({ datum: heute(), von: '07:00', bis: '', pause_min: '' }); break;
       case 'zurueck': Z.form = null; zeichnen(); break;
