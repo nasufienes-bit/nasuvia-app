@@ -87,7 +87,9 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   <div class="karte empf" id="empf"></div>
   <div class="umschalter"><div><button data-z="monat">Monatlich</button><button data-z="jahr" class="an">Jährlich · 2 Monate gratis</button></div></div>
   <div class="pakete" id="pakete"></div>
-  <div class="karte zusatz"><b>Mehr Mitarbeitende in der Zeiterfassung</b><span>In „Team“ sind 3, in „Business Team“ 5 Mitarbeitende inklusive. Jede weitere Person: CHF 5 pro Monat oder CHF 50 pro Jahr. Im Gratis-Test unbegrenzt.</span></div>
+  <div class="karte zusatz"><b>Mehr Mitarbeitende</b><span>In „Team“ und „Business Team“ sind 5 Mitarbeitende inklusive. Jede weitere Person: CHF 6 pro Monat oder CHF 60 pro Jahr. Im Gratis-Test unbegrenzt.</span></div>
+  <div class="karte zusatz" id="zusatzBewerbungen"><b>Zusatz: Bewerbungen · CHF 9 pro Monat</b><span>Eigener Bewerbungs-Link für Website und Inserate. Bewerbungen mit Lebenslauf und Zeugnissen kommen gesammelt in Ordasio an, Sie antworten mit einem Tipp. Zu jedem Firmenpaket buchbar, im Gratis-Test inklusive.</span></div>
+  <p class="unter" style="text-align:center;margin-top:10px;font-size:13px">Zum Vergleich: Bekannte Schweizer Programme kosten mit Lohn und Zeiterfassung oft CHF 80 bis 120 im Monat. Ordasio Team: CHF 59, alles inklusive.</p>
   <div class="karte zusatz"><b>Einrichtung durch uns</b><span>CHF 190 einmalig: Daten übernehmen, Logo und Vorlagen einrichten, 30 Minuten Einführung. Beim Bestellen einfach ankreuzen.</span></div>
   <p class="unter" style="text-align:center;margin-top:14px;font-size:14px">Alle Preise in CHF. Sie erhalten eine QR-Rechnung per E-Mail. Nach der Zahlung schalten wir Ihre Lizenz frei, alle Daten bleiben erhalten.</p>
 
@@ -125,6 +127,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     <label>Rechnungsadresse<textarea id="dAdresse" rows="2" placeholder="Strasse und Nr., PLZ und Ort" required></textarea></label>
     <label>Telefon <span>(freiwillig)</span><input id="dTel" type="tel"></label>
     <label id="dZeitFeld"><span id="dZeitText">Zusätzliche Mitarbeitende für die Zeiterfassung</span><input id="dZeit" type="number" min="0" max="200" value="0" inputmode="numeric"></label>
+    <label id="dBwZeile" style="display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--tinte)"><input type="checkbox" id="dBewerbungen" style="width:18px;height:18px;margin-top:2px"> <span><b>Zusatz Bewerbungen, CHF 9 pro Monat / 90 pro Jahr</b><br><span style="color:var(--text)">Bewerbungs-Link pro Stelle, Bewerbungen mit Unterlagen in Ordasio.</span></span></label>
     <label style="display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--tinte)"><input type="checkbox" id="dEinrichtung" style="width:18px;height:18px;margin-top:2px"> <span><b>Einrichtung durch uns, CHF 190 einmalig</b><br><span style="color:var(--text)">Wir übernehmen Ihre bisherigen Daten, richten Logo, Vorlagen und Kategorien ein und zeigen Ihnen alles in 30 Minuten per Video oder vor Ort.</span></span></label>
     <div class="summe"><span id="dPaket"></span><span id="dPreis"></span></div>
     <p class="meldung" id="dMeldung"></p>
@@ -151,7 +154,9 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   function zeitAnzahl(){ return gewaehlt && gewaehlt.programme.indexOf('zeit') >= 0 ? Math.max(0, Math.min(200, parseInt($('dZeit').value, 10) || 0)) : 0; }
   function summeZeigen(){
     var n = zeitAnzahl(), grund = zyklus === 'jahr' ? gewaehlt.jahr : gewaehlt.monat, z = n * ZEIT[zyklus];
-    $('dPaket').textContent = gewaehlt.name + (n ? ' + ' + n + ' weitere Mitarbeitende' : '') + (zyklus === 'jahr' ? ', jährlich' : ', monatlich');
+    var bw = gewaehlt.id !== 'privat' && $('dBewerbungen').checked ? (zyklus === 'jahr' ? 90 : 9) : 0; z += bw;
+    $('dBwZeile').hidden = gewaehlt.id === 'privat';
+    $('dPaket').textContent = gewaehlt.name + (n ? ' + ' + n + ' weitere Mitarbeitende' : '') + (bw ? ' + Bewerbungen' : '') + (zyklus === 'jahr' ? ', jährlich' : ', monatlich');
     $('dPreis').textContent = 'CHF ' + (grund + z) + (zyklus === 'jahr' ? '/Jahr' : '/Monat') + ($('dEinrichtung').checked ? ' + 190 einmalig' : '');
   }
   var sb = window.supabase.createClient(K.url, K.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: K.speicher } });
@@ -240,6 +245,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   });
   $('dZeit').addEventListener('input', summeZeigen);
   $('dEinrichtung').addEventListener('change', summeZeigen);
+  $('dBewerbungen').addEventListener('change', summeZeigen);
   $('dZu').onclick = function(){ $('dlg').close(); };
   $('fZu').onclick = function(){ $('dlg').close(); };
   // Alle Daten löschen: Dateien im Speicher, Datenbank, dieses Gerät
@@ -259,6 +265,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     try {
       await ordnerLeeren('belege', benutzer.id, 2);
       await ordnerLeeren('auftrag-fotos', benutzer.id, 2);
+      await ordnerLeeren('ablage', benutzer.id, 1);
+      await ordnerLeeren('bewerbungen', benutzer.id, 2);
       // Online-Links zu Rechnungen: PDFs entfernen
       var links = await sb.from('rg_links').select('token');
       if (links.data && links.data.length) await sb.storage.from('rechnung-links').remove(links.data.map(function(x){ return x.token + '.pdf'; }));
@@ -282,7 +290,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     var nr = 'LIZ-' + String(d.getFullYear()).slice(2) + zz(d.getMonth() + 1) + zz(d.getDate()) + '-' + (100 + Math.floor(Math.random() * 900));
     var zeitN = zeitAnzahl();
     var preis = (zyklus === 'jahr' ? gewaehlt.jahr : gewaehlt.monat) + zeitN * ZEIT[zyklus];
-    var daten = { Paket: gewaehlt.name, Rechtsform: O.RECHTSFORMEN[rf].name, 'Zusätzliche Mitarbeitende': String(zeitN), Einrichtung: $('dEinrichtung').checked ? 'Ja, CHF 190 einmalig' : 'Nein', Zahlungsweise: zyklus === 'jahr' ? 'Jährlich' : 'Monatlich', Preis: 'CHF ' + preis + (zyklus === 'jahr' ? ' pro Jahr' : ' pro Monat'),
+    var daten = { Paket: gewaehlt.name, Rechtsform: O.RECHTSFORMEN[rf].name, 'Zusätzliche Mitarbeitende': String(zeitN), Einrichtung: $('dEinrichtung').checked ? 'Ja, CHF 190 einmalig' : 'Nein', Bewerbungen: $('dBewerbungen').checked && gewaehlt.id !== 'privat' ? 'Ja' : 'Nein', Zahlungsweise: zyklus === 'jahr' ? 'Jährlich' : 'Monatlich', Preis: 'CHF ' + preis + (zyklus === 'jahr' ? ' pro Jahr' : ' pro Monat'),
       'Rechnung an': firma, Adresse: adresse, 'E-Mail': benutzer.email, Telefon: $('dTel').value.trim(), Konto: benutzer.id,
       'Stand jetzt': lizenz ? lizenz.status + ' / ' + lizenz.paket + ' / ' + lizenz.rechtsform : '' };
     var ok1 = await fetch('https://dyepnomhidubsfwyorke.supabase.co/rest/v1/anfragen', { method: 'POST',

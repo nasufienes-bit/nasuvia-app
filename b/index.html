@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<link rel="icon" type="image/png" href="../favicon.png" />
+<title>Bewerbung</title>
+<meta name="theme-color" content="#F4FAF6" />
+<link rel="stylesheet" href="../schrift.css" />
+<script src="../konfig.js"></script>
+<style>
+:root{--papier:#F4FAF6;--flaeche:#E8F4EE;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--linie:rgba(11,59,46,.16)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:16px/1.55 'League Spartan',-apple-system,system-ui,sans-serif;background:var(--papier);color:var(--tinte);padding:28px 16px 60px}
+.wrap{max-width:680px;margin:0 auto}
+.firma{font-family:ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--elektrik)}
+h1{font-size:clamp(28px,6vw,40px);letter-spacing:-.03em;line-height:1.08;margin:8px 0 10px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.chips span{background:#fff;border-radius:100px;padding:6px 12px;font-size:14px;box-shadow:0 0 0 1px var(--linie)}
+.text{white-space:pre-wrap;color:var(--text);margin-bottom:20px}
+.karte{background:#fff;border-radius:22px;padding:22px;box-shadow:0 1px 2px rgba(12,18,38,.05),0 18px 40px -26px rgba(12,18,38,.35)}
+form{display:grid;gap:12px}.zwei{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:560px){.zwei{grid-template-columns:1fr}}
+label{display:grid;gap:5px;font-size:14px;color:var(--text)}
+input,textarea{font:inherit;font-size:16px;border:1.5px solid var(--linie);border-radius:12px;padding:12px 14px;background:#fff;color:var(--tinte);width:100%}
+.drop{border:2px dashed rgba(14,122,85,.35);border-radius:16px;padding:18px;text-align:center;cursor:pointer;background:rgba(14,122,85,.04)}
+.drop.ueber{background:rgba(14,122,85,.12)}
+.liste{font-size:14px;color:var(--text)}
+button{border:0;border-radius:100px;padding:15px 22px;font:inherit;font-weight:700;background:var(--blau);color:#fff;cursor:pointer;font-size:17px}
+button:disabled{opacity:.5}
+.fein{font-size:13px;color:var(--leise)}
+.falle{position:absolute;left:-9999px}
+.fertig{text-align:center;padding:30px 10px}.fertig div{font-size:48px}
+.fuss{text-align:center;margin-top:24px;font-size:13px;color:var(--leise)}.fuss a{color:var(--elektrik)}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p class="fein">Wird geladen …</p></div>
+<script>
+(() => {
+  const K = window.NASUVIA_KONFIG || {}, $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const token = new URLSearchParams(location.search).get('s') || '';
+  const fuss = '<p class="fuss">Bewerbung über <a href="https://www.ordasio.ch" target="_blank" rel="noopener">Ordasio</a>. Ihre Daten gehen nur an diese Firma.</p>';
+  let dateien = [];
+  async function start() {
+    if (!token) { $('app').innerHTML = '<h1>Link unvollständig</h1>'; return; }
+    const r = await fetch(K.url + '/rest/v1/rpc/bw_stelle', { method: 'POST', headers: { apikey: K.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_token: token }) }).then((x) => x.json()).catch(() => null);
+    if (!r || r.fehler) { $('app').innerHTML = `<h1>${esc((r && r.fehler) || 'Keine Verbindung')}</h1>` + fuss; return; }
+    document.title = `${r.titel} · ${r.firma || 'Bewerbung'}`;
+    $('app').innerHTML = `<div class="firma">${esc(r.firma || '')}</div><h1>${esc(r.titel)}</h1>
+      <div class="chips">${[r.ort && '📍 ' + r.ort, r.pensum && '⏱ ' + r.pensum, r.start && '🗓 ' + r.start].filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join('')}</div>
+      ${r.beschreibung ? `<div class="text">${esc(r.beschreibung)}</div>` : ''}
+      <div class="karte"><h2 style="font-size:22px;margin-bottom:12px">Jetzt bewerben</h2><form id="f">
+        <div class="zwei"><label>Vorname<input name="vorname" required autocomplete="given-name"></label><label>Nachname<input name="nachname" required autocomplete="family-name"></label></div>
+        <div class="zwei"><label>E-Mail<input name="email" type="email" required autocomplete="email"></label><label>Telefon <span class="fein">(freiwillig)</span><input name="telefon" type="tel" autocomplete="tel"></label></div>
+        <label>Nachricht <span class="fein">(freiwillig)</span><textarea name="nachricht" rows="4" placeholder="Kurz zu Ihnen und warum die Stelle passt"></textarea></label>
+        <label class="drop" id="drop"><b>Lebenslauf und Zeugnisse</b><span class="fein">PDF, Fotos oder Word, bis 6 Dateien à 10 MB. Antippen oder hierher ziehen.</span><input type="file" multiple hidden accept=".pdf,.jpg,.jpeg,.png,.heic,.doc,.docx" id="datei"></label>
+        <div class="liste" id="liste"></div>
+        <input class="falle" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <p class="fein" id="meldung"></p>
+        <button id="senden">Bewerbung senden</button>
+        <p class="fein">Mit dem Senden erhält ${esc(r.firma || 'die Firma')} Ihre Angaben und Unterlagen für diese Bewerbung.</p>
+      </form></div>` + fuss;
+    const zeigen = () => { $('liste').innerHTML = dateien.map((d, i) => `📎 ${esc(d.name)} <button type="button" data-weg="${i}" style="padding:2px 8px;font-size:13px;background:#E8F4EE;color:#0B3B2E">✕</button>`).join('<br>'); };
+    $('datei').onchange = (e) => { dateien = [...dateien, ...e.target.files].slice(0, 6); zeigen(); };
+    const d = $('drop'); ['dragenter', 'dragover'].forEach((t) => d.addEventListener(t, (e) => { e.preventDefault(); d.classList.add('ueber'); })); ['dragleave', 'drop'].forEach((t) => d.addEventListener(t, () => d.classList.remove('ueber')));
+    d.addEventListener('drop', (e) => { e.preventDefault(); dateien = [...dateien, ...e.dataTransfer.files].slice(0, 6); zeigen(); });
+    $('liste').onclick = (e) => { const w = e.target.closest('[data-weg]'); if (w) { dateien.splice(Number(w.dataset.weg), 1); zeigen(); } };
+    $('f').onsubmit = async (e) => {
+      e.preventDefault(); const fd = new FormData(e.target); fd.delete('dateien'); fd.append('token', token); dateien.forEach((x) => fd.append('dateien', x, x.name));
+      $('senden').disabled = true; $('meldung').textContent = 'Wird gesendet …';
+      const r2 = await fetch(K.url + '/functions/v1/bewerbung', { method: 'POST', headers: { apikey: K.key }, body: fd }).then((x) => x.json()).catch(() => ({ fehler: 'Keine Verbindung. Bitte nochmals versuchen.' }));
+      if (r2.ok) { e.target.parentElement.innerHTML = `<div class="fertig"><div>✨</div><h2>Danke, ${esc(fd.get('vorname'))}!</h2><p style="color:var(--text)">Ihre Bewerbung ist angekommen. ${esc(r.firma || 'Die Firma')} meldet sich bei Ihnen.</p></div>`; scrollTo(0, 0); }
+      else { $('meldung').textContent = r2.fehler || 'Das hat nicht geklappt.'; $('meldung').style.color = '#E5484D'; $('senden').disabled = false; }
+    };
+  }
+  start();
+})();
+</script>
+</body>
+</html>

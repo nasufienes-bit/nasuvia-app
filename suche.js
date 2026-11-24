@@ -55,6 +55,11 @@
       'Menü oben links, „Erinnerungen“: Titel, Datum, Zeit und Wiederholung eingeben. Fällige Erinnerungen erscheinen oben in Ordasio.',
       '„Kalender-Link erstellen“ und dann „iPhone, iPad, Mac“ oder „Google Kalender“ tippen. Termine, Einsätze und Erinnerungen erscheinen in Ihrem Kalender, mit Hinweis vorher.',
       'Mitarbeitende verbinden ihre Einsätze auf ihrem Handy-Link mit „Kalender verbinden“.'], WURZEL + 'start/'],
+    ['bewerbungen', 'Firmenablage', 'Bewerbungen mit eigenem Link', 'bewerbung bewerber stelle inserat job lebenslauf zeugnis einladung absage personal suchen', [
+      'Firmenablage, „Bewerbungen“, „+ Offene Stelle“: Bezeichnung, Ort, Pensum und Beschreibung eingeben.',
+      '„Link kopieren“ und auf Ihrer Website, im Inserat oder auf Social Media einfügen. Bewerbende laden dort Lebenslauf und Zeugnisse hoch.',
+      'Bewerbungen sortieren (Neu, Interessant, Gespräch, Zusage, Absage), mit Sternen bewerten und mit einem Tipp einladen oder absagen.',
+      'Zusatzoption für CHF 9 pro Monat, im Gratis-Test inklusive.'], WURZEL + 'ablage/?tab=bewerbungen'],
     ['dienste', 'Erste Schritte', 'Website oder Instagram von uns gestalten lassen', 'website homepage webseite instagram highlights design gestalten entwurf gratis', [
       'Auf der Startseite „Ihre Website, von uns gestaltet“ tippen.',
       'Gewünschten Dienst und Stil wählen und die Anfrage senden. Den ersten Website-Entwurf machen wir kostenlos.'], WURZEL + 'dienste/'],

@@ -17,8 +17,9 @@
     personal: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a5 5 0 0 1 3.5 5"/>',
     mitteilungen: '<path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/>',
     antraege: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M8 15l2.5 2.5L16 12"/>',
+    bewerbungen: '<circle cx="10" cy="8" r="4"/><path d="M3 21a7 7 0 0 1 11-5.7M17 14v6M14 17h6"/>',
   };
-  const TABS = [['ablage', 'Ordner'], ['personal', 'Personal'], ['mitteilungen', 'Mitteilungen'], ['antraege', 'Anträge']];
+  const TABS = [['ablage', 'Ordner'], ['personal', 'Personal'], ['mitteilungen', 'Mitteilungen'], ['antraege', 'Anträge'], ['bewerbungen', 'Bewerbungen']];
   const FARBEN = ['#0E7A55', '#0B3B2E', '#2563EB', '#7C3AED', '#DB2777', '#E0703A', '#C9A45C', '#0891B2', '#64748B'];
   const SYMBOLE = ['📁', '👤', '📄', '📝', '🎓', '⬆️', '✉️', '🏖️', '📣', '🛡️', '🚗', '🧾', '🏷️', '📦', '⚖️', '💼', '🔑', '📸'];
   // Vorschläge: der Kunde benennt seine Ordner selbst, das sind nur Ideen
@@ -28,7 +29,7 @@
   const ANTRAG = { ferien: 'Ferien', frei: 'Frei / Kompensation', krank: 'Krankheit', unfall: 'Unfall', weiterbildung: 'Weiterbildung', anderes: 'Anderes' };
   const STATUS = { offen: ['Offen', 'm-offen'], bewilligt: ['Bewilligt', 'm-ok'], abgelehnt: ['Abgelehnt', 'm-grau'], zurueckgezogen: ['Zurückgezogen', 'm-grau'] };
 
-  const Z = { tab: 'ablage', ordner: [], dateien: [], mitarbeiter: [], mitteilungen: [], antraege: [], offen: null, person: null, suche: '', bereit: false };
+  const Z = { tab: 'ablage', ordner: [], dateien: [], mitarbeiter: [], mitteilungen: [], antraege: [], stellen: [], bewerbungen: [], bwFilter: 'aktiv', bwOffen: null, offen: null, person: null, suche: '', bereit: false };
   const q = new URLSearchParams(location.search);
   if (TABS.some(([id]) => id === q.get('tab'))) Z.tab = q.get('tab');
   if (!K.produkt) { $('inhalt').innerHTML = '<div class="start"><h2>Firmenablage</h2><p>Die Firmenablage gibt es in der Verkaufsversion (Ordasio).</p></div>'; return; }
@@ -51,17 +52,21 @@
         sb.from('ab_antraege').select('*').order('erstellt', { ascending: false }).limit(300),
       ]);
       for (const r of [o, d, m, n, a]) if (r.error) throw r.error;
-      Z.ordner = o.data; Z.dateien = d.data; Z.mitarbeiter = m.data; Z.mitteilungen = n.data; Z.antraege = a.data; Z.bereit = true; zeichnen();
+      Z.ordner = o.data; Z.dateien = d.data; Z.mitarbeiter = m.data; Z.mitteilungen = n.data; Z.antraege = a.data;
+      const [st, bw] = await Promise.all([sb.from('bw_stellen').select('*').is('geloescht_am', null).order('erstellt', { ascending: false }), sb.from('bw_bewerbungen').select('*').is('geloescht_am', null).order('erstellt', { ascending: false }).limit(500)]);
+      Z.stellen = st.data || []; Z.bewerbungen = bw.data || [];
+      Z.bereit = true; zeichnen();
     } catch (e) { $('inhalt').innerHTML = `<div class="card"><h2>Daten konnten nicht geladen werden</h2><p class="hinweis">${esc(fehlerText(e))}</p></div>`; }
   }
 
   function zeichnen() {
     const offen = Z.antraege.filter((a) => a.status === 'offen').length;
-    const name = (id, n) => n + (id === 'antraege' && offen ? ` (${offen})` : '');
+    const neueBw = Z.bewerbungen.filter((b) => b.status === 'neu').length;
+    const name = (id, n) => n + (id === 'antraege' && offen ? ` (${offen})` : '') + (id === 'bewerbungen' && neueBw ? ` (${neueBw})` : '');
     $('tabs').innerHTML = TABS.map(([id, n]) => `<button class="${Z.tab === id ? 'an' : ''}" data-tab="${id}">${name(id, n)}</button>`).join('');
     $('untenNav').innerHTML = TABS.map(([id, n]) => `<button class="${Z.tab === id ? 'an' : ''}" data-tab="${id}"><svg viewBox="0 0 24 24">${ICON[id]}</svg>${name(id, n)}</button>`).join('');
     if (!Z.bereit) return;
-    $('inhalt').innerHTML = ({ ablage: ablageAnsicht, personal: personalAnsicht, mitteilungen: mitteilungenAnsicht, antraege: antraegeAnsicht })[Z.tab]();
+    $('inhalt').innerHTML = ({ ablage: ablageAnsicht, personal: personalAnsicht, mitteilungen: mitteilungenAnsicht, antraege: antraegeAnsicht, bewerbungen: bewerbungenAnsicht })[Z.tab]();
   }
 
   /* ---------- Ordner ---------- */
@@ -268,10 +273,77 @@
       <p class="hinweis abstand">Ihre Mitarbeitenden finden „Ferien oder Abwesenheit melden“ unten auf ihrem Handy-Link.</p>`;
   }
 
+  /* ---------- Bewerbungen (Zusatzoption) ---------- */
+  const BW_STATUS = [['neu', 'Neu', 'm-offen'], ['interessant', 'Interessant', 'm-blau'], ['gespraech', 'Gespräch', 'm-blau'], ['zusage', 'Zusage', 'm-ok'], ['absage', 'Absage', 'm-grau']];
+  const bwFrei = () => { const l = window.NASUVIA_LIZENZ || {}; return l.status === 'test' || !!(l.zusatz || {}).bewerbungen || !K.produkt; };
+  const bwLink = (s) => new URL('../b/?s=' + s.token, location.href).href;
+  function bewerbungenAnsicht() {
+    if (!bwFrei()) return `<div class="start"><div class="gross"><svg viewBox="0 0 24 24">${ICON.bewerbungen}</svg></div><h2>Bewerbungen an einem Ort</h2>
+      <p>Mit der Zusatzoption erhalten Sie für jede offene Stelle einen eigenen Bewerbungs-Link für Website, Inserate und Social Media. Bewerbungen mit Lebenslauf und Zeugnissen kommen hier an. Sie sortieren, bewerten und antworten mit einem Tipp.</p>
+      <p><b>CHF 9 pro Monat</b> oder CHF 90 pro Jahr, zu jedem Firmenpaket.</p><a class="btn haupt" href="../lizenz/#zusatzBewerbungen">Zusatzoption bestellen</a></div>`;
+    if (Z.bwOffen) { const b = Z.bewerbungen.find((x) => x.id === Z.bwOffen); if (b) return bewerbungDetail(b); }
+    const l = Z.bewerbungen.filter((b) => Z.bwFilter === 'alle' || (Z.bwFilter === 'aktiv' ? !['absage'].includes(b.status) : b.status === Z.bwFilter));
+    const stelle = (id) => Z.stellen.find((s) => s.id === id);
+    return `<div class="kopf"><div><h1>Bewerbungen</h1><p class="unter">Ein Link pro Stelle. Bewerbungen kommen hier an, mit allen Unterlagen.</p></div><div class="aktionen"><button class="btn haupt" data-bw-stelle-neu>+ Offene Stelle</button></div></div>
+      <div class="card" style="margin-bottom:14px"><h2>Offene Stellen</h2>${Z.stellen.map((s) => `<div class="zeile"><div style="min-width:0"><b>${esc(s.titel)}${s.aktiv ? '' : '<span class="marke-s m-grau">pausiert</span>'}</b><small>${esc([s.ort, s.pensum].filter(Boolean).join(' · '))} · ${Z.bewerbungen.filter((b) => b.stelle_id === s.id).length} Bewerbungen</small></div>
+        <span class="aktionen"><button class="btn klein" data-bw-kopie="${s.id}">Link kopieren</button><a class="btn klein" href="${bwLink(s)}" target="_blank" rel="noopener">Ansehen</a><button class="btn klein" data-bw-stelle="${s.id}">Bearbeiten</button></span></div>`).join('') || '<p class="leer">Noch keine Stelle. Mit „+ Offene Stelle“ erhalten Sie den Link für Ihre Website oder ein Inserat.</p>'}</div>
+      <div class="filter">${[['aktiv', 'Offen'], ...BW_STATUS.map(([k, n]) => [k, n]), ['alle', 'Alle']].map(([k, n]) => `<button class="btn klein ${Z.bwFilter === k ? 'haupt' : ''}" data-bw-filter="${k}">${n}${k !== 'alle' && k !== 'aktiv' ? ' ' + Z.bewerbungen.filter((b) => b.status === k).length : ''}</button>`).join('')}</div>
+      <div class="card">${l.map((b) => { const st = BW_STATUS.find((x) => x[0] === b.status); return `<div class="zeile klick" data-bw="${b.id}"><div style="min-width:0"><b>${esc(b.vorname + ' ' + b.nachname)} ${'★'.repeat(b.bewertung || 0)}</b><small>${esc((stelle(b.stelle_id) || {}).titel || 'Stelle gelöscht')} · ${dk(b.erstellt.slice(0, 10))} · ${(b.dateien || []).length} Dateien</small></div><span class="marke-s ${st[2]}">${st[1]}</span></div>`; }).join('') || '<p class="leer">Keine Bewerbungen in dieser Ansicht.</p>'}</div>`;
+  }
+  function bewerbungDetail(b) {
+    const s = Z.stellen.find((x) => x.id === b.stelle_id) || {};
+    const firma = ((window.NASUVIA_LIZENZ || {}).firma) || 'unsere Firma';
+    const mail = (art) => `mailto:${encodeURIComponent(b.email)}?subject=${encodeURIComponent('Ihre Bewerbung' + (s.titel ? ': ' + s.titel : ''))}&body=${encodeURIComponent(art === 'einladung'
+      ? `Guten Tag ${b.vorname} ${b.nachname}\n\nVielen Dank für Ihre Bewerbung. Gerne lernen wir Sie persönlich kennen. Passt Ihnen ein Gespräch am … um … Uhr?\n\nFreundliche Grüsse\n${firma}`
+      : `Guten Tag ${b.vorname} ${b.nachname}\n\nVielen Dank für Ihre Bewerbung und Ihr Interesse an ${firma}. Nach sorgfältiger Prüfung haben wir uns für eine andere Person entschieden. Wir wünschen Ihnen für Ihre Zukunft alles Gute.\n\nFreundliche Grüsse\n${firma}`)}`;
+    return `<p class="hinweis" style="margin-bottom:8px"><a href="#" data-bw-zu>← Alle Bewerbungen</a></p>
+      <div class="kopf"><div><h1>${esc(b.vorname + ' ' + b.nachname)}</h1><p class="unter">${esc(s.titel || '')} · ${dk(b.erstellt.slice(0, 10))}</p></div>
+        <div class="aktionen"><a class="btn" href="${mail('einladung')}">Zum Gespräch einladen</a><a class="btn" href="${mail('absage')}">Absage schreiben</a></div></div>
+      <div class="raster r2"><div class="card"><h2>Kontakt</h2><p><a href="mailto:${esc(b.email)}">${esc(b.email)}</a>${b.telefon ? `<br><a href="tel:${esc(b.telefon)}">${esc(b.telefon)}</a>` : ''}</p>${b.nachricht ? `<h2 class="abstand">Nachricht</h2><p style="white-space:pre-wrap">${esc(b.nachricht)}</p>` : ''}</div>
+        <div class="card"><h2>Unterlagen</h2>${(b.dateien || []).map((d, i) => `<div class="zeile klick" data-bw-datei="${i}"><div><b>📎 ${esc(d.name)}</b><small>${groesse(d.groesse || 0)}</small></div><span>Öffnen ›</span></div>`).join('') || '<p class="leer">Keine Dateien.</p>'}</div></div>
+      <div class="card abstand"><h2>Stand</h2><div class="filter">${BW_STATUS.map(([k, n]) => `<button class="btn klein ${b.status === k ? 'haupt' : ''}" data-bw-status="${k}">${n}</button>`).join('')}</div>
+        <div class="filter">${[1, 2, 3, 4, 5].map((n) => `<button class="btn klein" data-bw-stern="${n}" style="font-size:18px;color:${(b.bewertung || 0) >= n ? '#C9A45C' : '#C4C8D4'}">★</button>`).join('')}</div>
+        <label style="display:grid;gap:4px;font-size:13px;color:var(--text)">Notiz (nur für Sie)<textarea data-bw-notiz rows="3">${esc(b.notiz || '')}</textarea></label>
+        <div class="aktionen abstand"><button class="btn rot" data-bw-weg>Bewerbung löschen</button></div>
+        <p class="hinweis abstand">Datenschutz: Bewerbungsunterlagen nach Abschluss der Stelle löschen, ausser die Person ist mit dem Aufbewahren einverstanden.</p></div>`;
+  }
+  function stelleDialog(s = null) {
+    const d = $('dlg'), w = s || { titel: '', ort: '', pensum: '', start: '', beschreibung: '', aktiv: true };
+    d.innerHTML = `<form class="dlg"><h3>${s ? 'Stelle bearbeiten' : 'Offene Stelle'}</h3>
+      <label>Bezeichnung<input name="titel" value="${esc(w.titel)}" required maxlength="120" placeholder="z. B. Maler/in EFZ 80–100 %"></label>
+      <div class="drei"><label>Ort<input name="ort" value="${esc(w.ort || '')}"></label><label>Pensum<input name="pensum" value="${esc(w.pensum || '')}" placeholder="80–100 %"></label><label>Start<input name="start" value="${esc(w.start || '')}" placeholder="nach Vereinbarung"></label></div>
+      <label>Beschreibung<textarea name="beschreibung" rows="7" maxlength="6000" placeholder="Was Sie erwartet, was Sie mitbringen, was wir bieten">${esc(w.beschreibung || '')}</textarea></label>
+      <label style="display:flex;gap:10px;align-items:center;font-size:14px;color:var(--tinte)"><input type="checkbox" name="aktiv" ${w.aktiv ? 'checked' : ''} style="width:18px;height:18px"> Bewerbungen annehmen</label>
+      <div class="fuss">${s ? '<button type="button" class="btn rot" data-weg>Löschen</button>' : '<span></span>'}<span class="aktionen"><button type="button" class="btn" data-zu>Abbrechen</button><button class="btn haupt">Speichern</button></span></div></form>`;
+    d.onclick = async (e) => { if (e.target.closest('[data-zu]')) d.close(); if (e.target.closest('[data-weg]') && await Korb.loeschen(sb, 'bw_stellen', s.id, s.titel)) { d.close(); laden(); } };
+    d.onsubmit = async (e) => {
+      e.preventDefault(); const f = Object.fromEntries(new FormData(d.querySelector('form')));
+      const werte = { titel: f.titel.trim(), ort: f.ort || null, pensum: f.pensum || null, start: f.start || null, beschreibung: f.beschreibung || null, aktiv: !!f.aktiv };
+      const r = s ? await sb.from('bw_stellen').update(werte).eq('id', s.id) : await sb.from('bw_stellen').insert(werte);
+      if (r.error) { toast(fehlerText(r.error)); return; } d.close(); await laden(); toast(s ? 'Gespeichert' : '✓ Stelle erstellt. Link kopieren und auf Website oder Inserat einfügen.');
+    };
+    d.showModal();
+  }
+  document.addEventListener('click', async (e) => {
+    const t = e.target; if (Z.tab !== 'bewerbungen') return;
+    if (t.closest('[data-bw-stelle-neu]')) { stelleDialog(); return; }
+    const se = t.closest('[data-bw-stelle]'); if (se) { stelleDialog(Z.stellen.find((x) => x.id === se.dataset.bwStelle)); return; }
+    const ko = t.closest('[data-bw-kopie]'); if (ko) { const l = bwLink(Z.stellen.find((x) => x.id === ko.dataset.bwKopie)); try { await navigator.clipboard.writeText(l); toast('✓ Link kopiert'); } catch { UI.eingabe('Link kopieren:', { vorgabe: l }); } return; }
+    const fi = t.closest('[data-bw-filter]'); if (fi) { Z.bwFilter = fi.dataset.bwFilter; zeichnen(); return; }
+    const bw = t.closest('[data-bw]'); if (bw) { Z.bwOffen = bw.dataset.bw; zeichnen(); scrollTo(0, 0); return; }
+    if (t.closest('[data-bw-zu]')) { e.preventDefault(); Z.bwOffen = null; zeichnen(); return; }
+    const b = Z.bewerbungen.find((x) => x.id === Z.bwOffen); if (!b) return;
+    const st = t.closest('[data-bw-status]'); if (st) { b.status = st.dataset.bwStatus; zeichnen(); await sb.from('bw_bewerbungen').update({ status: b.status }).eq('id', b.id); return; }
+    const sn = t.closest('[data-bw-stern]'); if (sn) { b.bewertung = Number(sn.dataset.bwStern) === b.bewertung ? 0 : Number(sn.dataset.bwStern); zeichnen(); await sb.from('bw_bewerbungen').update({ bewertung: b.bewertung }).eq('id', b.id); return; }
+    const da = t.closest('[data-bw-datei]'); if (da) { const d = b.dateien[Number(da.dataset.bwDatei)]; const f = window.open('', '_blank'); const { data, error } = await sb.storage.from('bewerbungen').createSignedUrl(d.pfad, 300); if (error || !data) { if (f) f.close(); toast('Datei nicht gefunden'); return; } if (f) f.location = data.signedUrl; else location.href = data.signedUrl; return; }
+    if (t.closest('[data-bw-weg]')) { if (!await UI.frage(`Bewerbung von ${b.vorname} ${b.nachname} mit allen Unterlagen endgültig löschen?`)) return; if ((b.dateien || []).length) await sb.storage.from('bewerbungen').remove(b.dateien.map((d) => d.pfad)); await sb.from('bw_bewerbungen').delete().eq('id', b.id); Z.bwOffen = null; await laden(); toast('Gelöscht'); }
+  });
+  document.addEventListener('change', async (e) => { if (e.target.matches('[data-bw-notiz]') && Z.bwOffen) { const b = Z.bewerbungen.find((x) => x.id === Z.bwOffen); b.notiz = e.target.value; await sb.from('bw_bewerbungen').update({ notiz: b.notiz }).eq('id', b.id); toast('Notiz gespeichert'); } });
+
   /* ---------- Ereignisse ---------- */
   document.addEventListener('click', async (e) => {
     const t = e.target;
-    const tb = t.closest('[data-tab]'); if (tb) { Z.tab = tb.dataset.tab; Z.offen = null; Z.person = null; history.replaceState(null, '', '?tab=' + Z.tab); zeichnen(); scrollTo(0, 0); return; }
+    const tb = t.closest('[data-tab]'); if (tb) { Z.tab = tb.dataset.tab; Z.offen = null; Z.person = null; Z.bwOffen = null; history.replaceState(null, '', '?tab=' + Z.tab); zeichnen(); scrollTo(0, 0); return; }
     const mehr = t.closest('[data-datei-mehr]'); if (mehr) { e.stopPropagation(); dateiDialog(Z.dateien.find((d) => d.id === mehr.dataset.dateiMehr)); return; }
     const da = t.closest('[data-datei]'); if (da) { oeffnen(Z.dateien.find((d) => d.id === da.dataset.datei)); return; }
     const or = t.closest('[data-ordner]'); if (or) { Z.offen = or.dataset.ordner; zeichnen(); scrollTo(0, 0); dropZone($('drop'), async (l) => { const n = await hochladen(l, { ordner_id: Z.offen }); await laden(); if (n) toast(`✓ ${n} gespeichert`); }); return; }

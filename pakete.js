@@ -14,35 +14,41 @@
     privat: { name: 'Privatperson', kurz: 'Privat', text: 'Nur private Finanzen (Home-Büro)', basis: 'privat' },
   };
 
+  // Preise November 2026 (exkl. MWST). Jahresabo = 10 Monate bezahlen, 2 geschenkt.
+  // Klar getrennt: Start (nur Rechnungen) · Buchhaltung · Team (mit Mitarbeitenden) · Home-Büro (privat)
   const PAKETE = [
-    { id: 'start', name: 'Start', rechtsformen: ['einzel', 'gmbh', 'ag'], monat: 12, jahr: 120, mitarbeiter: 0,
+    { id: 'start', name: 'Start', rechtsformen: ['einzel', 'gmbh', 'ag'], monat: 15, jahr: 150, mitarbeiter: 0,
       programme: ['start', 'rechnungen', 'termine'],
       kurz: 'Rechnungen und Online-Termine',
-      was: ['Unbegrenzt QR-Rechnungen', 'Offerten, Gutschriften, Mahnungen', 'Abos und eigene Vorlagen', 'Online-Termine für Kunden', 'Logo und Farben Ihrer Firma'] },
-    { id: 'solo', name: 'Solo', rechtsformen: ['einzel'], monat: 22, jahr: 220, mitarbeiter: 0, top: ['einzel'],
+      was: ['Unbegrenzt QR-Rechnungen, Offerten, Mahnungen', 'Sehen, wann der Kunde die Rechnung geöffnet hat', 'Abos und eigene Vorlagen', 'Online-Termine mit Kalender-Abo', 'Ihr Logo, Ihre Farben, Ihre Schrift', 'Vorlagen zum Drucken (Quittung, Auftragsbestätigung)'] },
+    { id: 'solo', name: 'Buchhaltung', rechtsformen: ['einzel'], monat: 29, jahr: 290, mitarbeiter: 0, top: ['einzel'],
       programme: ['start', 'rechnungen', 'termine', 'buchhaltung', 'privat', 'ablage'],
       kurz: 'Rechnungen und Buchhaltung für Selbständige',
-      was: ['Alles aus Start', 'Buchhaltung ohne Fachbegriffe', 'Belege, Bankauszug, MWST-Abrechnung', 'Abschluss für die Steuererklärung', 'Doppelte Buchhaltung zuschaltbar', 'Home-Büro inklusive', 'Treuhänder-Zugang gratis'] },
-    { id: 'team', name: 'Team', rechtsformen: ['einzel'], monat: 39, jahr: 390, mitarbeiter: 3,
+      was: ['Alles aus Start', 'Buchhaltung ohne Fachbegriffe', 'Belege per Foto, automatisch gelesen', 'Bankauszug, MWST-Abrechnung, Steuer-Abschluss', 'Doppelte Buchhaltung zuschaltbar', 'Firmenablage mit eigenen Ordnern', 'Home-Büro inklusive', 'Treuhänder-Zugang gratis'] },
+    { id: 'team', name: 'Team', rechtsformen: ['einzel'], monat: 59, jahr: 590, mitarbeiter: 5,
       programme: ['start', 'rechnungen', 'termine', 'buchhaltung', 'privat', 'zeit', 'lager', 'lohn', 'ablage'],
       kurz: 'Für Einzelfirmen mit Mitarbeitenden',
-      was: ['Alles aus Solo', 'Zeiterfassung per Handy-Link, 3 Mitarbeitende inklusive', 'Einsatzplanung und Aufträge mit Fotos', 'Lohnabrechnung', 'Lager und Material'] },
+      was: ['Alles aus Buchhaltung', 'Zeiterfassung per Handy-Link, 5 Mitarbeitende inklusive', 'Stempeluhr, Standort und Pausen nach Wahl', 'Einsatzplan mit Aufträgen, Fotos und Kalender', 'Lohnabrechnung', 'Personaldossiers, Mitteilungen, Ferienanträge', 'Lager und Material'] },
     { id: 'business', name: 'Business', rechtsformen: ['gmbh', 'ag'], monat: 39, jahr: 390, mitarbeiter: 0, top: ['gmbh', 'ag'],
       programme: ['start', 'rechnungen', 'termine', 'buchhaltung', 'privat', 'ablage'],
       kurz: 'Doppelte Buchhaltung für GmbH und AG',
-      was: ['Alles aus Start', 'Doppelte Buchhaltung nach KMU-Kontenrahmen', 'Bilanz und Erfolgsrechnung nach OR', 'Debitoren, Kreditoren, Eröffnungsbilanz', 'MWST-Abrechnung und Verbuchung', 'Jahresabschluss mit Festschreiben', 'Treuhänder-Zugang mit Journal-Export'] },
+      was: ['Alles aus Start', 'Doppelte Buchhaltung nach KMU-Kontenrahmen', 'Bilanz und Erfolgsrechnung nach OR', 'Belege per Foto, automatisch gelesen', 'Debitoren, Kreditoren, Eröffnungsbilanz', 'MWST-Abrechnung und Verbuchung', 'Firmenablage mit eigenen Ordnern', 'Treuhänder-Zugang mit Rückfragen und Export'] },
     { id: 'business_team', name: 'Business Team', rechtsformen: ['gmbh', 'ag'], monat: 69, jahr: 690, mitarbeiter: 5,
       programme: ['start', 'rechnungen', 'termine', 'buchhaltung', 'privat', 'zeit', 'lager', 'lohn', 'ablage'],
       kurz: 'GmbH und AG mit Mitarbeitenden',
-      was: ['Alles aus Business', 'Zeiterfassung per Handy-Link, 5 Mitarbeitende inklusive', 'Einsatzplanung und Aufträge mit Fotos', 'Lohnabrechnung, Löhne direkt verbucht', 'Lager und Material'] },
-    { id: 'privat', name: 'Home-Büro', rechtsformen: ['privat'], monat: 3, jahr: 29, mitarbeiter: 0, top: ['privat'],
+      was: ['Alles aus Business', 'Zeiterfassung per Handy-Link, 5 Mitarbeitende inklusive', 'Stempeluhr, Standort und Pausen nach Wahl', 'Einsatzplan mit Aufträgen, Fotos und Kalender', 'Lohnabrechnung, Löhne direkt verbucht', 'Personaldossiers, Mitteilungen, Ferienanträge', 'Lager und Material'] },
+    { id: 'privat', name: 'Home-Büro', rechtsformen: ['privat'], monat: 4, jahr: 39, mitarbeiter: 0, top: ['privat'],
       programme: ['privat'],
       kurz: 'Private Finanzen',
-      was: ['Kontoauszüge und Übersicht', 'Abos und Fixkosten', 'Rechnungen, Fristen, Betreibungen', 'Budget und Sparziele'] },
+      was: ['Kontoauszüge und Übersicht', 'Abos, Fixkosten und Bargeld', 'Rechnungen, Fristen, Betreibungen', 'Budget und Sparziele', 'Steuererklärung Schritt für Schritt'] },
   ];
   // Frühere Pakete (vor November 2026) zeigen auf die neuen
   const FRUEHER = { rechnungen: 'start', buchhaltung: 'solo', kombi: 'team' };
-  const ZUSATZ_MITARBEITER = { monat: 5, jahr: 50 };
+  const ZUSATZ_MITARBEITER = { monat: 6, jahr: 60 };
+  // Zusatzoptionen, zu jedem Firmenpaket buchbar
+  const ZUSATZ = [
+    { id: 'bewerbungen', name: 'Bewerbungen', monat: 9, jahr: 90, text: 'Eigener Bewerbungs-Link für Ihre Website und Inserate. Bewerbungen mit Unterlagen gesammelt an einem Ort.' },
+  ];
   const EINRICHTUNG = 190;
 
   const paket = (id) => PAKETE.find((p) => p.id === (FRUEHER[id] || id)) || null;
@@ -63,5 +69,5 @@
   const ab = (programm, rechtsform) => fuer(rechtsform).find((p) => p.programme.includes(programm)) || null;
   const doppelt = (rechtsform) => !!(RECHTSFORMEN[rechtsform] || {}).doppeltPflicht;
 
-  window.ORDASIO = { RECHTSFORMEN, PAKETE, basis, FRUEHER, ZUSATZ_MITARBEITER, EINRICHTUNG, paket, fuer, vorgabe, passend, darf, ab, doppelt };
+  window.ORDASIO = { RECHTSFORMEN, PAKETE, ZUSATZ, basis, FRUEHER, ZUSATZ_MITARBEITER, EINRICHTUNG, paket, fuer, vorgabe, passend, darf, ab, doppelt };
 })();
