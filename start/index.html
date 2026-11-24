@@ -279,6 +279,7 @@ body[data-dichte=gross] .aufgabe{padding:26px}
         <p class="leise" style="margin-top:8px">Tippen Sie auf den Kreis, um einen Schritt selbst abzuhaken.</p></div></div>`
         : `<div class="abschnitt"><div class="karte" style="display:flex;gap:12px;align-items:center"><span style="font-size:30px">🎉</span><b>Alles eingerichtet. Ordasio ist bereit.</b></div></div>`}
       ${!lizenz() || ['einzel', undefined, null].includes((lizenz() || {}).rechtsform) ? `<div class="abschnitt"><a class="selbst" href="../selbstaendig/"><span><b>Zum ersten Mal selbständig?</b><span>Anmeldung, Versicherungen, AHV, MWST, Preise: die wichtigsten Schritte und Tipps zum Abhaken.</span></span><em>Tipps ansehen ›</em></a></div>` : ''}
+      <div class="abschnitt"><a class="selbst" href="../dienste/" style="background:radial-gradient(500px 240px at 90% 0%,rgba(201,164,92,.35),transparent 60%),#0A1F17"><span><b>Ihre Website, von uns gestaltet</b><span>Massgeschneidert statt Baukasten. Der erste Entwurf ist kostenlos.</span></span><em style="background:linear-gradient(135deg,#E9D7A9,#C9A45C);color:#0A1F17">Ansehen ›</em></a></div>
       <div class="abschnitt"><h2>Ihre Bereiche</h2><div class="bereiche">
         ${bereiche.map((b) => BEREICH_NAME[b]).filter(Boolean).map(([n, url, ic, f]) => `<a class="bereich" href="${url}"><i style="background:${f}">${svg(ic)}</i>${n}</a>`).join('')}
         <a class="bereich" href="../hilfe/"><i style="background:#7C8499">${svg(I.hilfe)}</i>Anleitung</a>

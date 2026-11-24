@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Website und Instagram, von uns gestaltet · Ordasio</title>
+<meta name="description" content="Ihre Firmen-Website, massgeschneidert gestaltet. Den ersten Entwurf erstellen wir kostenlos. Dazu Instagram-Highlights im Design Ihrer Firma." />
+<meta name="theme-color" content="#0A1F17" />
+<link rel="stylesheet" href="../schrift.css" />
+<script src="../konfig.js"></script>
+<script src="../branchen.js"></script>
+<style>
+:root{--papier:#F4FAF6;--flaeche:#E8F4EE;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--gold:#C9A45C;--linie:rgba(11,59,46,.14)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:16px/1.6 'League Spartan',-apple-system,system-ui,sans-serif;background:var(--papier);color:var(--tinte)}
+a{color:inherit}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+.held{background:radial-gradient(900px 500px at 85% -10%,rgba(201,164,92,.28),transparent 60%),radial-gradient(800px 600px at -10% 120%,rgba(14,122,85,.45),transparent 60%),#0A1F17;color:#fff;padding:22px 0 70px;overflow:hidden}
+.held header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:46px}
+.held header a{color:rgba(255,255,255,.85);text-decoration:none;font-weight:600}
+.held .eyebrow{font-family:ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+.held h1{font-size:clamp(36px,7vw,68px);line-height:1;letter-spacing:-.035em;margin:14px 0 18px;max-width:14ch}
+.held h1 em{font-style:normal;background:linear-gradient(90deg,#fff,#E9D7A9);-webkit-background-clip:text;background-clip:text;color:transparent}
+.held p.lead{font-size:clamp(17px,2.2vw,20px);color:rgba(255,255,255,.82);max-width:36em}
+.held .knoepfe{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
+.k{display:inline-flex;align-items:center;gap:8px;border-radius:100px;padding:14px 22px;font:inherit;font-weight:700;border:0;cursor:pointer;text-decoration:none}
+.k.gold{background:linear-gradient(135deg,#E9D7A9,#C9A45C);color:#0A1F17}
+.k.hell{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25)}
+.k.dunkel{background:var(--blau);color:#fff}
+.vorschau{margin-top:46px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.mock{border-radius:18px;background:#fff;color:#0A1F17;overflow:hidden;box-shadow:0 30px 70px -30px rgba(0,0,0,.6);transform:translateY(var(--y,0)) rotate(var(--r,0deg))}
+.mock .leiste{display:flex;gap:5px;padding:9px 10px;background:#F1F3F2}.mock .leiste i{width:8px;height:8px;border-radius:50%;background:#D5DAD8}
+.mock .bild{height:120px;display:flex;align-items:flex-end;padding:14px;color:#fff;font-weight:700;font-size:18px;letter-spacing:-.01em}
+.mock .zeilen{padding:12px 14px;display:grid;gap:7px}.mock .zeilen b{height:9px;border-radius:5px;background:#E6EBE9;display:block}.mock .zeilen b:nth-child(2){width:70%}.mock .zeilen span{display:inline-block;margin-top:4px;border-radius:100px;padding:5px 11px;font-size:11px;font-weight:700;color:#fff;width:max-content}
+@media(max-width:760px){.vorschau{grid-template-columns:1fr 1fr}.vorschau .mock:nth-child(3){display:none}}
+section{padding:60px 0}
+h2{font-size:clamp(28px,4.5vw,40px);letter-spacing:-.025em;line-height:1.1;margin-bottom:12px}
+.unter{color:var(--text);max-width:40em;font-size:17px}
+.raster{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:26px}
+.karte{background:#fff;border-radius:22px;padding:22px;box-shadow:0 1px 2px rgba(12,18,38,.05),0 18px 40px -26px rgba(12,18,38,.35)}
+.karte .nr{font-family:ui-monospace,Menlo,monospace;color:var(--gold);font-weight:700;font-size:13px;letter-spacing:.12em}
+.karte h3{font-size:19px;margin:6px 0 6px}
+.karte p{color:var(--text);font-size:15px}
+.preis{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:26px}
+.preis .karte{padding:26px;position:relative}
+.preis .gross{font-size:42px;font-weight:700;letter-spacing:-.03em}.preis .gross small{font-size:16px;color:var(--leise);font-weight:500}
+.preis ul{list-style:none;display:grid;gap:8px;margin:16px 0 20px}
+.preis li{padding-left:26px;position:relative;color:var(--text)}.preis li::before{content:'✓';position:absolute;left:0;color:var(--elektrik);font-weight:700}
+.preis .marke{position:absolute;top:18px;right:18px;background:linear-gradient(135deg,#E9D7A9,#C9A45C);color:#0A1F17;border-radius:100px;padding:5px 12px;font-size:12px;font-weight:700}
+.insta{background:linear-gradient(135deg,#2a0f1d,#7a1f3d 55%,#e0703a);color:#fff;border-radius:28px;padding:36px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:26px;align-items:center}
+.insta p{color:rgba(255,255,255,.85)}
+.kreise{display:flex;gap:12px;flex-wrap:wrap}
+.kreise i{width:64px;height:64px;border-radius:50%;padding:3px;background:linear-gradient(135deg,#f9ce34,#ee2a7b,#6228d7)}
+.kreise i span{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;background:#fff;border:3px solid #fff;font-size:24px;font-style:normal}
+@media(max-width:760px){.insta{grid-template-columns:1fr;padding:26px}}
+form{display:grid;gap:12px}
+form .zwei{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:620px){form .zwei{grid-template-columns:1fr}}
+label{display:grid;gap:5px;font-size:14px;color:var(--text)}
+input,select,textarea{font:inherit;font-size:16px;border:1.5px solid var(--linie);border-radius:12px;padding:12px 14px;background:#fff;color:var(--tinte);width:100%}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips button{font:inherit;font-size:14px;border:1.5px solid var(--linie);background:#fff;border-radius:100px;padding:8px 14px;cursor:pointer;color:var(--tinte)}
+.chips button.an{background:var(--blau);color:#fff;border-color:transparent}
+.meldung{font-weight:600}
+.fein{font-size:13px;color:var(--leise)}
+footer{padding:30px 0 60px;color:var(--leise);font-size:14px;text-align:center}
+</style>
+</head>
+<body>
+<div class="held"><div class="wrap">
+  <header><a href="../start/">← Zurück zu Ordasio</a><a href="#anfrage">Anfragen</a></header>
+  <div class="eyebrow">Gestaltet in der Schweiz</div>
+  <h1>Ihre Website, <em>massgeschneidert</em>.</h1>
+  <p class="lead">Kein Baukasten, keine Vorlage von der Stange. Wir gestalten Ihre Website von Hand, passend zu Ihrer Firma, schnell und schön auf jedem Handy. <b style="color:#fff">Den ersten Entwurf machen wir kostenlos.</b> Sie bezahlen nur, wenn er Ihnen gefällt.</p>
+  <div class="knoepfe"><a class="k gold" href="#anfrage" data-wahl="Website">Gratis-Entwurf anfragen</a><a class="k hell" href="#instagram">Instagram-Highlights</a></div>
+  <div class="vorschau" aria-hidden="true">
+    <div class="mock" style="--r:-2deg"><div class="leiste"><i></i><i></i><i></i></div><div class="bild" style="background:linear-gradient(135deg,#1E5A44,#0F2A21)">Gartenpflege Meier</div><div class="zeilen"><b></b><b></b><span style="background:#0E7A55">Offerte anfragen</span></div></div>
+    <div class="mock" style="--y:-18px"><div class="leiste"><i></i><i></i><i></i></div><div class="bild" style="background:linear-gradient(135deg,#7a1f3d,#e0703a)">Studio Lumi</div><div class="zeilen"><b></b><b></b><span style="background:#7a1f3d">Termin buchen</span></div></div>
+    <div class="mock" style="--r:2deg"><div class="leiste"><i></i><i></i><i></i></div><div class="bild" style="background:linear-gradient(135deg,#1D3B8A,#2563EB)">Malerei Keller</div><div class="zeilen"><b></b><b></b><span style="background:#1D3B8A">Projekte ansehen</span></div></div>
+  </div>
+</div></div>
+
+<section><div class="wrap">
+  <h2>So einfach geht es</h2>
+  <p class="unter">Sie erzählen uns in zwei Minuten, was Sie machen. Den Rest erledigen wir.</p>
+  <div class="raster">
+    <div class="karte"><div class="nr">01</div><h3>Anfrage senden</h3><p>Branche, Stil und was Ihnen wichtig ist. Logo und Farben übernehmen wir aus Ordasio.</p></div>
+    <div class="karte"><div class="nr">02</div><h3>Gratis-Entwurf</h3><p>Innert weniger Tage sehen Sie Ihre neue Startseite, fertig gestaltet, mit Ihren Texten und Bildern.</p></div>
+    <div class="karte"><div class="nr">03</div><h3>Feinschliff</h3><p>Sie sagen, was anders sein soll. Wir passen an, bis es stimmt.</p></div>
+    <div class="karte"><div class="nr">04</div><h3>Online</h3><p>Erst wenn Sie zufrieden sind, schalten wir auf. Gefällt der Entwurf nicht, kostet er nichts.</p></div>
+  </div>
+</div></section>
+
+<section style="padding-top:0"><div class="wrap">
+  <h2>Was Sie bekommen</h2>
+  <div class="preis">
+    <div class="karte"><span class="marke">Beliebt</span><h3>Website</h3><div class="gross">890 <small>CHF einmalig</small></div><p class="fein">danach CHF 19 pro Monat für Betrieb, Sicherheit und kleine Änderungen</p>
+      <ul><li>Individuelles Design, kein Baukasten</li><li>Bis 5 Seiten: Start, Leistungen, Über uns, Referenzen, Kontakt</li><li>Perfekt auf Handy, Tablet und Computer</li><li>Online-Termine und Offertanfrage direkt aus Ordasio</li><li>Google-Profil und Grundlagen für gute Auffindbarkeit</li><li>Schnelle Ladezeit, SSL, Hosting in Europa</li><li>Impressum und Datenschutz nach Schweizer Recht</li></ul>
+      <a class="k dunkel" href="#anfrage" data-wahl="Website">Gratis-Entwurf anfragen</a></div>
+    <div class="karte"><h3>Website mit Texten und Fotos</h3><div class="gross">1’490 <small>CHF einmalig</small></div><p class="fein">danach CHF 19 pro Monat</p>
+      <ul><li>Alles aus „Website“</li><li>Wir schreiben die Texte für Sie</li><li>Bildauswahl und Bildbearbeitung</li><li>Bis 8 Seiten, auch zweisprachig möglich</li><li>Persönliches Gespräch (Video oder Telefon)</li></ul>
+      <a class="k dunkel" href="#anfrage" data-wahl="Website mit Texten">Gratis-Entwurf anfragen</a></div>
+  </div>
+  <p class="fein" style="margin-top:12px">Preise exkl. MWST. Der Entwurf ist unverbindlich. Domain (z. B. ihrefirma.ch) ab ca. CHF 15 pro Jahr, wir richten sie für Sie ein.</p>
+</div></section>
+
+<section id="instagram" style="padding-top:0"><div class="wrap">
+  <div class="insta">
+    <div><div class="eyebrow" style="color:#ffd9a8">Instagram</div><h2 style="color:#fff;margin-top:8px">Highlights im Design Ihrer Firma</h2>
+      <p>Einheitliche Highlight-Cover, passendes Profilbild und Vorlagen für Beiträge in Ihren Farben. Ihr Profil wirkt sofort professionell und Kunden finden schneller, was sie suchen.</p>
+      <ul style="list-style:none;display:grid;gap:6px;margin:16px 0 20px;color:rgba(255,255,255,.9)"><li>✓ 8 Highlight-Cover und Profilbild</li><li>✓ 6 Vorlagen für Beiträge und Stories</li><li>✓ Fertig in wenigen Tagen</li></ul>
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><b style="font-size:30px">CHF 149</b><a class="k gold" href="#anfrage" data-wahl="Instagram-Highlights">Anfragen</a></div></div>
+    <div class="kreise" aria-hidden="true"><i><span>✂️</span></i><i><span>⭐</span></i><i><span>📍</span></i><i><span>💬</span></i><i><span>🗓️</span></i><i><span>🎁</span></i></div>
+  </div>
+</div></section>
+
+<section id="anfrage" style="padding-top:0"><div class="wrap">
+  <div class="karte" style="padding:28px;max-width:760px;margin:0 auto">
+    <h2>Anfrage</h2>
+    <p class="unter" style="margin-bottom:16px">Unverbindlich. Wir melden uns innert 1 bis 2 Arbeitstagen.</p>
+    <form id="form">
+      <label>Was möchten Sie?<div class="chips" id="dienst"></div></label>
+      <div class="zwei"><label>Firma<input name="firma" required autocomplete="organization"></label><label>Branche<select name="branche" id="branche"></select></label></div>
+      <div class="zwei"><label>Ihr Name<input name="name" required autocomplete="name"></label><label>Telefon <span class="fein">(freiwillig)</span><input name="telefon" type="tel" autocomplete="tel"></label></div>
+      <label>E-Mail<input name="email" type="email" required autocomplete="email"></label>
+      <label>Heutige Website oder Instagram <span class="fein">(freiwillig)</span><input name="web" placeholder="z. B. ihrefirma.ch oder @ihrefirma"></label>
+      <label>Welcher Stil gefällt Ihnen?<div class="chips" id="stil"></div></label>
+      <label>Was ist Ihnen wichtig? <span class="fein">(freiwillig)</span><textarea name="wunsch" rows="3" placeholder="z. B. Online-Termine, Bilder unserer Arbeiten, Offertanfrage, zweisprachig"></textarea></label>
+      <p class="meldung" id="meldung"></p>
+      <button class="k dunkel" style="justify-content:center">Anfrage senden</button>
+      <p class="fein">Ihre Angaben verwenden wir nur für diese Anfrage.</p>
+    </form>
+  </div>
+</div></section>
+<footer>Ordasio · Nasuvia · info@nasuvia.ch</footer>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const DIENSTE = ['Website', 'Website mit Texten', 'Instagram-Highlights'];
+  const STILE = ['Klar und modern', 'Edel und ruhig', 'Farbig und frisch', 'Handwerklich und warm', 'Weiss nicht, überrascht mich'];
+  let dienst = new URLSearchParams(location.search).get('dienst') || 'Website', stil = '';
+  const chips = (id, liste, aktiv, attr) => { $(id).innerHTML = liste.map((x) => `<button type="button" ${attr}="${esc(x)}" class="${x === aktiv ? 'an' : ''}">${esc(x)}</button>`).join(''); };
+  const zeichnen = () => { chips('dienst', DIENSTE, dienst, 'data-dienst'); chips('stil', STILE, stil, 'data-stil'); };
+  zeichnen();
+  const B = window.Branchen;
+  $('branche').innerHTML = '<option value="">Bitte wählen</option>' + (B ? B.LISTE.map((b) => `<option value="${esc(b.name)}" ${B.aktuell() === b.id ? 'selected' : ''}>${b.icon} ${esc(b.name)}</option>`).join('') : '');
+  // Angaben aus Ordasio vorausfüllen (falls angemeldet)
+  try {
+    const K = window.NASUVIA_KONFIG || {}, s = JSON.parse(localStorage.getItem(K.speicher) || 'null'), u = s && s.user;
+    if (u) { const f = $('form'); f.email.value = u.email || ''; f.name.value = (u.user_metadata || {}).name || ''; f.firma.value = (u.user_metadata || {}).firma || ''; }
+    const m = JSON.parse(localStorage.getItem('nasuvia.firma.v1') || 'null'); if (m && m.name && !$('form').firma.value) $('form').firma.value = m.name;
+  } catch {}
+  document.addEventListener('click', (e) => {
+    const d = e.target.closest('[data-dienst]'); if (d) { dienst = d.dataset.dienst; zeichnen(); }
+    const s = e.target.closest('[data-stil]'); if (s) { stil = s.dataset.stil === stil ? '' : s.dataset.stil; zeichnen(); }
+    const w = e.target.closest('[data-wahl]'); if (w) { dienst = w.dataset.wahl; zeichnen(); }
+  });
+  $('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = Object.fromEntries(new FormData(e.target)), knopf = e.target.querySelector('button.k');
+    knopf.disabled = true; $('meldung').textContent = 'Wird gesendet …'; $('meldung').style.color = 'var(--text)';
+    const daten = { Dienst: dienst, Firma: f.firma, Branche: f.branche, Name: f.name, 'E-Mail': f.email, Telefon: f.telefon, 'Website/Instagram': f.web, Stil: stil, Wunsch: f.wunsch };
+    const ok1 = await fetch('https://dyepnomhidubsfwyorke.supabase.co/rest/v1/anfragen', { method: 'POST', headers: { apikey: 'sb_publishable_zEmC1R5vq234zR6ST7PTmA_uY7Z1-ph', 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ art: 'Service-Anfrage: ' + dienst, name: f.firma || f.name, email: f.email, telefon: f.telefon || '', daten }) }).then((r) => r.ok).catch(() => false);
+    const ok2 = await fetch('https://formsubmit.co/ajax/info@nasuvia.ch', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ _subject: 'Service-Anfrage: ' + dienst, _template: 'table', _replyto: f.email, ...daten }) }).then((r) => r.ok).catch(() => false);
+    knopf.disabled = false;
+    if (ok1 || ok2) { e.target.innerHTML = `<div style="text-align:center;padding:20px 0"><div style="font-size:44px">✨</div><h3 style="font-size:24px;margin:8px 0">Danke, ${esc(f.name.split(' ')[0])}!</h3><p class="unter" style="margin:0 auto">Wir melden uns innert 1 bis 2 Arbeitstagen bei ${esc(f.email)}.${dienst.startsWith('Website') ? ' Dann zeigen wir Ihnen Ihren Gratis-Entwurf.' : ''}</p></div>`; }
+    else { $('meldung').textContent = 'Das hat nicht geklappt. Bitte schreiben Sie an info@nasuvia.ch.'; $('meldung').style.color = '#E5484D'; }
+  });
+})();
+</script>
+</body>
+</html>

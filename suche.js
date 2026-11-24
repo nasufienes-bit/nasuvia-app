@@ -22,6 +22,9 @@
       'Auf der Startseite „Tipps für Selbständige“ tippen.',
       'Die Liste führt durch Anmeldung bei der AHV, Versicherungen, Rückstellungen für AHV und Steuern, MWST, Rechnungen und Werbung.',
       'Erledigtes abhaken. Unten rechnet der Stundenansatz-Rechner aus, wie viel Sie mindestens verlangen sollten.'], WURZEL + 'selbstaendig/'],
+    ['dienste', 'Erste Schritte', 'Website oder Instagram von uns gestalten lassen', 'website homepage webseite instagram highlights design gestalten entwurf gratis', [
+      'Auf der Startseite „Ihre Website, von uns gestaltet“ tippen.',
+      'Gewünschten Dienst und Stil wählen und die Anfrage senden. Den ersten Website-Entwurf machen wir kostenlos.'], WURZEL + 'dienste/'],
     ['darstellung', 'Erste Schritte', 'Darstellung der Startseite ändern', 'darstellung design dunkel hell farbe thema kacheln gross kompakt aussehen startseite', [
       'Auf der Startseite ganz unten „Darstellung ändern“ tippen.',
       'Farbthema wählen (Hell, Ihre Farben, Sand, Himmel, Wald oder Nacht) und die Grösse der Kacheln.',
