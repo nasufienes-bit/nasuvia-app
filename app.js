@@ -1064,7 +1064,7 @@
             <div class="feld"><label for="fMwst">${ein ? 'MWST' : 'Vorsteuer'} (CHF)</label><input type="text" id="fMwst" inputmode="decimal" autocomplete="off" value="${b.mwstRappen != null ? chf(b.mwstRappen).replace(/’/g, '') : ''}" /></div>
           </div>
           <div class="feld"><label for="fKat">Kategorie</label><select id="fKat">${katOptionen()}</select>${doppeltAktiv() ? `<p class="hinweis" id="fKontoInfo" style="margin-top:4px">${kontoHinweis()}</p>` : ''}</div>
-          <div class="feld"><label for="fText">Beschreibung</label><input type="text" id="fText" value="${esc(b.text || '')}" placeholder="${ein ? 'z. B. Gartenpflege Winterthur' : 'z. B. Kabel und OTO-Dosen'}" /></div>
+          <div class="feld"><label for="fText">Beschreibung</label><input type="text" id="fText" value="${esc(b.text || '')}" placeholder="${ein ? 'z. B. Gartenpflege Winterthur' : 'z. B. Büromaterial'}" /></div>
           <div class="feld-zeile">
             <div class="feld"><label for="fPartner">${ein ? 'Kunde' : 'Lieferant'}</label><input type="text" id="fPartner" list="partnerListe" value="${esc(b.partner || '')}" /><datalist id="partnerListe">${partner.map((p) => `<option value="${esc(p)}">`).join('')}</datalist></div>
             <div class="feld"><label for="fZahlung">Bezahlt mit</label><select id="fZahlung">${ZAHLUNG.map((z) => `<option ${b.zahlung === z ? 'selected' : ''}>${z}</option>`).join('')}</select></div>
@@ -1097,6 +1097,37 @@
       $('fMwst').value = Number.isFinite(brutto) ? chf(mwstAus(brutto, satz)).replace(/’/g, '') : '';
     }
 
+    // Beleg automatisch lesen (KI oder Texterkennung) und vor dem Übernehmen prüfen lassen
+    async function belegLesen(x) {
+      if (!window.Leser || !x || !x.daten || b.quelle === 'rechnung') return;
+      felderMerken();
+      const ein = b.typ === 'einnahme', kats = sichtbar(ein ? KAT_EIN : KAT_AUS, b.kategorie);
+      const w = await Leser.lesenUndPruefen(x.daten, 'beleg', {
+        titel: ein ? 'Beleg prüfen (Einnahme)' : 'Beleg prüfen', extra: { kategorien: kats.map((k) => ({ id: k.id, name: k.name })) },
+        felder: [{ id: 'betrag', label: 'Betrag inkl. MWST (CHF)', typ: 'betrag' }, { id: 'datum', label: 'Datum', typ: 'datum' },
+          { id: 'lieferant', label: ein ? 'Kunde' : 'Lieferant', typ: 'text' }, { id: 'beschreibung', label: 'Beschreibung', typ: 'text' },
+          { id: 'kategorie', label: 'Kategorie', typ: 'select', optionen: kats.map((k) => [k.id, k.name]) },
+          { id: 'mwst_satz', label: 'MWST-Satz', typ: 'select', optionen: SAETZE.map((x) => [String(x), x ? x.toFixed(1) + ' %' : 'ohne MWST']) },
+          { id: 'mwst_betrag', label: ein ? 'MWST (CHF)' : 'Vorsteuer (CHF)', typ: 'betrag' },
+          { id: 'zahlung', label: 'Bezahlt mit', typ: 'select', optionen: ZAHLUNG.map((z) => [z, z]) }],
+        werteAus: (f) => ({ betrag: f.betrag ?? (b.betragRappen != null ? b.betragRappen / 100 : ''), datum: /^\d{4}-\d{2}-\d{2}$/.test(f.datum || '') ? f.datum : b.datum,
+          lieferant: f.lieferant || b.partner || '', beschreibung: f.beschreibung || b.text || '',
+          kategorie: kats.some((k) => k.id === f.kategorie) ? f.kategorie : b.kategorie,
+          mwst_satz: String(SAETZE.includes(Number(f.mwst_satz)) && f.mwst_satz != null ? Number(f.mwst_satz) : b.mwstSatz),
+          mwst_betrag: f.mwst_betrag ?? '', zahlung: ZAHLUNG.includes(f.zahlung) ? f.zahlung : b.zahlung }),
+      });
+      if (!w || !dlg.open) return;
+      if (w.betrag != null && Number.isFinite(w.betrag)) b.betragRappen = Math.round(w.betrag * 100);
+      if (w.datum) b.datum = w.datum;
+      b.partner = w.lieferant || b.partner; b.text = w.beschreibung || b.text;
+      if (w.kategorie) b.kategorie = w.kategorie;
+      b.mwstSatz = Number(w.mwst_satz); b.zahlung = w.zahlung || b.zahlung;
+      mwstVonHand = w.mwst_betrag != null && Number.isFinite(w.mwst_betrag);
+      b.mwstRappen = mwstVonHand ? Math.round(w.mwst_betrag * 100) : (b.betragRappen != null ? mwstAus(b.betragRappen, b.mwstSatz) : null);
+      formular();
+      toast('✓ Angaben vom Beleg übernommen');
+    }
+
     function felderMerken() {
       if (!$('fBetrag')) return;
       const r = betragLesen($('fBetrag').value);
@@ -1116,6 +1147,7 @@
     formular();
     dlg.showModal();
     if (!vorhanden && !matchMedia('(max-width: 820px)').matches) $('fBetrag').focus();
+    if (_beleg && b.betragRappen == null) belegLesen(_beleg);
 
     dlg.oninput = (e) => {
       if (e.target.id === 'fMwst') mwstVonHand = true;
@@ -1150,6 +1182,7 @@
         if (!datei) return;
         neuerBeleg = await belegVorbereiten(datei);
         $('belegBox').innerHTML = belegHtml();
+        belegLesen(neuerBeleg);
       }
       if (t.matches('[data-beleg-weg]')) {
         neuerBeleg = null; beleg = null;

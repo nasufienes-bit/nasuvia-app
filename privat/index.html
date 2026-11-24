@@ -119,6 +119,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 <script src="../auszug.js"></script>
 <script src="mehr.js"></script>
 <script src="../ui.js"></script>
+<script src="../leser.js"></script>
 <script src="../navi.js" data-hier="privat" data-einfuegen=".kopfzeile .wrap"></script>
 
 <script>
@@ -524,7 +525,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       <div class="zwei"><label>Mahnung<select id="rMahn">${['Keine', 'Zahlungserinnerung', '1. Mahnung', '2. Mahnung', 'Letzte Mahnung / Inkasso'].map((n, i) => `<option value="${i}" ${Number(r.mahnstufe || 0) === i ? 'selected' : ''}>${n}</option>`).join('')}</select></label><label>Mahngebühr CHF<input type="text" id="rGebuehr" inputmode="decimal" value="${r.gebuehr ? chf(r.gebuehr).replace(/’/g, '') : ''}" placeholder="0.00" /></label></div>
       <label style="display:flex;gap:8px;align-items:center;color:var(--tinte)"><input type="checkbox" id="rRaten" ${r.raten ? 'checked' : ''} /> In Raten (Abzahlung vereinbart)</label>
       <label>Foto oder PDF der Rechnung oder Mahnung${r.datei ? ' (ersetzen)' : ''}<input type="file" id="rDatei" accept="image/*,application/pdf" /></label>
-      ${r.datei && r.datei.startsWith('data:image') ? `<div class="aktionen"><button type="button" class="btn klein" data-r-ocr>Text aus Foto lesen</button><button type="button" class="btn klein" data-r-bild>Foto bearbeiten</button><span class="hinweis" id="rOcr"></span></div>` : ''}
+      ${r.datei ? `<div class="aktionen"><button type="button" class="btn klein" data-r-ocr>✨ Automatisch lesen</button>${r.datei.startsWith('data:image') ? '<button type="button" class="btn klein" data-r-bild>Foto bearbeiten</button>' : ''}<span class="hinweis" id="rOcr"></span></div>` : ''}
       ${r.datei ? `<div class="aktionen">${r.datei.startsWith('data:image') ? `<img src="${r.datei}" alt="Rechnung" style="max-width:100%;max-height:220px;border-radius:12px">` : ''}<a class="btn klein" href="${r.datei}" download="Rechnung">Öffnen</a><button type="button" class="btn klein rot" data-datei-weg>Datei entfernen</button></div>` : ''}
       <label>Notiz<textarea id="rNotiz" rows="2" placeholder="z. B. Referenznummer, Kundennummer">${esc(r.notiz || '')}</textarea></label>
       <div class="fuss">${neu ? '<span></span>' : '<button type="button" class="btn rot" data-weg>Löschen</button>'}<span class="aktionen"><button type="button" class="btn" data-zu>Abbrechen</button><button class="btn haupt">Speichern</button></span></div></form>`;
@@ -534,18 +535,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       if (e.target.closest('[data-weg]') && await wegwerfen('rechnungen', r, r.titel || r.glaeubiger)) { dlg.close(); zeichnen(); }
       if (e.target.closest('[data-datei-weg]')) { r.datei = ''; sichern(); rechnungBearbeiten(neu ? null : r); }
       if (e.target.closest('[data-r-bild]')) { merkenR(); const n = await UI.bildBearbeiten(r.datei, { titel: 'Rechnung bearbeiten' }); if (n) { r.datei = n; if (!neu) sichern(); } rechnungBearbeitenOffen(r, neu); }
-      if (e.target.closest('[data-r-ocr]')) {
-        merkenR(); $('rOcr').textContent = 'Text wird gelesen … (beim ersten Mal ca. 20 Sekunden)';
-        try {
-          const g = window.HomeBuero.rechnungAusText(await window.HomeBuero.textLesen(r.datei));
-          if (g.betrag && !$('rBetrag').value) $('rBetrag').value = (g.betrag / 100).toFixed(2);
-          if (g.faellig && !$('rFaellig').value) $('rFaellig').value = g.faellig;
-          if (g.glaeubiger && !$('rGl').value) $('rGl').value = g.glaeubiger;
-          if (g.mahnstufe && !Number($('rMahn').value)) $('rMahn').value = String(g.mahnstufe);
-          if (g.gebuehr && !$('rGebuehr').value) $('rGebuehr').value = (g.gebuehr / 100).toFixed(2);
-          $('rOcr').textContent = g.betrag || g.faellig ? `✓ Erkannt${g.mahnstufe ? ': ' + ['', 'Zahlungserinnerung', '1. Mahnung', '2. Mahnung', 'Letzte Mahnung'][g.mahnstufe] : ''}. Bitte prüfen und speichern.` : 'Nichts Sicheres erkannt. Bitte von Hand ergänzen oder das Foto bearbeiten (heller, zuschneiden).';
-        } catch { $('rOcr').textContent = 'Texterkennung nicht möglich. Bitte von Hand ausfüllen.'; }
-      }
+      if (e.target.closest('[data-r-ocr]')) { merkenR(); await rechnungLesen(); }
     };
     // Felder merken, ohne zu prüfen (vor dem Neu-Zeichnen)
     function merkenR() {
@@ -553,10 +543,33 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       Object.assign(r, { titel: $('rTitel').value.trim(), glaeubiger: $('rGl').value.trim(), betragRappen: Number.isFinite(b) ? b : r.betragRappen, erhalten: $('rErhalten').value, faellig: $('rFaellig').value,
         status: $('rStatus').value, raten: $('rRaten').checked, notiz: $('rNotiz').value.trim(), mahnstufe: Number($('rMahn').value) || 0, gebuehr: Number.isFinite(gb) && gb > 0 ? gb : (r.gebuehr || 0) });
     }
-    // Foto gewählt: sofort zeigen, damit man es lesen und bearbeiten kann
+    // Lesen (KI oder Texterkennung), prüfen lassen, dann eintragen
+    async function rechnungLesen() {
+      if (!window.Leser || !r.datei) return;
+      const MAHN = ['Keine', 'Zahlungserinnerung', '1. Mahnung', '2. Mahnung', 'Letzte Mahnung / Inkasso'];
+      const w = await Leser.lesenUndPruefen(r.datei, 'rechnung', { titel: 'Rechnung prüfen',
+        felder: [{ id: 'titel', label: 'Wofür', typ: 'text' }, { id: 'absender', label: 'Von (Gläubiger)', typ: 'text' }, { id: 'betrag', label: 'Betrag CHF', typ: 'betrag' },
+          { id: 'faellig', label: 'Fällig am', typ: 'datum' }, { id: 'mahnstufe', label: 'Mahnung', typ: 'select', optionen: MAHN.map((n, i) => [String(i), n]) }, { id: 'gebuehr', label: 'Mahngebühr CHF', typ: 'betrag' }],
+        werteAus: (f) => ({ titel: f.beschreibung || r.titel || '', absender: f.absender || r.glaeubiger || '', betrag: f.betrag ?? (r.betragRappen ? r.betragRappen / 100 : ''),
+          faellig: /^\d{4}-\d{2}-\d{2}$/.test(f.faellig || '') ? f.faellig : (r.faellig || ''), mahnstufe: String(Math.max(0, Math.min(4, Math.round(Number(f.mahnstufe ?? r.mahnstufe ?? 0)) || 0))), gebuehr: f.gebuehr || '' }) });
+      if (!w) return;
+      Object.assign(r, { titel: w.titel || r.titel, glaeubiger: w.absender || r.glaeubiger, faellig: w.faellig || r.faellig, mahnstufe: Number(w.mahnstufe) || 0 });
+      if (w.betrag != null && Number.isFinite(w.betrag)) r.betragRappen = Math.round(w.betrag * 100);
+      if (w.gebuehr != null && Number.isFinite(w.gebuehr)) r.gebuehr = Math.round(w.gebuehr * 100);
+      if (!r.erhalten) r.erhalten = heute();
+      if (!neu) sichern();
+      rechnungBearbeitenOffen(r, neu); toast('✓ Angaben übernommen. Bitte speichern.');
+    }
+    // Datei gewählt: sofort zeigen und automatisch lesen
     dlg.onchange = async (e) => {
-      if (e.target.id !== 'rDatei' || !e.target.files[0] || !e.target.files[0].type.startsWith('image/')) return;
-      merkenR(); r.datei = await bildKlein(e.target.files[0]); rechnungBearbeitenOffen(r, neu);
+      if (e.target.id === 'rStatus' && e.target.value === 'bezahlt' && !$('rBezahlt').value) { $('rBezahlt').value = heute(); return; }
+      const datei = e.target.id === 'rDatei' && e.target.files[0]; if (!datei) return;
+      merkenR();
+      if (datei.type.startsWith('image/')) r.datei = await bildKlein(datei);
+      else if (datei.size < 1.5e6) r.datei = await new Promise((ok) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(datei); });
+      else return;
+      rechnungBearbeitenOffen(r, neu);
+      if (!r.betragRappen) rechnungLesen();
     };
     dlg.querySelector('form').onsubmit = async (e) => {
       e.preventDefault();
@@ -606,7 +619,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       <div class="zwei"><label>Zahlungsbefehl zugestellt am<input type="date" id="tZu" value="${b.zugestellt || ''}" /></label><label>Stand<select id="tStatus">${Object.entries(STATUS).map(([k, n]) => `<option value="${k}" ${b.status === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label></div>
       <div><span class="hinweis">Was trifft zu?</span><div style="display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px">${[['rechtsvorschlag', 'Rechtsvorschlag erhoben'], ['fortsetzung', 'Fortsetzungsbegehren'], ['pfaendung', 'Pfändung'], ['verlustschein', 'Verlustschein'], ['abzahlung', 'Abzahlung vereinbart'], ['bezahlt', 'Bezahlt'], ['geloescht', 'Im Register gelöscht']].map(([k, n]) => `<label style="display:flex;gap:6px;align-items:center;font-size:14px;color:var(--tinte)"><input type="checkbox" data-flag="${k}" ${(b.flags || {})[k] ? 'checked' : ''}>${n}</label>`).join('')}</div></div>
       <label>Foto des Zahlungsbefehls oder Verlustscheins${b.foto ? ' (ersetzen)' : ''}<input type="file" id="tFoto" accept="image/*" capture="environment" /></label>
-      <div class="aktionen"><button type="button" class="btn klein" data-ocr>Text aus Foto lesen</button>${b.foto ? '<button type="button" class="btn klein" data-t-bild>Foto bearbeiten</button>' : ''}<span class="hinweis" id="tOcr"></span></div>
+      <div class="aktionen"><button type="button" class="btn klein" data-ocr>✨ Automatisch lesen</button>${b.foto ? '<button type="button" class="btn klein" data-t-bild>Foto bearbeiten</button>' : ''}<span class="hinweis" id="tOcr"></span></div>
       ${b.foto ? `<img src="${b.foto}" alt="Dokument" style="max-width:100%;max-height:240px;border-radius:12px">` : ''}
       <label>Monatliche Rate (bei Abzahlung) CHF<input type="text" id="tRate" inputmode="decimal" value="${b.rate ? chf(b.rate).replace(/’/g, '') : ''}" /></label>
       ${neu ? '' : `<div><b style="font-size:14px">Zahlungen</b>${(b.zahlungen || []).map((z, i) => `<div class="zeile"><span>${dk(z.datum)}</span><span class="betrag">${chf(z.betragRappen)} <button type="button" class="btn klein rot" data-zweg="${i}">×</button></span></div>`).join('') || '<p class="hinweis">Noch keine Zahlungen.</p>'}
@@ -636,21 +649,29 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       }
     };
     dlg.onchange = async (e) => {
-      if (e.target.id === 'tFoto' && e.target.files[0]) { lesen(); b.foto = await bildKlein(e.target.files[0]); sichern(); betreibungBearbeiten(neu ? (D.betreibungen.includes(b) ? b : (D.betreibungen.push(b), b)) : b); }
+      if (e.target.id === 'tFoto' && e.target.files[0]) { lesen(); b.foto = await bildKlein(e.target.files[0]); sichern(); betreibungBearbeiten(neu ? (D.betreibungen.includes(b) ? b : (D.betreibungen.push(b), b)) : b); if (!b.betragRappen && ocrHandler) ocrHandler(); }
     };
-    ocrHandler = async (e) => {
+    ocrHandler = async () => {
       if (!b.foto) { toast('Zuerst ein Foto aufnehmen'); return; }
-      lesen(); $('tOcr').textContent = 'Text wird gelesen … (beim ersten Mal ca. 20 Sekunden)';
-      try {
-        const w = await window.HomeBuero.textLesen(b.foto);
-        const g = window.HomeBuero.betreibungAusText(w);
-        if (g.betrag && !b.betragRappen) $('tBetrag').value = (g.betrag / 100).toFixed(2);
-        if (g.nummer && !$('tNr').value) $('tNr').value = g.nummer;
-        if (g.glaeubiger && !$('tGl').value) $('tGl').value = g.glaeubiger;
-        if (g.amt && !$('tAmt').value) $('tAmt').value = g.amt;
-        if (g.verlustschein) { const x = dlg.querySelector('[data-flag=verlustschein]'); if (x) x.checked = true; }
-        $('tOcr').textContent = g.betrag || g.nummer ? '✓ Erkannt. Bitte prüfen und speichern.' : 'Nichts Sicheres erkannt. Bitte von Hand ergänzen.';
-      } catch { $('tOcr').textContent = 'Texterkennung nicht möglich. Bitte von Hand ausfüllen.'; }
+      if (!window.Leser) return;
+      lesen();
+      const ARTEN = [['zahlungsbefehl', 'Zahlungsbefehl'], ['pfaendung', 'Pfändung'], ['verlustschein', 'Verlustschein'], ['auszug', 'Registerauszug'], ['andere', 'Anderes']];
+      const w = await Leser.lesenUndPruefen(b.foto, 'betreibung', { titel: 'Betreibung prüfen',
+        felder: [{ id: 'glaeubiger', label: 'Gläubiger', typ: 'text' }, { id: 'betrag', label: 'Betrag CHF', typ: 'betrag' }, { id: 'nummer', label: 'Betreibungs-Nr.', typ: 'text' },
+          { id: 'amt', label: 'Betreibungsamt', typ: 'text' }, { id: 'datum', label: 'Zugestellt am', typ: 'datum' }, { id: 'art', label: 'Dokument', typ: 'select', optionen: ARTEN },
+          { id: 'rechtsvorschlag', label: 'Rechtsvorschlag erwähnt', typ: 'select', optionen: [['nein', 'Nein'], ['ja', 'Ja']] }],
+        werteAus: (f) => ({ glaeubiger: f.glaeubiger || b.glaeubiger || '', betrag: f.betrag ?? (b.betragRappen ? b.betragRappen / 100 : ''), nummer: f.nummer || b.nummer || '', amt: f.amt || b.amt || '',
+          datum: /^\d{4}-\d{2}-\d{2}$/.test(f.datum || '') ? f.datum : (b.zugestellt || ''), art: ARTEN.some(([k]) => k === f.art) ? f.art : 'zahlungsbefehl', rechtsvorschlag: f.rechtsvorschlag ? 'ja' : 'nein' }) });
+      if (!w) return;
+      Object.assign(b, { glaeubiger: w.glaeubiger || b.glaeubiger, nummer: w.nummer || b.nummer, amt: w.amt || b.amt, zugestellt: w.datum || b.zugestellt });
+      if (w.betrag != null && Number.isFinite(w.betrag)) b.betragRappen = Math.round(w.betrag * 100);
+      b.flags = { ...(b.flags || {}) };
+      if (w.art === 'verlustschein') b.flags.verlustschein = true;
+      if (w.art === 'pfaendung') b.flags.pfaendung = true;
+      if (w.rechtsvorschlag === 'ja') b.flags.rechtsvorschlag = true;
+      if (STATUS[w.art]) b.status = w.art;
+      if (D.betreibungen.includes(b)) sichern();
+      betreibungBearbeiten(b); toast('✓ Angaben übernommen. Bitte speichern.');
     };
     dlg.querySelector('form').onsubmit = (e) => {
       e.preventDefault(); lesen();
