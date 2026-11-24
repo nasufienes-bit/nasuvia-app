@@ -309,12 +309,24 @@
   }
   function stelleDialog(s = null) {
     const d = $('dlg'), w = s || { titel: '', ort: '', pensum: '', start: '', beschreibung: '', aktiv: true };
+    const BF = window.Berufe, branche = (window.Branchen && Branchen.aktuell && Branchen.aktuell()) || (window.NASUVIA_LIZENZ || {}).branche || '';
     d.innerHTML = `<form class="dlg"><h3>${s ? 'Stelle bearbeiten' : 'Offene Stelle'}</h3>
+      ${BF ? `<label>Beruf <span style="font-weight:400;color:var(--text)">(füllt Bezeichnung und Text aus)</span><select name="beruf" data-bw-beruf><option value="">Bitte wählen oder unten selbst schreiben</option>
+        ${BF.fuer(branche).map((g, i) => `<optgroup label="${esc(g.name)}${i === 0 && g.id === branche ? ' · passend zu Ihrer Branche' : ''}">${g.berufe.map((b) => `<option>${esc(b)}</option>`).join('')}</optgroup>`).join('')}
+        <optgroup label="Lehrstellen">${BF.fuer(branche)[0].berufe.filter((b) => /EFZ|EBA/.test(b)).map((b) => `<option value="lehre:${esc(b)}">Lehrstelle ${esc(b)}</option>`).join('')}</optgroup></select></label>` : ''}
       <label>Bezeichnung<input name="titel" value="${esc(w.titel)}" required maxlength="120" placeholder="z. B. Maler/in EFZ 80–100 %"></label>
       <div class="drei"><label>Ort<input name="ort" value="${esc(w.ort || '')}"></label><label>Pensum<input name="pensum" value="${esc(w.pensum || '')}" placeholder="80–100 %"></label><label>Start<input name="start" value="${esc(w.start || '')}" placeholder="nach Vereinbarung"></label></div>
       <label>Beschreibung<textarea name="beschreibung" rows="7" maxlength="6000" placeholder="Was Sie erwartet, was Sie mitbringen, was wir bieten">${esc(w.beschreibung || '')}</textarea></label>
       <label style="display:flex;gap:10px;align-items:center;font-size:14px;color:var(--tinte)"><input type="checkbox" name="aktiv" ${w.aktiv ? 'checked' : ''} style="width:18px;height:18px"> Bewerbungen annehmen</label>
       <div class="fuss">${s ? '<button type="button" class="btn rot" data-weg>Löschen</button>' : '<span></span>'}<span class="aktionen"><button type="button" class="btn" data-zu>Abbrechen</button><button class="btn haupt">Speichern</button></span></div></form>`;
+    d.onchange = (e) => {
+      if (!e.target.matches('[data-bw-beruf]') || !e.target.value || !BF) return;
+      const f = d.querySelector('form'), lehre = e.target.value.startsWith('lehre:'), beruf = e.target.value.replace(/^lehre:/, '');
+      const firma = ((window.Marke && Marke.daten && Marke.daten()) || {}).name || (window.NASUVIA_LIZENZ || {}).firma || '';
+      if (!f.pensum.value && !lehre) f.pensum.value = '80–100 %';
+      f.titel.value = lehre ? `Lehrstelle ${beruf}` : `${beruf.replace(/\s*\((MPA|FaGe)\)$/, '')} ${f.pensum.value}`.trim();
+      if (!f.beschreibung.value.trim() || f.beschreibung.dataset.auto === '1' || confirm('Den Text durch die Vorlage für diesen Beruf ersetzen?')) { f.beschreibung.value = BF.text({ beruf, pensum: f.pensum.value, start: f.start.value, ort: f.ort.value, firma, lehrstelle: lehre }); f.beschreibung.dataset.auto = '1'; }
+    };
     d.onclick = async (e) => { if (e.target.closest('[data-zu]')) d.close(); if (e.target.closest('[data-weg]') && await Korb.loeschen(sb, 'bw_stellen', s.id, s.titel)) { d.close(); laden(); } };
     d.onsubmit = async (e) => {
       e.preventDefault(); const f = Object.fromEntries(new FormData(d.querySelector('form')));
