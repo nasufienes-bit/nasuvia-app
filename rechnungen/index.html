@@ -22,6 +22,7 @@
 <script src="../lib/html2canvas.min.js"></script>
 <script src="../lib/jspdf.umd.min.js"></script>
 <script src="../ui.js"></script>
+<script src="../auszug.js" defer></script>
 <script src="../navi.js" data-hier="rechnungen" data-titel="Rechnungen"></script>
 <script src="dienst.js"></script>
 <script src="../suche.js"></script>
@@ -681,6 +682,7 @@ body.nv-mit-kopf .preview { min-height: calc(100vh - 64px); }
       <div class="karte-tools">
         <button type="button" class="link-btn" id="kundeBearbeiten">Bearbeiten</button>
         <button type="button" class="link-btn danger" id="kundeLoeschen">Löschen</button>
+        <button type="button" class="link-btn" id="kundenImport">Importieren</button>
       </div>
     </section>
 
@@ -2784,6 +2786,37 @@ ${[[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' — '), [FIRMA.strasse, FIR
     kDlg.showModal(); $('kName').focus();
   });
   $('kAbbrechen').addEventListener('click', () => kDlg.close());
+  // Kunden übernehmen: Kontakte-Export aus bexio, Excel (als CSV), Outlook, Google Kontakte
+  const kundenImport = async () => {
+    const datei = await new Promise((ok) => { const i = document.createElement('input'); i.type = 'file'; i.accept = '.csv,text/csv,.txt'; i.onchange = () => ok(i.files[0] || null); i.click(); });
+    if (!datei || !window.Auszug || !Auszug.zerlegen) { if (datei) toast('Import gerade nicht möglich, bitte Seite neu laden'); return; }
+    const zeilen = Auszug.zerlegen(await datei.text()).filter((z) => z.some((x) => x));
+    if (zeilen.length < 2) { toast('Keine Kontakte in der Datei gefunden'); return; }
+    const kopf = zeilen[0].map((x) => x.toLowerCase().trim());
+    const sp = (...re) => { for (const x of re) { const i = kopf.findIndex((h) => x.test(h)); if (i >= 0) return i; } return -1; };
+    const S = { firma: sp(/^firma/, /^name 1$/, /^company/, /^organisation/, /^organization/, /^unternehmen/), nach: sp(/nachname/, /^last name/, /^family name/), vor: sp(/vorname/, /^first name/, /^given name/), name: sp(/^name$/, /^kunde$/, /^full name/),
+      strasse: sp(/^strasse/, /^adresse/, /^address 1 - street/, /^street/, /^business street/), plz: sp(/^plz/, /postal code/, /^zip/, /postleitzahl/), ort: sp(/^ort$/, /^ort /, /^city/, /^stadt/, /business city/), land: sp(/^land$/, /^country/), mail: sp(/^e-?mail/, /^email/, /e-mail 1 - value/, /mail/) };
+    const z = (row, i) => (i >= 0 ? String(row[i] || '').trim() : '');
+    const vorhanden = new Set(kunden.map((k) => (k.name || '').toLowerCase()));
+    const neu = [];
+    for (const row of zeilen.slice(1)) {
+      const person = [z(row, S.vor), z(row, S.nach)].filter(Boolean).join(' ');
+      const name = z(row, S.firma) || z(row, S.name) || person;
+      if (!name || vorhanden.has(name.toLowerCase())) continue;
+      vorhanden.add(name.toLowerCase());
+      const str = z(row, S.strasse), m = str.match(/^(.*?)[\s,]+(\d+\s*[a-zA-Z]?)$/);
+      const land = (z(row, S.land) || 'CH').toUpperCase();
+      neu.push({ id: 'k' + Date.now().toString(36) + neu.length, name: z(row, S.firma) && person ? `${z(row, S.firma)}\n${person}`.split('\n')[0] : name, strasse: m ? m[1] : str, nr: m ? m[2] : '', plz: z(row, S.plz), ort: z(row, S.ort),
+        land: /^(SCHWEIZ|SUISSE|SVIZZERA|SWITZERLAND|CH)$/.test(land) ? 'CH' : /^(DEUTSCHLAND|GERMANY|DE)$/.test(land) ? 'DE' : /^(ÖSTERREICH|AUSTRIA|AT)$/.test(land) ? 'AT' : land.slice(0, 2), mail: z(row, S.mail) });
+    }
+    if (!neu.length) { toast('Keine neuen Kontakte (alle schon vorhanden)', 4000); return; }
+    if (!await UI.frage(`${neu.length} Kunden aus „${datei.name}“ übernehmen?\n\nBeispiele: ${neu.slice(0, 3).map((k) => k.name).join(', ')}`, { ja: 'Übernehmen', gefahr: false })) return;
+    kunden = kunden.filter((k) => k.name && k.name !== 'Neuer Kunde').concat(neu);
+    sichere(KEY_KUNDEN, kunden); fuelleKunden(neu[0].id); aktualisiere({ sofort: true }); standJetztSichern();
+    toast(`✓ ${neu.length} Kunden übernommen`, 4000);
+  };
+  $('kundenImport').addEventListener('click', kundenImport);
+  if (new URLSearchParams(location.search).get('import') === 'kunden') setTimeout(() => { toast('Wählen Sie den Kontakte-Export (CSV), z. B. aus bexio unter Kontakte › Exportieren', 6000); $('kundenImport').focus(); $('kundenImport').classList.add('blinken'); }, 1200);
   $('kSpeichern').addEventListener('click', () => {
     const name = $('kName').value.trim();
     if (!name) { $('kName').classList.add('invalid'); $('kName').focus(); return; }

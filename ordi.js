@@ -153,7 +153,7 @@
     // Passend zum Bereich, in dem man gerade ist, zuerst (wenn unter den ersten drei)
     const hierA = l.slice(0, 3).find((a) => a.bereich === BEREICH[hier]);
     if (hierA) l = [hierA, ...l.filter((a) => a !== hierA)];
-    if (!l.length) return { text: 'Dazu habe ich in der Anleitung nichts gefunden. Versuchen Sie es mit anderen Worten, oder schreiben Sie an info@nasuvia.ch. Wir helfen gerne.' };
+    if (!l.length) return { text: 'Dazu habe ich in der Anleitung nichts gefunden. Versuchen Sie es mit anderen Worten, oder fragen Sie uns direkt: WhatsApp oder Telefon 079 821 84 08, E-Mail info@nasuvia.ch. Wir helfen gerne, auch auf Schweizerdeutsch.' };
     const a = l[0];
     return { html: `<b>${esc(a.titel)}</b><ol>${a.schritte.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>`, text: a.titel, ziel: a.ziel, chips: l.slice(1, 4).map((x) => x.titel) };
   }

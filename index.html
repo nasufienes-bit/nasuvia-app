@@ -124,6 +124,12 @@ select { appearance: none; -webkit-appearance: none; cursor: pointer; padding-ri
 .feld { display: grid; gap: 5px; }
 .feld > label { font-size: 12.5px; color: var(--leise); }
 .feld-zeile { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ja-kopf { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
+.pj-spur { height: 8px; border-radius: 100px; background: var(--flaeche); overflow: hidden; } .pj-spur i { display: block; height: 100%; background: var(--elektrik); border-radius: 100px; }
+.ja-zeile { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid var(--linie, rgba(11,59,46,.12)); }
+.ja-haken { flex: 0 0 26px; width: 26px; height: 26px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--blau) 30%, transparent); background: #fff; color: #fff; font-weight: 800; cursor: pointer; display: grid; place-items: center; font-size: 14px; }
+.ja-haken:disabled { cursor: default; } .ja-zeile.ok .ja-haken { background: var(--elektrik); border-color: var(--elektrik); }
+.ja-text { flex: 1; min-width: 0; } .ja-text b { display: block; font-size: 14.5px; } .ja-text small { color: var(--text); font-size: 12.5px; } .ja-zeile.ok .ja-text b { color: var(--text); }
 .lq-stand { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
 .lq-stand .kopf-aktionen { flex-wrap: wrap; }
 .lq-balken { display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; height: 190px; align-items: end; margin-top: 10px; }

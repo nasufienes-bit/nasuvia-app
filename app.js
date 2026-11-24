@@ -1694,6 +1694,38 @@
   ];
 
   /* ================= Jahresabschluss ================= */
+  /* ---------- Jahresabschluss-Assistent: Schritt für Schritt bis zum Festschreiben ---------- */
+  function abschlussAssistent() {
+    const j = Z.jahr, h = heute();
+    if (j > h.slice(0, 4)) return '';
+    const liste = imJahr(j), hand = ((Z.einst.abschlussCheck || {})[j]) || {};
+    const bankBis = liste.filter((b) => b.imp && b.zahlung !== 'Bar').reduce((m, b) => (b.datum > m ? b.datum : m), '');
+    const ohneBeleg = liste.filter((b) => b.typ === 'ausgabe' && !b.belegId).length;
+    const offen = liste.filter(istOffen).length;
+    const ks = kasseStand();
+    const fest = festBis() >= j + '-12-31';
+    const S = [
+      ['bank', 'Alle Bankauszüge bis 31.12. geladen', bankBis >= j + '-12-20', bankBis ? `Letzte Bankbuchung: ${datumKurz(bankBis)}` : 'Noch kein Bankauszug für dieses Jahr', 'NB.bankImport()', 'Bankauszug laden'],
+      ['belege', 'Belege zu allen Ausgaben', !ohneBeleg, ohneBeleg ? `${ohneBeleg} Ausgaben ohne Beleg` : 'Alle Ausgaben haben einen Beleg', "NB.ansicht('buchungen')", 'Ansehen'],
+      ['debitoren', 'Offene Rechnungen geprüft', !offen || !!hand.debitoren, offen ? `${offen} Rechnungen per 31.12. noch offen: bleiben als Guthaben stehen` : 'Keine offenen Rechnungen', '', ''],
+      ['kasse', 'Kassenbestand stimmt mit dem Bargeld überein', !!hand.kasse, `Kasse laut Ordasio: CHF ${chf(ks.bestand)}`, '', ''],
+      ['mwst', 'MWST des 4. Quartals abgerechnet', !!hand.mwst, 'Frist: 28. Februar', "NB.ansicht('mwst')", 'Zur MWST'],
+      ['privat', 'Privatanteile gebucht (Auto, Telefon, Wohnung)', !!hand.privat, 'Privat genutzte Anteile sind kein Geschäftsaufwand', '', ''],
+      ...(doppeltAktiv() ? [['abschreibung', 'Abschreibungen und Abgrenzungen gebucht', !!hand.abschreibung, 'Fahrzeuge, Maschinen, IT; Rechnungen fürs nächste Jahr abgrenzen', "NB.ansicht('konten')", 'Zum Journal']] : []),
+      ['inventar', 'Warenlager und angefangene Arbeiten gezählt', !!hand.inventar, 'Nur wenn Sie ein Lager oder laufende Aufträge haben', '', ''],
+      ['fest', `Jahr ${j} festschreiben`, fest, fest ? 'Festgeschrieben, wie es die GeBüV verlangt' : 'Zum Schluss: danach ist das Jahr unveränderbar', '', ''],
+    ];
+    const fertig = S.filter((x) => x[2]).length;
+    if (fest && fertig === S.length) return '';
+    return `<div class="card abstand-unten ja-karte"><div class="ja-kopf"><h2 style="margin:0">Jahresabschluss ${j}: ${fertig} von ${S.length} erledigt</h2><div class="pj-spur" style="flex:1;max-width:220px"><i style="width:${Math.round(fertig / S.length * 100)}%"></i></div></div>
+      ${S.map(([id, t, ok, info, aktion, knopf]) => `<div class="ja-zeile ${ok ? 'ok' : ''}"><button class="ja-haken" ${['bank', 'belege', 'fest'].includes(id) || (id === 'debitoren' && !offen) ? 'disabled' : `data-ja="${id}"`} aria-label="Erledigt">${ok ? '✓' : ''}</button><div class="ja-text"><b>${esc(t)}</b><small>${esc(info)}</small></div>${!ok && aktion ? `<button class="btn klein" onclick="${aktion}">${knopf}</button>` : ''}</div>`).join('')}
+      <p class="hinweis abstand">Abhaken, was Sie selbst geprüft haben. Mit Ihrem Treuhänder-Zugang kann auch Ihr Treuhänder mitschauen.</p></div>`;
+  }
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-ja]'); if (!b) return;
+    const alle = { ...(Z.einst.abschlussCheck || {}) }, j = Z.jahr; alle[j] = { ...(alle[j] || {}), [b.dataset.ja]: !(alle[j] || {})[b.dataset.ja] };
+    await einstSpeichern({ abschlussCheck: alle }); zeichnen();
+  });
   function abschluss() {
     const bis = Z.stichtag && Z.stichtag.startsWith(Z.jahr) ? Z.stichtag : '';
     const liste = imJahr(Z.jahr).filter((b) => !bis || b.datum <= bis);
@@ -1709,6 +1741,7 @@
       <div class="segment"><button class="${bis ? '' : 'an'}" data-ganzjahr>Ganzes Jahr</button>${jetztJahr ? `<button class="${bis === heute() ? 'an' : ''}" data-zwischen>Bis heute</button>` : ''}</div>
       <label class="hinweis">Stichtag <input type="date" class="auswahl-klein" data-stichtag value="${bis}" min="${Z.jahr}-01-01" max="${Z.jahr}-12-31" /></label>
     </div>
+    ${bis ? '' : abschlussAssistent()}
     <div class="kopf">
       <div><h1>${bis ? 'Zwischenbilanz per ' + datumKurz(bis) : 'Jahresabschluss ' + Z.jahr}</h1><p class="unter">${bis ? `Erfolgsrechnung und Bilanz vom 01.01. bis ${datumKurz(bis)}, Beträge ohne MWST` : 'Erfolgsrechnung für die Steuererklärung, Beträge ohne MWST'}</p></div>
       <div class="kopf-aktionen">${jahrWahl()}<button class="btn" onclick="NB.jahrCsv()">Alle Buchungen als CSV</button><button class="btn" onclick="window.print()">Als PDF drucken</button></div>
@@ -2134,6 +2167,7 @@
       <div class="segment"><button class="${bis ? '' : 'an'}" data-ganzjahr>Ganzes Jahr</button>${jetztJahr ? `<button class="${bis === heute() ? 'an' : ''}" data-zwischen>Bis heute</button>` : ''}</div>
       <label class="hinweis">Stichtag <input type="date" class="auswahl-klein" data-stichtag value="${bis}" min="${Z.jahr}-01-01" max="${Z.jahr}-12-31" /></label>
     </div>
+    ${bis ? '' : abschlussAssistent()}
     <div class="kopf">
       <div><h1>${bis ? 'Zwischenabschluss per ' + datumKurz(bis) : 'Jahresrechnung ' + Z.jahr}</h1><p class="unter">${esc(firmenName() || '')}${firmenName() ? ' · ' : ''}Bilanz und Erfolgsrechnung nach OR 959a und 959b, Beträge ohne MWST${istFestJahr ? ' · festgeschrieben' : ''}</p></div>
       <div class="kopf-aktionen">${jahrWahl()}<button class="btn" onclick="NB.journalCsv()">Journal CSV</button><button class="btn" onclick="NB.saldenCsv()">Saldenliste CSV</button><button class="btn" onclick="window.print()">Als PDF drucken</button></div>
