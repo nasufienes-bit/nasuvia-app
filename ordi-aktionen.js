@@ -70,7 +70,7 @@
     return out.join(' ');
   };
   function teamPlan(t) {
-    const teile = t.split(/\s*(?:,|;|\bund dann\b|\bdann\b|\bund\b(?=\s+(?:füge|erstelle|lege|teile|weise|plane|gib|mach|erfasse)))\s*/i).filter(Boolean);
+    const teile = t.split(/\s*(?:,|;|\bund dann\b|\bdann\b|\bund\b(?=\s+(?:füge|erstelle|lege|teile|weise|plane|gib|mach|erfasse|schreib|stell)))\s*/i).filter(Boolean);
     const schritte = []; let ma = null, af = null, m;
     const geld = (x) => { const g = x && x.match(/(\d+(?:[.,]\d+)?)/); return g ? Math.round(zahl(g[1]) * 100) : 0; };
     for (const teil of teile) {
@@ -86,15 +86,28 @@
       }
       if (/(teile|weise|gib)\b.*\bzu\b/i.test(x)) {
         const was = (x.match(/auftrag\s+[„"«]?([^„"«»"]+?)[“"»]?\s+(?:zu\b|an\b)/i) || [])[1];
-        const auftrag = (was && !/^(diesen|den|dem|neuen)$/i.test(was) ? was : '') || af;
-        const wer = nameAus(was ? x.replace(was, ' ') : x) || ma;
+        let auftrag = (was && !/^(diesen|den|dem|neuen)$/i.test(was) ? was : '') || af;
+        let wer = nameAus(was ? x.replace(was, ' ') : x) || ma;
+        // „Teile den Auftrag Heizung Schulhaus Sara zu“: letztes Wort ist die Person
+        if (!wer && auftrag && auftrag.split(/\s+/).length >= 2) { const w = auftrag.split(/\s+/); wer = w.pop(); auftrag = w.join(' '); }
+        if (auftrag && !af) af = auftrag;
         schritte.push({ typ: 'zuweisen', mitarbeiter: wer || '', auftrag: auftrag || '' }); continue;
+      }
+      if (/\b(rechnung|rächnig|rechnig|faktura)\b/i.test(x) && /(schreib|mach|erstell|stell)/i.test(x)) {
+        const betrag = x.match(/(?:über|für|von)\s*(?:chf|fr\.?)?\s*(\d+(?:['’]\d{3})*(?:[.,]\d+)?)\s*(?:chf|franken|fr\.)?(?:\s+(?:für|wegen)\s+(.+))?/i);
+        const std = x.match(/(\d+(?:[.,]\d+)?)\s*(?:std\.?|stunden|h)\b.*?(?:à|a|zu|je)\s*(?:chf|fr\.?)?\s*(\d+(?:[.,]\d+)?)/i);
+        const fuer = (x.match(/(?:an|für)\s+(?:den\s+|die\s+|kunde[n]?\s+)?([A-ZÄÖÜ][\wäöüé&.' -]+?)(?:\s+(?:über|mit|für)\b|$)/) || [])[1];
+        if (std) schritte.push({ typ: 'rechnung', kunde: fuer || '', auftrag: af || '', positionen: [{ text: 'Arbeit' + (af ? ' ' + af : ''), menge: zahl(std[1]), preis: Math.round(zahl(std[2]) * 100) }] });
+        else if (betrag && zahl(betrag[1]) > 0) schritte.push({ typ: 'rechnung', kunde: fuer || '', auftrag: af || '', positionen: [{ text: (betrag[2] || (af ? 'Arbeit ' + af : 'Leistung')).trim(), menge: 1, preis: Math.round(zahl(betrag[1]) * 100) }] });
+        else schritte.push({ typ: 'auftrag_rechnung', auftrag: af || (x.match(/auftrag\s+(.+?)(?:\s+(?:und|mit)\b|$)/i) || [])[1] || '' });
+        continue;
       }
       const ein = x.match(/plane\s+(.+?)\s+(?:für|am)\s+(.+?)(?:\s+(?:bei|auf|für)\s+(.+))?$/i);
       if (ein) { const d = datumAus(ein[2]); if (d) { schritte.push({ typ: 'einsatz', mitarbeiter: /^(ihn|sie|ihm|ihr)$/i.test(ein[1]) ? ma : nameAus(ein[1]) || ma, datum: d, von: zeitAus(ein[2]), auftrag: ein[3] || af || '' }); continue; } }
     }
-    const ord = { mitarbeiter: 0, auftrag: 1, zuweisen: 2, einsatz: 3 };
-    schritte.sort((a, b) => ord[a.typ] - ord[b.typ]);
+    const ord = { mitarbeiter: 0, auftrag: 1, zuweisen: 2, einsatz: 3, rechnung: 9, auftrag_rechnung: 9 };
+    schritte.sort((a, b) => (ord[a.typ] ?? 5) - (ord[b.typ] ?? 5));
+    for (const z of schritte) if ((z.typ === 'auftrag_rechnung' || z.typ === 'rechnung') && !z.auftrag) z.auftrag = af || '';
     for (const z of schritte) { if (z.typ === 'zuweisen' || z.typ === 'einsatz') { z.mitarbeiter = z.mitarbeiter || ma || ''; if (z.typ === 'zuweisen') z.auftrag = z.auftrag || af || ''; } }
     return schritte;
   }
@@ -102,9 +115,11 @@
   // Ohne KI: die häufigsten Aufträge selbst verstehen
   async function erkennen(frage) {
     const t = frage.trim(), n = t.toLowerCase(); let m;
-    if (/(mitarbeiter|auftrag|teile .* zu|weise .* zu|plane )/i.test(t)) {
+    if (/(mitarbeiter|auftrag|teile .* zu|weise .* zu|plane )/i.test(t) && !/^\s*rechnung\s+(an|für)\b/i.test(t)) {
       const s2 = teamPlan(t);
       const fehlt = s2.find((z) => z.typ === 'zuweisen' && (!z.mitarbeiter || !z.auftrag));
+      const ohneAuftrag = s2.find((z) => z.typ === 'auftrag_rechnung' && !z.auftrag);
+      if (ohneAuftrag) return { text: 'Für welchen Auftrag soll ich die Rechnung machen? Sagen Sie z. B.: «Schreib die Rechnung für den Auftrag Badsanierung Müller».' };
       if (fehlt) return { text: !fehlt.auftrag ? 'Welchen Auftrag soll ich zuteilen? Sagen Sie z. B.: «Erstelle den Auftrag Badsanierung Müller und teile ihn Luca zu».' : 'Wem soll ich den Auftrag zuteilen? Nennen Sie bitte den Namen.' };
       if (s2.length > 1) return { aktion: { typ: 'plan', schritte: s2 } };
       if (s2.length === 1) return { aktion: s2[0] };
@@ -150,17 +165,19 @@
   }
 
   // Vorschau-Karte
-  const TITEL = { plan: '📋 Mehrere Schritte', mitarbeiter: '👤 Mitarbeiter erfassen', auftrag: '📍 Auftrag erstellen', zuweisen: '🔗 Auftrag zuteilen', rechnung: '🧾 Rechnung vorbereiten', erinnerung: '🔔 Erinnerung eintragen', mahnen: '⏰ Überfällige erinnern', stelle: '🧑‍💼 Offene Stelle vorbereiten', einsatz: '🗓️ Einsatz planen', navigieren: '➡️ Hinführen' };
+  const TITEL = { auftrag_rechnung: '🧾 Rechnung zum Auftrag', plan: '📋 Mehrere Schritte', mitarbeiter: '👤 Mitarbeiter erfassen', auftrag: '📍 Auftrag erstellen', zuweisen: '🔗 Auftrag zuteilen', rechnung: '🧾 Rechnung vorbereiten', erinnerung: '🔔 Erinnerung eintragen', mahnen: '⏰ Überfällige erinnern', stelle: '🧑‍💼 Offene Stelle vorbereiten', einsatz: '🗓️ Einsatz planen', navigieren: '➡️ Hinführen' };
   const schrittText = (a) => ({
     mitarbeiter: () => `Mitarbeiter <b>${esc(a.name)}</b> erfassen${a.stundenlohn ? ', Stundenlohn ' + chf(a.stundenlohn) : ''}${a.ansatz ? ', Ansatz ' + chf(a.ansatz) : ''}`,
     auftrag: () => `Auftrag <b>${esc(a.name)}</b> erstellen${a.kunde ? ' für ' + esc(a.kunde) : ''}${a.adresse ? ', ' + esc(a.adresse) : ''}`,
     zuweisen: () => `Auftrag <b>${esc(a.auftrag)}</b> an <b>${esc(a.mitarbeiter)}</b> zuteilen`,
+    rechnung: () => `Rechnung${a.kunde ? ' an <b>' + esc(a.kunde) + '</b>' : a.auftrag ? ' zum Auftrag <b>' + esc(a.auftrag) + '</b>' : ''}: ${(a.positionen || []).map((p) => `${esc(p.text)} ${Number(p.menge).toLocaleString('de-CH')} × ${chf(p.preis)}`).join(', ')} vorbereiten`,
+    auftrag_rechnung: () => `Rechnung zum Auftrag <b>${esc(a.auftrag)}</b> vorbereiten (alle noch nicht verrechneten Stunden, Material und Fahrspesen)`,
     einsatz: () => `Einsatz für <b>${esc(a.mitarbeiter)}</b> am ${dk(a.datum)}${a.von ? ' um ' + esc(a.von) : ''}${a.auftrag ? ' (' + esc(a.auftrag) + ')' : ''}`,
   }[a.typ] || (() => esc(TITEL[a.typ] || a.typ)))();
   function karte(a) {
     let inhalt = '';
     if (a.typ === 'plan') inhalt = `<ol style="margin:0;padding-left:18px">${(a.schritte || []).map((z) => `<li>${schrittText(z)}</li>`).join('')}</ol>`;
-    if (['mitarbeiter', 'auftrag', 'zuweisen'].includes(a.typ)) inhalt = schrittText(a);
+    if (['mitarbeiter', 'auftrag', 'zuweisen', 'auftrag_rechnung'].includes(a.typ)) inhalt = schrittText(a) + (a.typ === 'auftrag_rechnung' ? '<br><small>Sie sehen die Rechnung danach und senden sie selbst.</small>' : '');
     if (a.typ === 'rechnung') inhalt = `An: <b>${esc(a.kunde)}</b><br>${(a.positionen || []).map((p) => `${esc(p.text)}: ${Number(p.menge).toLocaleString('de-CH')} × ${chf(p.preis)} = <b>${chf(Math.round(p.menge * p.preis))}</b>`).join('<br>')}<br><small>Sie sehen die Rechnung danach und senden sie selbst.</small>`;
     if (a.typ === 'erinnerung') inhalt = `<b>${esc(a.titel)}</b><br>${dk(a.datum)}${a.zeit ? ' um ' + esc(a.zeit) : ' (ganzer Tag)'}`;
     if (a.typ === 'mahnen') inhalt = 'Ich öffne die Rechnungen mit dem Mahn-Assistenten. Dort sehen Sie alle Überfälligen und bereiten Erinnerung oder Mahnung mit einem Klick vor.';
@@ -207,8 +224,27 @@
       const { error } = await sb.from('ze_auftraege').update({ zugewiesen: zu }).eq('id', f.id);
       return error ? 'Das hat nicht geklappt: ' + error.message : `✓ „${f.name}“ ist ${m.name} zugeteilt. ${m.name} sieht den Auftrag jetzt auf dem Handy.`;
     }
+    if (a.typ === 'auftrag_rechnung') {
+      if (!sb) return 'Bitte zuerst anmelden.';
+      const f = await finde('ze_auftraege', a.auftrag); if (!f) return `Ich finde keinen Auftrag „${a.auftrag}“.`;
+      const [{ data: ein }, { data: ma }, { data: mat }] = await Promise.all([
+        sb.from('ze_eintraege').select('id,mitarbeiter_id,datum,minuten,taetigkeit,km').eq('auftrag_id', f.id).eq('verrechnet', false).is('geloescht_am', null),
+        sb.from('ze_mitarbeiter').select('id,name,ansatz_rappen'),
+        sb.from('lg_bewegungen').select('id,menge,lg_artikel(name,nummer,verkauf_rappen,einheit)').eq('auftrag_id', f.id).eq('art', 'ausgang').eq('verrechnet', false)]);
+      const pos = [], g = new Map();
+      for (const e of ein || []) { const k = e.mitarbeiter_id + '|' + (e.taetigkeit || '').toLowerCase(); if (!g.has(k)) g.set(k, { m: (ma || []).find((x) => x.id === e.mitarbeiter_id) || {}, t: e.taetigkeit, min: 0 }); g.get(k).min += e.minuten; }
+      for (const x of g.values()) pos.push({ text: `${x.t || 'Arbeit'} (${x.m.name || 'Mitarbeiter'})`, menge: Math.round(x.min / 6) / 10, preis: x.m.ansatz_rappen || 0 });
+      const pa = new Map(); for (const b of mat || []) { const k = (b.lg_artikel || {}).name || 'Material'; const y = pa.get(k) || { a: b.lg_artikel || {}, menge: 0 }; y.menge += Math.abs(Number(b.menge) || 0); pa.set(k, y); }
+      for (const y of pa.values()) pos.push({ text: (y.a.name || 'Material') + (y.a.nummer ? ` (${y.a.nummer})` : ''), menge: Math.round(y.menge * 100) / 100, preis: y.a.verkauf_rappen || 0 });
+      const km = (ein || []).reduce((s, e) => s + Number(e.km || 0), 0); if (km) pos.push({ text: `Fahrspesen ${km} km`, menge: km, preis: 70 });
+      if (!pos.length) pos.push({ text: 'Arbeit gemäss Auftrag ' + f.name, menge: 1, preis: f.pauschal_rappen || 0 });
+      if ((ein || []).length) await sb.from('ze_eintraege').update({ verrechnet: true }).in('id', ein.map((e) => e.id));
+      if ((mat || []).length) await sb.from('lg_bewegungen').update({ verrechnet: true }).in('id', mat.map((b) => b.id));
+      return ausfuehren({ typ: 'rechnung', kunde: f.kunde || '', projekt: f.name, positionen: pos });
+    }
     if (a.typ === 'rechnung') {
-      try { sessionStorage.setItem('ordasio.zeit.rechnung', JSON.stringify({ positionen: a.positionen.map((p) => ({ text: p.text, menge: String(p.menge), preis: (p.preis / 100).toFixed(2) })), kunde: a.kunde, quelle: 'Ordi' })); } catch {}
+      if (!a.kunde && a.auftrag && sb) { const f = await finde('ze_auftraege', a.auftrag); if (f) { a.kunde = f.kunde || ''; a.projekt = f.name; } }
+      try { sessionStorage.setItem('ordasio.zeit.rechnung', JSON.stringify({ positionen: a.positionen.map((p) => ({ text: p.text, menge: String(p.menge), preis: p.preis ? (p.preis / 100).toFixed(2) : '' })), kunde: a.kunde, projekt: a.projekt || '', quelle: 'Ordi' })); } catch {}
       location.href = WURZEL + 'rechnungen/'; return 'Ich öffne die Rechnung …';
     }
     if (a.typ === 'erinnerung') {
