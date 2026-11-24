@@ -240,7 +240,16 @@ a.live{text-decoration:none}
     Z.zeitAn = !k.data || k.data.zeit_erfassen !== false;
     Z.optionen = (k.data && k.data.optionen) || {};
     Z.mitarbeiter = m.data; Z.auftraege = a.data;
+    try { const sp = await sb.from('ze_spesen').select('id,mitarbeiter_id,datum,betrag_rappen,text,status,beleg').order('datum', { ascending: false }).limit(200); Z.spesen = sp.data || []; } catch { Z.spesen = []; }
   }
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-sp-beleg]');
+    if (b) { const x = (Z.spesen || []).find((y) => y.id === b.dataset.spBeleg); if (x && x.beleg) { const w = window.open(); if (w) w.document.write(`<title>Beleg</title><img src="${x.beleg}" style="max-width:100%">`); } return; }
+    const s = e.target.closest('[data-sp]'); if (!s) return;
+    const { error } = await sb.from('ze_spesen').update({ status: s.dataset.st }).eq('id', s.dataset.sp);
+    if (error) { toast(fehlerText(error)); return; }
+    const x = (Z.spesen || []).find((y) => y.id === s.dataset.sp); if (x) x.status = s.dataset.st; zeichnen(); toast(s.dataset.st === 'genehmigt' ? '✓ Genehmigt' : 'Abgelehnt');
+  });
   // Einträge: ganzes Jahr rund um den gewählten Monat und die gewählte Woche (reicht für Übersicht, Monat und offene Posten)
   async function eintraegeLaden() {
     const von = [Z.monat + '-01', Z.woche, plusTage(heute(), -400)].sort()[0];
@@ -312,7 +321,11 @@ a.live{text-decoration:none}
     const kw = (() => { const d = new Date(Z.woche + 'T12:00'); d.setDate(d.getDate() + 3); const j = new Date(d.getFullYear(), 0, 4); return 1 + Math.round(((d - j) / 864e5 - 3 + ((j.getDay() + 6) % 7)) / 7); })();
     const neueste = Z.eintraege.slice().sort((a, b) => (b.erstellt > a.erstellt ? 1 : -1)).slice(0, 6);
     const zeitHinweis = Z.zeitAn === false ? '<div class="info-box" style="margin-bottom:14px">Die Arbeitszeit wird zurzeit nicht erfasst. Ihre Mitarbeiter sehen nur Aufträge, Einsätze und Fotos. Einschalten unter „Mitarbeiter“.</div>' : '';
-    return zeitHinweis + `<div class="kopf"><div><h1>Übersicht</h1><p class="unter">Wer hat wann wie lange gearbeitet.</p></div>
+    const sp = (Z.spesen || []).filter((x) => x.status === 'offen');
+    const spesenKarte = sp.length ? `<div class="card" style="margin-bottom:14px"><h2>🧾 Spesen zum Prüfen (${sp.length})</h2>${sp.map((x) => `<div class="zeile"><div style="min-width:0"><b>CHF ${chf(x.betrag_rappen)} · ${esc(ma(x.mitarbeiter_id).name || '')}</b><small>${dk(x.datum)}${x.text ? ' · ' + esc(x.text) : ''}</small></div>
+      <span class="aktionen">${x.beleg ? `<button class="btn klein" data-sp-beleg="${x.id}">Beleg</button>` : ''}<button class="btn klein" data-sp="${x.id}" data-st="abgelehnt">Ablehnen</button><button class="btn klein haupt" data-sp="${x.id}" data-st="genehmigt">Genehmigen</button></span></div>`).join('')}
+      <p class="hinweis" style="margin-top:6px">Genehmigte Spesen erfassen Sie in der Buchhaltung als Ausgabe oder zahlen sie mit dem Lohn aus.</p></div>` : '';
+    return zeitHinweis + spesenKarte + `<div class="kopf"><div><h1>Übersicht</h1><p class="unter">Wer hat wann wie lange gearbeitet.</p></div>
         <div class="aktionen"><button class="btn" data-a="startAnpassen">Übersicht anpassen</button><button class="btn" data-a="eintragNeu">+ Eintrag</button><button class="btn" data-a="lohn">Stunden in den Lohnlauf</button></div></div>
       ${ST().zahlen ? `<div class="raster r4">
         <div class="card zahl"><div class="l">Diese Woche</div><div class="w">${std(summe(inWoche))}</div><div class="k">Stunden, alle Mitarbeiter</div></div>

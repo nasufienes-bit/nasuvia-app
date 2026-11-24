@@ -141,6 +141,7 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
     if (data.fehler) { setz('ze.token', null); fehler('Link nicht mehr gültig', data.fehler); return; }
     Z.daten = data;
     zeichnen();
+    sb.rpc('ze_spesen_meine', { p_token: token }).then(({ data: sp }) => { if (Array.isArray(sp)) { Z.spesen = sp; if (!Z.form) zeichnen(); } });
     sb.rpc('ab_ich', { p_token: token }).then(({ data: ab }) => { if (ab && !ab.fehler) { Z.ab = ab; if (!Z.form) zeichnen(); } });
     if (Z.auftrag && !Z.form) fotosLaden(Z.auftrag);
   }
@@ -283,7 +284,37 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
       <div class="karte"><h2>Ferien oder Abwesenheit</h2>
         ${antr.slice(0, 6).map((a) => `<div class="zeile"><div><b>${esc(ANTRAG[a.art])}: ${dk(a.von)}${a.bis !== a.von ? ' bis ' + dk(a.bis) : ''}</b><small>${esc(ANTRAG_ST[a.status])}${a.antwort ? ' · ' + esc(a.antwort) : ''}</small></div>${a.status === 'offen' ? `<button class="loeschen" style="margin:0" data-antrag-zurueck="${a.id}">Zurückziehen</button>` : ''}</div>`).join('')}
         <button class="gross leicht" data-a="antrag" style="margin-top:10px">Ferien oder Abwesenheit melden</button></div>
+      <div class="karte"><h2>Spesen</h2>
+        ${(Z.spesen || []).slice(0, 6).map((x) => `<div class="zeile"><div><b>CHF ${(x.betrag_rappen / 100).toFixed(2)} · ${esc(x.text || 'Spesen')}</b><small>${dk(x.datum)} · ${{ offen: 'Wird geprüft', genehmigt: 'Genehmigt', abgelehnt: 'Abgelehnt', ausbezahlt: 'Ausbezahlt' }[x.status] || ''}</small></div></div>`).join('')}
+        <button class="gross leicht" data-a="spesen" style="margin-top:10px">🧾 Spesen mit Foto erfassen</button></div>
       ${alt.length ? `<details class="karte"><summary style="cursor:pointer"><b>Frühere Mitteilungen (${alt.length})</b></summary>${alt.map((m) => `<div class="zeile"><div><b>${esc(m.titel)}</b><small>${dk(String(m.erstellt).slice(0, 10))}${m.text ? ' · ' + esc(m.text.slice(0, 120)) : ''}</small></div></div>`).join('')}</details>` : ''}`;
+  }
+  // Spesen: Betrag, wofür, Foto der Quittung (verkleinert)
+  function spesenFenster() {
+    const dlg = document.createElement('dialog'); dlg.className = 'ui-frage';
+    dlg.innerHTML = `<form method="dialog"><h3>Spesen erfassen</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label>Betrag CHF<input type="text" name="betrag" inputmode="decimal" required placeholder="0.00"></label><label>Datum<input type="date" name="datum" value="${heute()}" required></label></div>
+      <label>Wofür?<input type="text" name="text" maxlength="200" placeholder="z. B. Parkgebühr, Material, Verpflegung"></label>
+      <label class="gross leicht" style="display:block;text-align:center;cursor:pointer;margin-top:4px"><span data-foto-text>📷 Foto der Quittung</span><input type="file" accept="image/*" capture="environment" name="foto" hidden></label>
+      <div class="ui-knoepfe"><button type="button" class="nein" data-zu>Abbrechen</button><button class="ja">Senden</button></div></form>`;
+    document.body.appendChild(dlg);
+    dlg.addEventListener('close', () => dlg.remove());
+    dlg.querySelector('[data-zu]').onclick = () => dlg.close();
+    let bild = null;
+    dlg.querySelector('[name=foto]').onchange = async (e) => {
+      const d = e.target.files[0]; if (!d) return;
+      bild = await new Promise((ok) => { const img = new Image(); img.onload = () => { const k = Math.min(1, 1200 / Math.max(img.width, img.height)); const c = document.createElement('canvas'); c.width = img.width * k; c.height = img.height * k; c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); ok(c.toDataURL('image/jpeg', 0.7)); }; img.onerror = () => ok(null); img.src = URL.createObjectURL(d); });
+      dlg.querySelector('[data-foto-text]').textContent = bild ? '✓ Foto bereit' : 'Foto konnte nicht gelesen werden';
+    };
+    dlg.querySelector('form').onsubmit = async (e) => {
+      e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
+      const r = Math.round(Number(String(f.betrag).replace(/[’'\s]/g, '').replace(',', '.')) * 100);
+      if (!r || r <= 0) { toast('Bitte einen Betrag eingeben'); return; }
+      const { error } = await sb.rpc('ze_spesen_melden', { p_token: token, p_datum: f.datum, p_betrag_rappen: r, p_text: f.text || '', p_beleg: bild });
+      if (error) { toast(fehlerText(error), 4000); return; }
+      dlg.close(); toast('✓ Spesen gesendet. Das Büro prüft sie.'); laden();
+    };
+    dlg.showModal();
   }
   function antragFenster() {
     const dlg = document.createElement('dialog'); dlg.className = 'ui-frage';
@@ -314,6 +345,7 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
     const az = ev.target.closest('[data-antrag-zurueck]');
     if (az) { if (!await UI.frage('Diesen Antrag zurückziehen?')) return; await sb.rpc('ab_antrag_zurueck', { p_token: token, p_id: az.dataset.antragZurueck }); laden(); return; }
     if (ev.target.closest('[data-a="antrag"]')) antragFenster();
+    if (ev.target.closest('[data-a="spesen"]')) spesenFenster();
   });
 
   function formular() {
