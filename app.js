@@ -2205,10 +2205,10 @@
   // Änderungsprotokoll vom Server: jede Erfassung, Änderung und Löschung von Buchungen (GeBüV)
   async function protokollZeigen() {
     const sb = window.NASUVIA_SB; if (!sb) return;
-    const { data, error } = await sb.from('aenderungen').select('art,datensatz_id,aktion,alt,neu,zeit').order('zeit', { ascending: false }).limit(300);
+    const { data, error } = await sb.from('aenderungen').select('art,datensatz_id,aktion,alt,neu,zeit,von,user_id').order('zeit', { ascending: false }).limit(300);
     if (error) { toast('Protokoll nicht erreichbar: ' + error.message); return; }
     const NAME = { erfasst: 'Erfasst', geaendert: 'Geändert', geloescht: 'Gelöscht', entfernt: 'Entfernt', abgelehnt: 'Abgelehnt (festgeschrieben)', festschreiben: 'Festgeschrieben' };
-    const zeile = (x) => { const d = x.neu || x.alt || {}; const betrag = d.betragRappen != null ? chf(d.betragRappen) : ''; return `<tr><td>${esc(new Date(x.zeit).toLocaleString('de-CH', { dateStyle: 'short', timeStyle: 'short' }))}</td><td>${esc(NAME[x.aktion] || x.aktion)}</td><td>${esc(x.aktion === 'festschreiben' ? 'bis ' + datumKurz((x.neu || {}).festBis || '') : [d.datum ? datumKurz(d.datum) : '', d.text || d.partner || d.kategorie || x.datensatz_id].filter(Boolean).join(' · '))}</td><td style="text-align:right">${esc(betrag)}</td></tr>`; };
+    const zeile = (x) => { const d = x.neu || x.alt || {}; const betrag = d.betragRappen != null ? chf(d.betragRappen) : ''; return `<tr><td>${esc(new Date(x.zeit).toLocaleString('de-CH', { dateStyle: 'short', timeStyle: 'short' }))}</td><td>${esc(NAME[x.aktion] || x.aktion)}${x.von && x.von !== x.user_id ? ' <span class="marke marke-info">Treuhänder</span>' : ''}</td><td>${esc(x.aktion === 'festschreiben' ? 'bis ' + datumKurz((x.neu || {}).festBis || '') : [d.datum ? datumKurz(d.datum) : '', d.text || d.partner || d.kategorie || x.datensatz_id].filter(Boolean).join(' · '))}</td><td style="text-align:right">${esc(betrag)}</td></tr>`; };
     const dlg = document.createElement('dialog');
     dlg.innerHTML = `<form method="dialog" style="width:min(760px,calc(100vw - 24px))"><div class="dlg-kopf"><h3>Änderungsprotokoll</h3><button class="x" value="zu" aria-label="Schliessen">×</button></div>
       <p class="hinweis">Der Server hält jede Änderung an Buchungen fest, mit Zeitpunkt sowie altem und neuem Stand. Änderungen in festgeschriebenen Jahren lehnt er ab. Die letzten 300 Einträge:</p>

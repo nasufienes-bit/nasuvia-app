@@ -97,6 +97,7 @@ input:focus{outline:0;border-color:var(--elektrik)}
       <h2><span class="ic">📦</span>Lizenz und Zusatzpakete</h2>
       <div id="lizenzKurz"><p>Wird geladen …</p></div>
       <div class="knoepfe"><a class="btn haupt" href="../lizenz/#zusatzpakete">Zusatzpakete ansehen</a><a class="btn" href="../lizenz/">Lizenz verwalten</a></div>
+      <div class="zeile" style="border-top:1px solid var(--linie);margin-top:4px"><span class="ic">🤝</span><span class="txt"><b>Fair-Abo</b><small id="fairText">Keine automatische Verlängerung, kündbar per Knopfdruck</small></span><button class="btn klein" id="kuendigen">Kündigen</button></div>
     </section>
 
     <section class="karte breit empf-karte" id="empfehlen">
@@ -148,7 +149,7 @@ input:focus{outline:0;border-color:var(--elektrik)}
     f.name.value = l.name || (user.user_metadata || {}).name || (user.user_metadata || {}).full_name || '';
     f.firma.value = l.firma || ''; f.telefon.value = l.telefon || ''; f.email.value = user.email || '';
     try { wege = (await (await fetch(K.url + '/auth/v1/settings', { headers: { apikey: K.key } })).json()).external || {}; } catch (e) { wege = {}; }
-    wegeZeichnen(); mfaZeichnen(); firmenZeichnen(); lizenzZeichnen(); empfZeichnen();
+    wegeZeichnen(); mfaZeichnen(); firmenZeichnen(); lizenzZeichnen(); empfZeichnen(); fairZeichnen();
   }
 
   /* ---------- Anmeldemethoden ---------- */
@@ -271,6 +272,22 @@ input:focus{outline:0;border-color:var(--elektrik)}
         : mods.length ? mods.map(function(m){ return '<div class="zeile"><span class="ic">' + m.icon + '</span><span class="txt"><b>' + esc(m.name) + '</b><small>' + esc(m.kurz) + '</small></span><span class="marke">Gebucht</span></div>'; }).join('')
         : '<p style="font-size:13.5px">Noch keine Zusatzpakete. Schauen Sie, was zu Ihnen passt.</p>');
   }
+
+  /* ---------- Fair-Abo: kündigen per Knopfdruck ---------- */
+  function fairZeichnen(){
+    var k = lizenz.kuendigung_am, bis = lizenz.status === 'test' ? lizenz.test_bis : lizenz.gueltig_bis;
+    $('fairText').textContent = k ? 'Gekündigt am ' + dk(String(k).slice(0, 10)) + '. Alles bleibt bis ' + dk(bis) + ' offen, danach können Sie Ihre Daten weiterhin ansehen und herunterladen.'
+      : 'Keine automatische Verlängerung und keine Kündigungsfrist. Kündigen geht hier mit einem Klick.';
+    $('kuendigen').textContent = k ? 'Kündigung zurücknehmen' : 'Kündigen';
+  }
+  $('kuendigen').onclick = async function(){
+    var an = !lizenz.kuendigung_am;
+    if (an && !await UI.frage('Ordasio kündigen?\n\nIhre Lizenz bleibt bis zum Ende der bezahlten Zeit offen. Danach können Sie alle Daten weiterhin ansehen und kostenlos herunterladen. Sie können die Kündigung jederzeit zurücknehmen.', { ja: 'Kündigen' })) return;
+    var r = await sb.rpc('lizenz_kuendigen', { p_an: an });
+    if (r.error) { UI.hinweis(r.error.message); return; }
+    lizenz.kuendigung_am = r.data.kuendigung_am; fairZeichnen();
+    UI.hinweis(an ? 'Gekündigt. Schade, dass Sie gehen! Verraten Sie uns, was wir besser machen können? Ein kurzes WhatsApp an 079 821 84 08 hilft uns sehr.' : '✓ Schön, dass Sie bleiben!');
+  };
 
   /* ---------- Empfehlen und Treue ---------- */
   async function empfZeichnen(){
