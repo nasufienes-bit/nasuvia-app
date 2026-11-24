@@ -38,6 +38,11 @@
     ['ablage-team', 'Firmenablage', 'Mitteilungen ans Team und Ferienanträge', 'mitteilung info team nachricht ferien antrag absenz krank bewilligen ablehnen urlaub', [
       'Firmenablage, Mitteilungen, „+ Mitteilung“: an alle oder an eine Person. Sie sehen, wer sie gelesen hat.',
       'Mitarbeitende melden Ferien und Absenzen auf ihrem Handy-Link. Unter „Anträge“ bewilligen oder ablehnen Sie mit einem Tipp.'], WURZEL + 'ablage/?tab=mitteilungen'],
+    ['vorlagen', 'Vorlagen', 'Vorlagen: Rapporte, Arbeitszeugnis, Kündigung, Quittung', 'vorlage formular drucken stundenrapport wochenrapport monatsrapport arbeitsrapport regie material abnahmeprotokoll auftragsbestätigung quittung ferienantrag spesen arbeitszeugnis arbeitsbestätigung kündigung kündigungsfrist beförderung lohnerhöhung', [
+      'Im Menü „Vorlagen“ öffnen und eine Vorlage wählen.',
+      'Links ausfüllen, rechts sehen Sie das fertige Blatt mit Ihrem Logo und Ihrer Adresse.',
+      '„Drucken / PDF“ zum Ausdrucken oder als PDF speichern, „Per E-Mail“ für den Text, „In Firmenablage“ legt es als PDF beim richtigen Ordner und Mitarbeiter ab.',
+      'Bei der Kündigung rechnet Ordasio das früheste Ende nach OR 335c aus.'], WURZEL + 'vorlagen/'],
     ['dienste', 'Erste Schritte', 'Website oder Instagram von uns gestalten lassen', 'website homepage webseite instagram highlights design gestalten entwurf gratis', [
       'Auf der Startseite „Ihre Website, von uns gestaltet“ tippen.',
       'Gewünschten Dienst und Stil wählen und die Anfrage senden. Den ersten Website-Entwurf machen wir kostenlos.'], WURZEL + 'dienste/'],

@@ -83,7 +83,7 @@
     const vorhanden = new Set(Z.ordner.map((o) => o.name.toLowerCase()));
     const ideen = IDEEN.filter(([n]) => !vorhanden.has(n.toLowerCase()));
     return `<div class="kopf"><div><h1>Firmenablage</h1><p class="unter">Alles an einem Ort: Personal, Verträge, Marketing. Die Ordner benennen Sie selbst.</p></div>
-        <div class="aktionen"><button class="btn" data-a="korb">Zuletzt gelöscht</button><button class="btn" data-a="ordnerNeu">+ Ordner</button><button class="btn haupt" data-a="hoch">Dateien hochladen</button></div></div>
+        <div class="aktionen"><button class="btn" data-a="korb">Zuletzt gelöscht</button><a class="btn" href="../vorlagen/">Vorlagen</a><button class="btn" data-a="ordnerNeu">+ Ordner</button><button class="btn haupt" data-a="hoch">Dateien hochladen</button></div></div>
       ${!Z.ordner.length ? `<div class="tipp-karte"><span style="font-size:26px">💡</span><span><b>Tipp:</b> Viele Firmen haben Arbeitszeugnisse, Kündigungen und Verträge verstreut in E-Mails und Schubladen. Legen Sie hier Ordner an, zum Beispiel einen pro Thema, und laden Sie Dateien direkt vom Computer oder Handy hoch. Dokumente für einen Mitarbeiter können Sie ihm auf seinem Handy-Link zeigen.</span></div>` : ''}
       <div class="filter"><input type="search" data-suche placeholder="In allen Dateien suchen" value="${esc(Z.suche)}" style="flex:1;min-width:220px"></div>
       ${s ? `<div class="card">${treffer.map((d) => dateiZeile(d)).join('') || '<p class="leer">Nichts gefunden</p>'}</div>` : `

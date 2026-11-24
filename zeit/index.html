@@ -516,7 +516,7 @@ a.live{text-decoration:none}
   function mitarbeiter() {
     const monat = heute().slice(0, 7);
     return `<div class="kopf"><div><h1>Mitarbeiter</h1><p class="unter">Jeder bekommt einen persönlichen Link zum Erfassen. Kein Konto, kein Passwort.</p></div>
-        <div class="aktionen"><button class="btn" data-a="korb">Zuletzt gelöscht</button><button class="btn haupt" data-a="maNeu">+ Mitarbeiter</button></div></div>
+        <div class="aktionen"><button class="btn" data-a="korb">Zuletzt gelöscht</button><a class="btn" href="../vorlagen/?v=wochenrapport" title="Rapporte zum Ausfüllen von Hand">Rapport-Vorlagen</a><button class="btn haupt" data-a="maNeu">+ Mitarbeiter</button></div></div>
       <div class="card" style="margin-bottom:14px"><label style="display:flex;gap:12px;align-items:flex-start;cursor:pointer"><input type="checkbox" data-zeit-an ${Z.zeitAn !== false ? 'checked' : ''} style="width:20px;height:20px;margin-top:2px;accent-color:var(--blau)">
         <span><b>Mitarbeiter erfassen ihre Arbeitszeit</b><br><small class="hinweis">Ausgeschaltet sehen Ihre Mitarbeiter auf dem Handy nur ihre Aufträge und Einsätze und laden Fotos hoch, ohne Stunden zu erfassen.</small></span></label></div>
       ${Z.zeitAn !== false ? optionenKarte() : ''}
