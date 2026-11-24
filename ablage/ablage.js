@@ -336,6 +336,11 @@
     };
     d.showModal();
   }
+  // Von Ordi vorbereitete Stelle: Dialog mit dem Beruf öffnen
+  setTimeout(() => { let v = null; try { v = JSON.parse(sessionStorage.getItem('ordasio.stelle') || 'null'); sessionStorage.removeItem('ordasio.stelle'); } catch {} if (!v || Z.tab !== 'bewerbungen' || !bwFrei()) return;
+    stelleDialog(); const d = $('dlg'), sel = d.querySelector('[data-bw-beruf]');
+    if (d.querySelector('[name=pensum]') && v.pensum) d.querySelector('[name=pensum]').value = v.pensum;
+    if (sel) { const opt = [...sel.options].find((o) => o.value && o.text.toLowerCase().includes(String(v.beruf).toLowerCase().slice(0, 5))); if (opt) { sel.value = opt.value; sel.dispatchEvent(new Event('change', { bubbles: true })); } else d.querySelector('[name=titel]').value = v.beruf + (v.pensum ? ' ' + v.pensum : ''); } }, 1500);
   document.addEventListener('click', async (e) => {
     const t = e.target; if (Z.tab !== 'bewerbungen') return;
     if (t.closest('[data-bw-stelle-neu]')) { stelleDialog(); return; }

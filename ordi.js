@@ -31,7 +31,10 @@
     termine: ['Wie buchen Kunden online?', 'Öffnungszeiten ändern'],
     lager: ['Artikel erfassen', 'Was muss ich nachbestellen?'],
   };
-  const vorschlaege = () => VORSCHLAEGE[hier] || ['Was kann Ordasio?', 'Wie schreibe ich eine Rechnung?', 'Zum ersten Mal selbständig'];
+  const AUFGABEN = ['Umsatz diesen Monat?', 'Offene Rechnungen?', 'Erinnere mich morgen um 9 an die Offerte'];
+  const vorschlaege = () => [...(VORSCHLAEGE[hier] || ['Was kann Ordasio?', 'Wie schreibe ich eine Rechnung?']).slice(0, 2), ...AUFGABEN.slice(0, 2)];
+  // Aufgaben-Teil nachladen (Rechnung, Erinnerung, Zahlen …)
+  try { if (!window.OrdiAktionen) { const sc = document.createElement('script'); sc.src = new URL('ordi-aktionen.js', skript.src).href; document.head.appendChild(sc); } } catch {}
 
   // Ordi selbst: ein freundlicher Ordner mit Gesicht (eigene Zeichnung)
   const GESICHT = (gross = 30) => `<svg viewBox="0 0 64 64" width="${gross}" height="${gross}" aria-hidden="true"><defs><linearGradient id="og" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34D399"/><stop offset="1" stop-color="#0E7A55"/></linearGradient></defs>
@@ -70,6 +73,8 @@
   .ordi-msg ol{margin:6px 0 0 18px;padding:0}.ordi-msg li{margin:2px 0}
   .ordi-msg a.ordi-hin{display:inline-block;margin-top:8px;font-weight:700;color:var(--elektrik,#0E7A55);text-decoration:none}
   .ordi-chips{display:flex;gap:6px;flex-wrap:wrap}
+  .ordi-aktion{background:#fff;border:1.5px solid color-mix(in srgb,var(--elektrik,#0E7A55) 35%,transparent);border-radius:14px;padding:10px 12px;margin-top:4px}.ordi-aktion small{color:#7C8499}
+  .ordi-aktion [data-ordi-ja]{background:var(--blau,#0B3B2E)!important;color:#fff!important;border-color:transparent!important}
   .ordi-chips button{border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 18%,transparent);background:#fff;border-radius:100px;padding:6px 11px;font:inherit;font-size:13px;color:var(--blau,#0B3B2E);cursor:pointer}
   .ordi-eingabe{display:flex;gap:8px;padding:10px;border-top:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 10%,transparent);background:#fff}
   .ordi-eingabe input{flex:1;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 22%,transparent);border-radius:100px;padding:11px 14px;font:inherit;font-size:16px;min-width:0}
@@ -124,7 +129,7 @@
       <form class="ordi-eingabe"><input id="ordiFrage" placeholder="Frage stellen …" autocomplete="off" enterkeyhint="send"><button>Senden</button></form>`;
     document.body.appendChild(panel);
     if (!verlauf.length) {
-      verlauf.push({ rolle: 'ordi', text: 'Hallo! Ich bin Ordi. Fragen Sie mich alles zu Ordasio, zum Beispiel, wie etwas geht oder wo Sie etwas finden.' });
+      verlauf.push({ rolle: 'ordi', text: 'Hallo! Ich bin Ordi. Ich zeige Ihnen, wie etwas geht, und erledige auch Aufgaben, zum Beispiel: «Rechnung an Müller über 3 Stunden à 95», «Erinnere mich am Freitag an die MWST» oder «Umsatz im Oktober?». Ich frage immer, bevor ich etwas ausführe.' });
       verlauf.push({ rolle: 'ordi', text: '💡 ' + FUNFACTS[0], fakt: true });
     } else if (Math.random() < 0.35) verlauf.push({ rolle: 'ordi', text: '💡 ' + FUNFACTS[1 + Math.floor(Math.random() * (FUNFACTS.length - 1))], fakt: true });
     malen();
@@ -133,6 +138,7 @@
       if (e.target.closest('[data-ordi-zu]')) zu();
       const c = e.target.closest('[data-ordi-frage]'); if (c) fragen(c.dataset.ordiFrage);
       if (e.target.closest('[data-ordi-menue]')) menue();
+      if (e.target.closest('[data-ordi-ja]') || e.target.closest('[data-ordi-nein]')) aktionAntwort(!!e.target.closest('[data-ordi-ja]'));
     });
     setTimeout(() => { const f = panel && panel.querySelector('#ordiFrage'); if (f && !matchMedia('(max-width: 820px)').matches) f.focus(); }, 50);
   }
@@ -168,13 +174,21 @@
     const artikel = (S() ? S().finden(frage) : []).slice(0, 6).map((a) => ({ titel: a.titel, schritte: a.schritte }));
     try {
       const r = await fetch(K.url + '/functions/v1/ordi', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t, apikey: K.key },
-        body: JSON.stringify({ frage, artikel, bereich: BEREICH[hier] || hier, paket: (window.NASUVIA_LIZENZ || {}).paket || '', verlauf: verlauf.filter((m) => !m.fakt && !m.denkt).slice(-6).map((m) => ({ rolle: m.rolle, text: m.text })) }) });
+        body: JSON.stringify({ frage, artikel, kontext: window.OrdiAktionen ? await window.OrdiAktionen.kontext().catch(() => null) : null, heute: new Date().toLocaleDateString('sv-SE'), bereich: BEREICH[hier] || hier, paket: (window.NASUVIA_LIZENZ || {}).paket || '', verlauf: verlauf.filter((m) => !m.fakt && !m.denkt).slice(-6).map((m) => ({ rolle: m.rolle, text: m.text })) }) });
       if (r.status === 501) { kiAus = true; return null; }
       const j = await r.json().catch(() => ({}));
-      if (!r.ok || !j.text) return null;
+      if (!r.ok || (!j.text && !j.aktion)) return null;
       const a = (S() ? S().finden(frage) : [])[0];
-      return { text: j.text, ziel: a && a.ziel };
+      return { text: j.text || '', aktion: j.aktion || null, ziel: !j.aktion && a && a.ziel };
     } catch { return null; }
+  }
+  async function aktionAntwort(ja) {
+    const m = [...verlauf].reverse().find((x) => x.aktion && !x.erledigt); if (!m) return;
+    m.erledigt = true; m.html = m.html.replace(/<div class="ordi-chips"[\s\S]*?<\/div><\/div>$/, '</div>');
+    if (!ja) { verlauf.push({ rolle: 'ordi', text: 'Gut, ich mache nichts.' }); sichern(); malen(); return; }
+    verlauf.push({ rolle: 'ordi', html: '<span class="ordi-tippt"><span></span><span></span><span></span></span>', text: '', denkt: true }); malen();
+    let t; try { t = await window.OrdiAktionen.ausfuehren(m.aktion); } catch (f) { t = 'Das hat nicht geklappt: ' + (f.message || f); }
+    verlauf.pop(); verlauf.push({ rolle: 'ordi', text: t }); sichern(); malen();
   }
   async function fragen(frage) {
     const n = frage.toLowerCase();
@@ -186,9 +200,14 @@
     if (/^(danke|merci|super|toll|perfekt)/.test(n)) { verlauf.push({ rolle: 'ordi', text: 'Gern geschehen! 😊' }); sichern(); malen(); return; }
     if (/wer bist du|was bist du|wie heisst du/.test(n)) { verlauf.push({ rolle: 'ordi', text: 'Ich bin Ordi, der Helfer in Ordasio. Der Name kommt von «Ordnung». Ich kenne die ganze Anleitung und zeige Ihnen den Weg.' }); sichern(); malen(); return; }
     verlauf.push({ rolle: 'ordi', html: '<span class="ordi-tippt"><span></span><span></span><span></span></span>', text: '', denkt: true }); malen();
-    const ki = await mitKi(frage);
+    // Aufgaben und eigene Zahlen zuerst selbst erkennen, dann KI, sonst Anleitung
+    let auf = null; try { auf = window.OrdiAktionen ? await window.OrdiAktionen.erkennen(frage) : null; } catch {}
+    const ki = auf ? null : await mitKi(frage);
     verlauf.pop();
-    verlauf.push(ki ? { rolle: 'ordi', text: ki.text, ziel: ki.ziel } : { rolle: 'ordi', ...lokal(frage) });
+    const a = (auf && auf.aktion) || (ki && ki.aktion);
+    if (a && window.OrdiAktionen) verlauf.push({ rolle: 'ordi', html: (ki && ki.text ? md(ki.text) + '<br>' : '') + window.OrdiAktionen.karte(a), text: 'Vorschlag', aktion: a });
+    else if (auf) verlauf.push({ rolle: 'ordi', ...auf });
+    else verlauf.push(ki ? { rolle: 'ordi', text: ki.text, ziel: ki.ziel } : { rolle: 'ordi', ...lokal(frage) });
     sichern(); malen();
   }
   window.Ordi = { auf, zu, an: () => { setz(AUS, false); knopfZeigen(); }, aus: () => { setz(AUS, true); zu(); if (knopf) { knopf.remove(); knopf = null; } }, istAn: () => !lies(AUS, false) };

@@ -140,7 +140,7 @@
     journalFilter: { art: 'alle', suche: '' },
     alleKonten: false,
   };
-  try { const a = localStorage.getItem('nb.ansicht'); if (a && ANSICHTEN.some(([id]) => id === a)) Z.ansicht = a; } catch {}
+  try { const a = new URLSearchParams(location.search).get('ansicht') || localStorage.getItem('nb.ansicht'); if (a && ANSICHTEN.some(([id]) => id === a)) Z.ansicht = a; } catch {}
 
   async function laden() {
     Z.buchungen = await Speicher.alle('buchungen');

@@ -2349,6 +2349,7 @@ ${[[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' — '), [FIRMA.strasse, FIR
     const l = mahnFaellig();
     if (!l.length) { box.hidden = true; return; }
     box.hidden = false;
+    if (location.hash === '#mahnBox' && !box.dataset.gesprungen) { box.dataset.gesprungen = '1'; setTimeout(() => box.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300); }
     const summe = l.reduce((s, x) => s + (x.r.betragRappen || 0), 0), g = mahnRegeln();
     if (!verkaufErlaubt()) {
       box.innerHTML = `<h2>⏰ ${l.length} ${l.length === 1 ? 'Rechnung ist' : 'Rechnungen sind'} überfällig</h2><p class="hint" style="margin-top:0">CHF ${chf(summe)} warten auf Zahlung. Mit dem Mahn-Assistenten sehen Sie jeden Morgen, wer eine Erinnerung braucht, und bereiten sie mit einem Klick vor.</p>
@@ -2614,11 +2615,18 @@ ${[[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' — '), [FIRMA.strasse, FIR
       dokArt = 'rechnung'; textVorlage(dokArt); dokUi();
       positionen = vorgabe.positionen.map((p) => ({ text: String(p.text || ''), menge: String(p.menge || '1'), preis: String(p.preis || '') }));
       if (vorgabe.projekt && zusatz.projekt) { zusatz.projekt.wert = vorgabe.projekt; zusatz.projekt.an = true; zusatzZeichnen(); }
+      // Kunde übernehmen: vorhandenen wählen oder neu anlegen
+      const kn = String(vorgabe.kunde || '').trim();
+      if (kn) {
+        let k = kunden.find((x) => (x.name || '').toLowerCase() === kn.toLowerCase()) || kunden.find((x) => (x.name || '').toLowerCase().includes(kn.toLowerCase()));
+        if (!k) { k = { id: 'k' + Date.now(), name: kn, strasse: '', nr: '', plz: '', ort: '', land: 'CH', mail: '' }; kunden = kunden.filter((x) => x.name && x.name !== 'Neuer Kunde').concat(k); sichere(KEY_KUNDEN, kunden); }
+        fuelleKunden(k.id);
+      }
     }
     zeichnePositionen();
     await nummernPflegen({ setzen: true });
     aktualisiere({ sofort: true });
-    toast(vorgabe ? `${positionen.length} ${positionen.length === 1 ? 'Position' : 'Positionen'} aus ${vorgabe.quelle === 'Lager' ? 'dem Lager' : vorgabe.quelle === 'Termine' ? 'den Terminen' : 'der Zeiterfassung'} übernommen. Jetzt Kunde wählen.` : ($('rgNr').value ? `Neu: ${dokTitel()} Nr. ${$('rgNr').value}` : 'Neu: ' + dokTitel()), vorgabe ? 6000 : undefined);
+    toast(vorgabe ? `${positionen.length} ${positionen.length === 1 ? 'Position' : 'Positionen'} aus ${vorgabe.quelle === 'Lager' ? 'dem Lager' : vorgabe.quelle === 'Termine' ? 'den Terminen' : vorgabe.quelle === 'Ordi' ? 'Ordi' : vorgabe.quelle === 'Projekte' ? 'dem Projekt' : 'der Zeiterfassung'} übernommen. ${vorgabe.kunde ? 'Kunde „' + vorgabe.kunde + '“ gewählt, Adresse bitte prüfen.' : 'Jetzt Kunde wählen.'}` : ($('rgNr').value ? `Neu: ${dokTitel()} Nr. ${$('rgNr').value}` : 'Neu: ' + dokTitel()), vorgabe ? 6000 : undefined);
   }
   {
     let ze = null;
