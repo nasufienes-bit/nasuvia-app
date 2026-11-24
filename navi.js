@@ -33,6 +33,7 @@
       { id: 'zeit', name: 'Zeiterfassung', text: 'Stunden, Einsatzplan, Rapporte', href: WURZEL + 'zeit/', icon: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/>' },
       { id: 'termine', name: 'Termine', text: 'Online-Buchung für Kunden', href: WURZEL + 'termine/', icon: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M8 14h3"/>' },
       { id: 'lager', name: 'Lager', text: 'Material, Bestand, Nachbestellen', href: WURZEL + 'lager/', icon: '<path d="M3 8 12 3l9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>' },
+      { id: 'projekte', name: 'Projekte', text: 'Budget, Marge, Rapporte', href: WURZEL + 'projekte/', icon: '<path d="M4 20h16M6 20V9l6-5 6 5v11"/><path d="M10 20v-6h4v6"/>' },
       { id: 'ablage', name: 'Firmenablage', text: 'Ordner, Personal, Mitteilungen', href: WURZEL + 'ablage/', icon: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>' },
       { id: 'vorlagen', name: 'Vorlagen', text: 'Rapporte, Zeugnis, Kündigung, Quittung', href: WURZEL + 'vorlagen/', icon: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>' },
       { id: 'privat', name: 'Home-Büro', text: 'Privat: Konto, Abos, Rechnungen', href: WURZEL + 'privat/', icon: '<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>' },

@@ -193,6 +193,8 @@
   const lizenzJetzt = () => window.NASUVIA_LIZENZ || null;
   // Zusatzpaket Finanzen Plus (Fremdwährungen, Liquiditätsvorschau); ohne Lizenz (eigene Nutzung) offen
   const finanzenErlaubt = () => { const l = lizenzJetzt(); return !O || !l || !O.darf || O.darf(l, 'finanzen'); };
+  // Projekte (Zusatzpaket Projekte & Lager) als Kostenstellen beim Buchen
+  const projekteListe = () => { const l = lizenzJetzt(); if (O && l && O.darf && !O.darf(l, 'projekte')) return []; try { return JSON.parse(localStorage.getItem('ordasio.projekte') || '[]') || []; } catch { return []; } };
   const WAEHRUNGEN = ['EUR', 'USD', 'GBP', 'JPY', 'SEK', 'NOK', 'DKK', 'PLN', 'CZK', 'CAD', 'AUD'];
   const kursCache = {};
   async function kursHolen(w, datum) {
@@ -1312,6 +1314,7 @@
             <div class="feld"><label for="fPartner">${ein ? 'Kunde' : 'Lieferant'}</label><input type="text" id="fPartner" list="partnerListe" value="${esc(b.partner || '')}" /><datalist id="partnerListe">${partner.map((p) => `<option value="${esc(p)}">`).join('')}</datalist></div>
             <div class="feld"><label for="fZahlung">Bezahlt mit</label><select id="fZahlung">${ZAHLUNG.map((z) => `<option ${b.zahlung === z ? 'selected' : ''}>${z}</option>`).join('')}</select></div>
           </div>
+          ${(() => { const pj = projekteListe(); return pj.length || b.kostenstelle ? `<div class="feld"><label for="fKst">Projekt / Kostenstelle</label><select id="fKst"><option value="">Keines</option>${pj.map((x) => `<option value="${esc(x.id)}" ${b.kostenstelle === x.id ? 'selected' : ''}>${esc(x.name)}${x.kostenstelle ? ' · ' + esc(x.kostenstelle) : ''}</option>`).join('')}${b.kostenstelle && !pj.some((x) => x.id === b.kostenstelle) ? `<option value="${esc(b.kostenstelle)}" selected>Früheres Projekt</option>` : ''}</select></div>` : ''; })()}
           ${mitKreditor ? `<label class="haken"><input type="checkbox" id="fKreditor" ${b.kreditor ? 'checked' : ''} />Lieferantenrechnung, noch offen (Kreditor)</label>` : ''}
           ${rechnung || (mitKreditor && b.kreditor) ? `<div class="feld-zeile">
             <label class="haken"><input type="checkbox" id="fBezahlt" ${b.bezahlt ? 'checked' : ''} />Rechnung ist bezahlt</label>
@@ -1387,6 +1390,7 @@
       b.text = $('fText').value.trim();
       b.partner = $('fPartner').value.trim();
       b.zahlung = $('fZahlung').value;
+      if ($('fKst')) { if ($('fKst').value) b.kostenstelle = $('fKst').value; else delete b.kostenstelle; }
       if ($('fKreditor')) b.kreditor = $('fKreditor').checked;
       if ($('fBezahlt')) { b.bezahlt = $('fBezahlt').checked; b.bezahltAm = b.bezahlt ? ($('fBezahltAm').value || heute()) : ''; }
     }
