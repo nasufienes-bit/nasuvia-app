@@ -647,13 +647,19 @@
   async function bankImport() {
     const datei = await dateiWaehlen(''); // alle Dateien: camt, CSV, Excel, PDF
     if (!datei) return;
-    let liste;
+    let liste, v;
     try {
-      const v = await Auszug.vorbereiten(datei);
+      v = await Auszug.vorbereiten(datei, (t) => toast(t));
       liste = v.liste || (/<\?xml|<Document/i.test(v.roh.slice(0, 500)) ? camtLesen(v.roh) : csvLesen(v.roh));
     } catch (f) { toast(f.message || 'Diese Datei kann ich nicht lesen'); return; }
     if (!liste.length) { toast('In dieser Datei habe ich keine Buchungen gefunden'); return; }
     const bekannt = new Set(Z.buchungen.map((b) => b.importSchluessel).filter(Boolean));
+    // Schritt 1: Beträge, Vorzeichen und Saldo mit dem Auszug vergleichen (nichts wird gespeichert)
+    const quelle = v.quelle || (/<\?xml|<Document/i.test((v.roh || '').slice(0, 500)) ? 'camt' : 'csv');
+    const geprueft = await Auszug.pruefen({ liste, anfang: v.anfang ?? null, ende: v.ende ?? null, quelle, spalten: v.spalten },
+      { doppelt: (t) => bekannt.has(importSchluessel(t)), datei, weiter: 'Weiter zu den Kategorien' });
+    if (!geprueft || !geprueft.length) return;
+    liste = geprueft;
     const offen = Z.buchungen.filter(istOffen);
     const vergeben = new Set();
     const vorschlaege = liste.map((t) => {
@@ -673,9 +679,9 @@
     dlg.innerHTML = `<form method="dialog" id="iForm" class="import-form">
       <div class="dlg-kopf"><h3>Bankauszug: ${vorschlaege.length} Bewegungen</h3><button type="button" class="x" data-zu aria-label="Schliessen">×</button></div>
       <div class="dlg-inhalt">
-        <p class="hinweis">Prüfen Sie die Vorschläge. Zahlungen, die zu einer offenen Rechnung passen, werden als bezahlt vermerkt statt neu gebucht. Bereits importierte Bewegungen sind abgewählt.</p>
+        <p class="hinweis">Schritt 2 von 2: Kategorien prüfen. Zahlungen, die zu einer offenen Rechnung passen, werden als bezahlt vermerkt statt neu gebucht. Den ganzen Import können Sie später unter „Importe“ wieder entfernen.</p>
         <div class="import-liste">${vorschlaege.map((v, i) => `<div class="import-zeile ${v.doppelt ? 'doppelt' : ''}">
-          <input type="checkbox" data-i="${i}" ${v.doppelt ? '' : 'checked'} aria-label="Übernehmen" />
+          <input type="checkbox" data-i="${i}" checked aria-label="Übernehmen" />
           <div class="import-text"><b>${esc(v.partner || v.text || '—')}</b><small>${datumKurz(v.datum)} · ${esc((v.text || '').slice(0, 80))}${v.doppelt ? ' · schon importiert' : ''}</small></div>
           <div class="import-betrag ${v.typ === 'einnahme' ? 'plus' : ''}">${v.typ === 'einnahme' ? '+' : '−'} ${chf(v.betrag)}</div>
           ${v.rechnung ? `<div class="import-kat"><span class="marke marke-ok">Rechnung ${esc(v.rechnung.rechnungNr || '')} bezahlt</span></div>` : `<select class="auswahl-klein import-kat" data-kat="${i}">${optionen(v)}</select>`}
@@ -691,21 +697,75 @@
       const alleGewaehlt = [...dlg.querySelectorAll('input[data-i]:checked')].map((c) => vorschlaege[Number(c.dataset.i)]);
       const gewaehlt = alleGewaehlt.filter((v) => !istFest(v.datum));
       if (gewaehlt.length < alleGewaehlt.length) toast(`${alleGewaehlt.length - gewaehlt.length} Bewegungen liegen in der festgeschriebenen Zeit und wurden übersprungen`);
-      const speichern = [];
+      const speichern = [], imp = 'imp' + Date.now().toString(36), impAm = new Date().toISOString(), impName = (datei.name || 'Bankauszug').slice(0, 80);
       for (const v of gewaehlt) {
-        if (v.rechnung) { speichern.push({ ...v.rechnung, bezahlt: true, bezahltAm: v.datum, zahlung: 'Bank', importSchluessel: v.schluessel }); continue; }
+        if (v.rechnung) { speichern.push({ ...v.rechnung, bezahlt: true, bezahltAm: v.datum, zahlung: 'Bank', importSchluessel: v.schluessel, bezahltImp: imp }); continue; }
         const liste2 = v.typ === 'ausgabe' ? KAT_AUS : KAT_EIN;
         const satz = v.mwstSatz != null ? v.mwstSatz : ((liste2.find((k) => k.id === v.kategorie) || {}).satz ?? 8.1);
         speichern.push({ typ: v.typ, quelle: 'bank', kategorie: v.kategorie, datum: v.datum, betragRappen: v.betrag, mwstSatz: satz, mwstRappen: mwstAus(v.betrag, satz),
-          text: (v.text || '').slice(0, 120), partner: (v.partner || '').slice(0, 80), zahlung: 'Bank', importSchluessel: v.schluessel });
+          text: (v.text || '').slice(0, 120), partner: (v.partner || '').slice(0, 80), zahlung: 'Bank', importSchluessel: v.schluessel, imp, impAm, impName });
       }
-      for (const b of speichern) await Speicher.speichern('buchungen', b);
+      await Speicher.mehrereSpeichern('buchungen', speichern);
       dlg.close();
       const bezahlt = gewaehlt.filter((v) => v.rechnung).length;
       await neuLaden(`${speichern.length - bezahlt} Buchungen übernommen${bezahlt ? `, ${bezahlt} Rechnungen als bezahlt vermerkt` : ''}`);
+      // Nach der allgemeinen Rückgängig-Meldung zeigen, damit diese länger stehen bleibt
+      if (window.Rueckgaengig) setTimeout(() => Rueckgaengig.zeigen(`${speichern.length - bezahlt} Buchungen aus „${impName}“ übernommen`, () => importEntfernen(imp, true), 30000), 700);
     };
     dlg.showModal();
     if (!neu) toast('Alle Bewegungen sind schon importiert');
+  }
+
+  /* ================= Importe: jeden Bankauszug als Ganzes wieder entfernen ================= */
+  function bankImportGruppen() {
+    const g = new Map(), alt = [];
+    for (const b of Z.buchungen) {
+      if (b.imp) { if (!g.has(b.imp)) g.set(b.imp, { id: b.imp, name: b.impName || 'Bankauszug', am: b.impAm || b.geaendert || '', liste: [] }); g.get(b.imp).liste.push(b); }
+      else if (b.quelle === 'bank' && b.geaendert) alt.push(b);
+    }
+    // Frühere Importe ohne Kennung: alle Bank-Buchungen, die innert Sekunden gespeichert wurden
+    alt.sort((a, b) => String(a.geaendert).localeCompare(String(b.geaendert)));
+    let akt = null;
+    for (const b of alt) {
+      const t = Date.parse(b.geaendert) || 0;
+      if (akt && t - akt.ende < 20000) { akt.liste.push(b); akt.ende = t; }
+      else { akt = { id: 'alt' + t, name: 'Früherer Bankimport', am: b.geaendert, ende: t, liste: [b] }; g.set(akt.id, akt); }
+    }
+    return [...g.values()].filter((x) => x.liste.length >= (String(x.id).startsWith('alt') ? 3 : 1)).sort((a, b) => String(b.am).localeCompare(String(a.am)));
+  }
+  async function importEntfernen(id, ohneFrage) {
+    const g = bankImportGruppen().find((x) => x.id === id);
+    const rech = Z.buchungen.filter((b) => b.bezahltImp === id);
+    const liste = g ? g.liste : [];
+    if (!liste.length && !rech.length) return false;
+    const fest = liste.filter((b) => istFest(b.datum));
+    if (!ohneFrage && !await UI.frage(`${liste.length - fest.length} Buchungen aus „${g ? g.name : 'Bankauszug'}“ entfernen?${fest.length ? ` ${fest.length} liegen in der festgeschriebenen Zeit und bleiben.` : ''} Sie finden sie danach unter „Zuletzt gelöscht“.`)) return false;
+    const n = await Speicher.mehrereLoeschen('buchungen', liste.filter((b) => !istFest(b.datum)).map((b) => b.id));
+    if (rech.length) await Speicher.mehrereSpeichern('buchungen', rech.map(({ bezahltImp, importSchluessel, ...r }) => ({ ...r, bezahlt: false, bezahltAm: '' })));
+    await neuLaden(`${n} Buchungen entfernt${rech.length ? `, ${rech.length} Rechnungen wieder offen` : ''}`);
+    return true;
+  }
+  function importeZeigen() {
+    const dlg = $('dlg');
+    const malen = () => {
+      const g = bankImportGruppen();
+      dlg.innerHTML = `<form method="dialog" class="import-form">
+        <div class="dlg-kopf"><h3>Importe</h3><button type="button" class="x" data-zu aria-label="Schliessen">×</button></div>
+        <div class="dlg-inhalt"><p class="hinweis">Jeder hochgeladene Bankauszug erscheint hier. Mit „Entfernen“ werden alle Buchungen dieses Imports gelöscht, zum Beispiel wenn falsche Zahlen übernommen wurden. Gelöschtes finden Sie unter „Zuletzt gelöscht“.</p>
+        ${g.length ? g.map((x) => { const ein = x.liste.filter((b) => b.typ === 'einnahme').reduce((a, b) => a + b.betragRappen, 0), aus = x.liste.filter((b) => b.typ === 'ausgabe').reduce((a, b) => a + b.betragRappen, 0);
+          const d = x.liste.map((b) => b.datum).sort();
+          return `<div class="imp-zeile"><div><b>${esc(x.name)}</b><small>${x.am ? 'Hochgeladen ' + new Date(x.am).toLocaleString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' · ' : ''}${x.liste.length} Buchungen · ${datumKurz(d[0])} bis ${datumKurz(d[d.length - 1])}<br>Einnahmen CHF ${chf(ein)} · Ausgaben CHF ${chf(aus)}</small></div><button type="button" class="btn btn-klein" data-imp-weg="${esc(x.id)}">Entfernen</button></div>`; }).join('')
+          : '<p class="hinweis">Noch keine Bankauszüge importiert.</p>'}</div>
+        <div class="dlg-fuss"><div class="rechts"><button type="button" class="btn" data-zu>Schliessen</button></div></div></form>`;
+    };
+    malen();
+    dlg.onclick = async (e) => {
+      if (e.target === dlg || e.target.closest('[data-zu]')) { dlg.close(); return; }
+      const w = e.target.closest('[data-imp-weg]');
+      if (w) { if (await importEntfernen(w.dataset.impWeg)) { if (bankImportGruppen().length) { malen(); if (!dlg.open) dlg.showModal(); } else dlg.close(); } }
+    };
+    dlg.onchange = null; dlg.oninput = null;
+    if (!dlg.open) dlg.showModal();
   }
 
   /* ================= Kategorien anpassen ================= */
@@ -1025,7 +1085,7 @@
     return `
     <div class="kopf">
       <div><h1>Buchungen</h1><p class="unter">${f.suche.trim() ? 'Suche in allen Jahren: ' : ''}${liste.length} Einträge, Einnahmen ${chf(s.ein)}, Ausgaben ${chf(s.aus)} (ohne MWST)</p></div>
-      <div class="kopf-aktionen">${jahrWahl()}<button class="btn" onclick="NB.korb()">Zuletzt gelöscht</button><button class="btn" onclick="NB.bankImport()">Bankauszug oder Daten importieren</button><button class="btn" onclick="NB.belege()">Belege hochladen</button><button class="btn" onclick="NB.fahrt()">Fahrt erfassen</button><button class="btn btn-haupt nur-pc" onclick="NB.neu()">+ Neue Buchung</button></div>
+      <div class="kopf-aktionen">${jahrWahl()}<button class="btn" onclick="NB.korb()">Zuletzt gelöscht</button>${bankImportGruppen().length ? '<button class="btn" onclick="NB.importe()">Importe</button>' : ''}<button class="btn" onclick="NB.bankImport()">Bankauszug oder Daten importieren</button><button class="btn" onclick="NB.belege()">Belege hochladen</button><button class="btn" onclick="NB.fahrt()">Fahrt erfassen</button><button class="btn btn-haupt nur-pc" onclick="NB.neu()">+ Neue Buchung</button></div>
     </div>
     <div class="filter">
       <div class="segment">${typen.map(([id, n]) => `<button class="${f.typ === id ? 'an' : ''}" data-ftyp="${id}">${n}</button>`).join('')}</div>
@@ -2308,6 +2368,7 @@
   }
   window.NB = {
     korb: () => korbDialog(),
+    importe: () => importeZeigen(),
     ansicht: (id) => { Z.ansicht = id; zeichnen(); window.scrollTo(0, 0); },
     journalNeu: (vorlageId) => {
       const v = VORLAGEN.find((x) => x.id === vorlageId);

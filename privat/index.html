@@ -272,28 +272,79 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   async function auszugLaden() {
     const inp = document.createElement('input'); inp.type = 'file'; inp.multiple = true; // alle Dateien wählbar (auf dem iPhone sonst ausgegraut)
     inp.onchange = async () => {
-      let neu = 0, doppelt = 0, fehler = '', istPdf = false;
+      let neu = 0, fehler = ''; const imps = [];
       const bekannt = new Set(D.bewegungen.map((b) => `${b.datum}|${b.betragRappen}|${normPartner(b.partner || b.text)}`));
+      const schluesselVon = (t) => `${t.datum}|${t.betragRappen}|${normPartner(t.partner || t.text)}`;
       for (const datei of inp.files) {
         try {
-          const v = await Auszug.vorbereiten(datei);
-          const liste = v.liste || (/<\?xml|<Document/i.test(v.roh.slice(0, 500)) ? camtLesen(v.roh) : csvLesen(v.roh));
-          if (v.pdf) istPdf = true;
-          for (const t of liste) {
-            const k = `${t.datum}|${t.betragRappen}|${normPartner(t.partner || t.text)}`;
-            if (bekannt.has(k)) { doppelt++; continue; }
-            bekannt.add(k);
-            const b = { id: neueId(), ...t, partner: (t.partner || '').slice(0, 80), text: (t.text || '').slice(0, 140) };
+          toast(`„${datei.name}“ wird gelesen …`);
+          const v = await Auszug.vorbereiten(datei, (t) => toast(t));
+          const e = v.liste ? v : { liste: /<\?xml|<Document/i.test(v.roh.slice(0, 500)) ? camtLesen(v.roh) : csvLesen(v.roh), quelle: /<\?xml|<Document/i.test(v.roh.slice(0, 500)) ? 'camt' : 'csv', anfang: null, ende: null };
+          if (!e.liste.length) { fehler = 'In dieser Datei habe ich keine Buchungen gefunden.'; continue; }
+          // Erst prüfen, dann übernehmen: nichts wird ohne Bestätigung gespeichert
+          const ok = await Auszug.pruefen(e, { doppelt: (t) => bekannt.has(schluesselVon(t)), datei });
+          if (!ok || !ok.length) continue;
+          const imp = neueId(); imps.push(imp);
+          for (const t of ok) {
+            bekannt.add(schluesselVon(t));
+            const b = { id: neueId(), ...t, imp, partner: (t.partner || '').slice(0, 80), text: (t.text || '').slice(0, 140) };
             b.kategorie = kategorieRaten(b);
             D.bewegungen.push(b); neu++;
           }
+          (D.importe = D.importe || []).unshift({ id: imp, name: datei.name.slice(0, 80), am: new Date().toISOString(), anzahl: ok.length });
+          D.importe = D.importe.slice(0, 60);
         } catch (f) { fehler = f.message; }
       }
+      if (!neu) { if (fehler) toast(fehler); return; }
       const bezahlt = rechnungenAbgleichen();
       sichern(); zeichnen();
-      toast(fehler && !neu ? fehler : `${neu} Bewegungen übernommen${doppelt ? `, ${doppelt} schon vorhanden` : ''}${bezahlt ? `, ${bezahlt} Rechnungen als bezahlt erkannt` : ''}${istPdf && neu ? '. Aus PDF gelesen: bitte kurz prüfen.' : ''}`);
+      toast(`${neu} Bewegungen übernommen${bezahlt ? `, ${bezahlt} Rechnungen als bezahlt erkannt` : ''}`);
+      // Gleich danach rückgängig machen; später unter „Importe“
+      if (window.Rueckgaengig) Rueckgaengig.zeigen(`${neu} Bewegungen übernommen`, () => {
+        const weg = new Set(imps); D.bewegungen = D.bewegungen.filter((b) => !weg.has(b.imp)); D.importe = (D.importe || []).filter((x) => !weg.has(x.id)); sichern(); zeichnen();
+      }, 30000);
     };
     inp.click();
+  }
+  // Importe: jede hochgeladene Datei lässt sich als Ganzes wieder entfernen.
+  // Frühere Importe ohne Kennung werden über die Erfassungszeit erkannt (alle in derselben Sekunde gespeichert).
+  function importGruppen() {
+    const gruppen = [];
+    const mitImp = new Map();
+    for (const b of D.bewegungen) if (b.imp) { if (!mitImp.has(b.imp)) mitImp.set(b.imp, []); mitImp.get(b.imp).push(b); }
+    for (const [id, l] of mitImp) { const i = (D.importe || []).find((x) => x.id === id) || {}; gruppen.push({ id, name: i.name || 'Kontoauszug', am: i.am || '', liste: l }); }
+    const zeit = (b) => parseInt(String(b.id).slice(0, Math.max(1, String(b.id).length - 5)), 36) || 0;
+    const alt = D.bewegungen.filter((b) => !b.imp).map((b) => ({ b, t: zeit(b) })).filter((x) => x.t > 1.5e12).sort((a, b) => a.t - b.t);
+    let akt = null;
+    for (const x of alt) { if (akt && x.t - akt.ende < 5000) { akt.liste.push(x.b); akt.ende = x.t; } else { akt = { id: 'alt' + x.t, name: 'Früherer Import', am: new Date(x.t).toISOString(), ende: x.t, liste: [x.b] }; gruppen.push(akt); } }
+    return gruppen.filter((g) => g.liste.length >= (String(g.id).startsWith('alt') ? 3 : 1)).sort((a, b) => (b.am || '').localeCompare(a.am || ''));
+  }
+  function importeZeigen() {
+    const dlg = $('dlg');
+    const malen = () => {
+      const g = importGruppen();
+      dlg.innerHTML = `<form class="dlg" method="dialog"><h3>Importe</h3>
+        <p class="hinweis">Jeder hochgeladene Kontoauszug erscheint hier. Mit „Entfernen“ werden alle Bewegungen dieses Imports gelöscht, zum Beispiel wenn falsche Zahlen übernommen wurden.</p>
+        ${g.length ? g.map((x) => { const ein = x.liste.filter((b) => b.betragRappen > 0).reduce((a, b) => a + b.betragRappen, 0), aus = x.liste.filter((b) => b.betragRappen < 0).reduce((a, b) => a - b.betragRappen, 0);
+          const daten = x.liste.map((b) => b.datum).sort();
+          return `<div class="zeile"><span style="min-width:0"><b>${esc(x.name)}</b><small>${x.am ? 'Hochgeladen ' + new Date(x.am).toLocaleString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' · ' : ''}${x.liste.length} Bewegungen · ${dk(daten[0])} bis ${dk(daten[daten.length - 1])}<br>Eingänge CHF ${chf(ein)} · Ausgänge CHF ${chf(aus)}</small></span><button type="button" class="btn rot klein" data-imp-weg="${esc(x.id)}">Entfernen</button></div>`; }).join('')
+          : '<p class="hinweis">Noch keine Importe.</p>'}
+        <div class="fuss"><span></span><span class="aktionen"><button type="button" class="btn" data-zu>Schliessen</button></span></div></form>`;
+    };
+    malen();
+    dlg.onclick = async (e) => {
+      if (e.target === dlg || e.target.closest('[data-zu]')) { dlg.close(); return; }
+      const w = e.target.closest('[data-imp-weg]'); if (!w) return;
+      const g = importGruppen().find((x) => x.id === w.dataset.impWeg); if (!g) return;
+      if (!await UI.frage(`${g.liste.length} Bewegungen aus „${g.name}“ entfernen?\n\nDanach können Sie den Auszug neu hochladen. Direkt danach lässt sich das noch rückgängig machen.`)) return;
+      const weg = new Set(g.liste.map((b) => b.id));
+      D.bewegungen = D.bewegungen.filter((b) => !weg.has(b.id));
+      D.importe = (D.importe || []).filter((x) => x.id !== g.id);
+      sichern(); zeichnen(); malen();
+      toast(`${weg.size} Bewegungen entfernt`);
+    };
+    dlg.onsubmit = (e) => { e.preventDefault(); dlg.close(); };
+    if (!dlg.open) dlg.showModal();
   }
   // Offene Rechnungen mit gleichem Betrag als bezahlt erkennen
   function rechnungenAbgleichen() {
@@ -461,7 +512,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const l = imZeitraum().filter((b) => (!filterKat || b.kategorie === filterKat) && (!q || `${b.partner} ${b.text} ${chf(Math.abs(b.betragRappen))}`.toLowerCase().includes(q)))
       .sort((a, b) => b.datum.localeCompare(a.datum));
     return `<div class="kopf"><div><h1>Konto</h1><p class="unter">${l.length} Bewegungen. Tippen zum Ändern der Kategorie.</p></div>
-      <div class="aktionen"><button class="btn" data-hbm="bankHilfe">So holen Sie den Auszug</button><button class="btn haupt" data-aktion="auszug">Kontoauszug hochladen</button><button class="btn" data-aktion="sicherung">Sicherung</button></div></div>
+      <div class="aktionen"><button class="btn" data-hbm="bankHilfe">So holen Sie den Auszug</button><button class="btn haupt" data-aktion="auszug">Kontoauszug hochladen</button>${importGruppen().length ? '<button class="btn" data-aktion="importe">Importe</button>' : ''}<button class="btn" data-aktion="sicherung">Sicherung</button></div></div>
       <div class="filter">${zeitWahl()}<select data-filterkat><option value="">Alle Kategorien</option>${[...KAT, ...KAT_EIN].map((k) => `<option value="${k[0]}" ${filterKat === k[0] ? 'selected' : ''}>${k[1]}</option>`).join('')}</select><input type="search" placeholder="Suchen" value="${esc(suche)}" data-suche /></div>
       <div class="card">${l.slice(0, 400).map((b) => `<div class="zeile klick" data-bewegung="${b.id}"><span style="min-width:0"><b>${esc(b.partner || b.text)}</b><small>${dk(b.datum)} · <span style="color:${katFarbe(b.kategorie)}">●</span> ${esc(katName(b.kategorie))}${b.text && b.partner ? ' · ' + esc(b.text) : ''}</small></span><span class="betrag ${b.betragRappen > 0 ? 'plus' : ''}">${b.betragRappen > 0 ? '+' : '−'} ${chf(Math.abs(b.betragRappen))}</span></div>`).join('') || '<p class="leer">Keine Bewegungen. Laden Sie einen Kontoauszug hoch.</p>'}</div>`;
   }
@@ -981,7 +1032,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 
   document.addEventListener('click', (e) => {
     const a = e.target.closest('[data-aktion]'); if (!a) return;
-    ({ auszug: auszugLaden, rechnung: () => rechnungBearbeiten(), betreibung: () => betreibungBearbeiten(), sicherung })[a.dataset.aktion]();
+    ({ auszug: auszugLaden, importe: importeZeigen, rechnung: () => rechnungBearbeiten(), betreibung: () => betreibungBearbeiten(), sicherung })[a.dataset.aktion]();
   });
   Object.assign(window.HomeBuero = window.HomeBuero || {}, { daten: D, abosFinden, sichern, zeichnen, toast, esc, chf, dk, heute, tageBis, betragLesen, neueId, katName, katFarbe, KAT, bildKlein, wegwerfen, listeVon, listeSetzen, ORT, restBetrag, ring, zeitWahl, imZeitraum, auszugLaden, setzeAnsicht: (a) => { ansicht = a; try { localStorage.setItem('homebuero.ansicht', a); } catch {} zeichnen(); window.scrollTo(0, 0); } });
   zeichnen();

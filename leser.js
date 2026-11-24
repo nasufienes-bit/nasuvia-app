@@ -9,7 +9,7 @@
 
   // Fotos für die KI verkleinern (lange Seite max. 1800 px, JPEG)
   async function vorbereiten(blob) {
-    if (!blob.type.startsWith('image/')) return { mime: blob.type, daten: await alsDataUrl(blob) };
+    if (!blob.type.startsWith('image/')) return { mime: blob.type || (/\.pdf$/i.test(blob.name || '') ? 'application/pdf' : ''), daten: await alsDataUrl(blob) };
     const url = URL.createObjectURL(blob);
     try {
       const img = await new Promise((ok, f) => { const i = new Image(); i.onload = () => ok(i); i.onerror = f; i.src = url; });
@@ -149,5 +149,5 @@
   @media(max-width:640px){.leser-raster,.leser-raster.ohne .leser-felder{grid-template-columns:1fr}.leser-bild,.leser-bild img{max-height:28vh}.leser-bild iframe{height:28vh}}`;
   document.head.appendChild(css);
 
-  window.Leser = { lesen, pruefen, lesenUndPruefen };
+  window.Leser = { lesen, pruefen, lesenUndPruefen, ki: (blob, art) => mitKi(blob, art) };
 })();

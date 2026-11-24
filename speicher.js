@@ -92,6 +92,17 @@
       gemeldet();
       return e;
     },
+    // Viele auf einmal löschen (z. B. einen ganzen Bankimport)
+    async mehrereLoeschen(speicher, ids) {
+      const liste = [];
+      for (const id of ids) { const e = await holen(speicher, id); if (e && !e.geloescht) liste.push(e); }
+      if (!liste.length) return 0;
+      await merken(speicher, liste.map((e) => e.id), 'loeschen');
+      const jetzt = new Date().toISOString();
+      await schreiben(speicher, liste.map((e) => ({ ...e, ...(speicher === 'belege' ? { daten: null } : {}), geloescht: true, geaendert: jetzt, offen: true })));
+      gemeldet();
+      return liste.length;
+    },
     async mehrereSpeichern(speicher, liste) {
       const jetzt = new Date().toISOString();
       const fertig = liste.map((e) => ({ ...e, id: e.id || neueId(), geaendert: e.geaendert || jetzt, offen: true }));

@@ -6,6 +6,7 @@
   dialog[open]{position:fixed;inset:0;margin:auto;max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
   dialog .ui-zu{position:sticky;float:right;top:10px;right:10px;margin:10px 10px -46px 0;z-index:5;width:36px;height:36px;border:0;border-radius:50%;background:var(--flaeche,#E8F4EE);color:var(--blau,#0B3B2E);font-size:18px;line-height:1;cursor:pointer;display:grid;place-items:center}
   dialog .ui-zu:hover{background:#E1E6F3}
+  dialog:has(.dlg-kopf > .x) > .ui-zu{display:none}
   @media (max-width:640px){
     dialog[open]{inset:auto 0 var(--ui-tastatur,0px) 0;margin:0;width:100%!important;max-width:100%!important;max-height:calc(var(--ui-hoehe,100dvh) - 10px);border-radius:22px 22px 0 0!important;padding-bottom:env(safe-area-inset-bottom,0px);animation:uiHoch .28s cubic-bezier(.2,.9,.3,1)}
   }
@@ -71,7 +72,8 @@
   P.showModal = function () {
     // Schon offen? Nur Inhalt aktualisiert, nicht nochmals öffnen (das hat früher die Seite blockiert)
     if (!this.open) { try { zeigen.call(this); } catch (e) { try { this.setAttribute('open', ''); } catch {} } }
-    if (!this.querySelector(':scope > .ui-zu') && !this.hasAttribute('data-ohne-x')) {
+    // Eigenes × im Kopf vorhanden? Dann kein zweites
+    if (!this.querySelector(':scope > .ui-zu') && !this.hasAttribute('data-ohne-x') && !this.querySelector('.dlg-kopf > .x')) {
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'ui-zu'; b.setAttribute('aria-label', 'Schliessen'); b.textContent = '✕';
       b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); this.close(); });

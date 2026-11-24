@@ -200,7 +200,12 @@ tr.summe td { font-weight: 700; color: var(--tinte); border-top: 1.5px solid var
 .ring-legende div { display: grid; grid-template-columns: 12px minmax(0,1fr) auto; gap: 8px; align-items: center; }
 .ring-legende i { width: 12px; height: 12px; border-radius: 4px; }
 .ring-legende span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.import-form { width: min(760px, 96vw); }
+dialog:has(.import-form) { width: min(760px, calc(100vw - 24px)); }
+.import-form { width: 100%; }
+.imp-zeile { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 14px; background: #fff; box-shadow: 0 0 0 1px var(--linie); }
+.imp-zeile > div { min-width: 0; }
+.imp-zeile small { display: block; color: var(--leise); font-size: 12px; line-height: 1.45; margin-top: 2px; }
+.imp-zeile .btn { flex: none; color: #B4282D; }
 .import-liste { display: grid; gap: 6px; margin-top: 12px; max-height: 55vh; overflow: auto; }
 .import-zeile { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; gap: 4px 10px; align-items: center; padding: 9px 10px; border: 1px solid var(--hairline); border-radius: 10px; }
 .import-zeile.doppelt { opacity: .5; }
@@ -284,6 +289,7 @@ dialog::backdrop { background: rgba(12, 18, 38, .35); }
     box-shadow: 0 10px 26px -6px color-mix(in srgb,var(--blau,#0B3B2E) 55%,transparent); cursor: pointer;
   }
   dialog { width: 100vw; max-width: 100vw; max-height: 92vh; margin: auto 0 0; border-radius: 20px 20px 0 0; }
+  dialog:has(.import-form) { width: 100vw; }
   .dlg-fuss { padding-bottom: calc(18px + var(--unten)); }
   td, th { padding: 8px 2px; font-size: 13.5px; }
 }
