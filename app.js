@@ -1054,10 +1054,22 @@
   });
 
   /* ================= Buchung erfassen / bearbeiten ================= */
+  // Vorgaben für neue Ausgaben: fest gewählt in den Einstellungen oder „wie zuletzt“
+  function vorgabeNeu() {
+    let zuletzt = {}; try { zuletzt = JSON.parse(localStorage.getItem('nb.zuletzt') || '{}'); } catch {}
+    const wahl = (feld, std) => { const v = Z.einst[feld] || 'zuletzt'; return v === 'zuletzt' ? std : v; };
+    let kategorie = wahl('vorgabeKat', zuletzt.kategorie || 'material');
+    if (!KAT_AUS.some((k) => k.id === kategorie && !k.versteckt)) kategorie = 'material';
+    let zahlung = wahl('vorgabeZahlung', zuletzt.zahlung || 'Bank');
+    if (!ZAHLUNG.includes(zahlung)) zahlung = 'Bank';
+    const k = KAT_AUS.find((x) => x.id === kategorie);
+    return { kategorie, zahlung, satz: k ? k.satz : 8.1 };
+  }
   async function buchungBearbeiten(vorhanden, vorlage = {}) {
     const { _beleg, _titel, ...vorgaben } = vorlage;
+    const v0 = vorgabeNeu();
     const b = vorhanden ? { ...vorhanden } : {
-      typ: 'ausgabe', datum: heute(), kategorie: 'material', mwstSatz: 8.1, zahlung: 'Bank', quelle: 'manuell', ...vorgaben,
+      typ: 'ausgabe', datum: heute(), kategorie: v0.kategorie, mwstSatz: v0.satz, zahlung: v0.zahlung, quelle: 'manuell', ...vorgaben,
     };
     let beleg = b.belegId ? await Speicher.holen('belege', b.belegId) : null;
     let neuerBeleg = _beleg || null;
@@ -1261,6 +1273,7 @@
         b.belegId = null;
       }
       await Speicher.speichern('buchungen', b);
+      if (!vorhanden && b.typ === 'ausgabe') { try { localStorage.setItem('nb.zuletzt', JSON.stringify({ kategorie: b.kategorie, zahlung: b.zahlung })); } catch {} }
       dlg.close();
       await neuLaden(vorhanden ? 'Gespeichert' : (b.typ === 'ausgabe' ? 'Ausgabe erfasst' : 'Einnahme erfasst'));
     };
@@ -2043,9 +2056,14 @@
         <button class="btn btn-haupt abstand" onclick="window.Marke && Marke.dialog({ beiSpeichern: () => location.reload() })">Firma und Design anpassen</button>
       </div>
       <div class="card">
-        <h2>Kategorien und Fahrten</h2>
+        <h2>Kategorien, Vorgaben und Fahrten</h2>
         <p class="hinweis">Eigene Kategorien anlegen, umbenennen, einfärben oder ausblenden.</p>
         <button class="btn abstand" onclick="NB.kategorien()">Kategorien anpassen</button>
+        <div class="feld-zeile abstand">
+          <div class="feld"><label for="sVKat">Neue Ausgabe: Kategorie</label><select id="sVKat" data-einst="vorgabeKat"><option value="zuletzt">Wie zuletzt</option>${sichtbar(KAT_AUS, '').map((k) => `<option value="${k.id}" ${Z.einst.vorgabeKat === k.id ? 'selected' : ''}>${esc(k.name)}</option>`).join('')}</select></div>
+          <div class="feld"><label for="sVZahl">Neue Ausgabe: bezahlt mit</label><select id="sVZahl" data-einst="vorgabeZahlung"><option value="zuletzt">Wie zuletzt</option>${ZAHLUNG.map((z) => `<option ${Z.einst.vorgabeZahlung === z ? 'selected' : ''}>${z}</option>`).join('')}</select></div>
+        </div>
+        <p class="hinweis">Spart Klicks, wenn Sie meist dasselbe erfassen. Sie können es bei jeder Buchung ändern.</p>
         <div class="feld abstand"><label for="sKm">Kilometer-Ansatz für Fahrten (CHF pro km)</label><input type="text" id="sKm" inputmode="decimal" data-einst="kmAnsatz" value="${(Number(Z.einst.kmAnsatz) || 0.7).toFixed(2)}" /></div>
         <p class="hinweis">Üblich sind 0.70 CHF pro Kilometer für Geschäftsfahrten mit dem Privatauto.</p>
       </div>

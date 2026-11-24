@@ -230,12 +230,19 @@ body[data-dichte=gross] .aufgabe{padding:26px}
   function designDialog() {
     const d = design();
     const dlg = document.createElement('dialog'); dlg.className = 'ui-frage'; dlg.setAttribute('data-ohne-x', '');
-    dlg.innerHTML = `<form method="dialog"><h3>Darstellung der Startseite</h3><p>Nur das Aussehen ändert sich, Ihre Daten bleiben gleich.</p>
+    dlg.innerHTML = `<form method="dialog"><h3>Startseite anpassen</h3><p>Farben, Grösse und welche Knöpfe oben stehen. Ihre Daten bleiben gleich.</p>
       <div class="themen">${THEMEN.map(([k, n, g]) => `<button type="button" data-thema-wahl="${k}" class="${d.thema === k ? 'an' : ''}"><i style="background:${g}"></i>${n}</button>`).join('')}</div>
       <p style="margin-top:4px"><b style="color:#0A1F17">Kacheln</b></p>
       <div class="themen">${[['kompakt', 'Kompakt'], ['normal', 'Normal'], ['gross', 'Gross']].map(([k, n]) => `<button type="button" data-dichte-wahl="${k}" class="${d.dichte === k ? 'an' : ''}">${n}</button>`).join('')}</div>
+      ${(() => { const alle = ZIELE.filter((z) => (ziele || []).includes(z.id) && zielOffen(z)).map(zielFuerRechtsform).flatMap((z) => z.aufgaben.map((a) => a[0])); const aus = lies('ordasio.startAus', []);
+        return alle.length ? `<p style="margin-top:4px"><b style="color:#0A1F17">Schnellzugriffe</b></p><div style="display:grid;gap:6px;max-height:34vh;overflow:auto">${alle.map((t) => `<label style="display:flex;gap:10px;align-items:center;color:#0A1F17;font-size:15px"><input type="checkbox" data-kachel="${esc(t)}" ${aus.includes(t) ? '' : 'checked'} style="width:20px;height:20px;accent-color:#0E7A55">${esc(t)}</label>`).join('')}</div>` : ''; })()}
       <div class="ui-knoepfe"><button class="ja">Fertig</button></div></form>`;
     document.body.appendChild(dlg);
+    dlg.addEventListener('change', (e) => {
+      const k = e.target.closest('[data-kachel]'); if (!k) return;
+      const aus = new Set(lies('ordasio.startAus', [])); k.checked ? aus.delete(k.dataset.kachel) : aus.add(k.dataset.kachel);
+      setz('ordasio.startAus', [...aus]); zeichnen();
+    });
     dlg.addEventListener('click', (e) => {
       const t = e.target.closest('[data-thema-wahl],[data-dichte-wahl]'); if (!t) return;
       const neu = { ...design(), ...(t.dataset.themaWahl ? { thema: t.dataset.themaWahl } : { dichte: t.dataset.dichteWahl }) };
@@ -262,7 +269,7 @@ body[data-dichte=gross] .aufgabe{padding:26px}
       <h1>${gruss}${name ? ', ' + esc(name) : ''} 👋</h1>
       <p class="unter">Was möchten Sie heute erledigen?</p>
       <div class="abschnitt"><div class="aufgaben">
-        ${gewaehlt.flatMap((z) => z.aufgaben.map(([t, k, url, ic]) => `<a class="aufgabe" href="${url}"><span class="ic" style="background:${z.farbe}">${svg(ic)}</span><b>${esc(t)}</b><small>${esc(k)}</small></a>`)).join('')}
+        ${gewaehlt.flatMap((z) => z.aufgaben.filter(([t]) => !lies('ordasio.startAus', []).includes(t)).map(([t, k, url, ic]) => `<a class="aufgabe" href="${url}"><span class="ic" style="background:${z.farbe}">${svg(ic)}</span><b>${esc(t)}</b><small>${esc(k)}</small></a>`)).join('')}
       </div></div>
       ${fertig < schritte.length ? `<div class="abschnitt"><h2>Erste Schritte · ${fertig} von ${schritte.length}</h2><div class="karte">
         <div class="spur"><i style="width:${Math.round(fertig / schritte.length * 100)}%"></i></div>
@@ -276,7 +283,7 @@ body[data-dichte=gross] .aufgabe{padding:26px}
         ${bereiche.map((b) => BEREICH_NAME[b]).filter(Boolean).map(([n, url, ic, f]) => `<a class="bereich" href="${url}"><i style="background:${f}">${svg(ic)}</i>${n}</a>`).join('')}
         <a class="bereich" href="../hilfe/"><i style="background:#7C8499">${svg(I.hilfe)}</i>Anleitung</a>
       </div>
-      <p class="leise" style="margin-top:14px">Etwas fehlt oder ist zu viel? <button class="link" data-anpassen>Bereiche anpassen</button> · <button class="link" data-design>Darstellung ändern</button> · <a class="link" href="../selbstaendig/" style="text-decoration:none">Tipps für Selbständige</a> · <a class="link" href="../lizenz/" style="text-decoration:none">Lizenz und Konto</a></p></div>`;
+      <p class="leise" style="margin-top:14px">Etwas fehlt oder ist zu viel? <button class="link" data-anpassen>Bereiche anpassen</button> · <button class="link" data-design>Startseite anpassen</button> · <a class="link" href="../selbstaendig/" style="text-decoration:none">Tipps für Selbständige</a> · <a class="link" href="../lizenz/" style="text-decoration:none">Lizenz und Konto</a></p></div>`;
   }
   document.addEventListener('click', (e) => { if (e.target.closest('[data-firma-start]') && window.Marke) Marke.dialog({ beiSpeichern: () => zeichnen() }); });
 
