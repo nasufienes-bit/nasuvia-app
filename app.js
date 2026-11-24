@@ -656,7 +656,7 @@
     const bekannt = new Set(Z.buchungen.map((b) => b.importSchluessel).filter(Boolean));
     // Schritt 1: Beträge, Vorzeichen und Saldo mit dem Auszug vergleichen (nichts wird gespeichert)
     const quelle = v.quelle || (/<\?xml|<Document/i.test((v.roh || '').slice(0, 500)) ? 'camt' : 'csv');
-    const geprueft = await Auszug.pruefen({ liste, anfang: v.anfang ?? null, ende: v.ende ?? null, quelle, spalten: v.spalten },
+    const geprueft = await Auszug.pruefen({ liste, anfang: v.anfang ?? null, ende: v.ende ?? null, quelle, spalten: v.spalten, bank: v.bank, karte: v.karte },
       { doppelt: (t) => bekannt.has(importSchluessel(t)), datei, weiter: 'Weiter zu den Kategorien' });
     if (!geprueft || !geprueft.length) return;
     liste = geprueft;

@@ -368,7 +368,7 @@
     ['Zürcher Kantonalbank (ZKB)', 'eBanking: Konto → „Buchungen“ → Symbol „Exportieren“ → CSV. Andere Kantonalbanken sind ähnlich aufgebaut.'],
     ['Migros Bank', 'E-Banking: „Konten“ → Konto → „Kontobewegungen“ → „Export“ als CSV.'],
     ['Neon, Yuh, Revolut', 'In der App: Konto → „Kontoauszug“ oder „Statements“, Zeitraum wählen, Format CSV (wenn angeboten) oder PDF.'],
-    ['Andere Bank', 'Im E-Banking nach „Export“, „Bewegungen herunterladen“ oder „camt.053“ suchen. CSV oder camt.053 funktioniert, PDF nicht.'],
+    ['Andere Bank', 'Im E-Banking nach „Export“, „Bewegungen herunterladen“ oder „camt.053“ suchen. CSV oder camt.053 ist am genausten, ein PDF-Auszug geht auch.'],
   ];
   function bankHilfe() {
     const dlg = $('dlg');
