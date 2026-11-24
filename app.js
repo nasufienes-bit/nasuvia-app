@@ -424,6 +424,53 @@
     if (w) { await einstSpeichern({ liquiGeplant: (Z.einst.liquiGeplant || []).filter((g) => g.id !== w.dataset.lqWeg) }); zeichnen(); }
   });
 
+  /* ---------- Fristen-Autopilot: Schweizer Termine für KMU, je nach Rechtsform und Mitarbeitenden ---------- */
+  function fristenListe() {
+    const h = heute(), bis = tagePlus(h, 370), j = Number(h.slice(0, 4)), aus = [];
+    const add = (datum, titel, info, art, ziel) => { if (datum >= h && datum <= bis) aus.push({ datum, titel, info, art, ziel }); };
+    const mitLohn = lohnErlaubt() && ((Z.einst.mitarbeiter || []).length > 0 || Z.buchungen.some((b) => b.lohnMonat));
+    const firma = ['gmbh', 'ag', 'genossenschaft'].includes(rechtsform());
+    for (const jahr of [j - 1, j, j + 1]) {
+      if (Z.einst.mwstPflicht !== false) for (const q of [1, 2, 3, 4]) add(fristVon(String(jahr), q), `MWST ${q}. Quartal ${jahr}`, 'Abrechnung bei der ESTV einreichen und bezahlen', 'mwst', 'mwst');
+      if (mitLohn) {
+        add(`${jahr}-01-31`, `Lohnausweise ${jahr - 1}`, 'An Mitarbeitende abgeben, Lohnsummen an AHV, UVG, BVG und KTG melden', 'lohn', 'loehne');
+        for (const m of ['03-31', '06-30', '09-30', '12-31']) add(`${jahr}-${m}`, 'AHV-Akontobeiträge', 'Rechnung der Ausgleichskasse bis Quartalsende bezahlen', 'lohn', 'loehne');
+      }
+      add(`${jahr}-03-31`, `Steuererklärung ${jahr - 1}`, firma ? 'Für die Firma; viele Kantone verlängern auf Gesuch' : 'Private Steuererklärung mit Geschäftsabschluss; Frist je nach Kanton', 'steuer', 'abschluss');
+      if (firma) add(`${jahr}-06-30`, `Jahresrechnung ${jahr - 1} genehmigen`, 'Generalversammlung bzw. Gesellschafterversammlung innert 6 Monaten (OR 699/805)', 'abschluss', 'abschluss');
+      add(`${jahr}-01-15`, `Jahresabschluss ${jahr - 1} beginnen`, 'Bankauszüge bis 31.12., Belege, Kasse und Debitoren prüfen', 'abschluss', 'abschluss');
+    }
+    return aus.sort((a, b) => a.datum.localeCompare(b.datum));
+  }
+  const FRIST_IC = { mwst: '🧾', lohn: '💸', steuer: '🏛️', abschluss: '📘' };
+  const tageBisText = (d) => { const n = Math.round((new Date(d + 'T12:00') - new Date(heute() + 'T12:00')) / 864e5); return n === 0 ? 'heute' : n === 1 ? 'morgen' : `in ${n} Tagen`; };
+  function fristenKarte() {
+    const l = fristenListe().slice(0, 3); if (!l.length) return '';
+    return `<div class="card abstand-unten"><div class="ja-kopf"><h2 style="margin:0">Nächste Fristen</h2><button class="btn klein" data-fristen>Alle Fristen</button></div>
+      ${l.map((f) => `<div class="ja-zeile"><span style="font-size:20px">${FRIST_IC[f.art] || '📌'}</span><div class="ja-text"><b>${esc(f.titel)}</b><small>${datumKurz(f.datum)} · ${tageBisText(f.datum)} · ${esc(f.info)}</small></div></div>`).join('')}</div>`;
+  }
+  async function fristenDialog() {
+    const l = fristenListe();
+    const dlg = document.createElement('dialog');
+    dlg.innerHTML = `<form method="dialog" style="width:min(640px,calc(100vw - 24px))"><div class="dlg-kopf"><h3>Fristen der nächsten 12 Monate</h3><button class="x" value="zu" aria-label="Schliessen">×</button></div>
+      <div class="dlg-inhalt"><p class="hinweis">Je nach Rechtsform, MWST und Mitarbeitenden. Kantonale Steuerfristen können abweichen.</p>
+      ${l.map((f) => `<div class="ja-zeile"><span style="font-size:20px">${FRIST_IC[f.art] || '📌'}</span><div class="ja-text"><b>${esc(f.titel)}</b><small>${datumKurz(f.datum)} · ${tageBisText(f.datum)} · ${esc(f.info)}</small></div></div>`).join('')}</div>
+      <div class="dlg-fuss"><div class="rechts">${window.NASUVIA_SB ? '<button type="button" class="btn btn-haupt" data-fristen-handy>Alle als Erinnerung aufs Handy</button>' : ''}<button class="btn" value="zu">Schliessen</button></div></div></form>`;
+    document.body.appendChild(dlg); dlg.addEventListener('close', () => dlg.remove()); dlg.showModal();
+    const k = dlg.querySelector('[data-fristen-handy]');
+    if (k) k.onclick = async () => {
+      const sb = window.NASUVIA_SB; k.disabled = true;
+      const { data: da } = await sb.from('erinnerungen').select('titel,wann').eq('erledigt', false).limit(500);
+      const gibts = new Set((da || []).map((x) => x.titel + '|' + String(x.wann).slice(0, 10)));
+      // Erinnerung 7 Tage vor der Frist, ganztägig
+      const neu = l.map((f) => ({ titel: `Frist: ${f.titel} (${datumKurz(f.datum)})`, wann: tagePlus(f.datum, -7) + 'T08:00:00+01:00', ganztag: true, wiederholung: 'nie', vorher_min: 0, notiz: f.info, bereich: '/?bereich=buchhaltung' }))
+        .filter((x) => !gibts.has(x.titel + '|' + x.wann.slice(0, 10)));
+      if (neu.length) { const { error } = await sb.from('erinnerungen').insert(neu); if (error) { k.disabled = false; UI.hinweis(error.message); return; } }
+      dlg.close(); UI.hinweis(neu.length ? `✓ ${neu.length} Fristen eingetragen. Ordasio erinnert Sie jeweils eine Woche vorher, mit verbundenem Kalender auch auf dem Handy.` : 'Alle Fristen sind schon eingetragen.');
+    };
+  }
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-fristen]')) fristenDialog(); });
+
   function uebersicht() {
     const liste = imJahr(Z.jahr);
     const s = summen(liste);
@@ -500,6 +547,7 @@
       if (!Z.einst.liquiStand) return `<div class="card abstand-unten lq-kurz" data-ansicht="liquiditaet"><span class="ic">📈</span><span class="txt"><b>Liquiditätsvorschau</b><span class="hinweis">Kontostand eintragen und sehen, ob das Geld 12 Wochen reicht</span></span><span>›</span></div>`;
       const lp = liquiPlan(), knapp = lp.wochen.find((w) => w.stand < lp.reserve);
       return `<div class="card abstand-unten lq-kurz ${knapp ? 'lq-warnung' : ''}" data-ansicht="liquiditaet"><span class="ic">${knapp ? '⚠️' : '📈'}</span><span class="txt"><b>${knapp ? 'Ab ' + datumKurz(knapp.von) + ' wird das Geld knapp' : 'Ihr Geld reicht die nächsten 12 Wochen'}</b><span class="hinweis">Tiefster Kontostand: ${chf(lp.tiefst)} CHF</span></span><span>›</span></div>`; })()}
+    ${fristenKarte()}
     ${doppeltAktiv() ? kontostaendeKarte() : ''}
     ${k('ziel', ziel ? `<div class="card abstand-unten ziel-karte"><div class="ziel-kopf"><h2 style="margin:0">Jahresziel ${Z.jahr}</h2><span class="num">${chf(s.ein)} von ${chf(ziel)} CHF · ${zielPct} %</span></div><div class="spur gross"><i style="width:${zielPct}%"></i></div></div>` : '')}
     ${k('kennzahlen', `<div class="raster raster-4">`)}
