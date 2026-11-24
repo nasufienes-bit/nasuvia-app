@@ -113,7 +113,7 @@
   huelle.className = 'nv';
   huelle.innerHTML = '<div class="nv-hinten" data-nv-zu></div>' +
     '<nav class="nv-leiste" aria-label="Bereiche" aria-hidden="true">' +
-      '<div class="nv-kopf"><span class="nv-marke"><i></i>' + MARKE + '</span><button class="nv-zu" type="button" data-nv-zu aria-label="Menü schliessen">' + svg('<path d="M6 6l12 12M18 6 6 18"/>') + '</button></div>' +
+      '<div class="nv-kopf"><span class="nv-marke">' + (PRODUKT ? '<img src="' + WURZEL + 'ordasio-zeichen.svg" alt="" style="width:22px;height:22px;display:block">' : '<i></i>') + MARKE + '</span><button class="nv-zu" type="button" data-nv-zu aria-label="Menü schliessen">' + svg('<path d="M6 6l12 12M18 6 6 18"/>') + '</button></div>' +
       '<p class="nv-titel">Bereiche</p>' +
       BEREICHE.map(function(b, i){
         return '<a class="nv-ziel' + (b.id === hier ? ' nv-hier' : '') + '" href="' + b.href + '" style="transition-delay:' + (60 + i * 45) + 'ms">' +
