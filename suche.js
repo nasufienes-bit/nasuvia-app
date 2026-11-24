@@ -343,7 +343,8 @@
     if (!l || !l.paket || !O || !O.darf) return true;
     const p = PROG[a.bereich];
     if (!p) return l.paket !== 'privat' || a.bereich === 'Konto und Lizenz';
-    return O.darf(l.paket, p);
+    const zm = O.modulFuer && O.modulFuer(p);
+    return O.darf(l, p) || !!(zm && O.kannBuchen(l, zm.id));
   }
   const passende = () => ARTIKEL.filter(passt);
   function finden(q) {

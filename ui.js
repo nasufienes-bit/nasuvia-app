@@ -16,6 +16,7 @@
   .ui-frage h3{margin:0;font-size:19px;line-height:26px;color:#0A1F17;padding-right:46px}
   .ui-frage > .ui-zu{margin-top:17px;margin-right:16px}
   .ui-frage p{margin:0;font-size:15px;line-height:1.5;color:#3F5A4F;white-space:pre-line}
+  .ui-frage .ui-html{max-height:min(62vh,560px);overflow:auto;font-size:15px;line-height:1.5;color:#3F5A4F}.ui-frage .ui-html p{white-space:normal;margin:0 0 6px}
   .ui-frage input{width:100%;padding:12px 14px;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 26%,transparent);border-radius:10px;font:inherit;font-size:16px}
   .ui-frage .ui-knoepfe{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
   .ui-frage button{border:0;border-radius:100px;padding:11px 18px;font:600 15px inherit;font-family:inherit;cursor:pointer;background:var(--flaeche,#E8F4EE);color:var(--blau,#0B3B2E)}
@@ -95,11 +96,11 @@
   // Eigene Fenster für Fragen, Eingaben und Hinweise. Ersetzt confirm(), prompt() und alert() des Browsers:
   // die können auf dem iPhone (vor allem als App auf dem Home-Bildschirm) hängen und die Seite blockieren.
   const escH = (x) => String(x ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  function fenster({ titel = '', text = '', eingabe = null, ja = 'OK', nein = 'Abbrechen', gefahr = false, platzhalter = '', mehrzeilig = false }) {
+  function fenster({ titel = '', text = '', html = '', eingabe = null, ja = 'OK', nein = 'Abbrechen', gefahr = false, platzhalter = '', mehrzeilig = false }) {
     return new Promise((fertig) => {
       const d = document.createElement('dialog');
       d.className = 'ui-frage'; d.setAttribute('data-ohne-x', '');
-      d.innerHTML = `<form method="dialog">${titel ? `<h3>${escH(titel)}</h3>` : ''}${text ? `<p>${escH(text)}</p>` : ''}${eingabe !== null ? (mehrzeilig ? `<textarea rows="4" placeholder="${escH(platzhalter)}" style="width:100%;font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 26%,transparent);border-radius:12px;padding:10px 12px;resize:vertical">${escH(eingabe)}</textarea>` : `<input value="${escH(eingabe)}" placeholder="${escH(platzhalter)}" autocomplete="off">`) : ''}<div class="ui-knoepfe">${nein ? `<button type="button" data-nein>${escH(nein)}</button>` : ''}<button class="ja ${gefahr ? 'gefahr' : ''}" value="ja">${escH(ja)}</button></div></form>`;
+      d.innerHTML = `<form method="dialog">${titel ? `<h3>${escH(titel)}</h3>` : ''}${html ? `<div class="ui-html">${html}</div>` : text ? `<p>${escH(text)}</p>` : ''}${eingabe !== null ? (mehrzeilig ? `<textarea rows="4" placeholder="${escH(platzhalter)}" style="width:100%;font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 26%,transparent);border-radius:12px;padding:10px 12px;resize:vertical">${escH(eingabe)}</textarea>` : `<input value="${escH(eingabe)}" placeholder="${escH(platzhalter)}" autocomplete="off">`) : ''}<div class="ui-knoepfe">${nein ? `<button type="button" data-nein>${escH(nein)}</button>` : ''}<button class="ja ${gefahr ? 'gefahr' : ''}" value="ja">${escH(ja)}</button></div></form>`;
       document.body.appendChild(d);
       let wert;
       const ende = (w) => { wert = w; if (d.open) d.close(); };
@@ -116,12 +117,12 @@
     // Ja/Nein: await UI.frage('Wirklich löschen?', { ja: 'Löschen', gefahr: true })
     frage: (text, o = {}) => {
       const weg = /lösch|entfern|beenden|zurücksetzen|ausschalten|festschreiben/i.test(String(text).split('\n')[0]);
-      return fenster({ text, ja: o.ja || (weg ? (/lösch/i.test(String(text).split('\n')[0]) ? 'Löschen' : 'Ja') : 'OK'), nein: o.nein || 'Abbrechen', gefahr: o.gefahr ?? weg, titel: o.titel || '' });
+      return fenster({ text, ja: o.ja || (weg ? (/lösch/i.test(String(text).split('\n')[0]) ? 'Löschen' : 'Ja') : 'OK'), nein: o.nein || 'Abbrechen', gefahr: o.gefahr ?? weg, titel: o.titel || '', html: o.html ? text : '' });
     },
     // Eingabe: await UI.eingabe('Name des Ordners', { vorgabe: '' }) → Text oder null
     eingabe: (text, o = {}) => fenster({ text, eingabe: o.vorgabe || '', ja: o.ja || 'OK', platzhalter: o.platzhalter || '', titel: o.titel || '', mehrzeilig: !!o.mehrzeilig }),
     // Hinweis mit einem Knopf
-    hinweis: (text, o = {}) => fenster({ text, ja: o.ja || 'OK', nein: '', titel: o.titel || '' }),
+    hinweis: (text, o = {}) => fenster({ text, ja: o.ja || 'OK', nein: '', titel: o.titel || '', html: o.html ? text : '' }),
     // Übersicht anpassen: Teile mit data-teil="…" ein- oder ausblenden, pro Bereich auf dem Gerät gemerkt
     teile: {
       lesen: (bereich) => { try { return JSON.parse(localStorage.getItem('ordasio.teile.' + bereich) || '{}'); } catch { return {}; } },

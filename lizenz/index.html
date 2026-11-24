@@ -56,6 +56,20 @@ h1{font-size:clamp(30px,6vw,42px);letter-spacing:-.03em;line-height:1.05;margin:
 .btn{display:block;width:100%;border:0;border-radius:100px;padding:12px;font:inherit;font-weight:700;cursor:pointer;background:var(--flaeche);color:var(--blau);text-align:center;text-decoration:none}
 .btn.haupt{background:var(--blau);color:#fff}
 .btn:disabled{opacity:.5}
+.zp-titel{text-align:center;margin:30px 0 6px}
+.module{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.modul{background:#fff;border-radius:20px;padding:18px;box-shadow:var(--schatten);display:flex;flex-direction:column;gap:6px;border:2px solid transparent;position:relative}
+.modul.an{border-color:var(--elektrik);background:linear-gradient(180deg,color-mix(in srgb,var(--elektrik) 8%,#fff),#fff 60%)}
+.modul .m-kopf{display:flex;gap:12px;align-items:center}.modul .m-ic{display:grid;place-items:center;flex:0 0 46px;height:46px;border-radius:14px;background:var(--flaeche);font-size:24px}
+.modul h3{margin:0;font-size:17px}.modul .m-kurz{font-size:13.5px;color:var(--text)}.modul .m-preis{font-weight:800;font-size:20px;color:var(--blau)}.modul .m-preis span{font-size:13px;font-weight:600;color:var(--text)}
+.modul ul{margin:4px 0 8px;padding-left:18px;font-size:14px;line-height:1.5;flex:1}.modul .m-knoepfe{display:flex;gap:8px;flex-wrap:wrap}.modul .m-knoepfe .btn{flex:1 1 auto;margin:0}
+.modul .m-marke{position:absolute;top:-11px;right:14px;background:linear-gradient(135deg,#F59E0B,#EA580C);color:#fff;font-size:11.5px;font-weight:800;padding:4px 10px;border-radius:100px;letter-spacing:.03em}
+.modul .m-hinweis{font-size:12.5px;color:var(--text)}
+.rechner{margin-top:14px;display:grid;gap:6px}.rechner .r-zeile{display:flex;justify-content:space-between;gap:12px;font-size:14.5px}.rechner .r-zeile.rabatt{color:var(--elektrik);font-weight:700}
+.rechner .r-total{display:flex;justify-content:space-between;gap:12px;align-items:baseline;border-top:1px solid var(--linie);padding-top:10px;margin-top:4px;font-weight:800;font-size:20px}
+.rechner .r-total small{font-size:13px;font-weight:600;color:var(--text)}
+.belohnung{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:14px}.belohnung .karte{display:flex;flex-direction:column;gap:4px}.belohnung span{font-size:14px;color:var(--text);line-height:1.5}.belohnung .bl-ic{font-size:28px}
+.d-module{display:grid;gap:6px;margin:4px 0 8px}.d-module label{display:flex!important;gap:8px;align-items:center;font-size:14px;color:var(--tinte)}.d-module input{width:18px;height:18px}
 .zusatz{margin-top:14px;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}.zusatz span{color:var(--text);font-size:14px}
 @media(max-width:560px){.stand{grid-template-columns:auto minmax(0,1fr)}.stand .marke{grid-column:2}}
 dialog{border:0;border-radius:22px;padding:0;width:min(460px,calc(100% - 24px));box-shadow:0 40px 100px -30px rgba(12,18,38,.5)}
@@ -88,9 +102,14 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   <div class="karte empf" id="empf"></div>
   <div class="umschalter"><div><button data-z="monat">Monatlich</button><button data-z="jahr" class="an">Jährlich · 2 Monate gratis</button></div></div>
   <div class="pakete" id="pakete"></div>
-  <div class="karte zusatz"><b>Mehr Mitarbeitende</b><span>In „Team“ und „Business Team“ sind 5 Mitarbeitende inklusive. Jede weitere Person: CHF 6 pro Monat oder CHF 60 pro Jahr. Im Gratis-Test unbegrenzt.</span></div>
-  <div class="karte zusatz" id="zusatzBewerbungen"><b>Zusatz: Bewerbungen · CHF 9 pro Monat</b><span>Eigener Bewerbungs-Link für Website und Inserate. Bewerbungen mit Lebenslauf und Zeugnissen kommen gesammelt in Ordasio an, Sie antworten mit einem Tipp. Zu jedem Firmenpaket buchbar, im Gratis-Test inklusive.</span></div>
-  <p class="unter" style="text-align:center;margin-top:10px;font-size:13px">Zum Vergleich: Bekannte Schweizer Programme kosten mit Lohn und Zeiterfassung oft CHF 80 bis 120 im Monat. Ordasio Team: CHF 59, alles inklusive.</p>
+  <h2 class="zp-titel" id="zusatzpakete">Zusatzpakete, einzeln per Knopfdruck</h2>
+  <p class="unter" style="text-align:center;margin:0 auto 14px;max-width:620px">Nehmen Sie nur, was Sie brauchen, und schalten Sie es jederzeit dazu oder ab. <b>Ab 2 Paketen 10 %, ab 3 Paketen 25 % Kombi-Rabatt.</b></p>
+  <div class="module" id="module"></div>
+  <div class="karte rechner" id="rechner"></div>
+  <div class="belohnung">
+    <div class="karte"><span class="bl-ic">💚</span><b>Treue lohnt sich</b><span id="treueText">Ab dem zweiten Jahr erhalten Sie automatisch 10 % Treuerabatt auf Ihre ganze Lizenz. Mit dem Jahresabo sind zudem 2 Monate gratis.</span></div>
+    <div class="karte"><span class="bl-ic">🎁</span><b>Weiterempfehlen</b><span>Empfehlen Sie Ordasio einer anderen Firma: Sie beide erhalten einen Monat gratis. Ohne Grenze, jede Empfehlung zählt.</span><a class="btn" href="../konto/#empfehlen" style="margin-top:10px">Meinen Empfehlungslink holen</a></div>
+  </div>
   <div class="karte zusatz"><b>Einrichtung durch uns</b><span>CHF 190 einmalig: Daten übernehmen, Logo und Vorlagen einrichten, 30 Minuten Einführung. Beim Bestellen einfach ankreuzen.</span></div>
   <p class="unter" style="text-align:center;margin-top:14px;font-size:14px">Alle Preise in CHF. Sie erhalten eine QR-Rechnung per E-Mail. Nach der Zahlung schalten wir Ihre Lizenz frei, alle Daten bleiben erhalten.</p>
 
@@ -128,7 +147,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     <label>Rechnungsadresse<textarea id="dAdresse" rows="2" placeholder="Strasse und Nr., PLZ und Ort" required></textarea></label>
     <label>Telefon <span>(freiwillig)</span><input id="dTel" type="tel"></label>
     <label id="dZeitFeld"><span id="dZeitText">Zusätzliche Mitarbeitende für die Zeiterfassung</span><input id="dZeit" type="number" min="0" max="200" value="0" inputmode="numeric"></label>
-    <label id="dBwZeile" style="display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--tinte)"><input type="checkbox" id="dBewerbungen" style="width:18px;height:18px;margin-top:2px"> <span><b>Zusatz Bewerbungen, CHF 9 pro Monat / 90 pro Jahr</b><br><span style="color:var(--text)">Bewerbungs-Link pro Stelle, Bewerbungen mit Unterlagen in Ordasio.</span></span></label>
+    <div id="dModule" class="d-module"></div>
     <label style="display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--tinte)"><input type="checkbox" id="dEinrichtung" style="width:18px;height:18px;margin-top:2px"> <span><b>Einrichtung durch uns, CHF 190 einmalig</b><br><span style="color:var(--text)">Wir übernehmen Ihre bisherigen Daten, richten Logo, Vorlagen und Kategorien ein und zeigen Ihnen alles in 30 Minuten per Video oder vor Ort.</span></span></label>
     <div class="summe"><span id="dPaket"></span><span id="dPreis"></span></div>
     <p class="meldung" id="dMeldung"></p>
@@ -151,14 +170,74 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   var BR = window.Branchen || null, branche = BR ? BR.aktuell() : '', ma = 0;
   var paketVon = function(id){ return O.paket(id); };
   var zyklus = 'jahr', lizenz = null, benutzer = null, gewaehlt = null, zeitLeute = 0;
+  var wahl = new Set(); // gewählte Zusatzpakete (für Rechner und Bestellung)
   var ZEIT = O.ZUSATZ_MITARBEITER;
-  function zeitAnzahl(){ return gewaehlt && gewaehlt.programme.indexOf('zeit') >= 0 ? Math.max(0, Math.min(200, parseInt($('dZeit').value, 10) || 0)) : 0; }
+  function zeitAnzahl(){ return wahl.has('team') ? Math.max(0, Math.min(200, parseInt($('dZeit').value, 10) || 0)) : 0; }
   function summeZeigen(){
-    var n = zeitAnzahl(), grund = zyklus === 'jahr' ? gewaehlt.jahr : gewaehlt.monat, z = n * ZEIT[zyklus];
-    var bw = gewaehlt.id !== 'privat' && $('dBewerbungen').checked ? (zyklus === 'jahr' ? 90 : 9) : 0; z += bw;
-    $('dBwZeile').hidden = gewaehlt.id === 'privat';
-    $('dPaket').textContent = gewaehlt.name + (n ? ' + ' + n + ' weitere Mitarbeitende' : '') + (bw ? ' + Bewerbungen' : '') + (zyklus === 'jahr' ? ', jährlich' : ', monatlich');
-    $('dPreis').textContent = 'CHF ' + (grund + z) + (zyklus === 'jahr' ? '/Jahr' : '/Monat') + ($('dEinrichtung').checked ? ' + 190 einmalig' : '');
+    var n = zeitAnzahl(), pr = O.preis({ paket: preisId(gewaehlt.id), module: Array.from(wahl), zyklus: zyklus, weitere: n });
+    $('dZeitFeld').hidden = !wahl.has('team');
+    $('dPaket').textContent = gewaehlt.name + (pr.module.length ? ' + ' + pr.module.map(function(m){ return m.name; }).join(', ') : '') + (n ? ' + ' + n + ' weitere Mitarbeitende' : '') + (zyklus === 'jahr' ? ', jährlich' : ', monatlich') + (pr.rabatt ? ' (Kombi-Rabatt ' + pr.prozent + ' %)' : '');
+    $('dPreis').textContent = 'CHF ' + pr.total + (zyklus === 'jahr' ? '/Jahr' : '/Monat') + ($('dEinrichtung').checked ? ' + 190 einmalig' : '');
+  }
+  // Bestehende Kombi-Pakete (Team, Business Team) behalten ihren festen Preis
+  function preisId(hId){ var k = lizenz && O.paket(lizenz.paket); return k && k.kombi && k.haupt === hId && k.module.every(function(m){ return wahl.has(m); }) ? k.id : hId; }
+  function dModuleZeichnen(){
+    $('dModule').innerHTML = gewaehlt.id === 'privat' ? '' : '<b style="font-size:14px">Zusatzpakete</b>' + O.MODULE.filter(function(m){ return O.kannBuchen({ paket: gewaehlt.id }, m.id); }).map(function(m){
+      return '<label><input type="checkbox" data-dmodul="' + m.id + '"' + (wahl.has(m.id) ? ' checked' : '') + '> ' + m.icon + ' ' + esc(m.name) + ' <span style="margin-left:auto;color:var(--text)">CHF ' + m.monat + '/Mt.</span></label>';
+    }).join('');
+  }
+  // Hauptlizenz, die der Rechner zeigt: die eigene (falls passend zur Rechtsform), sonst die empfohlene
+  function hauptJetzt(){
+    var h = lizenz && O.hauptVon(lizenz);
+    if (h && h.rechtsformen.indexOf(O.basis(rf)) >= 0) return h;
+    var e = BR ? BR.empfehlung({ rechtsform: rf, branche: branche, mitarbeiter: ma }) : null;
+    var p = e && O.paket(e.paket); p = p && p.haupt ? O.paket(p.haupt) : p;
+    return p || O.fuer(rf).filter(function(x){ return x.top && x.top.indexOf(O.basis(rf)) >= 0; })[0] || O.fuer(rf)[0];
+  }
+  function moduleZeichnen(){
+    var h = hauptJetzt(), privat = O.basis(rf) === 'privat';
+    $('zusatzpakete').hidden = $('module').hidden = $('rechner').hidden = privat;
+    $('zusatzpakete').nextElementSibling.hidden = privat;
+    if (privat) return;
+    var test = lizenz && lizenz.status === 'test', gebucht = lizenz ? O.gebucht(lizenz) : [];
+    var vorschlag = lizenz ? O.vorschlaege(lizenz, { branche: branche, mitarbeiter: ma }).map(function(m){ return m.id; }) : [];
+    $('module').innerHTML = O.MODULE.map(function(m){
+      var kann = O.kannBuchen({ paket: h.id }, m.id), an = wahl.has(m.id), hat = gebucht.indexOf(m.id) >= 0;
+      var marke = hat && !test ? 'Gebucht' : (vorschlag[0] === m.id || (!lizenz && m.fuer.indexOf(branche) >= 0)) ? 'Passt zu Ihnen' : '';
+      return '<div class="modul' + (an ? ' an' : '') + '">' + (marke ? '<span class="m-marke">' + marke + '</span>' : '') +
+        '<div class="m-kopf"><span class="m-ic">' + m.icon + '</span><div><h3>' + esc(m.name) + '</h3><div class="m-kurz">' + esc(m.kurz) + '</div></div></div>' +
+        '<div class="m-preis">+ ' + (zyklus === 'jahr' ? m.jahr : m.monat) + ' <span>CHF / ' + (zyklus === 'jahr' ? 'Jahr' : 'Monat') + '</span></div>' +
+        '<ul>' + m.was.map(function(w){ return '<li>' + esc(w) + '</li>'; }).join('') + '</ul>' +
+        (kann ? '<div class="m-knoepfe"><button class="btn' + (an ? '' : ' haupt') + '" data-modul="' + m.id + '">' + (an ? '✓ Gewählt · entfernen' : '+ Dazubuchen') + '</button><button class="btn" data-zusatz-info="' + m.id + '">So funktioniert es</button></div>'
+          : '<div class="m-hinweis">Gibt es zu „Selbständig“ oder „Business“, weil es die Buchhaltung braucht.</div>') +
+        (test && an ? '<div class="m-hinweis">Im Gratis-Test schon offen. Bleibt nach dem Test in Ihrer Lizenz.</div>' : '') + '</div>';
+    }).join('');
+    var pr = O.preis({ paket: preisId(h.id), module: Array.from(wahl).filter(function(id){ return O.kannBuchen({ paket: h.id }, id); }), zyklus: zyklus });
+    var ein = zyklus === 'jahr' ? 'Jahr' : 'Monat';
+    $('rechner').innerHTML = '<b style="font-size:17px">Ihre Zusammenstellung</b>' +
+      '<div class="r-zeile"><span>Hauptlizenz „' + esc(h.name) + '“</span><span>CHF ' + pr.grund + '</span></div>' +
+      pr.module.map(function(m){ return '<div class="r-zeile"><span>' + m.icon + ' ' + esc(m.name) + '</span><span>CHF ' + (zyklus === 'jahr' ? m.jahr : m.monat) + '</span></div>'; }).join('') +
+      (pr.rabatt ? '<div class="r-zeile rabatt"><span>Kombi-Rabatt ' + pr.prozent + ' % auf Zusatzpakete</span><span>− CHF ' + pr.rabatt + '</span></div>'
+        : pr.module.length === 1 ? '<div class="r-zeile" style="color:var(--text);font-size:13px"><span>Noch ein Paket dazu, und Sie sparen 10 % auf beide.</span></div>' : '') +
+      '<div class="r-total"><span>Total <small>pro ' + ein + ', exkl. MWST</small></span><span>CHF ' + pr.total + '</span></div>' +
+      '<button class="btn haupt" data-paket="' + h.id + '" style="margin-top:8px">' + (lizenz && lizenz.status === 'aktiv' ? 'So verlängern' : 'So bestellen') + '</button>';
+  }
+  async function modulUmschalten(id){
+    var m = O.modul(id), an = !wahl.has(id);
+    // Eingeloggt mit Lizenz: sofort buchen bzw. abbestellen (im Test: wird für nach dem Test vorgemerkt)
+    if (benutzer && lizenz && O.hauptVon(lizenz) && O.hauptVon(lizenz).rechtsformen.indexOf(O.basis(rf)) >= 0 && !window.NASUVIA_DEMO && lizenz.email !== 'demo@ordasio.ch') {
+      if (O.paket(lizenz.paket) && O.paket(lizenz.paket).kombi) { await UI.hinweis('Ihr Paket „' + O.paket(lizenz.paket).name + '“ enthält Team & Zeit, Löhne sowie Projekte & Lager zu einem festen Preis. Für Änderungen schreiben Sie uns kurz an info@nasuvia.ch.'); return; }
+      var aktiv = lizenz.status === 'aktiv';
+      var frage = an ? '„' + m.name + '“ dazubuchen? ' + (aktiv ? 'CHF ' + m.monat + ' pro Monat, sofort offen. Der Betrag kommt auf Ihre nächste Rechnung.' : 'Im Gratis-Test ist es schon offen. Es bleibt nach dem Test in Ihrer Lizenz.')
+        : '„' + m.name + '“ abbestellen? ' + (aktiv ? 'Es bleibt bis zum Ende der bezahlten Zeit offen, Ihre Daten bleiben erhalten.' : 'Ihre Daten bleiben erhalten.');
+      if (!await UI.frage(frage, { ja: an ? 'Dazubuchen' : 'Abbestellen', gefahr: false })) return;
+      var res = await sb.rpc('zusatz_buchen', { p_id: id, p_an: an });
+      if (res.error) { await UI.hinweis(res.error.message); return; }
+      lizenz.zusatz = res.data; window.NASUVIA_LIZENZ = lizenz;
+      try { var x = JSON.parse(localStorage.getItem('ordasio.lizenz') || '{}'); x.zusatz = res.data; localStorage.setItem('ordasio.lizenz', JSON.stringify(x)); } catch (f) {}
+    }
+    if (an) wahl.add(id); else wahl.delete(id);
+    moduleZeichnen();
   }
   var sb = window.supabase.createClient(K.url, K.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: K.speicher } });
   if (!window.NASUVIA_SB) window.NASUVIA_SB = sb;
@@ -200,7 +279,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       $('empf').hidden = false;
     } else $('empf').hidden = true;
     $('pakete').innerHTML = O.fuer(rf).map(function(p){
-      var jetzt = lizenz && O.paket(lizenz.paket) && O.paket(lizenz.paket).id === p.id && lizenz.rechtsform === rf;
+      var jetzt = lizenz && O.hauptVon(lizenz) && O.hauptVon(lizenz).id === p.id && lizenz.rechtsform === rf;
       var top = e ? e.paket === p.id : (p.top && p.top.indexOf(O.basis(rf)) >= 0);
       var knoepfe = jetzt
         ? '<button class="btn haupt" data-paket="' + p.id + '">' + (lizenz.status === 'aktiv' ? 'Verlängern' : 'Lizenz kaufen') + '</button>'
@@ -210,6 +289,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
         '<div class="preis">' + (zyklus === 'jahr' ? p.jahr : p.monat) + ' <span>CHF / ' + (zyklus === 'jahr' ? 'Jahr' : 'Monat') + '</span></div>' +
         '<ul>' + p.was.map(function(w){ return '<li>' + esc(w) + '</li>'; }).join('') + '</ul>' + knoepfe + '</div>';
     }).join('');
+    moduleZeichnen();
   }
   document.addEventListener('change', function(e){
     if (e.target.id === 'empfBranche') { branche = e.target.value; if (BR) BR.setzen(branche); paketeZeichnen(); }
@@ -229,14 +309,16 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   });
   document.addEventListener('click', function(e){
     var z = e.target.closest('[data-z]'); if (z) { zyklus = z.dataset.z; paketeZeichnen(); }
+    var mo = e.target.closest('[data-modul]'); if (mo) { modulUmschalten(mo.dataset.modul); return; }
     var p = e.target.closest('[data-paket]');
     if (p) {
       if (!benutzer) { location.href = '../'; return; }
       gewaehlt = PAKETE.find(function(x){ return x.id === p.dataset.paket; });
+      if (gewaehlt.kombi) { gewaehlt.module.forEach(function(m){ wahl.add(m); }); gewaehlt = O.paket(gewaehlt.haupt); }
+      dModuleZeichnen();
       $('dTitel').textContent = gewaehlt.name + ' bestellen';
-      $('dZeitFeld').hidden = gewaehlt.programme.indexOf('zeit') < 0;
-      $('dZeitText').textContent = 'Zusätzliche Mitarbeitende für die Zeiterfassung (' + gewaehlt.mitarbeiter + ' inklusive)';
-      $('dZeit').value = String(Math.max(zeitLeute - gewaehlt.mitarbeiter, (lizenz && lizenz.zeit_plaetze) || 0, 0));
+      $('dZeitText').textContent = 'Zusätzliche Mitarbeitende für die Zeiterfassung (5 inklusive)';
+      $('dZeit').value = String(Math.max(zeitLeute - 5, (lizenz && lizenz.zeit_plaetze) || 0, 0));
       summeZeigen();
       $('dFirma').value = (lizenz && (lizenz.firma || lizenz.name)) || '';
       $('dTel').value = (lizenz && lizenz.telefon) || '';
@@ -246,7 +328,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   });
   $('dZeit').addEventListener('input', summeZeigen);
   $('dEinrichtung').addEventListener('change', summeZeigen);
-  $('dBewerbungen').addEventListener('change', summeZeigen);
+  $('dModule').addEventListener('change', function(e){ var c = e.target.closest('[data-dmodul]'); if (!c) return; if (c.checked) wahl.add(c.dataset.dmodul); else wahl.delete(c.dataset.dmodul); summeZeigen(); moduleZeichnen(); });
   $('dZu').onclick = function(){ $('dlg').close(); };
   $('fZu').onclick = function(){ $('dlg').close(); };
   // Alle Daten löschen: Dateien im Speicher, Datenbank, dieses Gerät
@@ -290,8 +372,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     var d = new Date(), zz = function(n){ return ('0' + n).slice(-2); };
     var nr = 'LIZ-' + String(d.getFullYear()).slice(2) + zz(d.getMonth() + 1) + zz(d.getDate()) + '-' + (100 + Math.floor(Math.random() * 900));
     var zeitN = zeitAnzahl();
-    var preis = (zyklus === 'jahr' ? gewaehlt.jahr : gewaehlt.monat) + zeitN * ZEIT[zyklus];
-    var daten = { Paket: gewaehlt.name, Rechtsform: O.RECHTSFORMEN[rf].name, 'Zusätzliche Mitarbeitende': String(zeitN), Einrichtung: $('dEinrichtung').checked ? 'Ja, CHF 190 einmalig' : 'Nein', Bewerbungen: $('dBewerbungen').checked && gewaehlt.id !== 'privat' ? 'Ja' : 'Nein', Zahlungsweise: zyklus === 'jahr' ? 'Jährlich' : 'Monatlich', Preis: 'CHF ' + preis + (zyklus === 'jahr' ? ' pro Jahr' : ' pro Monat'),
+    var pr = O.preis({ paket: preisId(gewaehlt.id), module: Array.from(wahl), zyklus: zyklus, weitere: zeitN }), preis = pr.total;
+    var daten = { Paket: gewaehlt.name, Rechtsform: O.RECHTSFORMEN[rf].name, 'Zusätzliche Mitarbeitende': String(zeitN), Einrichtung: $('dEinrichtung').checked ? 'Ja, CHF 190 einmalig' : 'Nein', Zusatzpakete: pr.module.map(function(m){ return m.name; }).join(', ') || 'keine', 'Kombi-Rabatt': pr.rabatt ? pr.prozent + ' % (CHF ' + pr.rabatt + ')' : 'keiner', Zahlungsweise: zyklus === 'jahr' ? 'Jährlich' : 'Monatlich', Preis: 'CHF ' + preis + (zyklus === 'jahr' ? ' pro Jahr' : ' pro Monat'),
       'Rechnung an': firma, Adresse: adresse, 'E-Mail': benutzer.email, Telefon: $('dTel').value.trim(), Konto: benutzer.id,
       'Stand jetzt': lizenz ? lizenz.status + ' / ' + lizenz.paket + ' / ' + lizenz.rechtsform : '' };
     var ok1 = await fetch('https://dyepnomhidubsfwyorke.supabase.co/rest/v1/anfragen', { method: 'POST',
@@ -356,11 +438,17 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
         try { var zm = await sb.from('ze_mitarbeiter').select('id', { count: 'exact', head: true }).eq('aktiv', true); zeitLeute = zm.count || 0; } catch (f2) { zeitLeute = 0; }
       }
     } catch (f) { benutzer = null; }
+    if (lizenz) { O.gebucht(lizenz).forEach(function(m){ wahl.add(m); });
+      var jahre = lizenz.erstellt ? (Date.now() - new Date(lizenz.erstellt)) / 3.156e10 : 0;
+      if (lizenz.status === 'aktiv' && jahre >= 1) $('treueText').innerHTML = '<b>Ihr Treuerabatt von 10 % ist aktiv.</b> Danke, dass Sie seit über einem Jahr dabei sind.';
+      else if (lizenz.status === 'aktiv') $('treueText').textContent = 'Ab ' + dk(new Date(new Date(lizenz.erstellt || Date.now()).getTime() + 3.156e10).toISOString().slice(0, 10)) + ' erhalten Sie automatisch 10 % Treuerabatt auf Ihre ganze Lizenz.'; }
     standZeichnen(); paketeZeichnen(); treuhandZeichnen();
+    if (location.hash === '#zusatzpakete') setTimeout(function(){ $('zusatzpakete').scrollIntoView({ behavior: 'smooth' }); }, 200);
   })();
 })();
 </script>
 <script src="../ui.js"></script>
+<script src="../zusatz.js"></script>
 <script src="../navi.js" data-hier="lizenz" data-einfuegen=".kopf-links"></script>
 </body>
 </html>

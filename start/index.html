@@ -108,6 +108,7 @@ body[data-dichte=gross] .aufgabe{padding:26px}
 <script src="../pakete.js"></script>
 <script src="../branchen.js"></script>
 <script src="../lizenz.js" data-produkt="start"></script>
+<script src="../zusatz.js"></script>
 <script src="../marke.js"></script>
 <script src="../suche.js"></script>
 <script src="../ordi.js" defer></script>
@@ -165,8 +166,9 @@ body[data-dichte=gross] .aufgabe{padding:26px}
   const O = window.ORDASIO;
   const lizenz = () => window.NASUVIA_LIZENZ || null;
   const PROGRAMM = { loehne: 'lohn' };
-  const zielOffen = (z) => !O || !lizenz() || O.darf(lizenz().paket, PROGRAMM[z.id] || z.bereich);
-  const zielAb = (z) => (O && lizenz() ? O.ab(PROGRAMM[z.id] || z.bereich, lizenz().rechtsform || 'einzel') : null);
+  const zielOffen = (z) => !O || !lizenz() || O.darf(lizenz(), PROGRAMM[z.id] || z.bereich);
+  // Gesperrtes Ziel: gehört es zu einem Zusatzpaket (dazubuchen) oder zu einer grösseren Lizenz?
+  const zielAb = (z) => { if (!O || !lizenz()) return null; const pr = PROGRAMM[z.id] || z.bereich, m = O.modulFuer && O.modulFuer(pr); if (m && O.kannBuchen(lizenz(), m.id)) return { name: 'Zusatzpaket ' + m.name }; return O.ab(pr, lizenz().rechtsform || 'einzel'); };
   const doppelt = () => !!(O && lizenz() && O.doppelt(lizenz().rechtsform));
   // GmbH und AG: Buchhaltung mit Bilanz und Eröffnung
   function zielFuerRechtsform(z) {
@@ -194,7 +196,7 @@ body[data-dichte=gross] .aufgabe{padding:26px}
       el.innerHTML = `<div class="box">${punkte}<h2>Willkommen bei Ordasio 👋</h2><p>Was möchten Sie damit machen? Wählen Sie alles, was passt. Sie sehen danach nur, was Sie brauchen. Ändern geht jederzeit.</p>
         ${window.Branchen ? `<p style="margin:4px 0 8px"><b>Ihre Branche</b> <span class="leise">(wählt passende Bereiche vor)</span></p><div class="branchen">${Branchen.LISTE.map((b) => `<button data-branche="${b.id}" class="${Branchen.aktuell() === b.id ? 'an' : ''}">${b.icon} ${esc(b.name)}</button>`).join('')}</div>` : ''}
         <div class="ziele">${ZIELE.filter(zielOffen).map(zielFuerRechtsform).map((z) => `<button class="ziel ${wahl.has(z.id) ? 'an' : ''}" data-ziel="${z.id}"><span class="ic" style="background:${z.farbe}">${svg(z.ic)}</span><span><b>${esc(z.name)}</b><small>${esc(z.text)}</small></span><span class="h">${wahl.has(z.id) ? '✓' : ''}</span></button>`).join('')}</div>
-        ${ZIELE.some((z) => !zielOffen(z)) ? `<p class="leise" style="margin:12px 0 0">In einem grösseren Paket: ${ZIELE.filter((z) => !zielOffen(z)).map((z) => `${esc(z.name)}${zielAb(z) ? ' (ab ' + esc(zielAb(z).name) + ')' : ''}`).join(', ')}. <a class="link" href="../lizenz/">Pakete ansehen</a></p>` : ''}
+        ${ZIELE.some((z) => !zielOffen(z)) ? `<p class="leise" style="margin:12px 0 0">Zum Dazubuchen: ${ZIELE.filter((z) => !zielOffen(z)).map((z) => `${esc(z.name)}${zielAb(z) ? ' (ab ' + esc(zielAb(z).name) + ')' : ''}`).join(', ')}. <a class="link" href="../lizenz/">Pakete ansehen</a></p>` : ''}
         <button class="knopf" data-weiter ${wahl.size ? '' : 'disabled'}>Weiter</button></div>`;
     } else if (schritt === 2) {
       const m = window.Marke ? Marke.daten() : {};
@@ -282,6 +284,7 @@ body[data-dichte=gross] .aufgabe{padding:26px}
       <div class="abschnitt"><div class="aufgaben">
         ${gewaehlt.flatMap((z) => z.aufgaben.filter(([t]) => !lies('ordasio.startAus', []).includes(t)).map(([t, k, url, ic]) => `<a class="aufgabe" href="${url}"><span class="ic" style="background:${z.farbe}">${svg(ic)}</span><b>${esc(t)}</b><small>${esc(k)}</small></a>`)).join('')}
       </div></div>
+      <div id="zpEmpf"></div>
       ${fertig < schritte.length ? `<div class="abschnitt"><h2>Erste Schritte · ${fertig} von ${schritte.length}</h2><div class="karte">
         <div class="spur"><i style="width:${Math.round(fertig / schritte.length * 100)}%"></i></div>
         ${schritte.map(([id, t, url, ok]) => id === 'firma'
@@ -296,6 +299,8 @@ body[data-dichte=gross] .aufgabe{padding:26px}
         <a class="bereich" href="../hilfe/"><i style="background:#7C8499">${svg(I.hilfe)}</i>Anleitung</a>
       </div>
       <p class="leise" style="margin-top:14px">Etwas fehlt oder ist zu viel? <button class="link" data-anpassen>Bereiche anpassen</button> · <button class="link" data-design>Startseite anpassen</button> · <a class="link" href="../selbstaendig/" style="text-decoration:none">Tipps für Selbständige</a> · <a class="link" href="../lizenz/" style="text-decoration:none">Lizenz und Konto</a></p></div>`;
+    // Passendes Zusatzpaket empfehlen (wegklickbar, wechselt täglich)
+    if (window.OrdasioZusatz) OrdasioZusatz.empfehlung($('zpEmpf'));
   }
   document.addEventListener('click', (e) => { if (e.target.closest('[data-firma-start]') && window.Marke) Marke.dialog({ beiSpeichern: () => zeichnen() }); });
 

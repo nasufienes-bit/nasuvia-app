@@ -6,11 +6,12 @@
   if (!K.produkt) return;
   const skript = document.currentScript || {};
   const PRODUKT = (skript.dataset && skript.dataset.produkt) || 'buchhaltung';
-  const NAME = { buchhaltung: 'die Buchhaltung', rechnungen: 'das Rechnungsprogramm', privat: 'das Home-Büro', zeit: 'die Zeiterfassung', termine: 'die Online-Terminbuchung', lager: 'das Lager', ablage: 'die Firmenablage', start: 'Ordasio' }[PRODUKT];
+  const NAME = { buchhaltung: 'die Buchhaltung', rechnungen: 'das Rechnungsprogramm', privat: 'das Home-Büro', zeit: 'die Zeiterfassung', termine: 'die Online-Terminbuchung', lager: 'das Lager', ablage: 'die Firmenablage', start: 'Ordasio', projekte: 'die Projekte', konto: 'Ihr Konto' }[PRODUKT] || 'diesen Bereich';
   // Pakete und Rechtsformen kommen aus pakete.js (vor lizenz.js einbinden)
   const O = window.ORDASIO || null;
   const paketName = (id) => (O && O.paket(id) ? O.paket(id).name : id);
-  const darf = (id) => !O || O.darf(id, PRODUKT);
+  // Lizenz-Objekt (mit Zusatzpaketen) oder nur Paket-ID; „konto“ ist immer offen
+  const darf = (l) => !O || PRODUKT === 'konto' || O.darf(l, PRODUKT);
   const KAUFEN = (() => { try { return new URL('lizenz/', new URL('.', skript.src)).href; } catch { return '/lizenz/'; } })();
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const heute = () => new Date().toLocaleDateString('sv-SE');
@@ -40,6 +41,9 @@
   .lz-karte input,.lz-karte select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 26%,transparent);border-radius:12px;padding:11px 12px;background:#fff;color:#0A1F17;width:100%}
   .lz-knopf{display:block;width:100%;border:0;border-radius:100px;padding:13px;font:inherit;font-weight:700;font-size:16px;cursor:pointer;background:var(--blau,#0B3B2E);color:#fff;text-align:center;text-decoration:none;margin-top:6px}
   .lz-knopf.zweit{background:var(--flaeche,#E8F4EE);color:var(--blau,#0B3B2E)}
+  .lz-modul{text-align:left}.lz-modul small{display:block;text-align:center;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--elektrik,#1F9D6B)}
+  .lz-modul h2{text-align:center;margin:2px 0 10px}.lz-modul-ic{display:grid;place-items:center;width:58px;height:58px;margin:0 auto 8px;border-radius:18px;background:var(--flaeche,#E8F4EE);font-size:30px}
+  .lz-modul ul{margin:10px 0 12px;padding-left:20px;line-height:1.55;font-size:14.5px}.lz-preis{text-align:center;margin:0 0 12px}
   .lz-link{display:block;margin:12px auto 0;background:none;border:0;color:var(--elektrik,#0E7A55);font:inherit;font-size:14px;cursor:pointer}
   .lz-hinweis{font-size:13px!important;margin:-4px 0 10px!important;color:#3F5A4F}
   .lz-meldung{min-height:1.3em;font-size:14px;color:#C53030;margin:4px 0 6px}
@@ -130,6 +134,14 @@
       if (error) { t.disabled = false; await UI.hinweis(error.message); return; }
       location.reload();
     }
+    if (t.dataset.lzModul) {
+      e.preventDefault(); t.disabled = true;
+      const m = O && O.modul(t.dataset.lzModul), l0 = window.NASUVIA_LIZENZ || {};
+      if (l0.status === 'aktiv' && !await UI.frage(`„${m ? m.name : ''}“ für CHF ${m ? m.monat : ''} pro Monat dazubuchen? Es ist sofort offen, der Betrag kommt auf Ihre nächste Rechnung. Abbestellen geht jederzeit in Ihrem Konto.`)) { t.disabled = false; return; }
+      const { error } = await sb.rpc('zusatz_buchen', { p_id: t.dataset.lzModul, p_an: true });
+      if (error) { t.disabled = false; await UI.hinweis(error.message); return; }
+      location.reload();
+    }
     if (t.hasAttribute('data-lz-abmelden')) { e.preventDefault(); demoAus(); await sb.auth.signOut({ scope: 'local' }); location.reload(); }
     if (t.hasAttribute('data-lz-lesen')) { e.preventDefault(); weg(); pille('Nur Lesen: Lizenz abgelaufen · <b>Lizenz kaufen</b>', true); }
   });
@@ -196,12 +208,24 @@
     const { data: l, error } = await sb.from('lizenzen').select('*').eq('user_id', session.user.id).maybeSingle();
     if (error || !l) { sperre('Lizenz nicht gefunden', 'Zu Ihrem Konto gibt es noch keine Lizenz. Bitte melden Sie sich bei uns.', false); return; }
     window.NASUVIA_LIZENZ = l;
-    try { localStorage.setItem('ordasio.lizenz', JSON.stringify({ paket: l.paket, rechtsform: l.rechtsform, status: l.status })); } catch {}
+    try { localStorage.setItem('ordasio.lizenz', JSON.stringify({ paket: l.paket, rechtsform: l.rechtsform, status: l.status, zusatz: l.zusatz || {}, branche: l.branche || '' })); } catch {}
     try { document.dispatchEvent(new CustomEvent('ordasio-lizenz', { detail: l })); } catch {}
     const h = heute();
     const gueltig = l.status !== 'gesperrt' && ((l.status === 'test' && l.test_bis >= h) || (l.status === 'aktiv' && (l.gueltig_bis || '') >= h));
     if (PRODUKT === 'start' && l.paket === 'privat') { location.replace(KAUFEN.replace(/lizenz\/$/, 'privat/')); return; }
-    if (!darf(l.paket)) {
+    // Bereich gehört zu einem Zusatzpaket: erklären, was es bringt, und per Knopfdruck dazubuchen
+    const zm = O && O.modulFuer && O.modulFuer(PRODUKT);
+    if (!darf(l) && zm && O.kannBuchen(l, zm.id) && gueltig) {
+      const pr = O.preis({ paket: l.paket, module: [...O.gebucht(l), zm.id], zyklus: 'monat' });
+      zeigen(`<div class="lz-modul"><span class="lz-modul-ic">${zm.icon}</span><small>Zusatzpaket</small><h2>${esc(zm.name)}</h2>
+        <p>${esc(zm.erklaerung)}</p><ul>${zm.was.map((w) => `<li>${esc(w)}</li>`).join('')}</ul>
+        <p class="lz-preis"><b>CHF ${zm.monat}</b> pro Monat${pr && pr.prozent ? ` · mit Kombi-Rabatt ${pr.prozent} % auf alle Zusatzpakete` : ''}</p>
+        <button class="lz-knopf" data-lz-modul="${zm.id}">Jetzt dazubuchen</button>
+        <a class="lz-knopf zweit" href="${KAUFEN}#zusatzpakete">Alle Zusatzpakete vergleichen</a>
+        <a class="lz-link" href="${KAUFEN.replace(/lizenz\/$/, 'start/')}" style="text-align:center;text-decoration:none">Zurück zum Start</a></div>`);
+      return;
+    }
+    if (!darf(l)) {
       const besser = O && O.ab(PRODUKT === 'start' ? 'start' : PRODUKT, l.rechtsform || 'einzel');
       const text = `Ihr Paket „${esc(paketName(l.paket))}“ enthält ${NAME} nicht.` + (besser ? ` Das gibt es ab dem Paket „${esc(besser.name)}“ (CHF ${besser.monat} pro Monat).` : '');
       if (besser && l.status === 'test' && gueltig) {

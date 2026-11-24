@@ -53,7 +53,13 @@
       const lz = window.NASUVIA_LIZENZ || JSON.parse(localStorage.getItem('ordasio.lizenz') || 'null');
       const O = window.ORDASIO;
       if (lz && lz.paket === 'privat') BEREICHE = BEREICHE.filter((b) => ['privat', 'hilfe'].includes(b.id));
-      else if (lz && O && O.paket && O.paket(lz.paket)) BEREICHE = BEREICHE.filter((b) => ['start', 'hilfe', 'vorlagen', 'mehr'].includes(b.id) || O.darf(lz.paket, b.id));
+      else if (lz && O && O.paket && O.paket(lz.paket)) BEREICHE = BEREICHE.filter((b) => {
+        if (['start', 'hilfe', 'vorlagen', 'mehr'].includes(b.id) || O.darf(lz, b.id)) return true;
+        // Bereich aus einem Zusatzpaket: sichtbar lassen und als „Zusatz“ markieren (ein Klick zeigt, was er bringt)
+        const m = O.modulFuer && O.modulFuer(b.id);
+        if (m && O.kannBuchen(lz, m.id)) { b.zusatz = m; return true; }
+        return false;
+      });
     } catch (e) { /* ohne Lizenz: alle */ }
   }
   var hier = ds.hier || '';
@@ -111,6 +117,7 @@
     '.nv-ziel.nv-hier{background:#fff;box-shadow:0 1px 2px rgba(12,18,38,.04),0 16px 34px -22px color-mix(in srgb,var(--blau,#0B3B2E) 45%,transparent)}',
     '.nv-ziel.nv-hier .nv-ic{background:var(--elektrik,#0E7A55);color:#fff}',
     '.nv-ziel em{margin-left:auto;font-style:normal;font-family:ui-monospace,"JetBrains Mono",monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--elektrik,#0E7A55);background:color-mix(in srgb,var(--elektrik,#0E7A55) 10%,transparent);border-radius:100px;padding:3px 8px}',
+    '.nv-ziel em.nv-zusatz{background:linear-gradient(135deg,#F59E0B,#EA580C);color:#fff;border-color:transparent}',
     '.nv-ziel .nv-pfeil{margin-left:auto;color:var(--elektrik,#0E7A55)}',
     '.nv-trenner{height:1px;background:color-mix(in srgb,var(--blau,#0B3B2E) 10%,transparent);margin:12px 8px}',
     '.nv-fuss{margin-top:auto;padding:16px 8px 0;font-size:.78rem;color:#8A90A3}',
@@ -127,7 +134,7 @@
       '<p class="nv-titel">Bereiche</p>' +
       BEREICHE.map(function(b, i){
         return '<a class="nv-ziel' + (b.id === hier ? ' nv-hier' : '') + '" href="' + b.href + '" style="transition-delay:' + (60 + i * 45) + 'ms">' +
-          '<span class="nv-ic">' + svg(b.icon) + '</span><span><b>' + b.name + '</b><small>' + b.text + '</small></span>' + (b.id === hier ? '<em>Hier</em>' : '') + '</a>';
+          '<span class="nv-ic">' + svg(b.icon) + '</span><span><b>' + b.name + '</b><small>' + b.text + '</small></span>' + (b.id === hier ? '<em>Hier</em>' : b.zusatz ? '<em class="nv-zusatz">+ Zusatz</em>' : '') + '</a>';
       }).join('') +
       '<div class="nv-trenner"></div>' +
       '<a class="nv-ziel' + (WEBSITE.id && WEBSITE.id === hier ? ' nv-hier' : '') + '" href="' + WEBSITE.href + '"' + (PRODUKT ? '' : ' target="_blank" rel="noopener"') + ' style="transition-delay:' + (60 + BEREICHE.length * 45) + 'ms"><span class="nv-ic">' + svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>') + '</span><span><b>' + WEBSITE.name + '</b><small>' + WEBSITE.text + '</small></span><span class="nv-pfeil">↗</span></a>' +

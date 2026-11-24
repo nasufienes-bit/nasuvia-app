@@ -275,12 +275,12 @@
 
   /* ---------- Bewerbungen (Zusatzoption) ---------- */
   const BW_STATUS = [['neu', 'Neu', 'm-offen'], ['interessant', 'Interessant', 'm-blau'], ['gespraech', 'Gespräch', 'm-blau'], ['zusage', 'Zusage', 'm-ok'], ['absage', 'Absage', 'm-grau']];
-  const bwFrei = () => { const l = window.NASUVIA_LIZENZ || {}; return l.status === 'test' || !!(l.zusatz || {}).bewerbungen || !K.produkt; };
+  const bwFrei = () => { const l = window.NASUVIA_LIZENZ || {}, O = window.ORDASIO; return !K.produkt || (O && O.darf ? O.darf(l, 'bewerbungen') : l.status === 'test' || !!(l.zusatz || {}).bewerbungen); };
   const bwLink = (s) => new URL('../b/?s=' + s.token, location.href).href;
   function bewerbungenAnsicht() {
     if (!bwFrei()) return `<div class="start"><div class="gross"><svg viewBox="0 0 24 24">${ICON.bewerbungen}</svg></div><h2>Bewerbungen an einem Ort</h2>
-      <p>Mit der Zusatzoption erhalten Sie für jede offene Stelle einen eigenen Bewerbungs-Link für Website, Inserate und Social Media. Bewerbungen mit Lebenslauf und Zeugnissen kommen hier an. Sie sortieren, bewerten und antworten mit einem Tipp.</p>
-      <p><b>CHF 9 pro Monat</b> oder CHF 90 pro Jahr, zu jedem Firmenpaket.</p><a class="btn haupt" href="../lizenz/#zusatzBewerbungen">Zusatzoption bestellen</a></div>`;
+      <p>Mit dem Zusatzpaket Bewerbungen erhalten Sie für jede offene Stelle einen eigenen Bewerbungs-Link für Website, Inserate und Social Media. Bewerbungen mit Lebenslauf und Zeugnissen kommen hier an. Sie sortieren, bewerten und antworten mit einem Tipp.</p>
+      <p><b>CHF 9 pro Monat</b> oder CHF 90 pro Jahr, zu jedem Firmenpaket.</p><button class="btn haupt" data-zusatz-buchen="bewerbungen">Jetzt dazubuchen</button> <a class="btn" href="../lizenz/#zusatzpakete">Alle Zusatzpakete</a></div>`;
     if (Z.bwOffen) { const b = Z.bewerbungen.find((x) => x.id === Z.bwOffen); if (b) return bewerbungDetail(b); }
     const l = Z.bewerbungen.filter((b) => Z.bwFilter === 'alle' || (Z.bwFilter === 'aktiv' ? !['absage'].includes(b.status) : b.status === Z.bwFilter));
     const stelle = (id) => Z.stellen.find((s) => s.id === id);

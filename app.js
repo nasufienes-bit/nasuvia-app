@@ -201,7 +201,7 @@
   const doppeltPflicht = () => (O ? O.doppelt(rechtsform()) : istFirma());
   const kapitalName = () => ((O && O.RECHTSFORMEN[rechtsform()]) || {}).kapital || '';
   const doppeltAktiv = () => !!D && (doppeltPflicht() || !!Z.einst.doppelt);
-  const lohnErlaubt = () => { const l = lizenzJetzt(); return !O || !l || O.darf(l.paket, 'lohn'); };
+  const lohnErlaubt = () => { const l = lizenzJetzt(); return !O || !l || O.darf(l, 'lohn'); };
   const kontenplan = () => D.kontenplan(rechtsform(), Z.einst.konten || []);
   const katKonto = (b) => D.kategorieKonto(Z.einst, b.typ, b.kategorie);
   const kontoText = (nr) => `${nr} ${D.nameVon(kontenplan(), nr)}`;
