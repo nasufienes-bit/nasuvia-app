@@ -215,7 +215,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const l = Z.artikel.filter((a) => !s || `${a.name} ${a.nummer} ${a.lieferant}`.toLowerCase().includes(s));
     const wert = Z.artikel.filter((a) => a.aktiv).reduce((x, a) => x + Math.max(0, Number(a.bestand)) * a.einkauf_rappen, 0);
     return `<div class="kopf"><div><h1>Artikel</h1><p class="unter">${Z.artikel.filter((a) => a.aktiv).length} Artikel · Lagerwert CHF ${chf(wert)} (Einkauf)</p></div>
-        <div class="aktionen"><button class="btn" data-a="anpassen">Übersicht anpassen</button><button class="btn" data-a="korb">Zuletzt gelöscht</button><button class="btn" data-a="verrechnen">Material verrechnen</button><button class="btn haupt" data-a="artikelNeu">+ Artikel</button></div></div>
+        <div class="aktionen"><button class="btn" data-a="anpassen">Übersicht anpassen</button><button class="btn" data-a="korb">Zuletzt gelöscht</button><button class="btn" data-a="verrechnen">Material verrechnen</button><a class="btn" href="../zeit/?tab=mitarbeiter&neu=lagerist" title="Ein Mitarbeiter führt das Lager mit dem Handy">+ Lagerist</a><button class="btn haupt" data-a="artikelNeu">+ Artikel</button></div></div>
       <div class="raster r4" data-teil="zahlen">
         <div class="card zahl"><div class="l">Artikel</div><div class="w">${Z.artikel.filter((a) => a.aktiv).length}</div><div class="k">aktiv</div></div>
         <div class="card zahl"><div class="l">Lagerwert</div><div class="w">${chf(wert)}</div><div class="k">CHF zum Einkaufspreis</div></div>

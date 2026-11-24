@@ -31,6 +31,8 @@ button{font:inherit;cursor:pointer}
 .summen div{background:rgba(255,255,255,.12);border-radius:14px;padding:10px 12px}
 .summen b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
 .summen span{font-size:12px;color:rgba(255,255,255,.75)}
+.vorschau-band{position:sticky;top:0;z-index:50;background:#4F46E5;color:#fff;font:600 13px/1.35 system-ui,sans-serif;text-align:center;padding:8px 12px}
+.lg-art{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 10px}.lg-art label{margin:0}.lg-art label{position:relative}.lg-art input{position:absolute;inset:0;width:1px!important;height:1px;opacity:0;pointer-events:none}dialog.ui-frage{overflow-x:hidden}.lg-art span{display:block;text-align:center;padding:9px 4px;border-radius:12px;background:var(--flaeche,#EEF2F7);font-weight:600;font-size:14px;cursor:pointer}.lg-art input:checked+span{background:var(--blau,#0B3B2E);color:#fff}
 .karte{background:#fff;border-radius:20px;padding:18px;box-shadow:var(--schatten);margin-top:14px}
 .karte h2{font-size:18px;margin-bottom:10px}
 .hoch{margin-top:-52px}
@@ -117,14 +119,32 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
 
   // Der Link enthält den persönlichen Schlüssel. Auf dem Gerät gemerkt, damit es auch als App vom Home-Bildschirm klappt.
   const q = new URLSearchParams(location.search);
-  let token = q.get('t') || lies('ze.token') || '';
-  if (q.get('t')) setz('ze.token', q.get('t'));
+  // Vorschau: der Chef sieht die App wie der Mitarbeiter, es wird nichts gespeichert und nichts gemerkt
+  const VORSCHAU = q.get('vorschau') === '1';
+  let token = q.get('t') || (VORSCHAU ? '' : lies('ze.token')) || '';
+  if (q.get('t') && !VORSCHAU) setz('ze.token', q.get('t'));
   if (!q.get('t') && token) history.replaceState(null, '', '?t=' + token);
   const K_START = 'ze.start.' + token.slice(0, 12);
 
   const Z = { monat: heute().slice(0, 7), daten: null, form: null, modus: 'zeit' };
   if (!token || !K.url) { fehler('Kein gültiger Link', 'Bitte öffnen Sie den Link, den Sie von Ihrem Arbeitgeber bekommen haben.'); return; }
   const sb = window.supabase.createClient(K.url, K.key, { auth: { persistSession: false, autoRefreshToken: false } });
+  if (VORSCHAU) {
+    const LESEN = ['ze_ich', 'ze_spesen_meine', 'ab_ich', 'ze_lager'];
+    const rpc = sb.rpc.bind(sb), inv = sb.functions.invoke.bind(sb.functions);
+    const nein = () => { toast('Vorschau: Hier wird nichts gespeichert.'); return Promise.resolve({ data: null, error: { message: 'Vorschau: nichts gespeichert' } }); };
+    sb.rpc = (n, a) => (LESEN.includes(n) ? rpc(n, a) : nein());
+    sb.functions.invoke = (n, o) => ((n === 'ze-foto' && o && o.body && o.body.aktion === 'liste') || n === 'ablage-ma' ? inv(n, o) : nein());
+    const LOS = ['monatZurueck', 'monatVor', 'zurueck'];
+    document.addEventListener('click', (e) => {
+      const z = e.target.closest('[data-a],[data-pruefen],[data-foto-weg],[data-lg-buchen],[data-lg]');
+      if (!z || (z.dataset.a && LOS.includes(z.dataset.a)) || z.dataset.lg === 'suche') return;
+      e.preventDefault(); e.stopImmediatePropagation(); toast('Vorschau: Diese Aktion macht nur der Mitarbeiter selbst.');
+    }, true);
+    document.addEventListener('change', (e) => { if (e.target.matches('input[type=file]')) { e.target.value = ''; toast('Vorschau: Hier wird nichts hochgeladen.'); } }, true);
+    const b = document.createElement('div'); b.className = 'vorschau-band'; b.textContent = 'Vorschau: So sieht Ihr Mitarbeiter die App. Nichts wird gespeichert.';
+    document.body.prepend(b);
+  }
 
   // Optionen der Firma (Büro wählt, wie erfasst wird)
   const O = () => (Z.daten && Z.daten.optionen) || {};
@@ -145,6 +165,7 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
     zeichnen();
     sb.rpc('ze_spesen_meine', { p_token: token }).then(({ data: sp }) => { if (Array.isArray(sp)) { Z.spesen = sp; if (!Z.form) zeichnen(); } });
     sb.rpc('ab_ich', { p_token: token }).then(({ data: ab }) => { if (ab && !ab.fehler) { Z.ab = ab; if (!Z.form) zeichnen(); } });
+    lagerLaden();
     if (Z.auftrag && !Z.form) fotosLaden(Z.auftrag);
   }
 
@@ -181,6 +202,7 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
           ${tage.length ? tage.map((t) => { const l = imMonat.filter((e) => e.datum === t); return `<div class="tag-titel" id="tag-${t}"><span>${wt(t).slice(0, 2)} ${dk(t)}</span><span>${std(summe(l))}</span></div>` + l.map((e) => `<div class="zeile" data-eintrag="${e.id}"><div><b>${e.von ? `${e.von}–${e.bis}` : 'Dauer'}${e.verrechnet ? '<span class="marke-s">verrechnet</span>' : ''}</b><small>${esc([af(e.auftrag_id) ? af(e.auftrag_id).name : '', e.taetigkeit, e.pause_min ? e.pause_min + ' Min. Pause' : '', Number(e.km) ? e.km + ' km' : ''].filter(Boolean).join(' · ')) || 'Ohne Beschreibung'}</small></div><div class="std">${std(e.minuten)}</div></div>`).join(''); }).join('') : '<p class="leer">In diesem Monat ist noch nichts erfasst.</p>'}
         </div>` : ''}
         ${(d.einsaetze || []).length ? `<div class="karte"><h2>Einsätze im Handy-Kalender</h2><p class="hinweis">Einmal verbinden: Neue Einsätze erscheinen automatisch in Ihrem Kalender, mit Erinnerung eine Stunde vorher.</p><a class="gross leicht" style="display:block;text-align:center;text-decoration:none;margin-top:10px" href="${K.url.replace(/^https?:/, 'webcal:')}/functions/v1/kalender?ma=${token}">📅 Kalender verbinden</a></div>` : ''}
+        ${lagerKarte()}
         ${teamKarte()}
         <p class="fuss">${zeitAn ? 'Sie sehen nur Ihre eigenen Stunden.' : 'Sie sehen nur die Aufträge, die Ihnen zugewiesen sind.'} Tipp: Seite zum Home-Bildschirm hinzufügen, dann ist sie wie eine App.</p>
       </main>`;
@@ -292,6 +314,55 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
       ${alt.length ? `<details class="karte"><summary style="cursor:pointer"><b>Frühere Mitteilungen (${alt.length})</b></summary>${alt.map((m) => `<div class="zeile"><div><b>${esc(m.titel)}</b><small>${dk(String(m.erstellt).slice(0, 10))}${m.text ? ' · ' + esc(m.text.slice(0, 120)) : ''}</small></div></div>`).join('')}</details>` : ''}`;
   }
   // Spesen: Betrag, wofür, Foto der Quittung (verkleinert)
+  /* ---------- Lager (Lagerist oder Mitarbeiter mit Lagerzugang) ---------- */
+  async function lagerLaden() {
+    const { data } = await sb.rpc('ze_lager', { p_token: token });
+    Z.lager = data && data.erlaubt ? data : null; if (!Z.form) zeichnen();
+  }
+  const zahl = (x) => Number(x || 0).toLocaleString('de-CH', { maximumFractionDigits: 2 });
+  function lagerKarte() {
+    const L = Z.lager; if (!L) return '';
+    const such = (Z.lagerSuche || '').toLowerCase();
+    const knapp = L.artikel.filter((a) => Number(a.mindest) > 0 && Number(a.bestand) <= Number(a.mindest));
+    const liste = L.artikel.filter((a) => !such || (a.name + ' ' + (a.nummer || '') + ' ' + (a.lieferant || '')).toLowerCase().includes(such));
+    return `<div class="karte" id="lagerKarte"><h2>Lager${Z.daten.rolle === 'lagerist' ? ' <span class="status">Lagerist</span>' : ''}</h2>
+      ${knapp.length ? `<p class="hinweis" style="color:#B45309"><b>Nachbestellen:</b> ${knapp.map((a) => esc(a.name)).join(', ')}</p>` : '<p class="hinweis">Tippen Sie auf einen Artikel, um Verbrauch, Eingang oder Inventur zu buchen.</p>'}
+      <input type="search" data-lg="suche" id="lagerSuche" placeholder="Artikel suchen …" value="${esc(Z.lagerSuche || '')}" style="margin:8px 0 4px">
+      ${liste.length ? liste.slice(0, 60).map((a) => { const tief = Number(a.mindest) > 0 && Number(a.bestand) <= Number(a.mindest);
+        return `<div class="zeile" data-lg-buchen="${a.id}"><div style="min-width:0"><b>${esc(a.name)}</b><small>${esc([a.nummer, a.lieferant].filter(Boolean).join(' · ')) || '&nbsp;'}</small></div><span class="betrag" style="${tief ? 'color:#B45309' : ''}">${zahl(a.bestand)} ${esc(a.einheit || '')}</span></div>`; }).join('') : '<p class="hinweis">Keine Artikel gefunden.</p>'}
+      ${(L.letzte || []).length ? `<details style="margin-top:10px"><summary class="hinweis" style="cursor:pointer">Letzte Bewegungen</summary>${L.letzte.slice(0, 10).map((b) => `<div class="zeile" style="cursor:default"><div><b>${esc(b.artikel)}</b><small>${dk(b.datum)} · ${esc(b.notiz || '')}</small></div><span class="betrag">${Number(b.menge) > 0 ? '+' : ''}${zahl(b.menge)} ${esc(b.einheit || '')}</span></div>`).join('')}</details>` : ''}</div>`;
+  }
+  document.addEventListener('input', (e) => {
+    if (e.target.id !== 'lagerSuche') return;
+    Z.lagerSuche = e.target.value; const pos = e.target.selectionStart; zeichnen();
+    const n = $('lagerSuche'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch {} }
+  });
+  document.addEventListener('click', (e) => { const z = e.target.closest('[data-lg-buchen]'); if (z) lagerFenster(z.dataset.lgBuchen); });
+  function lagerFenster(id) {
+    const a = Z.lager.artikel.find((x) => x.id === id); if (!a) return;
+    const dlg = document.createElement('dialog'); dlg.className = 'ui-frage';
+    dlg.innerHTML = `<form method="dialog"><h3>${esc(a.name)}</h3><p class="hinweis" style="margin:0 0 8px">Bestand: <b>${zahl(a.bestand)} ${esc(a.einheit || '')}</b></p>
+      <div class="lg-art">${[['ausgang', 'Verbrauch'], ['eingang', 'Eingang'], ['korrektur', 'Inventur']].map(([w, t], i) => `<label><input type="radio" name="art" value="${w}" ${i ? '' : 'checked'}><span>${t}</span></label>`).join('')}</div>
+      <label><span data-lg-titel>Menge</span> (${esc(a.einheit || 'Stück')})<input type="text" name="menge" inputmode="decimal" required placeholder="0"></label>
+      <label data-lg-auftrag>Auftrag (optional)<select name="auftrag"><option value="">Kein Auftrag</option>${(Z.lager.auftraege || []).map((x) => `<option value="${x.id}">${esc(x.name)}${x.kunde ? ' · ' + esc(x.kunde) : ''}</option>`).join('')}</select></label>
+      <label>Notiz (optional)<input type="text" name="notiz" maxlength="200" placeholder="z. B. Lieferschein 4711"></label>
+      <div class="ui-knoepfe"><button type="button" class="nein" data-zu>Abbrechen</button><button class="ja">Buchen</button></div></form>`;
+    document.body.appendChild(dlg);
+    dlg.addEventListener('close', () => dlg.remove());
+    dlg.querySelector('[data-zu]').onclick = () => dlg.close();
+    const art = () => dlg.querySelector('[name=art]:checked').value;
+    dlg.querySelectorAll('[name=art]').forEach((r) => r.onchange = () => { dlg.querySelector('[data-lg-titel]').textContent = art() === 'korrektur' ? 'Gezählter Bestand' : 'Menge'; dlg.querySelector('[data-lg-auftrag]').hidden = art() !== 'ausgang'; });
+    dlg.querySelector('form').onsubmit = async (e) => {
+      e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
+      const m = Number(String(f.menge).replace(/[’'\s]/g, '').replace(',', '.'));
+      if (!isFinite(m) || m < 0 || (m === 0 && art() !== 'korrektur')) { toast('Bitte eine Menge eingeben'); return; }
+      const { data, error } = await sb.rpc('ze_lager_buchen', { p_token: token, p_artikel: a.id, p_art: art(), p_menge: m, p_auftrag: art() === 'ausgang' && f.auftrag ? f.auftrag : null, p_notiz: f.notiz || '' });
+      if (error || (data && data.fehler)) { toast(error ? fehlerText(error) : data.fehler, 4000); return; }
+      dlg.close(); toast(`✓ Gebucht. Neuer Bestand: ${zahl(data.bestand)} ${a.einheit || ''}`); lagerLaden();
+    };
+    dlg.showModal();
+  }
+
   function spesenFenster() {
     const dlg = document.createElement('dialog'); dlg.className = 'ui-frage';
     dlg.innerHTML = `<form method="dialog"><h3>Spesen erfassen</h3>

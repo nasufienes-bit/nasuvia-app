@@ -153,6 +153,10 @@ a.live{text-decoration:none}
 .segment{display:inline-flex;background:var(--flaeche,#E8F4EE);border-radius:100px;padding:3px;gap:2px}
 .segment button{border:0;background:none;border-radius:100px;padding:6px 14px;font:inherit;font-size:13.5px;cursor:pointer;color:var(--text)}
 .segment button.an{background:#fff;color:var(--blau,#0B3B2E);font-weight:600;box-shadow:0 1px 2px rgba(12,18,38,.08)}
+.ma-vorschau{border:0;border-radius:26px;padding:14px;background:var(--papier,#F7F9FD);max-width:calc(100vw - 20px);max-height:calc(100dvh - 20px)}.ma-vorschau::backdrop{background:rgba(12,18,38,.45)}
+.mv-kopf{display:flex;align-items:center;min-height:36px;padding-right:48px;margin:0 2px 10px}
+.mv-handy{width:min(390px,calc(100vw - 48px));height:min(760px,calc(100dvh - 150px));border-radius:34px;border:10px solid #0B1220;overflow:hidden;background:#fff;box-shadow:0 20px 50px -20px rgba(0,0,0,.5)}
+.mv-handy iframe{width:100%;height:100%;border:0;display:block}
 </style>
 </head>
 <body>
@@ -281,7 +285,7 @@ a.live{text-decoration:none}
   async function allesLaden() {
     Korb.neuLaden = async () => { await stammLaden(); await eintraegeLaden(); zeichnen(); };
     Korb.aufraeumen(sb, KORB);
-    try { await stammLaden(); await eintraegeLaden(); Z.bereit = true; zeichnen(); }
+    try { await stammLaden(); await eintraegeLaden(); Z.bereit = true; zeichnen(); if (q.get('neu') === 'lagerist') { Z.tab = 'mitarbeiter'; zeichnen(); setTimeout(() => maDialog({ rolle: 'lagerist', lager: true }), 300); } }
     catch (e) { $('inhalt').innerHTML = `<div class="card"><h2>Daten konnten nicht geladen werden</h2><p class="hinweis">${esc(fehlerText(e))}</p><button class="btn abstand" data-a="neuLaden">Nochmals versuchen</button></div>`; }
   }
 
@@ -543,8 +547,8 @@ a.live{text-decoration:none}
         <span><b>Mitarbeiter erfassen ihre Arbeitszeit</b><br><small class="hinweis">Ausgeschaltet sehen Ihre Mitarbeiter auf dem Handy nur ihre Aufträge und Einsätze und laden Fotos hoch, ohne Stunden zu erfassen.</small></span></label></div>
       ${Z.zeitAn !== false ? optionenKarte() : ''}
       <div class="card">${Z.mitarbeiter.map((m) => { const min = Z.eintraege.filter((e) => e.mitarbeiter_id === m.id && e.datum.slice(0, 7) === monat).reduce((s, e) => s + e.minuten, 0);
-        return `<div class="zeile klick" data-ma="${m.id}"><div style="min-width:0"><b>${esc(m.name)}${m.aktiv ? '' : '<span class="marke-s m-grau">inaktiv</span>'}</b><small>${m.rolle === 'projektleiter' ? '<b style="display:inline;color:var(--elektrik)">Projektleiter</b> · ' : ''}${m.standort ? '📍 · ' : ''}${m.stundenlohn_rappen ? `Lohn CHF ${chf(m.stundenlohn_rappen)}/Std.` : 'Kein Stundenlohn'} · ${m.ansatz_rappen ? `Ansatz CHF ${chf(m.ansatz_rappen)}/Std.` : 'Kein Ansatz'}</small></div>
-          <div class="aktionen">${m.aktiv ? `<button class="btn klein" data-link="${m.id}">Link senden</button>` : ''}<span class="betrag" style="min-width:56px">${std(min)}</span></div></div>`; }).join('')}</div>
+        return `<div class="zeile klick" data-ma="${m.id}"><div style="min-width:0"><b>${esc(m.name)}${m.aktiv ? '' : '<span class="marke-s m-grau">inaktiv</span>'}</b><small>${m.rolle === 'projektleiter' ? '<b style="display:inline;color:var(--elektrik)">Projektleiter</b> · ' : m.rolle === 'lagerist' ? '<b style="display:inline;color:#4F46E5">Lagerist</b> · ' : ''}${m.lager && m.rolle !== 'lagerist' ? 'Lager · ' : ''}${m.standort ? '📍 · ' : ''}${m.stundenlohn_rappen ? `Lohn CHF ${chf(m.stundenlohn_rappen)}/Std.` : 'Kein Stundenlohn'} · ${m.ansatz_rappen ? `Ansatz CHF ${chf(m.ansatz_rappen)}/Std.` : 'Kein Ansatz'}</small></div>
+          <div class="aktionen">${m.aktiv ? `<button class="btn klein" data-ansicht-ma="${m.id}" title="So sieht ${esc(m.name)} die App">Ansicht</button><button class="btn klein" data-link="${m.id}">Link senden</button>` : ''}<span class="betrag" style="min-width:56px">${std(min)}</span></div></div>`; }).join('')}</div>
       <p class="hinweis abstand">Die Stunden rechts gelten für ${MONATE[new Date().getMonth()]}. Verlässt jemand die Firma, stellen Sie ihn auf „inaktiv“: Der Link funktioniert dann nicht mehr, die Stunden bleiben erhalten.</p>`;
   }
 
@@ -587,16 +591,17 @@ a.live{text-decoration:none}
       <div class="zwei"><label>Stundenlohn (CHF)<input type="text" inputmode="decimal" name="lohn" value="${m.stundenlohn_rappen ? chf(m.stundenlohn_rappen) : ''}" placeholder="z. B. 32.00"></label>
       <label>Ansatz für Kunden (CHF/Std.)<input type="text" inputmode="decimal" name="ansatz" value="${m.ansatz_rappen ? chf(m.ansatz_rappen) : ''}" placeholder="z. B. 95.00"></label></div>
       <p class="hinweis">Der Stundenlohn zeigt die Lohnkosten, der Ansatz kommt in die Rechnung. Beides können Sie leer lassen.</p>
-      <div class="zwei"><label>Rolle<select name="rolle"><option value="mitarbeiter" ${m.rolle !== 'projektleiter' ? 'selected' : ''}>Mitarbeiter</option><option value="projektleiter" ${m.rolle === 'projektleiter' ? 'selected' : ''}>Projektleiter</option></select></label>
+      <div class="zwei"><label>Rolle<select name="rolle"><option value="mitarbeiter" ${m.rolle !== 'projektleiter' ? 'selected' : ''}>Mitarbeiter</option><option value="projektleiter" ${m.rolle === 'projektleiter' ? 'selected' : ''}>Projektleiter</option>${lagerOffen() ? `<option value="lagerist" ${m.rolle === 'lagerist' ? 'selected' : ''}>Lagerist</option>` : ''}</select></label>
       <label style="display:flex;gap:8px;align-items:center;font-size:14px;color:var(--tinte);align-self:end;padding-bottom:9px"><input type="checkbox" name="anlegen" ${m.darf_anlegen ? 'checked' : ''}> Darf Aufträge und Ordner anlegen</label></div>
       <label style="display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--tinte)"><input type="checkbox" name="standort" ${m.standort ? 'checked' : ''} style="margin-top:3px"> <span>Standort beim Ein- und Ausstempeln mitschicken<br><small class="hinweis">Nur mit Wissen des Mitarbeiters einschalten. Keine dauernde Verfolgung: gespeichert wird nur der Ort beim Start und beim Stopp.</small></span></label>
-      <p class="hinweis">Projektleiter sehen auf dem Handy alle Aufträge und Fotos, können Fotos prüfen und Aufträge auf „Kontrolliert“ setzen.</p>
+      ${lagerOffen() ? `<label style="display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--tinte)"><input type="checkbox" name="lager" ${m.lager || m.rolle === 'lagerist' ? 'checked' : ''} style="margin-top:3px"> <span>Darf das Lager führen<br><small class="hinweis">Sieht auf dem Handy alle Artikel und bucht Verbrauch, Eingang und Inventur. Lageristen haben das immer.</small></span></label>` : ''}
+      <p class="hinweis">Projektleiter sehen auf dem Handy alle Aufträge und Fotos, können Fotos prüfen und Aufträge auf „Kontrolliert“ setzen.${lagerOffen() ? ' Lageristen führen das Lager vom Handy aus.' : ''}</p>
       ${m.id ? `<label style="display:flex;gap:8px;align-items:center;font-size:14px;color:var(--tinte)"><input type="checkbox" name="aktiv" ${m.aktiv ? 'checked' : ''}> Aktiv (Link funktioniert)</label>` : ''}
       <div class="fuss">${m.id ? '<button type="button" class="btn rot" data-a="maLoeschen">Löschen</button>' : '<span></span>'}<span class="aktionen"><button type="button" class="btn" data-a="zu">Abbrechen</button><button class="btn haupt" value="ok">Speichern</button></span></div>`);
     f.onsubmit = async (ev) => {
       ev.preventDefault();
       const d = new FormData(f);
-      const zeile = { name: String(d.get('name')).trim(), stundenlohn_rappen: betragLesen(d.get('lohn')), ansatz_rappen: betragLesen(d.get('ansatz')), rolle: d.get('rolle') || 'mitarbeiter', darf_anlegen: d.get('anlegen') === 'on', standort: d.get('standort') === 'on' };
+      const zeile = { name: String(d.get('name')).trim(), stundenlohn_rappen: betragLesen(d.get('lohn')), ansatz_rappen: betragLesen(d.get('ansatz')), rolle: d.get('rolle') || 'mitarbeiter', darf_anlegen: d.get('anlegen') === 'on', lager: d.get('rolle') === 'lagerist' || d.get('lager') === 'on', standort: d.get('standort') === 'on' };
       if (m.id) zeile.aktiv = d.get('aktiv') === 'on';
       const r = m.id ? await Korb.aendern(sb, 'ze_mitarbeiter', m.id, zeile, 'Mitarbeiter geändert') : await Korb.neu(sb, 'ze_mitarbeiter', zeile, 'Mitarbeiter erfasst');
       if (r.error) { toast(fehlerText(r.error), 6000); return; }
@@ -606,6 +611,18 @@ a.live{text-decoration:none}
     f.dataset.formMa = m.id || '';
   }
 
+  const lagerOffen = () => { const O = window.ORDASIO, l = window.NASUVIA_LIZENZ; return !O || !l || O.darf(l, 'lager'); };
+  // Vorschau: so sieht der Mitarbeiter seine App (im Handy-Rahmen, nichts wird gespeichert)
+  function ansichtDialog(m) {
+    const d = document.createElement('dialog'); d.className = 'ma-vorschau';
+    d.innerHTML = `<div class="mv-kopf"><b>So sieht ${esc(m.name.split(' ')[0])} die App</b></div>
+      <div class="mv-handy"><iframe src="${erfassenLink(m.token)}&vorschau=1" title="Ansicht von ${esc(m.name)}"></iframe></div>
+      <p class="hinweis" style="text-align:center;margin:8px 0 0">Nur zum Ansehen: Stempeln, Fotos und Anträge macht ${esc(m.name.split(' ')[0])} selbst.</p>`;
+    document.body.appendChild(d);
+    d.addEventListener('close', () => d.remove());
+    d.addEventListener('click', (e) => { if (e.target === d || e.target.closest('[data-mv-zu]')) d.close(); });
+    d.showModal();
+  }
   function linkDialog(m) {
     const link = erfassenLink(m.token);
     const text = `Hallo ${m.name.split(' ')[0]}, hier ist dein Link für die Zeiterfassung: ${link}\nAm besten auf dem Handy öffnen und zum Home-Bildschirm hinzufügen.`;
@@ -788,6 +805,7 @@ a.live{text-decoration:none}
       await stammLaden(); linkDialog(r.data); toast('Neuer Link erstellt'); return;
     }
     const li = t.closest('[data-link]'); if (li) { ev.stopPropagation(); linkDialog(ma(li.dataset.link)); return; }
+    const av = t.closest('[data-ansicht-ma]'); if (av) { ev.stopPropagation(); ansichtDialog(ma(av.dataset.ansichtMa)); return; }
     const afo = t.closest('[data-af-offen]'); if (afo) { if (dlg.open) dlg.close(); Z.tab = 'eintraege'; Z.fAuftrag = afo.dataset.afOffen; Z.fStatus = 'offen'; Z.fMa = '';
       const l = Z.eintraege.filter((e) => e.auftrag_id === Z.fAuftrag && !e.verrechnet); if (l.length) Z.monat = l[0].datum.slice(0, 7);
       Z.wahl = new Set(l.filter((e) => e.datum.slice(0, 7) === Z.monat).map((e) => e.id)); zeichnen(); return; }

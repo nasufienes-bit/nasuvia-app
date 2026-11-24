@@ -60,6 +60,22 @@
   .tp-punkte{display:flex;gap:5px;align-items:center;justify-content:center;flex:1}.tp-punkte i{width:6px;height:6px;border-radius:50%;background:color-mix(in srgb,var(--blau,#0B3B2E) 20%,transparent);cursor:pointer;transition:width .2s}.tp-punkte i.an{background:var(--elektrik,#0E7A55);width:16px;border-radius:4px}
   .tp-fuss .tp-platz{flex:1}
   @media print{.tp-leiste{display:none}}`;
+  // Kompakt und dunkel (überschreibt die Grundwerte oben)
+  css.textContent += `
+  .tp-leiste{margin:0 0 12px;border-radius:16px;padding:8px;background:linear-gradient(135deg,var(--blau,#0B3B2E),color-mix(in srgb,var(--blau,#0B3B2E) 78%,#000));box-shadow:0 10px 24px -18px rgba(0,0,0,.6)}
+  .tp-band{gap:8px}
+  @container (min-width:560px){.tp-band{grid-auto-columns:calc((100% - 8px) / 2)}}
+  @container (min-width:880px){.tp-band{grid-auto-columns:calc((100% - 16px) / 3)}}
+  .tp-karte{background:rgba(255,255,255,.07);border-radius:12px;padding:8px 10px;grid-template-columns:22px 1fr;gap:1px 9px}
+  .tp-karte > span{height:20px;font-size:17px;color:#6EE7A8}.tp-karte > span .oi{width:17px;height:17px}
+  .tp-karte b{font-size:13.5px;color:#fff;min-height:0}
+  .tp-karte p{font-size:12.5px;line-height:1.4;color:rgba(255,255,255,.72);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .tp-ordi{margin-top:5px;padding:5px 11px;font-size:12px;background:#6EE7A8;color:#0A1F17}
+  .tp-fuss{margin-top:6px;min-height:22px;gap:4px}
+  .tp-fuss button{width:22px;height:22px;background:rgba(255,255,255,.12);color:#fff}.tp-fuss button svg{width:13px;height:13px}
+  .tp-fuss .tp-zu{padding:0 9px;font-size:11.5px;background:transparent;color:rgba(255,255,255,.7)}
+  .tp-fuss .tp-zu:hover{color:#fff;background:rgba(255,255,255,.1)}
+  .tp-punkte i{width:5px;height:5px;background:rgba(255,255,255,.3)}.tp-punkte i.an{background:#6EE7A8;width:14px}`;
   document.head.appendChild(css);
   function bauen() {
     const l = TIPPS[hier]; if (!l) return null;
