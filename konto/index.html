@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8" />
+<meta name="robots" content="noindex, nofollow, noai, noimageai">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<link rel="icon" type="image/png" href="../favicon.png" />
+<title>Mein Konto · Ordasio</title>
+<meta name="theme-color" content="#F4FAF6" />
+<link rel="stylesheet" href="../schrift.css" />
+<script src="../konfig.js"></script>
+<script src="../pakete.js"></script>
+<script src="../lib/supabase.js"></script>
+<style>
+:root{--papier:#F4FAF6;--flaeche:#E8F4EE;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--gruen:#0E9F6E;--rot:#E5484D;--linie:color-mix(in srgb,var(--blau,#0B3B2E) 14%,transparent);--schatten:0 1px 2px rgba(12,18,38,.04),0 8px 28px -12px rgba(12,18,38,.16)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:16px/1.55 'League Spartan',-apple-system,system-ui,sans-serif;background:var(--papier);color:var(--tinte)}
+[hidden]{display:none!important}
+.wrap{max-width:900px;margin:0 auto;padding:0 18px 60px}
+header.kopfzeile{padding:24px 0 6px}
+header.kopfzeile .wrap{display:flex;align-items:center;gap:10px;padding:0}
+h1{font-size:clamp(30px,6vw,42px);letter-spacing:-.03em;line-height:1.05;margin:12px 0 6px}
+h2{font-size:20px;letter-spacing:-.01em;margin:0 0 4px;display:flex;align-items:center;gap:10px}
+h2 .ic{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;background:var(--flaeche);font-size:18px;flex:0 0 34px}
+.unter{color:var(--text)}
+.raster{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:14px;margin-top:18px}
+.karte{background:#fff;border-radius:20px;padding:20px;box-shadow:var(--schatten);display:flex;flex-direction:column;gap:10px;min-width:0}
+.karte.breit{grid-column:1/-1}
+.karte p{font-size:14.5px;color:var(--text)}
+label{display:flex;flex-direction:column;gap:4px;font-size:13.5px;font-weight:600;color:var(--text)}
+input{font:inherit;font-size:16px;padding:11px 13px;border:1.5px solid var(--linie);border-radius:12px;background:#fff;color:var(--tinte);width:100%}
+input:focus{outline:0;border-color:var(--elektrik)}
+.felder{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:100px;padding:11px 18px;font:inherit;font-weight:700;font-size:15px;cursor:pointer;background:var(--flaeche);color:var(--blau);text-decoration:none;text-align:center}
+.btn.haupt{background:var(--blau);color:#fff}.btn.gefahr{color:var(--rot)}.btn.klein{padding:7px 13px;font-size:13.5px}
+.btn:disabled{opacity:.55;cursor:default}
+.knoepfe{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.zeile{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--linie);min-width:0}
+.zeile:first-of-type{border-top:0}
+.zeile .ic{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:var(--flaeche);flex:0 0 38px;font-weight:800;color:var(--blau)}
+.zeile .txt{flex:1;min-width:0}.zeile .txt b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.zeile .txt small{display:block;color:var(--text);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.marke{font-size:11.5px;font-weight:800;padding:3px 9px;border-radius:100px;background:var(--flaeche);color:var(--elektrik);white-space:nowrap}
+.marke.aus{background:#f1f2f4;color:var(--leise)}
+.code{font:700 22px/1 ui-monospace,"JetBrains Mono",monospace;letter-spacing:.12em;background:var(--flaeche);padding:12px 14px;border-radius:12px;text-align:center;color:var(--blau)}
+.link-feld{display:flex;gap:8px}.link-feld input{font-size:14px}
+.zahlen{display:grid;grid-template-columns:1fr 1fr;gap:10px}.zahlen div{background:var(--flaeche);border-radius:14px;padding:12px;text-align:center}.zahlen b{display:block;font-size:26px;line-height:1.1;color:var(--blau)}.zahlen span{font-size:12.5px;color:var(--text)}
+.qr{display:grid;place-items:center;padding:10px;background:#fff;border:1.5px solid var(--linie);border-radius:14px}
+.meldung{font-size:13.5px;min-height:1em;color:var(--rot)}.meldung.ok{color:var(--gruen)}
+.empf-karte{background:radial-gradient(500px 260px at 100% 0%,rgba(245,158,11,.25),transparent 60%),linear-gradient(135deg,#0A1F17,var(--blau))!important;color:#fff}
+.empf-karte p,.empf-karte h2{color:#fff}.empf-karte .code{background:rgba(255,255,255,.12);color:#fff}.empf-karte .zahlen div{background:rgba(255,255,255,.1)}.empf-karte .zahlen b,.empf-karte .zahlen span{color:#fff}
+.empf-karte input{background:rgba(255,255,255,.95)}.empf-karte .btn{background:#fff;color:var(--blau)}.empf-karte .btn.haupt{background:linear-gradient(135deg,#F59E0B,#EA580C);color:#fff}
+@media (max-width:560px){.karte{padding:16px;border-radius:18px}.link-feld{flex-direction:column}}
+</style>
+</head>
+<body>
+<header class="kopfzeile"><div class="wrap"><span class="kopf-links" style="display:flex;align-items:center;gap:10px"></span></div></header>
+<main class="wrap">
+  <h1>Mein Konto</h1>
+  <p class="unter" id="unter">Anmeldung, Sicherheit, Ihre Firmen und Empfehlungen.</p>
+
+  <div class="raster">
+    <section class="karte">
+      <h2><span class="ic">👤</span>Persönliche Angaben</h2>
+      <form id="profil" class="felder" style="gap:10px">
+        <label>Vor- und Nachname<input name="name" autocomplete="name"></label>
+        <label>Firma<input name="firma" autocomplete="organization"></label>
+        <label>Telefon<input name="telefon" type="tel" autocomplete="tel"></label>
+        <label>E-Mail<input name="email" type="email" autocomplete="email"></label>
+      </form>
+      <p class="meldung" id="profilMeldung"></p>
+      <div class="knoepfe"><button class="btn haupt" id="profilSpeichern">Speichern</button></div>
+    </section>
+
+    <section class="karte">
+      <h2><span class="ic">🔐</span>Anmeldung und Sicherheit</h2>
+      <div id="wege"></div>
+      <div class="zeile" id="mfaZeile"><span class="ic">2F</span><span class="txt"><b>Zwei-Faktor-Schutz</b><small id="mfaText">Wird geladen …</small></span><span id="mfaKnopf"></span></div>
+      <div id="mfaEinrichten" hidden>
+        <p>1. Scannen Sie den Code mit einer Authenticator-App (z. B. Google Authenticator, Microsoft Authenticator oder 1Password).</p>
+        <div class="qr" id="mfaQr"></div>
+        <p style="font-size:12.5px">Oder geben Sie diesen Schlüssel ein: <b id="mfaSchluessel" style="word-break:break-all"></b></p>
+        <label>2. Code aus der App<input id="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456"></label>
+        <p class="meldung" id="mfaMeldung"></p>
+        <div class="knoepfe"><button class="btn haupt" id="mfaBestaetigen">Aktivieren</button><button class="btn" id="mfaAbbrechen">Abbrechen</button></div>
+      </div>
+      <div class="zeile"><span class="ic">🔑</span><span class="txt"><b>Passwort</b><small>Neues Passwort festlegen</small></span><button class="btn klein" id="passwortAendern">Ändern</button></div>
+    </section>
+
+    <section class="karte">
+      <h2><span class="ic">🏢</span>Meine Firmen</h2>
+      <p>Jede Firma hat ein eigenes Konto mit eigener Lizenz. Die Daten bleiben strikt getrennt, auch auf demselben Gerät. Wechseln geht mit einem Tipp.</p>
+      <div id="firmen"></div>
+      <div class="knoepfe"><button class="btn haupt" id="firmaNeu">+ Weitere Firma hinzufügen</button><button class="btn" id="firmaAnmelden">Mit bestehendem Konto anmelden</button></div>
+    </section>
+
+    <section class="karte">
+      <h2><span class="ic">📦</span>Lizenz und Zusatzpakete</h2>
+      <div id="lizenzKurz"><p>Wird geladen …</p></div>
+      <div class="knoepfe"><a class="btn haupt" href="../lizenz/#zusatzpakete">Zusatzpakete ansehen</a><a class="btn" href="../lizenz/">Lizenz verwalten</a></div>
+    </section>
+
+    <section class="karte breit empf-karte" id="empfehlen">
+      <h2><span class="ic" style="background:rgba(255,255,255,.14)">🎁</span>Empfehlen und belohnt werden</h2>
+      <p>Geben Sie Ihren Link an andere Firmen weiter. Sobald eine Firma Ordasio bezahlt, erhalten <b>Sie und die neue Firma je einen Monat gratis</b>. Ohne Grenze: zwölf Empfehlungen sind ein Jahr gratis.</p>
+      <div class="raster" style="margin-top:4px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))">
+        <div style="display:grid;gap:10px">
+          <div class="code" id="empfCode">········</div>
+          <div class="link-feld"><input id="empfLink" readonly><button class="btn" id="empfKopieren">Kopieren</button></div>
+          <div class="knoepfe"><button class="btn haupt" id="empfTeilen">Link teilen</button><a class="btn" id="empfWhatsapp" target="_blank" rel="noopener">WhatsApp</a><a class="btn" id="empfMail">E-Mail</a></div>
+        </div>
+        <div style="display:grid;gap:10px;align-content:start">
+          <div class="zahlen"><div><b id="empfAngemeldet">0</b><span>haben sich angemeldet</span></div><div><b id="empfBezahlt">0</b><span>Gratismonate verdient</span></div></div>
+          <p id="treue" style="font-size:13.5px"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="karte breit" style="flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between">
+      <div><b>Angemeldet als</b> <span id="wer">…</span></div>
+      <div class="knoepfe"><a class="btn" href="../lizenz/">Daten herunterladen oder löschen</a><button class="btn gefahr" id="abmelden">Abmelden</button></div>
+    </section>
+  </div>
+</main>
+
+<script src="../konten.js"></script>
+<script src="../lizenz.js" data-produkt="konto"></script>
+<script src="../ui.js"></script>
+<script src="../zusatz.js"></script>
+<script src="../navi.js" data-hier="konto" data-einfuegen=".kopf-links"></script>
+<script>
+(function(){
+  'use strict';
+  var K = window.NASUVIA_KONFIG || {}, O = window.ORDASIO;
+  var $ = function(id){ return document.getElementById(id); };
+  var esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var dk = function(d){ return d ? d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4) : ''; };
+  var sb = null, user = null, lizenz = null, wege = {};
+  var APP = location.origin + location.pathname.replace(/konto\/(index\.html)?$/, '');
+
+  function meldung(id, text, ok){ var m = $(id); m.textContent = text || ''; m.className = 'meldung' + (ok ? ' ok' : ''); }
+
+  async function laden(l){
+    sb = window.NASUVIA_SB; lizenz = l;
+    user = (await sb.auth.getUser()).data.user;
+    if (!user) return;
+    $('wer').textContent = user.email;
+    var f = $('profil');
+    f.name.value = l.name || (user.user_metadata || {}).name || (user.user_metadata || {}).full_name || '';
+    f.firma.value = l.firma || ''; f.telefon.value = l.telefon || ''; f.email.value = user.email || '';
+    try { wege = (await (await fetch(K.url + '/auth/v1/settings', { headers: { apikey: K.key } })).json()).external || {}; } catch (e) { wege = {}; }
+    wegeZeichnen(); mfaZeichnen(); firmenZeichnen(); lizenzZeichnen(); empfZeichnen();
+  }
+
+  /* ---------- Anmeldemethoden ---------- */
+  function wegeZeichnen(){
+    var ids = (user.identities || []).map(function(i){ return i.provider; });
+    var liste = [['email', '✉', 'E-Mail und Passwort', 'Anmeldelink per E-Mail geht immer']];
+    if (wege.google || ids.indexOf('google') >= 0) liste.push(['google', 'G', 'Google', '']);
+    if (wege.apple || ids.indexOf('apple') >= 0) liste.push(['apple', '', 'Apple', '']);
+    $('wege').innerHTML = liste.map(function(w){
+      var an = w[0] === 'email' ? true : ids.indexOf(w[0]) >= 0;
+      return '<div class="zeile"><span class="ic">' + w[1] + '</span><span class="txt"><b>' + w[2] + '</b><small>' + (an ? (w[3] || 'Verbunden') : 'Mit einem Tipp verbinden, dann ohne Passwort anmelden') + '</small></span>' +
+        (an ? '<span class="marke">Aktiv</span>' : '<button class="btn klein" data-verbinden="' + w[0] + '">Verbinden</button>') + '</div>';
+    }).join('') + (!wege.google && !wege.apple ? '<p style="font-size:12.5px">Anmeldung mit Google und Apple folgt in Kürze.</p>' : '');
+  }
+  document.addEventListener('click', async function(e){
+    var v = e.target.closest('[data-verbinden]'); if (!v) return;
+    var r = await sb.auth.linkIdentity({ provider: v.dataset.verbinden, options: { redirectTo: location.href } });
+    if (r.error) UI.hinweis(/manual linking/i.test(r.error.message) ? 'Das Verbinden ist noch nicht freigeschaltet. Bitte melden Sie sich kurz bei uns.' : r.error.message);
+  });
+
+  /* ---------- Zwei-Faktor ---------- */
+  var neuerFaktor = null;
+  async function mfaZeichnen(){
+    var r = await sb.auth.mfa.listFactors();
+    var aktiv = ((r.data && r.data.totp) || []).filter(function(f){ return f.status === 'verified'; })[0];
+    $('mfaText').textContent = aktiv ? 'Aktiv: bei jeder Anmeldung braucht es zusätzlich einen Code aus der App.' : 'Empfohlen: schützt Ihre Buchhaltung, auch wenn jemand Ihr Passwort kennt.';
+    $('mfaKnopf').innerHTML = aktiv ? '<button class="btn klein gefahr" data-mfa-aus="' + aktiv.id + '">Ausschalten</button>' : '<button class="btn klein" id="mfaStart">Einrichten</button>';
+  }
+  document.addEventListener('click', async function(e){
+    if (e.target.closest('#mfaStart')) {
+      // alte, nicht bestätigte Versuche entfernen
+      var alt = await sb.auth.mfa.listFactors();
+      for (var x of ((alt.data && alt.data.all) || [])) if (x.status !== 'verified') await sb.auth.mfa.unenroll({ factorId: x.id });
+      var r = await sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Ordasio ' + new Date().toISOString().slice(0, 10) });
+      if (r.error) { UI.hinweis(r.error.message); return; }
+      neuerFaktor = r.data;
+      $('mfaQr').innerHTML = '<img alt="QR-Code" width="180" height="180" src="' + r.data.totp.qr_code.replace(/"/g, '&quot;') + '">';
+      $('mfaSchluessel').textContent = r.data.totp.secret;
+      $('mfaEinrichten').hidden = false; $('mfaCode').value = ''; meldung('mfaMeldung', ''); $('mfaCode').focus();
+    }
+    var aus = e.target.closest('[data-mfa-aus]');
+    if (aus) {
+      if (!await UI.frage('Zwei-Faktor-Schutz ausschalten? Danach reicht wieder das Passwort.', { ja: 'Ausschalten' })) return;
+      var u = await sb.auth.mfa.unenroll({ factorId: aus.dataset.mfaAus });
+      if (u.error) { UI.hinweis(/aal2/i.test(u.error.message) ? 'Bitte melden Sie sich zuerst mit Code neu an.' : u.error.message); return; }
+      await sb.auth.refreshSession(); mfaZeichnen();
+    }
+  });
+  $('mfaBestaetigen').onclick = async function(){
+    if (!neuerFaktor) return;
+    var r = await sb.auth.mfa.challengeAndVerify({ factorId: neuerFaktor.id, code: $('mfaCode').value.replace(/\D/g, '') });
+    if (r.error) { meldung('mfaMeldung', 'Der Code stimmt nicht. Bitte den aktuellen Code eingeben.'); return; }
+    $('mfaEinrichten').hidden = true; neuerFaktor = null; mfaZeichnen();
+    UI.hinweis('✓ Zwei-Faktor-Schutz ist aktiv. Bei der nächsten Anmeldung fragt Ordasio nach dem Code aus Ihrer App.');
+  };
+  $('mfaAbbrechen').onclick = async function(){ if (neuerFaktor) await sb.auth.mfa.unenroll({ factorId: neuerFaktor.id }); neuerFaktor = null; $('mfaEinrichten').hidden = true; };
+
+  /* ---------- Profil und Passwort ---------- */
+  $('profilSpeichern').onclick = async function(){
+    var f = $('profil'), b = this; b.disabled = true; meldung('profilMeldung', '');
+    try {
+      var name = f.name.value.trim(), firma = f.firma.value.trim(), tel = f.telefon.value.trim(), mail = f.email.value.trim();
+      var r1 = await sb.from('lizenzen').update({ name: name, firma: firma, telefon: tel }).eq('user_id', user.id);
+      if (r1.error) throw r1.error;
+      var upd = { data: { name: name } };
+      if (mail && mail !== user.email) upd.email = mail;
+      var r2 = await sb.auth.updateUser(upd, { emailRedirectTo: location.href });
+      if (r2.error) throw r2.error;
+      window.OrdasioKonten && OrdasioKonten.merken({ uid: user.id, email: user.email, firma: firma || name });
+      meldung('profilMeldung', upd.email ? '✓ Gespeichert. Bitte bestätigen Sie die neue E-Mail über den Link, den wir an beide Adressen geschickt haben.' : '✓ Gespeichert.', true);
+      firmenZeichnen();
+    } catch (x) { meldung('profilMeldung', x.message || String(x)); }
+    b.disabled = false;
+  };
+  $('passwortAendern').onclick = async function(){
+    var p = await UI.eingabe('Neues Passwort (mindestens 8 Zeichen)', { platzhalter: '••••••••' });
+    if (p === null) return;
+    if (p.length < 8) { UI.hinweis('Das Passwort braucht mindestens 8 Zeichen.'); return; }
+    var r = await sb.auth.updateUser({ password: p });
+    UI.hinweis(r.error ? (/reauthentication|recent/i.test(r.error.message) ? 'Bitte melden Sie sich zuerst neu an und versuchen Sie es dann nochmals.' : r.error.message) : '✓ Neues Passwort gespeichert.');
+  };
+
+  /* ---------- Mehrere Firmen ---------- */
+  function firmenZeichnen(){
+    var liste = window.OrdasioKonten ? OrdasioKonten.liste() : [];
+    if (!liste.some(function(x){ return x.uid === user.id; })) liste.unshift({ uid: user.id, email: user.email, firma: lizenz.firma || lizenz.name, paket: lizenz.paket });
+    $('firmen').innerHTML = liste.map(function(k){
+      var jetzt = k.uid === user.id, p = O && O.paket(k.paket);
+      return '<div class="zeile"><span class="ic">' + esc((k.firma || k.email || '?').trim().charAt(0).toUpperCase()) + '</span><span class="txt"><b>' + esc(k.firma || k.email) + '</b><small>' + esc(k.email) + (p ? ' · ' + esc(p.name) : '') + '</small></span>' +
+        (jetzt ? '<span class="marke">Aktuell</span>' : '<button class="btn klein" data-firma="' + esc(k.email) + '">Wechseln</button><button class="btn klein" data-firma-weg="' + k.uid + '" title="Aus der Liste entfernen" aria-label="Aus der Liste entfernen">×</button>') + '</div>';
+    }).join('');
+  }
+  async function wechseln(ziel){
+    // Lokale Daten dieser Firma bleiben auf dem Gerät sicher beiseitegelegt (konten.js), der Server hat alles
+    try { if (window.Abgleich && Abgleich.jetzt) await Abgleich.jetzt(); } catch (e) {}
+    await sb.auth.signOut({ scope: 'local' });
+    location.href = APP + ziel;
+  }
+  document.addEventListener('click', async function(e){
+    var w = e.target.closest('[data-firma]');
+    if (w) { if (await UI.frage('Zu „' + w.dataset.firma + '“ wechseln? Sie melden sich dort mit dessen Passwort, Link oder Google/Apple an.', { ja: 'Wechseln', gefahr: false })) wechseln('start/?konto=' + encodeURIComponent(w.dataset.firma)); return; }
+    var x = e.target.closest('[data-firma-weg]');
+    if (x) { OrdasioKonten.vergessen(x.dataset.firmaWeg); firmenZeichnen(); }
+  });
+  $('firmaNeu').onclick = async function(){
+    if (!await UI.frage('Eine weitere Firma hinzufügen? Sie erstellen dafür ein eigenes Konto mit einer anderen E-Mail (30 Tage gratis). Ihre jetzige Firma bleibt unverändert und ist jederzeit mit einem Tipp wieder da.', { ja: 'Weiter', gefahr: false })) return;
+    wechseln('start/?neu=1');
+  };
+  $('firmaAnmelden').onclick = async function(){
+    if (!await UI.frage('Mit einem anderen bestehenden Konto anmelden? Ihre jetzige Firma bleibt in der Liste.', { ja: 'Weiter', gefahr: false })) return;
+    wechseln('start/');
+  };
+
+  /* ---------- Lizenz kurz ---------- */
+  function lizenzZeichnen(){
+    var h = O.hauptVon(lizenz), mods = O.gebucht(lizenz).map(O.modul).filter(Boolean), test = lizenz.status === 'test';
+    var bis = test ? lizenz.test_bis : lizenz.gueltig_bis;
+    $('lizenzKurz').innerHTML = '<div class="zeile"><span class="ic">★</span><span class="txt"><b>' + esc(h ? h.name : lizenz.paket) + '</b><small>' + (test ? 'Gratis-Test bis ' : lizenz.status === 'aktiv' ? 'Bezahlt bis ' : 'Abgelaufen am ') + dk(bis) + '</small></span><span class="marke' + (lizenz.status === 'aktiv' || test ? '' : ' aus') + '">' + (test ? 'Test' : lizenz.status === 'aktiv' ? 'Aktiv' : 'Abgelaufen') + '</span></div>' +
+      (test ? '<p style="font-size:13.5px">Im Gratis-Test sind alle Zusatzpakete offen. Wählen Sie, welche Sie danach behalten möchten.</p>'
+        : mods.length ? mods.map(function(m){ return '<div class="zeile"><span class="ic">' + m.icon + '</span><span class="txt"><b>' + esc(m.name) + '</b><small>' + esc(m.kurz) + '</small></span><span class="marke">Gebucht</span></div>'; }).join('')
+        : '<p style="font-size:13.5px">Noch keine Zusatzpakete. Schauen Sie, was zu Ihnen passt.</p>');
+  }
+
+  /* ---------- Empfehlen und Treue ---------- */
+  async function empfZeichnen(){
+    var r = await sb.rpc('meine_empfehlungen');
+    var d = r.data || {}, code = d.code || '';
+    var link = APP + '?empf=' + code + '&neu=1';
+    $('empfCode').textContent = code; $('empfLink').value = link;
+    $('empfAngemeldet').textContent = d.angemeldet || 0; $('empfBezahlt').textContent = d.bezahlt || 0;
+    var text = 'Ich mache meine Buchhaltung und Rechnungen mit Ordasio, einfach und aus der Schweiz. Mit meinem Link erhältst du einen Monat gratis: ' + link;
+    $('empfWhatsapp').href = 'https://wa.me/?text=' + encodeURIComponent(text);
+    $('empfMail').href = 'mailto:?subject=' + encodeURIComponent('Tipp: Ordasio für die Buchhaltung') + '&body=' + encodeURIComponent(text);
+    $('empfTeilen').onclick = function(){ if (navigator.share) navigator.share({ title: 'Ordasio', text: text, url: link }).catch(function(){}); else kopieren(link); };
+    var seit = lizenz.erstellt ? new Date(lizenz.erstellt) : null, jahre = seit ? (Date.now() - seit) / 3.156e10 : 0;
+    $('treue').innerHTML = lizenz.status === 'aktiv' && jahre >= 1 ? '💚 <b>Treuerabatt aktiv:</b> 10 % auf Ihre ganze Lizenz. Danke für Ihre Treue!'
+      : '💚 <b>Treue lohnt sich:</b> ' + (seit ? 'Ab ' + dk(new Date(seit.getTime() + 3.156e10).toISOString().slice(0, 10)) + ' erhalten' : 'Ab dem zweiten Jahr erhalten') + ' Sie automatisch 10 % Treuerabatt auf Ihre ganze Lizenz.';
+  }
+  function kopieren(t){ (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function(){ UI.hinweis('✓ Link kopiert.'); }, function(){ $('empfLink').select(); document.execCommand('copy'); }); }
+  $('empfKopieren').onclick = function(){ kopieren($('empfLink').value); };
+
+  $('abmelden').onclick = async function(){ try { sessionStorage.setItem('nk.ohneDemo', '1'); } catch (e) {} if (window.NasuviaLizenz) NasuviaLizenz.abmelden(); };
+
+  if (window.NASUVIA_LIZENZ) laden(window.NASUVIA_LIZENZ);
+  document.addEventListener('ordasio-lizenz', function(e){ laden(e.detail); });
+})();
+</script>
+</body>
+</html>

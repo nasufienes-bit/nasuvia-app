@@ -92,6 +92,8 @@
 
   async function abgleichen() {
     if (!benutzer) return;
+    // Andere Firma als bisher auf diesem Gerät? Erst die lokalen Daten tauschen (konten.js), nie vermischen
+    if (window.OrdasioKonten && !(await window.OrdasioKonten.pruefen(benutzer.id))) return;
     if (laeuft) { nochmal = true; return laeuft; }
     laeuft = (async () => {
       let geholt = 0;

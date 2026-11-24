@@ -9,6 +9,7 @@
   const NAME = { buchhaltung: 'die Buchhaltung', rechnungen: 'das Rechnungsprogramm', privat: 'das Home-Büro', zeit: 'die Zeiterfassung', termine: 'die Online-Terminbuchung', lager: 'das Lager', ablage: 'die Firmenablage', start: 'Ordasio', projekte: 'die Projekte', konto: 'Ihr Konto' }[PRODUKT] || 'diesen Bereich';
   // Pakete und Rechtsformen kommen aus pakete.js (vor lizenz.js einbinden)
   const O = window.ORDASIO || null;
+  try { const em = new URLSearchParams(location.search).get('empf'); if (em && /^[A-Za-z0-9]{6,10}$/.test(em)) localStorage.setItem('ordasio.empf', em.toUpperCase()); } catch {}
   const paketName = (id) => (O && O.paket(id) ? O.paket(id).name : id);
   // Lizenz-Objekt (mit Zusatzpaketen) oder nur Paket-ID; „konto“ ist immer offen
   const darf = (l) => !O || PRODUKT === 'konto' || O.darf(l, PRODUKT);
@@ -41,6 +42,8 @@
   .lz-karte input,.lz-karte select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 26%,transparent);border-radius:12px;padding:11px 12px;background:#fff;color:#0A1F17;width:100%}
   .lz-knopf{display:block;width:100%;border:0;border-radius:100px;padding:13px;font:inherit;font-weight:700;font-size:16px;cursor:pointer;background:var(--blau,#0B3B2E);color:#fff;text-align:center;text-decoration:none;margin-top:6px}
   .lz-knopf.zweit{background:var(--flaeche,#E8F4EE);color:var(--blau,#0B3B2E)}
+  .lz-oder{display:flex;align-items:center;gap:10px;margin:14px 0 10px;font-size:12.5px;color:#7a8a83}.lz-oder::before,.lz-oder::after{content:"";flex:1;height:1px;background:#dfe7e2}
+  .lz-wege{display:grid;gap:8px;margin-bottom:8px}.lz-wege:empty{display:none}.lz-weg{display:flex!important;align-items:center;justify-content:center;gap:10px;background:#fff!important;box-shadow:inset 0 0 0 1.5px #d5e0da}
   .lz-modul{text-align:left}.lz-modul small{display:block;text-align:center;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--elektrik,#1F9D6B)}
   .lz-modul h2{text-align:center;margin:2px 0 10px}.lz-modul-ic{display:grid;place-items:center;width:58px;height:58px;margin:0 auto 8px;border-radius:18px;background:var(--flaeche,#E8F4EE);font-size:30px}
   .lz-modul ul{margin:10px 0 12px;padding-left:20px;line-height:1.55;font-size:14.5px}.lz-preis{text-align:center;margin:0 0 12px}
@@ -97,12 +100,27 @@
             <label>Mitarbeitende<select name="ma" data-lz-empf><option value="0">Nur ich</option><option value="2">1 bis 3</option><option value="5">4 bis 5</option><option value="8">Mehr als 5</option></select></label></div>` : ''}
           ${O ? `<label>Paket<select name="paket" data-lz-paket>${paketOptionen(rfVorgabe, paketVorgabe)}</select></label>
           <p class="lz-hinweis" data-lz-rfhinweis>${rechtsformHinweis(rfVorgabe)}</p>` : ''}` : ''}
-        <label>E-Mail<input name="email" type="email" autocomplete="username" required></label>
+        <label>E-Mail<input name="email" type="email" autocomplete="username" required value="${esc(new URLSearchParams(location.search).get('konto') || '')}"></label>
         <label>Passwort${modus === 'neu' ? ' <span>(mindestens 8 Zeichen)</span>' : ''}<input name="passwort" type="password" autocomplete="${modus === 'neu' ? 'new-password' : 'current-password'}" required minlength="${modus === 'neu' ? 8 : 6}"></label>
         <p class="lz-meldung ${meldung.startsWith('✓') ? 'ok' : ''}" data-lz-meldung>${esc(meldung)}</p>
         <button class="lz-knopf">${modus === 'neu' ? 'Gratis-Test starten' : 'Anmelden'}</button>
       </form>
+      <div class="lz-oder"><span>oder</span></div>
+      <div class="lz-wege" data-lz-oauth></div>
+      ${modus === 'anmelden' ? '<button class="lz-knopf zweit" data-lz-maillink>✉ Anmeldelink per E-Mail</button>' : ''}
       ${modus === 'anmelden' ? '<button class="lz-link" data-lz-vergessen>Passwort vergessen?</button>' : '<p style="font-size:12.5px;margin-top:12px">Ihre Daten liegen verschlüsselt in der Schweiz (Zürich) und gehören Ihnen. Nur Sie sehen sie. Paket und Rechtsform können Sie während des Tests jederzeit ändern.</p>'}`);
+    wegeZeigen();
+  }
+  // Google und Apple nur zeigen, wenn sie in Supabase eingeschaltet sind
+  let wegeCache = null;
+  async function wegeZeigen() {
+    const ziel = decke.querySelector('[data-lz-oauth]'); if (!ziel) return;
+    try { wegeCache = wegeCache || (await (await fetch(K.url + '/auth/v1/settings', { headers: { apikey: K.key } })).json()).external || {}; } catch { wegeCache = {}; }
+    const W = [['google', 'Mit Google anmelden', '<svg viewBox="0 0 24 24" width="18" height="18"><path fill="#4285F4" d="M22.5 12.3c0-.8-.1-1.5-.2-2.2H12v4.2h5.9a5 5 0 0 1-2.2 3.3v2.7h3.5c2.1-1.9 3.3-4.7 3.3-8z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.2-2.7l-3.5-2.7c-1 .7-2.2 1-3.7 1-2.8 0-5.2-1.9-6.1-4.5H2.3v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.9 14.1a6.6 6.6 0 0 1 0-4.2V7.1H2.3a11 11 0 0 0 0 9.8z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.1l3.6 2.8C6.8 7.3 9.2 5.4 12 5.4z"/></svg>'],
+      ['apple', 'Mit Apple anmelden', '<svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9a4.8 4.8 0 0 0-3.8-2c-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9a5 5 0 0 0-4.2 2.6c-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.5a11 11 0 0 0 1.4-2.9 4.5 4.5 0 0 1-2.6-4.1zM13.9 5.1A4.4 4.4 0 0 0 15 1.9a4.5 4.5 0 0 0-2.9 1.5 4.2 4.2 0 0 0-1.1 3.1 3.7 3.7 0 0 0 2.9-1.4z"/></svg>']]
+      .filter(([id]) => wegeCache[id]);
+    ziel.innerHTML = W.map(([id, t, ic]) => `<button class="lz-knopf zweit lz-weg" data-lz-oauth-weg="${id}">${ic}<span>${t}</span></button>`).join('');
+    if (!W.length && !decke.querySelector('[data-lz-maillink]')) { const o = decke.querySelector('.lz-oder'); if (o) o.hidden = true; }
   }
   function rechtsformHinweis(rf) {
     return { einzel: 'Einfache Buchhaltung ohne Fachbegriffe. Die doppelte Buchhaltung lässt sich jederzeit zuschalten.',
@@ -127,6 +145,24 @@
       await sb.auth.resetPasswordForEmail(mail, { redirectTo: location.origin + location.pathname });
       anmelden('anmelden', '✓ Falls es ein Konto gibt, ist ein Link zum Zurücksetzen unterwegs.');
     }
+    if (t.dataset.lzOauthWeg) {
+      e.preventDefault();
+      await sb.auth.signInWithOAuth({ provider: t.dataset.lzOauthWeg, options: { redirectTo: location.origin + location.pathname } });
+      return;
+    }
+    if (t.hasAttribute('data-lz-maillink')) {
+      e.preventDefault();
+      const mail = (decke.querySelector('input[name=email]') || {}).value || '', m = decke.querySelector('[data-lz-meldung]');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) { m.className = 'lz-meldung'; m.textContent = 'Bitte zuerst Ihre E-Mail eingeben.'; return; }
+      t.disabled = true;
+      const { error } = await sb.auth.signInWithOtp({ email: mail.trim(), options: { shouldCreateUser: false, emailRedirectTo: location.origin + location.pathname } });
+      t.disabled = false;
+      m.className = 'lz-meldung' + (error ? '' : ' ok');
+      m.textContent = error ? (/rate limit/i.test(error.message) ? 'Bitte ein paar Minuten warten und nochmals versuchen.' : /signups not allowed|not found/i.test(error.message) ? 'Zu dieser E-Mail gibt es noch kein Konto.' : error.message)
+        : '✓ Link ist unterwegs. Öffnen Sie die E-Mail auf diesem Gerät und tippen Sie auf den Link.';
+      return;
+    }
+    if (t.hasAttribute('data-lz-mfa-ab')) { e.preventDefault(); await sb.auth.signOut({ scope: 'local' }); location.reload(); return; }
     if (t.dataset.lzWechsel) {
       e.preventDefault(); t.disabled = true;
       const l0 = window.NASUVIA_LIZENZ || {};
@@ -154,10 +190,17 @@
     try {
       if (f.dataset.lzForm === 'neu') {
         const { data, error } = await sb.auth.signUp({ email: d.email.trim(), password: d.passwort,
-          options: { emailRedirectTo: location.origin + location.pathname, data: { name: d.name.trim(), firma: (d.firma || '').trim(), paket: d.paket || '', rechtsform: d.rechtsform || 'einzel', branche: d.branche || '', zyklus: 'jahr' } } });
+          options: { emailRedirectTo: location.origin + location.pathname, data: { empf: (() => { try { return localStorage.getItem('ordasio.empf') || ''; } catch { return ''; } })(), name: d.name.trim(), firma: (d.firma || '').trim(), paket: d.paket || '', rechtsform: d.rechtsform || 'einzel', branche: d.branche || '', zyklus: 'jahr' } } });
         try { if (d.branche) localStorage.setItem('ordasio.branche', d.branche); } catch {}
         if (error) throw error;
         if (!data.session) { anmelden('anmelden', '✓ Fast geschafft: Bitte bestätigen Sie Ihre E-Mail über den Link, den wir Ihnen gerade geschickt haben.'); return; }
+        location.reload();
+      } else if (f.dataset.lzForm === 'mfa') {
+        const { data: fa } = await sb.auth.mfa.listFactors();
+        const faktor = (fa && fa.totp || []).find((x) => x.status === 'verified');
+        if (!faktor) throw new Error('Kein zweiter Faktor gefunden.');
+        const { error } = await sb.auth.mfa.challengeAndVerify({ factorId: faktor.id, code: String(d.code || '').replace(/\D/g, '') });
+        if (error) throw new Error('Der Code stimmt nicht. Bitte den aktuellen Code aus der App eingeben.');
         location.reload();
       } else if (f.dataset.lzForm === 'passwort') {
         const { error } = await sb.auth.updateUser({ password: d.passwort });
@@ -205,9 +248,22 @@
       }
       anmelden(willNeu ? 'neu' : 'anmelden'); return;
     }
+    if (window.OrdasioKonten && !(await window.OrdasioKonten.pruefen(session.user.id))) return;
+    try {
+      const { data: a } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (a && a.nextLevel === 'aal2' && a.currentLevel !== 'aal2') {
+        zeigen(`${SYMBOL}<h2>Bestätigungscode</h2><p>Ihr Konto ist mit Zwei-Faktor geschützt. Bitte geben Sie den 6-stelligen Code aus Ihrer Authenticator-App ein.</p>
+          <form data-lz-form="mfa"><label>Code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" maxlength="7" required autofocus></label><p class="lz-meldung" data-lz-meldung></p><button class="lz-knopf">Bestätigen</button></form>
+          <button class="lz-link" data-lz-mfa-ab>Abmelden</button>`);
+        return;
+      }
+    } catch {}
     const { data: l, error } = await sb.from('lizenzen').select('*').eq('user_id', session.user.id).maybeSingle();
     if (error || !l) { sperre('Lizenz nicht gefunden', 'Zu Ihrem Konto gibt es noch keine Lizenz. Bitte melden Sie sich bei uns.', false); return; }
     window.NASUVIA_LIZENZ = l;
+    // Empfehlung nachtragen (z. B. nach Anmeldung mit Google/Apple)
+    try { const em = localStorage.getItem('ordasio.empf'); if (em && !l.empfohlen_von) { sb.rpc('empfehlung_setzen', { p_code: em }).then(() => localStorage.removeItem('ordasio.empf')); } else if (em) localStorage.removeItem('ordasio.empf'); } catch {}
+    if (window.OrdasioKonten) window.OrdasioKonten.merken({ uid: session.user.id, email: session.user.email, firma: l.firma || l.name || '', paket: l.paket, rechtsform: l.rechtsform });
     try { localStorage.setItem('ordasio.lizenz', JSON.stringify({ paket: l.paket, rechtsform: l.rechtsform, status: l.status, zusatz: l.zusatz || {}, branche: l.branche || '' })); } catch {}
     try { document.dispatchEvent(new CustomEvent('ordasio-lizenz', { detail: l })); } catch {}
     const h = heute();
@@ -236,7 +292,7 @@
       } else sperre('Nicht in Ihrem Paket', text, false);
       return;
     }
-    if (!gueltig) {
+    if (!gueltig && PRODUKT !== 'konto') {
       sperre(l.status === 'gesperrt' ? 'Zugang gesperrt' : l.status === 'test' ? 'Ihr Gratis-Test ist abgelaufen' : 'Ihre Lizenz ist abgelaufen',
         'Ihre Daten sind sicher gespeichert und bleiben erhalten. Sobald die Lizenz bezahlt ist, geht es genau dort weiter, wo Sie aufgehört haben.', true);
       return;
