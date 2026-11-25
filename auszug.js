@@ -395,6 +395,26 @@
     return { anfang, ende, neuZuerst, treffer, paare };
   }
 
+  /* ---------- Zahlungspartner aus dem Buchungstext (wenn die Bank keine eigene Spalte hat) ---------- */
+  const ALLGEMEIN = /^(gutschrift|belastung|lastschrift|zahlung|einkauf|kauf|kauf\/dienstleistung|debitkarte|kreditkarte|ebill|e-bill|lsv|dauerauftrag|e-?banking|twint|bancomat|bargeldbezug|übertrag|einzahlung|auszahlung|einkauf \w+ (visa|mastercard|maestro) debit|\w+ (visa|mastercard) debit|zahlungsauftrag|sammelauftrag|überweisung)$/i;
+  const GROSS = (t) => (t.length > 3 && t === t.toUpperCase() && /[A-ZÄÖÜ]{3}/.test(t)
+    ? t.toLowerCase().replace(/(^|[\s\-\/(&.])([a-zäöüéèà])/g, (m, v, c) => v + c.toUpperCase()).replace(/\b(Ag|Sa|Gmbh|Sagl|Sàrl|Ch|Ug|Kg)\b/g, (x) => ({ Ag: 'AG', Sa: 'SA', Gmbh: 'GmbH', Sagl: 'Sagl', 'Sàrl': 'Sàrl', Ch: 'CH', Ug: 'UG', Kg: 'KG' })[x] || x)
+    : t);
+  function partnerAus(texte) {
+    const alle = texte.join(' · ');
+    const MUSTER = [
+      /(?:auftraggeber|zahlungspflichtiger|von)\s*:\s*(.+?)(?=\s+(?:mitteilungen|mitteilung|referenzen?|iban|zahlungsgrund|adresse|kosten)\s*:|\s*·|$)/i,
+      /(?:zahlungsempfänger|begünstigter|empfänger|an)\s*:\s*(.+?)(?=\s+(?:mitteilungen|mitteilung|referenzen?|iban|zahlungsgrund|adresse|kosten)\s*:|\s*·|$)/i,
+      /karten?\s*nr\.?\s*[x\d*]+\s+(.+?)(?=\s*·|$)/i,
+      /^(?:zahlung an|überweisung an|dauerauftrag an|gutschrift von|gutschrift aus|lastschrift von|ebill an)\s+(.+?)(?=\s*·|$)/i,
+    ];
+    for (const m of MUSTER) { const x = alle.match(m); if (x && x[1] && x[1].trim().length > 1) return GROSS(x[1].trim().replace(/\s+\d{4}\s+[A-ZÄÖÜ][\wäöü-]+$/i, (y) => y)).slice(0, 80); }
+    // Verwendungszweck (Rechnungsnummer, Referenz) ist kein Partner
+    const ZWECK = /^(rechnung|rg\.?|re\.?|invoice|faktura|referenz|ref\.?|bestellung|best\.?|auftrag|kunden-?nr\.?|vertrag|police|mitteilung)\b[\s:.-]*\S*\d/i;
+    const t = texte.find((x) => !ALLGEMEIN.test(x.trim()) && !/^\d[\d\s.,\/-]*$/.test(x) && !ZWECK.test(x.trim()));
+    return GROSS((t || texte[0] || '').replace(/^(zahlung an|überweisung an|gutschrift von|gutschrift)\s+/i, '').trim()).slice(0, 80);
+  }
+
   function csvLesen(roh) {
     const zeilen = zerlegen(roh);
     // Kopfzeile: enthält Datum- und Betragsspalten, aber selbst keine Daten; bei mehreren die mit den meisten bekannten Spalten
@@ -462,7 +482,7 @@
       const fremd = whg && !/^chf$/i.test(whg);
       const satz = S.mwst.length ? Number(String(w(S.mwst[0])).replace('%', '').replace(',', '.')) : NaN;
       const text = (texte.join(' · ') || partner).slice(0, 160) + (fremd ? ` (${whg})` : '');
-      vorher = { datum, betragRappen: b, partner: (partner || texte[0] || '').slice(0, 80), text, saldo: Number.isFinite(saldo) ? saldo : null, unsicher: !!fremd,
+      vorher = { datum, betragRappen: b, partner: (partner || partnerAus(texte)).slice(0, 80), text, saldo: Number.isFinite(saldo) ? saldo : null, unsicher: !!fremd,
         ...(S.kategorie.length && w(S.kategorie[0]) ? { kategorieName: w(S.kategorie[0]) } : {}), ...([0, 2.6, 3.8, 8.1].includes(satz) ? { mwstSatz: satz } : {}) };
       rows.push(vorher);
       const g = S.gebuehr.map((i) => geld(w(i))).find((x) => Number.isFinite(x) && x);
@@ -491,7 +511,7 @@
       const v = werte[0];
       const b = geldSp.length >= 2 ? (v.j === geldSp[0] ? Math.abs(v.v) : -Math.abs(v.v)) : v.v;
       const text = z.slice(1).filter((t, j) => t && !zahlSp.includes(j + 1) && !tagLesen(t)).join(' · ').slice(0, 160);
-      rows.push({ datum: tagLesen(z[0]), betragRappen: b, partner: text.split(' · ')[0].slice(0, 80), text, saldo: saldoSp >= 0 && Number.isFinite(geld(z[saldoSp])) ? geld(z[saldoSp]) : null, unsicher: true });
+      rows.push({ datum: tagLesen(z[0]), betragRappen: b, partner: partnerAus(text.split(' · ')), text, saldo: saldoSp >= 0 && Number.isFinite(geld(z[saldoSp])) ? geld(z[saldoSp]) : null, unsicher: true });
     }
     const aus = saldoAusrichten(rows);
     return { liste: rows.map(({ saldo, ...r }) => r), anfang: aus ? aus.anfang : null, ende: aus ? aus.ende : null, quelle: 'csv', bank: '' };
@@ -518,11 +538,23 @@
         const betrag = Math.round(Number(amtEl ? amtEl.textContent : NaN) * 100) * (kinder(n, 'CdtDbtInd')[0] && kinder(n, 'CdtDbtInd')[0].textContent.trim() === 'DBIT' ? -1 : 1);
         if (!Number.isFinite(betrag) || !betrag) continue;
         const details = n.getElementsByTagNameNS('*', 'TxDtls');
+        const datum = tagLesen(tx(n, 'BookgDt', 'Dt') || tx(n, 'BookgDt', 'DtTm') || tx(n, 'ValDt', 'Dt'));
+        if (details.length > 1) {
+          const teile = [...details].map((d) => { const a = kinder(d, 'Amt')[0] || tief(d, 'AmtDtls', 'TxAmt', 'Amt') || tief(d, 'AmtDtls', 'InstdAmt', 'Amt'); const ind = kinder(d, 'CdtDbtInd')[0]; const v = Math.round(Number(a ? a.textContent : NaN) * 100); return { d, v: ind ? (ind.textContent.trim() === 'DBIT' ? -v : v) : (betrag < 0 ? -v : v), whg: a ? a.getAttribute('Ccy') : '' }; });
+          if (teile.every((t) => Number.isFinite(t.v) && t.v && (!t.whg || t.whg === 'CHF')) && teile.reduce((x, t) => x + t.v, 0) === betrag) {
+            for (const t of teile) {
+              const pn = tx(t.d, 'RltdPties', t.v > 0 ? 'Dbtr' : 'Cdtr', 'Nm') || tx(t.d, 'RltdPties', 'Nm');
+              const inf = tx(t.d, 'RmtInf', 'Ustrd') || tx(t.d, 'AddtlTxInf');
+              liste.push({ datum, betragRappen: t.v, partner: GROSS(pn).slice(0, 80), text: (inf || pn || 'Teil einer Sammelbuchung').slice(0, 160), ref: tx(t.d, 'RmtInf', 'Ref') || tx(t.d, 'Refs', 'AcctSvcrRef'), sammel: true });
+            }
+            continue;
+          }
+        }
         const einzel = details.length === 1 ? details[0] : null;
         const partner = einzel ? (tx(einzel, 'RltdPties', betrag > 0 ? 'Dbtr' : 'Cdtr', 'Nm') || tx(einzel, 'RltdPties', 'Nm')) : '';
         const info = (einzel ? tx(einzel, 'RmtInf', 'Ustrd') || tx(einzel, 'AddtlTxInf') : '') || tx(n, 'AddtlNtryInf') || (details.length > 1 ? `Sammelbuchung (${details.length} Zahlungen)` : '');
         const whg = amtEl ? amtEl.getAttribute('Ccy') || '' : '';
-        liste.push({ datum: tagLesen(tx(n, 'BookgDt', 'Dt') || tx(n, 'BookgDt', 'DtTm') || tx(n, 'ValDt', 'Dt')), betragRappen: betrag, partner: partner.slice(0, 80),
+        liste.push({ datum, betragRappen: betrag, partner: GROSS(partner || (info && !/^Sammelbuchung/.test(info) ? partnerAus([info]) : '')).slice(0, 80),
           text: ((info || partner) + (whg && whg !== 'CHF' ? ` (${whg})` : '')).slice(0, 160), ref: einzel ? tx(einzel, 'RmtInf', 'Ref') || tx(einzel, 'Refs', 'AcctSvcrRef') : '', unsicher: !!(whg && whg !== 'CHF') });
       }
     });
