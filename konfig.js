@@ -1,5 +1,5 @@
 // Welche Datenbank die Programme benutzen.
-// Eigene Nutzung (Nasuvia): eigenes Projekt. Verkaufte Version (app.nasuvia.ch): getrennte Kunden-Datenbank in Zürich.
+// Eigene Nutzung (Nasuvia): eigenes Projekt. Verkaufte Version (app.ordasio.ch): getrennte Kunden-Datenbank in Zürich.
 // Zum Testen auf dem eigenen Computer: ?produkt=1 an die Adresse hängen (nur auf localhost).
 (() => {
   const EIGEN = { url: 'https://dyepnomhidubsfwyorke.supabase.co', key: 'sb_publishable_zEmC1R5vq234zR6ST7PTmA_uY7Z1-ph', speicher: 'nb.anmeldung', produkt: false };

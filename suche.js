@@ -14,7 +14,7 @@
       'Auf der Startseite finden Sie die wichtigsten Knöpfe (z. B. „Neue Rechnung“) und die Liste „Erste Schritte“.',
       'Später ändern: auf der Startseite „Bereiche anpassen“ tippen oder im Menü „Bereiche anpassen“.'], S0],
     ['start', 'Erste Schritte', 'So starten Sie', 'anfang einstieg erste schritte konto anmelden registrieren test', [
-      'Öffnen Sie app.nasuvia.ch und tippen Sie auf „Konto erstellen“.',
+      'Öffnen Sie app.ordasio.ch und tippen Sie auf „Konto erstellen“.',
       'Wählen Sie Ihr Paket, geben Sie E-Mail und Passwort ein und bestätigen Sie den Link in Ihrer E-Mail.',
       'Melden Sie sich an. Ihr Gratis-Test läuft 30 Tage, unten sehen Sie, wie viele Tage noch bleiben.',
       'Richten Sie unter Einstellungen „Firma und Design“ ein, damit Ihr Logo auf den Rechnungen steht.'], B],
@@ -75,7 +75,7 @@
       'Eröffnungsbilanz einmal erfassen: Konten, dann „Eröffnung“. Ein Kontoblatt öffnen Sie mit einem Tipp auf das Konto.',
       'Nach dem Abschluss das Jahr festschreiben. Danach lassen sich die Buchungen nicht mehr ändern.'], B + '?ansicht=konten'],
     ['homescreen', 'Erste Schritte', 'Als App auf das iPhone legen', 'iphone handy app home bildschirm android installieren symbol', [
-      'Öffnen Sie app.nasuvia.ch in Safari (iPhone) oder Chrome (Android).',
+      'Öffnen Sie app.ordasio.ch in Safari (iPhone) oder Chrome (Android).',
       'iPhone: Teilen-Symbol, dann „Zum Home-Bildschirm“. Android: Menü ⋮, dann „App installieren“.',
       'Jetzt öffnet sich das Programm wie eine App, ohne Adressleiste.'], B],
     ['design', 'Erste Schritte', 'Logo, Farben und Firmendaten', 'logo farbe design firma adresse website marke uid mwst nummer briefkopf', [
