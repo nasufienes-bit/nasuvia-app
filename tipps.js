@@ -33,7 +33,8 @@
       ['🕘', 'Öffnungszeiten', 'Zeiten, Pausen und Ferien einstellen. Gebuchte Zeiten sind automatisch weg.'],
       ['📅', 'Kalender', 'Im Menü unter „Erinnerungen“ verbinden Sie die Termine mit Ihrem Handy-Kalender.']],
     lager: [['📦', 'Artikel', 'Artikel mit Mindestbestand erfassen. Ordasio zeigt, was nachbestellt werden muss.'],
-      ['🔄', 'Bewegungen', 'Eingang, Ausgang oder Korrektur. Material lässt sich einem Auftrag zuordnen.']],
+      ['🔄', 'Bewegungen', 'Eingang, Ausgang oder Korrektur. Material lässt sich einem Auftrag zuordnen.'],
+      ['📋', 'Bereitstellen', 'Projektleiter fordern Material auf dem Handy an, der Lagerist stellt es bereit, der Bestand wird abgebucht.']],
     vorlagen: [['🖨️', 'Drucken oder PDF', 'Vorlage wählen, links ausfüllen, rechts sehen Sie das fertige Blatt.'],
       ['📁', 'In die Ablage', 'Als PDF direkt beim richtigen Ordner und Mitarbeiter ablegen.']],
     start: [['👋', 'Willkommen', 'Hier sehen Sie, was als Nächstes zu tun ist. Erledigtes verschwindet.'],
@@ -42,7 +43,7 @@
   };
   // Pro Bereich eine Idee „Mit Ordi ganz einfach“ (mit Knopf zum Ausprobieren)
   const ORDI = { buchhaltung: 'Buche 45.20 Migros als Material', rechnungen: 'Rechnung an Müller über 3 Stunden à 95', zeit: 'Füge Mitarbeiter Tom Keller hinzu und teile ihm den Auftrag Garten Huber zu',
-    ablage: 'Schick dem Team: Morgen Start um 7 Uhr beim Lager', termine: 'Termin mit Frau Keller am Freitag um 14 Uhr', lager: '6 Meter Kupferrohr auf Badsanierung Müller', start: 'Briefing jeden Montag um 7', privat: 'Erinnere mich am 30. an die Krankenkasse' };
+    ablage: 'Schick dem Team: Morgen Start um 7 Uhr beim Lager', termine: 'Termin mit Frau Keller am Freitag um 14 Uhr', lager: 'Stelle 30 Meter Kabel für Robert bereit', start: 'Briefing jeden Montag um 7', privat: 'Erinnere mich am 30. an die Krankenkasse' };
   Object.keys(ORDI).forEach((k) => { if (TIPPS[k]) TIPPS[k].splice(1, 0, ['💬', 'Mit Ordi ganz einfach', 'Schreiben Sie Ordi: «' + ORDI[k] + '». Er bereitet alles vor, Sie bestätigen.', ORDI[k]]); });
   const ZIEL = { rechnungen: 'aside.panel' };
   const css = document.createElement('style');

@@ -374,6 +374,7 @@
 
   const stil = document.createElement('style');
   stil.textContent = `
+  [data-suche-hier]{display:inline-flex;align-items:center;gap:8px}
   .su-knopf{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 16%,transparent)!important;border-radius:100px!important;background:#fff!important;color:#3F5A4F!important;font:500 .92rem 'League Spartan',-apple-system,system-ui,sans-serif;cursor:pointer;min-width:0}
   .su-knopf svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
   .su-knopf kbd{font:500 11px 'JetBrains Mono',monospace;background:var(--flaeche,#E8F4EE);border-radius:5px;padding:2px 5px;color:#7C8499}

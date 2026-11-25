@@ -75,6 +75,7 @@
     '.nv-knopf{display:inline-grid;place-items:center;gap:6px;grid-auto-flow:column;height:40px;min-width:40px;padding:0 10px;border:0;border-radius:100px;background:#fff;color:var(--blau,#0B3B2E);cursor:pointer;font:600 .92rem inherit;font-family:inherit;box-shadow:0 1px 2px rgba(12,18,38,.06),0 8px 22px -12px color-mix(in srgb,var(--blau,#0B3B2E) 45%,transparent);transition:transform .25s cubic-bezier(.3,1.5,.5,1),box-shadow .25s;flex:none;-webkit-tap-highlight-color:transparent}',
     '.nv-knopf:hover{transform:translateY(-1px);box-shadow:0 1px 2px rgba(12,18,38,.06),0 12px 26px -12px color-mix(in srgb,var(--blau,#0B3B2E) 55%,transparent)}',
     '.nv-knopf:active{transform:scale(.94)}',
+    '.nv-knopf{border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 16%,transparent)!important;box-shadow:none!important}.nv-knopf:hover{box-shadow:0 6px 16px -10px color-mix(in srgb,var(--blau,#0B3B2E) 45%,transparent)!important}',
     '.nv-menue-rechts{flex:none}',
     '.nv-zurueck{gap:4px;padding:0 12px 0 8px;font:inherit;font-weight:600;font-size:14px}.nv-zurueck[hidden]{display:none}',
     '.nv-zurueck span{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
@@ -94,7 +95,7 @@
     '.nv-app-name{font-weight:700;font-size:1.22rem;color:#0A1F17;letter-spacing:-.01em;line-height:1}',
     // Kopfzeile passt immer auf den Bildschirm: Name kürzt sich, Knöpfe rechts werden auf dem Handy zu Symbolen
     '.nv-kz{min-width:0}.nv-app{min-width:0;flex-shrink:1}.nv-app-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nv-rechts{flex-shrink:0}',
-    '@media (max-width:520px){.nv-rechts{gap:6px}.nv-rechts .nr-ue-knopf{font-size:0!important;gap:0!important;width:40px;height:40px;padding:0!important;justify-content:center}.nv-rechts .nr-ue-knopf svg{width:18px;height:18px}}',
+    '@media (max-width:520px){.nv-rechts{gap:6px}.nv-rechts .nr-ue-knopf{font-size:0!important;gap:0!important;width:40px;height:40px;padding:0!important;justify-content:center;border-radius:50%!important;background:#fff!important;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 16%,transparent)!important}.nv-rechts .nr-ue-knopf svg{width:18px;height:18px}}',
     '.nv-kz{height:64px;display:flex;align-items:center;gap:12px;padding:0 clamp(14px,3vw,28px)}',
     '.nv-logo{display:inline-flex;align-items:center;gap:5px;text-decoration:none;padding:6px 8px 6px 4px;border-radius:100px}',
     '.nv-logo i{width:15px;height:15px;border-radius:50%;background:var(--blau,#0B3B2E);flex:none}',
@@ -219,7 +220,7 @@
     var intern = window.OrdasioZurueck.kannIntern && window.OrdasioZurueck.kannIntern();
     var vorher = wege.length > 1 ? wege[wege.length - 2] : '';
     var ziel = intern ? (typeof intern === 'string' ? intern : 'zurück') : vorher ? seitenName(vorher) : (hier === 'start' ? '' : 'Start');
-    b.hidden = !ziel;
+    b.hidden = !ziel || hier === 'start';
     b.setAttribute('aria-label', 'Zurück' + (ziel && ziel !== 'zurück' ? ' zu ' + ziel : ''));
     b.title = b.getAttribute('aria-label');
     var t = b.querySelector('span'); if (t) t.textContent = ziel && ziel !== 'zurück' ? ziel : 'Zurück';

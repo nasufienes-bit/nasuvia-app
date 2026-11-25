@@ -138,7 +138,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   <span data-suche-hier></span>
 </div></header>
 <main class="wrap" id="inhalt"><p class="leer">Wird geladen …</p></main>
-<nav class="unten-nav" id="untenNav" style="grid-template-columns:repeat(3,1fr)"></nav>
+<nav class="unten-nav" id="untenNav" style="grid-template-columns:repeat(4,1fr)"></nav>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast"></div>
 <div id="rapport"></div>
@@ -173,10 +173,11 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     artikel: '<path d="M3 8 12 3l9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
     bewegungen: '<path d="M7 7h13l-3-3M17 17H4l3 3"/>',
     bestellen: '<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h12L22 7H6.2"/>',
+    anf: '<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/>',
   };
-  const TABS = [['artikel', 'Artikel'], ['bewegungen', 'Bewegungen'], ['bestellen', 'Nachbestellen']];
+  const TABS = [['artikel', 'Artikel'], ['anf', 'Bereitstellen'], ['bewegungen', 'Bewegungen'], ['bestellen', 'Nachbestellen']];
   const ART = { eingang: 'Eingang', ausgang: 'Ausgang', korrektur: 'Korrektur' };
-  const Z = { tab: 'artikel', suche: '', fAuftrag: '', artikel: [], bewegungen: [], auftraege: [], bereit: false };
+  const Z = { tab: 'artikel', suche: '', fAuftrag: '', artikel: [], bewegungen: [], auftraege: [], anf: [], team: [], bereit: false };
   const q = new URLSearchParams(location.search);
   if (TABS.some(([id]) => id === q.get('tab'))) Z.tab = q.get('tab');
 
@@ -196,15 +197,20 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
         sb.from('ze_auftraege').select('id,name,kunde,aktiv').is('geloescht_am', null).order('aktiv', { ascending: false }).order('name'),
       ]);
       for (const r of [a, b, z]) if (r.error) throw r.error;
-      Z.artikel = a.data; Z.bewegungen = b.data; Z.auftraege = z.data; Z.bereit = true; zeichnen();
+      Z.artikel = a.data; Z.bewegungen = b.data; Z.auftraege = z.data;
+      const [an, tm] = await Promise.all([sb.from('lg_anforderungen').select('*').order('erstellt', { ascending: false }).limit(300), sb.from('ze_mitarbeiter').select('id,name,rolle,lager,aktiv').is('geloescht_am', null).order('name')]);
+      Z.anf = an.data || []; Z.team = tm.data || [];
+      Z.bereit = true; zeichnen();
+      if (q.get('anfordern') === '1' && !Z.anfGezeigt) { Z.anfGezeigt = true; Z.tab = 'anf'; zeichnen(); anfDialog(); }
     } catch (e) { $('inhalt').innerHTML = `<div class="card"><h2>Daten konnten nicht geladen werden</h2><p class="hinweis">${esc(fehlerText(e))}</p></div>`; }
   }
   function zeichnen() {
-    $('tabs').innerHTML = TABS.map(([id, n]) => `<button class="${Z.tab === id ? 'an' : ''}" data-tab="${id}">${n}</button>`).join('');
+    const nOffen = Z.anf.filter((a) => a.status === 'offen').length;
+    $('tabs').innerHTML = TABS.map(([id, n]) => `<button class="${Z.tab === id ? 'an' : ''}" data-tab="${id}">${n}${id === 'anf' && nOffen ? ` <span class="marke-s m-offen" style="margin-left:4px">${nOffen}</span>` : ''}</button>`).join('');
     $('untenNav').innerHTML = TABS.map(([id, n]) => `<button class="${Z.tab === id ? 'an' : ''}" data-tab="${id}"><svg viewBox="0 0 24 24">${ICON[id]}</svg>${n}</button>`).join('');
     if (!Z.bereit) return;
-    if (!Z.artikel.length) { $('inhalt').innerHTML = startSeite(); return; }
-    $('inhalt').innerHTML = ({ artikel: artikelAnsicht, bewegungen: bewegungenAnsicht, bestellen: bestellenAnsicht })[Z.tab]();
+    if (!Z.artikel.length && Z.tab !== 'anf') { $('inhalt').innerHTML = startSeite(); return; }
+    $('inhalt').innerHTML = ({ artikel: artikelAnsicht, anf: anfAnsicht, bewegungen: bewegungenAnsicht, bestellen: bestellenAnsicht })[Z.tab]();
   }
   const startSeite = () => `<div class="start"><div class="gross"><svg viewBox="0 0 24 24">${ICON.artikel}</svg></div><h2>Immer wissen, was am Lager ist</h2>
     <p>Erfassen Sie Ihr Material mit Einkaufs- und Verkaufspreis. Eingänge und Verbrauch führen den Bestand nach, Sie sehen sofort, was nachbestellt werden muss, und verrechnen Material mit einem Klick.</p>
@@ -228,6 +234,45 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
           <div class="aktionen"><button class="btn klein" data-schnell="eingang:${a.id}" aria-label="Eingang">+</button><button class="btn klein" data-schnell="ausgang:${a.id}" aria-label="Ausgang">−</button><span class="betrag ${Number(a.bestand) < 0 || knapp(a) ? 'warn' : ''}" style="min-width:76px">${zahl(a.bestand)} ${esc(a.einheit)}</span></div></div>`).join('')
         : '<p class="leer">Nichts gefunden.</p>'}</div>`;
   }
+  /* ---------- Bereitstellen: Material für Mitarbeitende (Projektleiter fordert an, Lager stellt bereit) ---------- */
+  const ANF = { offen: ['Offen', 'm-offen'], bereit: ['Liegt bereit', 'm-blau'], abgeholt: ['Abgeholt', 'm-ok'], abgelehnt: ['Abgelehnt', 'm-grau'] };
+  const person = (id) => (Z.team.find((t) => t.id === id) || {}).name || '';
+  function anfAnsicht() {
+    const aktiv = Z.anf.filter((a) => ['offen', 'bereit'].includes(a.status)), fertig = Z.anf.filter((a) => !['offen', 'bereit'].includes(a.status)).slice(0, 20);
+    const zeile = (a) => `<div class="zeile"><div style="min-width:0"><b>${zahl(a.menge)} ${esc(a.einheit || '')} ${esc(a.artikel_text)}<span class="marke-s ${ANF[a.status][1]}">${ANF[a.status][0]}</span></b>
+        <small>${esc(['Für ' + (person(a.fuer_id) || '?'), a.an_id ? 'Lager: ' + person(a.an_id) : 'Lager: alle', a.auftrag_id && auftrag(a.auftrag_id) ? auftrag(a.auftrag_id).name : '', a.von_name ? 'von ' + a.von_name : '', a.bis ? 'bis ' + dk(a.bis) : '', a.notiz].filter(Boolean).join(' · '))}</small></div>
+      <div class="aktionen">${a.status === 'offen' ? `<button class="btn klein" data-anf-st="abgelehnt:${a.id}">Ablehnen</button><button class="btn klein haupt" data-anf-st="bereit:${a.id}">Bereitgestellt</button>` : a.status === 'bereit' ? `<button class="btn klein" data-anf-st="abgeholt:${a.id}">Abgeholt</button>` : ''}</div></div>`;
+    return `<div class="kopf"><div><h1>Bereitstellen</h1><p class="unter">Material für Ihre Leute: Projektleiter fordern es auf dem Handy an, das Lager stellt es bereit, der Bestand wird dabei abgebucht.</p></div>
+        <div class="aktionen"><a class="btn" href="../zeit/?tab=mitarbeiter&neu=lagerist">+ Lagerist</a><button class="btn haupt" data-a="anfNeu">+ Material anfordern</button></div></div>
+      <div class="card">${aktiv.length ? aktiv.map(zeile).join('') : '<p class="leer">Nichts offen. Tipp: Sagen Sie Ordi «Stelle 30 Meter Kabel für Robert bereit».</p>'}</div>
+      ${fertig.length ? `<h2 class="abstand" style="font-size:15px">Erledigt</h2><div class="card">${fertig.map(zeile).join('')}</div>` : ''}`;
+  }
+  function anfDialog(v = {}) {
+    if (!Z.team.length) { UI.hinweis('Erfassen Sie zuerst Ihre Mitarbeitenden in der Zeiterfassung. Dann können Sie Material für sie bereitstellen lassen.'); return; }
+    const lager = Z.team.filter((t) => t.aktiv && (t.lager || t.rolle === 'lagerist'));
+    const f = dialog(`<h3>Material anfordern</h3>
+      <label>Artikel<select name="artikel"><option value="">Anderes (unten eintragen)</option>${Z.artikel.filter((a) => a.aktiv).map((a) => `<option value="${a.id}" ${a.id === v.artikel_id ? 'selected' : ''}>${esc(a.name)} (${zahl(a.bestand)} ${esc(a.einheit)})</option>`).join('')}</select></label>
+      <label data-frei ${v.artikel_id ? 'hidden' : ''}>Was genau?<input type="text" name="text" maxlength="160" value="${esc(v.text || '')}" placeholder="z. B. Kabel T13 3x1.5"></label>
+      <div class="zwei"><label>Menge<input type="text" inputmode="decimal" name="menge" required value="${v.menge ? zahl(v.menge) : ''}" placeholder="z. B. 30"></label>
+      <label>Für wen?<select name="fuer" required>${Z.team.filter((t) => t.aktiv).map((t) => `<option value="${t.id}" ${t.id === v.fuer_id ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></label></div>
+      <div class="zwei"><label>An wen im Lager?<select name="an"><option value="">Alle im Lager</option>${lager.map((t) => `<option value="${t.id}" ${t.id === v.an_id ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></label>
+      <label>Bis wann?<input type="date" name="bis" value="${v.bis || ''}"></label></div>
+      <label>Auftrag<select name="auftrag"><option value="">Kein Auftrag</option>${Z.auftraege.filter((a) => a.aktiv).map((a) => `<option value="${a.id}" ${a.id === v.auftrag_id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label>
+      <label>Notiz<input type="text" name="notiz" maxlength="300" placeholder="optional"></label>
+      ${lager.length ? '' : '<p class="hinweis">Noch niemand führt das Lager. Machen Sie in der Zeiterfassung jemanden zum Lageristen, dann sieht er die Anforderung auf dem Handy.</p>'}
+      <div class="fuss"><span></span><span class="aktionen"><button type="button" class="btn" data-a="zu">Abbrechen</button><button class="btn haupt">Anfordern</button></span></div>`);
+    const sel = f.querySelector('[name=artikel]'); sel.onchange = () => { f.querySelector('[data-frei]').hidden = !!sel.value; };
+    f.onsubmit = async (ev) => {
+      ev.preventDefault(); const d = new FormData(f), a = art(d.get('artikel'));
+      const menge = Number(String(d.get('menge')).replace(/[’'\s]/g, '').replace(',', '.'));
+      if (!(menge > 0)) { toast('Bitte eine Menge eingeben'); return; }
+      const text = a.name || String(d.get('text') || '').trim(); if (!text) { toast('Bitte den Artikel angeben'); return; }
+      const { error } = await sb.from('lg_anforderungen').insert({ artikel_id: a.id || null, artikel_text: text, menge, einheit: a.einheit || null, fuer_id: d.get('fuer') || null, an_id: d.get('an') || null, auftrag_id: d.get('auftrag') || null, bis: d.get('bis') || null, notiz: String(d.get('notiz') || '').trim() || null, von_name: 'Büro' });
+      if (error) { toast(fehlerText(error)); return; }
+      dlg.close(); await laden(); toast('✓ Angefordert. Das Lager sieht es auf dem Handy.');
+    };
+  }
+
   function bewegungenAnsicht() {
     const l = Z.bewegungen.filter((b) => !Z.fAuftrag || b.auftrag_id === Z.fAuftrag);
     const offenWert = l.filter((b) => b.art === 'ausgang' && b.auftrag_id && !b.verrechnet).reduce((x, b) => x + Math.round(Math.abs(b.menge) * (art(b.artikel_id).verkauf_rappen || 0)), 0);
@@ -346,6 +391,15 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       if (window.Rueckgaengig) Rueckgaengig.zeigen('Bewegung gelöscht', async () => { const { lg_artikel, ...zeile } = b; const x = await sb.from('lg_bewegungen').insert(zeile); if (x.error) throw x.error; await laden(); });
       await laden(); toast('Gelöscht'); return;
     }
+    const st = t.closest('[data-anf-st]');
+    if (st) {
+      const [neu, id] = st.dataset.anfSt.split(':');
+      if (neu === 'abgelehnt' && !await UI.frage('Diese Anforderung ablehnen?')) return;
+      const upd = { status: neu }; if (neu === 'abgeholt') upd.abgeholt_am = new Date().toISOString();
+      const { error } = await sb.from('lg_anforderungen').update(upd).eq('id', id);
+      if (error) { toast(fehlerText(error)); return; }
+      await laden(); toast(neu === 'bereit' ? '✓ Bereitgestellt, Bestand abgebucht' : neu === 'abgeholt' ? '✓ Abgeholt' : 'Abgelehnt'); return;
+    }
     const a = t.closest('[data-a]'); if (!a) return;
     const form = a.closest('form');
     switch (a.dataset.a) {
@@ -353,6 +407,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       case 'artikelNeu': artikelDialog(); break;
       case 'anpassen': UI.teile.dialog('lager', [['zahlen', 'Zahlen oben (Artikel, Lagerwert, Knapp, Ausgänge)'], ['suche', 'Suchfeld']]); break;
       case 'bewegungNeu': bewegungDialog(); break;
+      case 'anfNeu': anfDialog(); break;
       case 'verrechnen': verrechnenDialog(); break;
       case 'bestellDruck': bestellDruck(); break;
       case 'korb': Korb.oeffnen(sb, [{ tabelle: 'lg_artikel', art: 'Artikel', titel: (r) => r.name }], laden); break;

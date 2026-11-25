@@ -53,6 +53,7 @@
   .lz-meldung.ok{color:var(--elektrik,#0A7150)}
   .lz-pille{position:fixed;left:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:9000;background:#0A1F17;color:#fff;border-radius:100px;padding:8px 14px;font:600 13px 'League Spartan',system-ui,sans-serif;box-shadow:0 10px 30px -10px rgba(12,18,38,.5);text-decoration:none}
   .lz-pille b{color:#6EE7A8}
+  .lz-menue{display:block;margin:0 4px 10px;padding:10px 12px;border-radius:14px;background:#0A1F17;color:#fff;font:600 13px/1.35 'League Spartan',system-ui,sans-serif;text-decoration:none}.lz-menue b{color:#6EE7A8}.lz-menue.lesen{background:#B4282D}.lz-menue.lesen b{color:#fff}
   .lz-pille.lesen{background:#B4282D}
   @media(max-width:820px){.lz-pille{bottom:calc(76px + env(safe-area-inset-bottom,0px))}}`;
   document.head.appendChild(stil);
@@ -219,10 +220,21 @@
   });
 
   /* ---------- Lizenz prüfen ---------- */
-  function pille(html, lesen) {
+  // Hinweis zur Lizenz: immer im Menü; als Pille unten links nur wenn dringend (oder auf dem Computer auf der Startseite)
+  function pille(html, lesen, dringend) {
+    imMenue(html, lesen);
+    const zeigen = lesen || dringend || (PRODUKT === 'start' && innerWidth > 820);
+    if (!zeigen) return;
     const a = document.createElement('a');
     a.className = 'lz-pille' + (lesen ? ' lesen' : ''); a.href = KAUFEN; a.innerHTML = html;
     anhaengen(a);
+  }
+  function imMenue(html, lesen, versuch = 0) {
+    const leiste = document.querySelector('.nv-leiste .nv-kopf');
+    if (!leiste) { if (versuch < 20) setTimeout(() => imMenue(html, lesen, versuch + 1), 250); return; }
+    if (document.querySelector('.lz-menue')) return;
+    const a = document.createElement('a'); a.className = 'lz-menue' + (lesen ? ' lesen' : ''); a.href = KAUFEN; a.innerHTML = html;
+    leiste.insertAdjacentElement('afterend', a);
   }
   function demoPille() {
     const a = document.createElement('a');
@@ -300,8 +312,8 @@
     weg();
     if (istDemo(session)) { window.NASUVIA_DEMO = true; demoPille(); return; }
     const tage = Math.round((new Date((l.status === 'test' ? l.test_bis : l.gueltig_bis) + 'T12:00') - new Date(h + 'T12:00')) / 864e5);
-    if (l.status === 'test') pille(`Gratis-Test: noch ${tage} ${tage === 1 ? 'Tag' : 'Tage'} · <b>Lizenz kaufen</b>`);
-    else if (tage <= 21) pille(`Lizenz läuft am ${dk(l.gueltig_bis)} ab · <b>Verlängern</b>`);
+    if (l.status === 'test') pille(`Gratis-Test: noch ${tage} ${tage === 1 ? 'Tag' : 'Tage'} · <b>Lizenz kaufen</b>`, false, tage <= 7);
+    else if (tage <= 21) pille(`Lizenz läuft am ${dk(l.gueltig_bis)} ab · <b>Verlängern</b>`, false, tage <= 7);
   }
   sb.auth.onAuthStateChange((ereignis) => {
     if (ereignis === 'PASSWORD_RECOVERY') zeigen(`${SYMBOL}<h2>Neues Passwort</h2><form data-lz-form="passwort"><label>Neues Passwort (mindestens 8 Zeichen)<input name="passwort" type="password" minlength="8" autocomplete="new-password" required></label><p class="lz-meldung" data-lz-meldung></p><button class="lz-knopf">Speichern</button></form>`);

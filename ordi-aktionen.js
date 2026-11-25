@@ -118,7 +118,7 @@
     buchung: ['buchhaltung'],
     mitarbeiter: ['zeit'], zuweisen: ['zeit'], einsatz: ['zeit'], spesen: ['zeit'], ferien: ['zeit'], mitteilung: ['zeit'],
     auftrag: ['zeit', 'projekte'], auftrag_rechnung: ['rechnungen', ['zeit', 'projekte']],
-    lager: ['lager'], termin: ['termine'], stelle: ['bewerbungen'],
+    lager: ['lager'], bereitstellen: ['lager', 'zeit'], termin: ['termine'], stelle: ['bewerbungen'],
     erinnerung: [], briefing: [], navigieren: [], zusatz: [],
   };
   const lizenz = () => { if (window.NASUVIA_LIZENZ) return window.NASUVIA_LIZENZ; try { return JSON.parse(localStorage.getItem('ordasio.lizenz') || 'null'); } catch { return null; } };
@@ -138,7 +138,7 @@
     if (l.paket === 'privat') return { html: `${esc(was)} gibt es in den Firmenlizenzen. Ihr Home-Büro ist für die privaten Finanzen. Wenn Sie selbständig sind oder eine Firma führen: <b>${esc(ab ? ab.name : 'Selbständig')}</b> ab CHF ${ab ? ab.monat : 29} pro Monat, 30 Tage gratis.<div class="ordi-chips" style="margin-top:8px"><a class="ordi-hin" href="${WURZEL}lizenz/">Lizenzen ansehen ›</a></div>`, text: 'Empfehlung Firmenlizenz' };
     return { html: `${esc(was)} ist in Ihrer Lizenz nicht enthalten${ab ? `. Das gibt es ab <b>${esc(ab.name)}</b> (CHF ${ab.monat} pro Monat)` : ''}.<div class="ordi-chips" style="margin-top:8px"><a class="ordi-hin" href="${WURZEL}lizenz/">Lizenzen ansehen ›</a></div>`, text: 'Empfehlung' };
   }
-  const WAS = { rechnung: 'Rechnungen schreiben', offerte: 'Offerten', kunde: 'Kunden verwalten', mahnen: 'Mahnen', buchung: 'Buchen', mitarbeiter: 'Mitarbeitende erfassen', zuweisen: 'Aufträge zuteilen', einsatz: 'Einsätze planen', spesen: 'Spesen', ferien: 'Ferienanträge', mitteilung: 'Mitteilungen ans Team', auftrag: 'Aufträge', auftrag_rechnung: 'Rechnungen zu Aufträgen', lager: 'Das Lager', termin: 'Online-Termine', stelle: 'Offene Stellen' };
+  const WAS = { bereitstellen: 'Material bereitstellen lassen', rechnung: 'Rechnungen schreiben', offerte: 'Offerten', kunde: 'Kunden verwalten', mahnen: 'Mahnen', buchung: 'Buchen', mitarbeiter: 'Mitarbeitende erfassen', zuweisen: 'Aufträge zuteilen', einsatz: 'Einsätze planen', spesen: 'Spesen', ferien: 'Ferienanträge', mitteilung: 'Mitteilungen ans Team', auftrag: 'Aufträge', auftrag_rechnung: 'Rechnungen zu Aufträgen', lager: 'Das Lager', termin: 'Online-Termine', stelle: 'Offene Stellen' };
   // Prüft eine Aktion (auch Pläne). Gibt { aktion } mit den erlaubten Schritten zurück, oder die Empfehlung.
   function pruefen(a) {
     if (!a) return null;
@@ -179,6 +179,22 @@
     if ((m = t.match(/^(?:buche|verbuche|erfasse|ausgabe|einnahme|bezahlt|bezahlte)\b\s*(?:eine\s+)?(?:ausgabe|einnahme)?\s*(?:von\s+)?(?:chf|fr\.?)?\s*(\d+(?:['’]\d{3})*(?:[.,]\d+)?)\s*(?:chf|franken|fr\.)?\s+(?:bei|an|von|für)?\s*(.+?)(?:\s+(?:als|unter|kategorie)\s+(.+?))?(?:\s+(?:am|vom)\s+(.+))?$/i)) && !/\b(m|meter|stk|stück)\b/i.test(t)) {
       const ein = /einnahme|von\s/i.test(t.slice(0, 30)) && !/ausgabe/i.test(t);
       return { aktion: { typ: 'buchung', art: ein ? 'einnahme' : 'ausgabe', betrag: Math.round(zahl(m[1]) * 100), partner: m[2].trim(), kategorie: (m[3] || '').trim(), datum: (m[4] && datumAus(m[4])) || heute() } };
+    }
+    // Bereitstellen: „Stelle 30 Meter Kabel zur Verfügung für Robert“, „Fabian soll 30 m Kabel für Robert bereitstellen“
+    {
+      let lagerist = '', tx = t;
+      const soll = tx.match(/^([a-zäöüé][\wäöüé-]*)\s+soll\s+(.+)$/i); if (soll) { lagerist = soll[1]; tx = soll[2]; }
+      const b = tx.match(/^(?:bitte\s+)?(?:(?:stell\w*|richt\w*|rüst\w*|bereitstell\w*|leg\w*|gib|mach\w*)\s+)?(\d+(?:[.,]\d+)?)\s*(m|meter|stk\.?|stück|kg|l|liter|rollen?|packungen?|säcke?|dosen?|kartons?|x)?\s+(.+?)\s+(?:zur\s+verfügung\s+|bereit\s+)?für\s+(.+)$/i);
+      if (b && (soll || /bereit|verfügung|rüst|richt/i.test(t))) {
+        const toks = b[4].replace(/[.!?]+$/, '').split(/\s+/), STOPP = /^(bereit|bereitstellen|zur|verfügung|an|durch|von|über|auf|bis|morgen|heute|übermorgen|am|im|in|beim|ins|und|bitte|hin|zum|zu|stellen|richten|rüsten)$/i;
+        const nm = []; let i = 0; while (i < toks.length && !STOPP.test(toks[i]) && nm.length < 2) nm.push(toks[i++]);
+        const rest = toks.slice(i).join(' ');
+        const an = (rest.match(/\b(?:an|durch|über)\s+([a-zäöüé][\wäöüé-]*)/i) || [])[1] || lagerist;
+        const auf = (rest.match(/\bauf\s+(?:den\s+)?(?:auftrag\s+)?(.+?)(?:\s+bis\b.*)?$/i) || [])[1] || '';
+        const bisT = (rest.match(/\bbis\s+(.+)$/i) || [])[1] || (/\b(morgen|übermorgen|heute)\b/i.test(rest) ? rest : '');
+        const einh = { meter: 'm', m: 'm', 'stk.': 'Stk', stk: 'Stk', 'stück': 'Stk', x: 'Stk' }[String(b[2] || '').toLowerCase()] || b[2] || '';
+        if (nm.length) return { aktion: { typ: 'bereitstellen', menge: zahl(b[1]), einheit: einh, artikel: b[3].replace(/\s+zur\s+verfügung$/i, '').trim(), fuer: nm.join(' '), an, auftrag: auf.trim(), bis: bisT ? datumAus(bisT) || '' : '' } };
+      }
     }
     // Lager: „6 Meter Kupferrohr auf Badsanierung Müller“, „Eingang 20 Stück Silikon“
     if ((m = t.match(/^(?:(eingang|ausgang|nimm|verbrauche|brauche|buche)\s+)?(\d+(?:[.,]\d+)?)\s*(m|meter|stk\.?|stück|kg|l|liter|rollen?|packungen?|säcke?|dosen?)\s+(.+?)(?:\s+(?:auf|für)\s+(?:den\s+)?(?:auftrag\s+)?(.+))?$/i))) {
@@ -251,7 +267,7 @@
   }
 
   // Vorschau-Karte
-  const TITEL = { offerte: '🧾 Offerte vorbereiten', buchung: '🧾 Buchung erfassen', lager: '📦 Material buchen', kunde: '👤 Kunde erfassen', termin: '📅 Termin eintragen', ferien: '🏖 Ferienantrag', spesen: '🧾 Spesen', mitteilung: '📣 Mitteilung ans Team', briefing: '☀ Briefing einstellen', zusatz: '📦 Zusatzpaket', auftrag_rechnung: '🧾 Rechnung zum Auftrag', plan: '📋 Mehrere Schritte', mitarbeiter: '👤 Mitarbeiter erfassen', auftrag: '📍 Auftrag erstellen', zuweisen: '🔗 Auftrag zuteilen', rechnung: '🧾 Rechnung vorbereiten', erinnerung: '🔔 Erinnerung eintragen', mahnen: '⏰ Überfällige erinnern', stelle: '🧑‍💼 Offene Stelle vorbereiten', einsatz: '🗓️ Einsatz planen', navigieren: '➡️ Hinführen' };
+  const TITEL = { bereitstellen: '📦 Material bereitstellen', offerte: '🧾 Offerte vorbereiten', buchung: '🧾 Buchung erfassen', lager: '📦 Material buchen', kunde: '👤 Kunde erfassen', termin: '📅 Termin eintragen', ferien: '🏖 Ferienantrag', spesen: '🧾 Spesen', mitteilung: '📣 Mitteilung ans Team', briefing: '☀ Briefing einstellen', zusatz: '📦 Zusatzpaket', auftrag_rechnung: '🧾 Rechnung zum Auftrag', plan: '📋 Mehrere Schritte', mitarbeiter: '👤 Mitarbeiter erfassen', auftrag: '📍 Auftrag erstellen', zuweisen: '🔗 Auftrag zuteilen', rechnung: '🧾 Rechnung vorbereiten', erinnerung: '🔔 Erinnerung eintragen', mahnen: '⏰ Überfällige erinnern', stelle: '🧑‍💼 Offene Stelle vorbereiten', einsatz: '🗓️ Einsatz planen', navigieren: '➡️ Hinführen' };
   const schrittText = (a) => ({
     mitarbeiter: () => `Mitarbeiter <b>${esc(a.name)}</b> erfassen${a.stundenlohn ? ', Stundenlohn ' + chf(a.stundenlohn) : ''}${a.ansatz ? ', Ansatz ' + chf(a.ansatz) : ''}`,
     auftrag: () => `Auftrag <b>${esc(a.name)}</b> erstellen${a.kunde ? ' für ' + esc(a.kunde) : ''}${a.adresse ? ', ' + esc(a.adresse) : ''}`,
@@ -259,6 +275,7 @@
     rechnung: () => `Rechnung${a.kunde ? ' an <b>' + esc(a.kunde) + '</b>' : a.auftrag ? ' zum Auftrag <b>' + esc(a.auftrag) + '</b>' : ''}: ${(a.positionen || []).map((p) => `${esc(p.text)} ${Number(p.menge).toLocaleString('de-CH')} × ${chf(p.preis)}`).join(', ')} vorbereiten`,
     offerte: () => `Offerte an <b>${esc(a.kunde)}</b>: ${(a.positionen || []).map((p) => `${esc(p.text)} ${Number(p.menge).toLocaleString('de-CH')} × ${chf(p.preis)}`).join(', ')}`,
     buchung: () => `${a.art === 'einnahme' ? 'Einnahme' : 'Ausgabe'} <b>${chf(a.betrag)}</b>${a.partner ? ' · ' + esc(a.partner) : ''}${a.kategorie ? ' · Kategorie ' + esc(a.kategorie) : ''} · ${dk(a.datum)}<br><small>Das Buchungsfenster öffnet sich ausgefüllt, Sie speichern selbst.</small>`,
+    bereitstellen: () => `<b>${Number(a.menge).toLocaleString('de-CH')} ${esc(a.einheit || '')} ${esc(a.artikel)}</b> für <b>${esc(a.fuer)}</b>${a.an ? '<br>Lager: ' + esc(a.an) : '<br>Lager: alle, die das Lager führen'}${a.auftrag ? '<br>Auftrag: ' + esc(a.auftrag) : ''}${a.bis ? '<br>Bis ' + dk(a.bis) : ''}<br><small>Das Lager sieht es auf dem Handy und stellt es bereit.</small>`,
     lager: () => `${a.art === 'eingang' ? 'Eingang' : 'Verbrauch'}: <b>${Number(a.menge).toLocaleString('de-CH')} ${esc(a.artikel)}</b>${a.auftrag ? ' auf Auftrag <b>' + esc(a.auftrag) + '</b>' : ''}`,
     kunde: () => `<b>${esc(a.name)}</b>${a.strasse ? '<br>' + esc(a.strasse) : ''}${a.plz || a.ort ? '<br>' + esc([a.plz, a.ort].filter(Boolean).join(' ')) : ''}${a.mail ? '<br>' + esc(a.mail) : ''}`,
     termin: () => `<b>${esc(a.name)}</b><br>${dk(a.datum)} um ${esc(a.zeit)}, ${a.dauer || 60} Minuten`,
@@ -273,7 +290,7 @@
   function karte(a) {
     let inhalt = '';
     if (a.typ === 'plan') inhalt = `<ol style="margin:0;padding-left:18px">${(a.schritte || []).map((z) => `<li>${schrittText(z)}</li>`).join('')}</ol>`;
-    if (['mitarbeiter', 'auftrag', 'zuweisen', 'auftrag_rechnung', 'offerte', 'buchung', 'lager', 'kunde', 'termin', 'ferien', 'spesen', 'mitteilung', 'briefing', 'zusatz'].includes(a.typ)) inhalt = schrittText(a) + (a.typ === 'auftrag_rechnung' ? '<br><small>Sie sehen die Rechnung danach und senden sie selbst.</small>' : '');
+    if (['bereitstellen', 'mitarbeiter', 'auftrag', 'zuweisen', 'auftrag_rechnung', 'offerte', 'buchung', 'lager', 'kunde', 'termin', 'ferien', 'spesen', 'mitteilung', 'briefing', 'zusatz'].includes(a.typ)) inhalt = schrittText(a) + (a.typ === 'auftrag_rechnung' ? '<br><small>Sie sehen die Rechnung danach und senden sie selbst.</small>' : '');
     if (a.typ === 'rechnung') inhalt = `An: <b>${esc(a.kunde)}</b><br>${(a.positionen || []).map((p) => `${esc(p.text)}: ${Number(p.menge).toLocaleString('de-CH')} × ${chf(p.preis)} = <b>${chf(Math.round(p.menge * p.preis))}</b>`).join('<br>')}<br><small>Sie sehen die Rechnung danach und senden sie selbst.</small>`;
     if (a.typ === 'erinnerung') inhalt = `<b>${esc(a.titel)}</b><br>${dk(a.datum)}${a.zeit ? ' um ' + esc(a.zeit) : ' (ganzer Tag)'}`;
     if (a.typ === 'mahnen') inhalt = 'Ich öffne die Rechnungen mit dem Mahn-Assistenten. Dort sehen Sie alle Überfälligen und bereiten Erinnerung oder Mahnung mit einem Klick vor.';
@@ -340,6 +357,18 @@
       const menge = Math.abs(Number(a.menge) || 0); if (!menge) return 'Bitte eine Menge angeben.';
       const { error } = await sb.from('lg_bewegungen').insert({ artikel_id: ar.id, art: a.art === 'eingang' ? 'eingang' : 'ausgang', menge: a.art === 'eingang' ? menge : -menge, auftrag_id: auf ? auf.id : null, notiz: 'Über Ordi' });
       return error ? 'Das hat nicht geklappt: ' + error.message : `✓ ${menge} ${ar.einheit || ''} ${ar.name} ${a.art === 'eingang' ? 'eingebucht' : 'ausgebucht'}${auf ? ' auf ' + auf.name : ''}. Neuer Bestand: ${(Number(ar.bestand) || 0) + (a.art === 'eingang' ? menge : -menge)} ${ar.einheit || ''}.`;
+    }
+    if (a.typ === 'bereitstellen') {
+      if (!sb) return 'Bitte zuerst anmelden.';
+      const fu = await finde('ze_mitarbeiter', a.fuer); if (!fu) return `Ich finde niemanden namens „${a.fuer}“ im Team.`;
+      let la = null; if (a.an) { la = await finde('ze_mitarbeiter', a.an); if (!la) return `Ich finde niemanden namens „${a.an}“ im Team.`; }
+      let auf = null; if (a.auftrag) { auf = await finde('ze_auftraege', a.auftrag); if (!auf) return `Ich finde keinen Auftrag „${a.auftrag}“.`; }
+      const ar = await finde('lg_artikel', a.artikel);
+      const menge = Math.abs(Number(a.menge) || 0); if (!menge) return 'Bitte eine Menge angeben.';
+      const { error } = await sb.from('lg_anforderungen').insert({ artikel_id: ar ? ar.id : null, artikel_text: (ar ? ar.name : a.artikel).slice(0, 160), menge, einheit: (ar && ar.einheit) || a.einheit || null, fuer_id: fu.id, an_id: la ? la.id : null, auftrag_id: auf ? auf.id : null, bis: a.bis || null, von_name: 'Büro (Ordi)' });
+      if (error) return 'Das hat nicht geklappt: ' + error.message;
+      const lg = la ? la.name : 'Das Lager';
+      return `✓ Angefordert: ${menge.toLocaleString('de-CH')} ${(ar && ar.einheit) || a.einheit || ''} ${ar ? ar.name : a.artikel} für ${fu.name}. ${lg} sieht es auf dem Handy${la && !(la.lager || la.rolle === 'lagerist') ? ' (Hinweis: ' + la.name + ' führt das Lager noch nicht, das können Sie unter Zeiterfassung › Mitarbeiter einschalten)' : ''}.${ar ? '' : ' Der Artikel ist nicht im Lager erfasst, darum wird kein Bestand abgebucht.'}`;
     }
     if (a.typ === 'termin') {
       if (!sb) return 'Bitte zuerst anmelden.';
