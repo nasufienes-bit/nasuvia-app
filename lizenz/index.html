@@ -142,7 +142,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   <div class="unten">
     <div class="karte"><h3>Ihre Daten gehören Ihnen</h3><p>Sie liegen verschlüsselt in Zürich. Auch ohne gültige Lizenz können Sie alles ansehen und herunterladen.</p><a class="btn" href="../?ansicht=mehr">Sicherung herunterladen</a></div>
     <div class="karte" style="border:1px solid rgba(229,72,77,.25)"><h3>Alle meine Daten löschen</h3><p>Löscht Rechnungen, Buchungen, Belege, Mitarbeiter, Aufträge, Fotos, Termine, Lager und Home-Büro auf diesem Gerät und auf dem Server. Ihr Konto und Ihre Lizenz bleiben. <b>Das lässt sich nicht rückgängig machen.</b> Laden Sie vorher eine Sicherung herunter.</p><button class="btn" id="alleDatenWeg" style="color:#B4282D">Alle Daten löschen …</button></div>
-    <div class="karte"><h3>Fragen zur Lizenz?</h3><p>Wir helfen gerne: info@nasuvia.ch oder 079 821 84 08.</p><a class="btn" href="mailto:info@nasuvia.ch?subject=Frage%20zur%20Lizenz">E-Mail schreiben</a><button class="btn" id="abmelden" style="margin-top:8px">Abmelden</button></div>
+    <div class="karte"><h3>Fragen zur Lizenz?</h3><p>Wir helfen gerne: support@ordasio.ch oder 079 821 84 08.</p><a class="btn" href="mailto:support@ordasio.ch?subject=Frage%20zur%20Lizenz">E-Mail schreiben</a><button class="btn" id="abmelden" style="margin-top:8px">Abmelden</button></div>
   </div>
 </div>
 
@@ -233,7 +233,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     var m = O.modul(id), an = !wahl.has(id);
     // Eingeloggt mit Lizenz: sofort buchen bzw. abbestellen (im Test: wird für nach dem Test vorgemerkt)
     if (benutzer && lizenz && O.hauptVon(lizenz) && O.hauptVon(lizenz).rechtsformen.indexOf(O.basis(rf)) >= 0 && !window.NASUVIA_DEMO && lizenz.email !== 'demo@ordasio.ch') {
-      if (O.paket(lizenz.paket) && O.paket(lizenz.paket).kombi) { await UI.hinweis('Ihr Paket „' + O.paket(lizenz.paket).name + '“ enthält Team & Zeit, Löhne sowie Projekte & Lager zu einem festen Preis. Für Änderungen schreiben Sie uns kurz an info@nasuvia.ch.'); return; }
+      if (O.paket(lizenz.paket) && O.paket(lizenz.paket).kombi) { await UI.hinweis('Ihr Paket „' + O.paket(lizenz.paket).name + '“ enthält Team & Zeit, Löhne sowie Projekte & Lager zu einem festen Preis. Für Änderungen schreiben Sie uns kurz an support@ordasio.ch.'); return; }
       var aktiv = lizenz.status === 'aktiv';
       var frage = an ? '„' + m.name + '“ dazubuchen? ' + (aktiv ? 'CHF ' + m.monat + ' pro Monat, sofort offen. Der Betrag kommt auf Ihre nächste Rechnung.' : 'Im Gratis-Test ist es schon offen. Es bleibt nach dem Test in Ihrer Lizenz.')
         : '„' + m.name + '“ abbestellen? ' + (aktiv ? 'Es bleibt bis zum Ende der bezahlten Zeit offen, Ihre Daten bleiben erhalten.' : 'Ihre Daten bleiben erhalten.');
@@ -391,7 +391,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       body: JSON.stringify(Object.assign({ _subject: 'Lizenz-Bestellung ' + nr + ': ' + gewaehlt.name, _template: 'table', _replyto: benutzer.email, Nummer: nr }, daten)) })
       .then(function(r){ return r.ok; }).catch(function(){ return false; });
     $('dSenden').disabled = false;
-    if (!ok1 && !ok2) { $('dMeldung').textContent = 'Das hat nicht geklappt. Bitte schreiben Sie an info@nasuvia.ch.'; return; }
+    if (!ok1 && !ok2) { $('dMeldung').textContent = 'Das hat nicht geklappt. Bitte schreiben Sie an support@ordasio.ch.'; return; }
     $('formInhalt').hidden = true; $('fertig').hidden = false;
   });
 
@@ -408,7 +408,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       body: JSON.stringify({ art: 'Service-Anfrage: ' + dienst, name: daten.Firma || benutzer.email, email: benutzer.email, telefon: daten.Telefon, daten: daten }) }).then(function(r){ return r.ok; }).catch(function(){ return false; });
     var ok2 = await fetch('https://formsubmit.co/ajax/info@nasuvia.ch', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(Object.assign({ _subject: 'Service-Anfrage: ' + dienst, _template: 'table', _replyto: benutzer.email }, daten)) }).then(function(r){ return r.ok; }).catch(function(){ return false; });
-    await UI.hinweis(ok1 || ok2 ? 'Danke! Wir melden uns innert 1 bis 2 Arbeitstagen bei Ihnen.' : 'Das hat nicht geklappt. Bitte schreiben Sie an info@nasuvia.ch.');
+    await UI.hinweis(ok1 || ok2 ? 'Danke! Wir melden uns innert 1 bis 2 Arbeitstagen bei Ihnen.' : 'Das hat nicht geklappt. Bitte schreiben Sie an support@ordasio.ch.');
   });
   async function treuhandZeichnen(){
     if (!benutzer) { $('treuhand').hidden = true; return; }

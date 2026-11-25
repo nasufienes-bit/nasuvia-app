@@ -136,7 +136,7 @@ footer{padding:30px 0 60px;color:var(--leise);font-size:14px;text-align:center}
     </form>
   </div>
 </div></section>
-<footer>Ordasio · Nasuvia · info@nasuvia.ch</footer>
+<footer>Ordasio · support@ordasio.ch</footer>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -171,7 +171,7 @@ footer{padding:30px 0 60px;color:var(--leise);font-size:14px;text-align:center}
       body: JSON.stringify({ _subject: 'Service-Anfrage: ' + dienst, _template: 'table', _replyto: f.email, ...daten }) }).then((r) => r.ok).catch(() => false);
     knopf.disabled = false;
     if (ok1 || ok2) { e.target.innerHTML = `<div style="text-align:center;padding:20px 0"><div style="font-size:44px">✨</div><h3 style="font-size:24px;margin:8px 0">Danke, ${esc(f.name.split(' ')[0])}!</h3><p class="unter" style="margin:0 auto">Wir melden uns innert 1 bis 2 Arbeitstagen bei ${esc(f.email)}.${dienst.startsWith('Website') ? ' Dann zeigen wir Ihnen Ihren Gratis-Entwurf.' : ''}</p></div>`; }
-    else { $('meldung').textContent = 'Das hat nicht geklappt. Bitte schreiben Sie an info@nasuvia.ch.'; $('meldung').style.color = '#E5484D'; }
+    else { $('meldung').textContent = 'Das hat nicht geklappt. Bitte schreiben Sie an support@ordasio.ch.'; $('meldung').style.color = '#E5484D'; }
   });
 })();
 </script>

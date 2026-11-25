@@ -246,7 +246,7 @@
   function sperre(titel, text, mitLesen) {
     zeigen(`${SYMBOL}<h2>${esc(titel)}</h2><p>${text}</p>
       <a class="lz-knopf" href="${KAUFEN}">Lizenz kaufen</a>
-      <a class="lz-knopf zweit" href="mailto:info@nasuvia.ch?subject=${encodeURIComponent('Lizenz: ' + titel)}">Frage per E-Mail</a>
+      <a class="lz-knopf zweit" href="mailto:support@ordasio.ch?subject=${encodeURIComponent('Lizenz: ' + titel)}">Frage per E-Mail</a>
       ${mitLesen ? '<button class="lz-link" data-lz-lesen>Daten nur ansehen und herunterladen</button>' : ''}
       <button class="lz-link" data-lz-abmelden>Abmelden</button>`);
   }

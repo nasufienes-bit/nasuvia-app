@@ -331,7 +331,7 @@
       'Nur Sie. Ihre Daten liegen verschlüsselt in einem Rechenzentrum in Zürich und sind an Ihr Konto gebunden.',
       'Auch nach Ablauf der Lizenz können Sie alles ansehen und herunterladen.'], H + '#daten'],
     ['kontakt', 'Konto und Lizenz', 'Hilfe und Kontakt', 'hilfe kontakt support frage problem telefon email', [
-      'Schreiben Sie an info@nasuvia.ch oder rufen Sie 079 821 84 08 an.'], 'mailto:info@nasuvia.ch'],
+      'Schreiben Sie an support@ordasio.ch oder rufen Sie 079 821 84 08 an.'], 'mailto:support@ordasio.ch'],
   ].map(([id, bereich, titel, woerter, schritte, ziel]) => ({ id, bereich, titel, woerter, schritte, ziel }));
 
   const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss');
@@ -415,7 +415,7 @@
       <div class="su-fuss"><span>↑↓ wählen · Enter öffnen</span><a href="${H}">Ganze Anleitung</a></div></div>`;
     const feld = hinten.querySelector('input'), box = hinten.querySelector('.su-liste');
     const zeichnen = () => {
-      if (!liste.length) { box.innerHTML = `<div class="su-leer">Nichts gefunden. Versuchen Sie ein anderes Wort oder schreiben Sie uns: <a href="mailto:info@nasuvia.ch">info@nasuvia.ch</a></div>`; return; }
+      if (!liste.length) { box.innerHTML = `<div class="su-leer">Nichts gefunden. Versuchen Sie ein anderes Wort oder schreiben Sie uns: <a href="mailto:support@ordasio.ch">support@ordasio.ch</a></div>`; return; }
       box.innerHTML = liste.map((a, i) => `<button type="button" class="su-treffer ${i === auswahl ? 'an' : ''}" data-i="${i}"><b><em>${esc(a.bereich)}</em>${esc(a.titel)}</b>
         ${detail === i ? `</button><div class="su-detail"><ol>${a.schritte.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
           <div class="su-aktionen">${a.ziel ? `<a href="${esc(a.ziel)}">Jetzt öffnen</a>` : ''}<a class="zweit" href="${H}#${a.id}">In der Anleitung</a></div></div>` : `<small>${esc(a.schritte[0])}</small></button>`}`).join('');
