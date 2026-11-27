@@ -558,7 +558,7 @@
     d.querySelector('[data-form]').addEventListener('submit', async (ev) => {
       ev.preventDefault();
       const f = ev.target;
-      const { error } = await sb.auth.signInWithPassword({ email: f.email.value.trim(), password: f.pw.value });
+      const { error } = await sb.auth.signInWithPassword({ email: f.email.value.trim(), password: f.pw.value, options: { captchaToken: await window.ordasioCaptcha() } });
       if (error) { d.querySelector('[data-fehler]').textContent = /Invalid login/i.test(error.message) ? 'E-Mail oder Passwort stimmt nicht.' : error.message; return; }
       d.close();
     });

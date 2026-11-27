@@ -132,6 +132,7 @@
 
   const deutsch = (e) => {
     const m = (e && e.message) || String(e);
+    if (/captcha/i.test(m)) return 'Die Sicherheitsprüfung hat nicht geklappt. Bitte die Seite neu laden und nochmals versuchen.';
     if (/Invalid login credentials/i.test(m)) return 'E-Mail oder Passwort stimmt nicht.';
     if (/Email not confirmed/i.test(m)) return 'Bitte zuerst die E-Mail bestätigen (Link im Posteingang).';
     if (/already registered/i.test(m)) return 'Für diese E-Mail gibt es schon ein Konto. Bitte anmelden.';
@@ -155,11 +156,11 @@
       return data.map((z) => ({ ...z.daten, geloescht: z.geloescht }));
     },
     async anmelden(email, passwort) {
-      const { error } = await sb.auth.signInWithPassword({ email, password: passwort });
+      const { error } = await sb.auth.signInWithPassword({ email, password: passwort, options: { captchaToken: await window.ordasioCaptcha() } });
       if (error) throw new Error(deutsch(error));
     },
     async registrieren(email, passwort) {
-      const { data, error } = await sb.auth.signUp({ email, password: passwort });
+      const { data, error } = await sb.auth.signUp({ email, password: passwort, options: { captchaToken: await window.ordasioCaptcha() } });
       if (error) throw new Error(deutsch(error));
       return !data.session; // true: E-Mail muss noch bestätigt werden
     },

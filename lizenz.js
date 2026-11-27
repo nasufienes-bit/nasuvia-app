@@ -89,7 +89,7 @@
     const m = document.querySelector('[data-lz-bmeldung]');
     if (e.target.closest('[data-lz-nochmals]')) {
       const b = e.target.closest('[data-lz-nochmals]'); b.disabled = true;
-      const r = await sb.auth.resend({ type: 'signup', email: wartetAufBestaetigung, options: { emailRedirectTo: location.origin + location.pathname } });
+      const r = await sb.auth.resend({ type: 'signup', email: wartetAufBestaetigung, options: { emailRedirectTo: location.origin + location.pathname, captchaToken: await window.ordasioCaptcha() } });
       if (m) m.textContent = r.error ? (/rate limit|seconds|security purposes/i.test(r.error.message) ? 'Bitte eine Minute warten und nochmals versuchen.' : r.error.message) : '✓ Neue E-Mail ist unterwegs.';
       setTimeout(() => { b.disabled = false; }, 30000);
     } else if (e.target.closest('[data-lz-weiter]')) {
@@ -179,7 +179,7 @@
       e.preventDefault();
       const mail = (decke.querySelector('input[name=email]') || {}).value || '';
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) { decke.querySelector('[data-lz-meldung]').textContent = 'Bitte zuerst Ihre E-Mail eingeben.'; return; }
-      await sb.auth.resetPasswordForEmail(mail, { redirectTo: location.origin + location.pathname });
+      await sb.auth.resetPasswordForEmail(mail, { redirectTo: location.origin + location.pathname, captchaToken: await window.ordasioCaptcha() });
       anmelden('anmelden', '✓ Falls es ein Konto gibt, ist ein Link zum Zurücksetzen unterwegs.');
     }
     if (t.dataset.lzOauthWeg) {
@@ -192,7 +192,7 @@
       const mail = (decke.querySelector('input[name=email]') || {}).value || '', m = decke.querySelector('[data-lz-meldung]');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) { m.className = 'lz-meldung'; m.textContent = 'Bitte zuerst Ihre E-Mail eingeben.'; return; }
       t.disabled = true;
-      const { error } = await sb.auth.signInWithOtp({ email: mail.trim(), options: { shouldCreateUser: false, emailRedirectTo: location.origin + location.pathname } });
+      const { error } = await sb.auth.signInWithOtp({ email: mail.trim(), options: { shouldCreateUser: false, emailRedirectTo: location.origin + location.pathname, captchaToken: await window.ordasioCaptcha() } });
       t.disabled = false;
       m.className = 'lz-meldung' + (error ? '' : ' ok');
       m.textContent = error ? (/rate limit/i.test(error.message) ? 'Bitte ein paar Minuten warten und nochmals versuchen.' : /signups not allowed|not found/i.test(error.message) ? 'Zu dieser E-Mail gibt es noch kein Konto.' : error.message)
@@ -227,7 +227,7 @@
     try {
       if (f.dataset.lzForm === 'neu') {
         const { data, error } = await sb.auth.signUp({ email: d.email.trim(), password: d.passwort,
-          options: { emailRedirectTo: location.origin + location.pathname, data: { empf: (() => { try { return localStorage.getItem('ordasio.empf') || ''; } catch { return ''; } })(), aktion: (window.OrdasioAktion() || {}).code || '', name: d.name.trim(), firma: (d.firma || '').trim(), paket: d.paket || '', rechtsform: d.rechtsform || 'einzel', branche: d.branche || '', zyklus: 'jahr' } } });
+          options: { captchaToken: await window.ordasioCaptcha(), emailRedirectTo: location.origin + location.pathname, data: { empf: (() => { try { return localStorage.getItem('ordasio.empf') || ''; } catch { return ''; } })(), aktion: (window.OrdasioAktion() || {}).code || '', name: d.name.trim(), firma: (d.firma || '').trim(), paket: d.paket || '', rechtsform: d.rechtsform || 'einzel', branche: d.branche || '', zyklus: 'jahr' } } });
         try { if (d.branche) localStorage.setItem('ordasio.branche', d.branche); } catch {}
         if (error) throw error;
         if (!data.session) { bestaetigenKarte(d.email.trim(), 'Fast geschafft!'); return; }
@@ -244,13 +244,13 @@
         if (error) throw error;
         history.replaceState(null, '', location.pathname); location.reload();
       } else {
-        const { error } = await sb.auth.signInWithPassword({ email: d.email.trim(), password: d.passwort });
+        const { error } = await sb.auth.signInWithPassword({ email: d.email.trim(), password: d.passwort, options: { captchaToken: await window.ordasioCaptcha() } });
         if (error) throw error;
         location.reload();
       }
     } catch (fehler) {
       const t = String(fehler.message || fehler);
-      m.textContent = /Invalid login/i.test(t) ? 'E-Mail oder Passwort stimmt nicht.' : /not confirmed/i.test(t) ? 'Bitte zuerst die E-Mail bestätigen (Link in Ihrem Postfach).'
+      m.textContent = /captcha/i.test(t) ? 'Die Sicherheitsprüfung hat nicht geklappt. Bitte die Seite neu laden und nochmals versuchen.' : /Invalid login/i.test(t) ? 'E-Mail oder Passwort stimmt nicht.' : /not confirmed/i.test(t) ? 'Bitte zuerst die E-Mail bestätigen (Link in Ihrem Postfach).'
         : /already registered/i.test(t) ? 'Mit dieser E-Mail gibt es schon ein Konto. Bitte anmelden.' : /rate limit/i.test(t) ? 'Bitte ein paar Minuten warten und nochmals versuchen.' : t;
       if (/not confirmed/i.test(t) && d.email) { bestaetigenKarte(d.email.trim(), 'Ihre E-Mail ist noch nicht bestätigt.'); return; }
     } finally { knopf.disabled = false; }
