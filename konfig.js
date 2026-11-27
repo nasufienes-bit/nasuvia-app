@@ -38,6 +38,22 @@
         + 'html.app-modus a,html.app-modus button,html.app-modus img,html.app-modus svg,html.app-modus label,html.app-modus nav,html.app-modus [role=tab],html.app-modus summary{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}'
         + 'html.app-modus .web-teil{display:none!important}';
       document.head.appendChild(st);
+      // Wer die App schliesst und wieder öffnet, landet immer auf der Hauptübersicht (nicht im zuletzt offenen Bereich).
+      // 1) Kaltstart: neue App-Sitzung → zur Startseite. 2) Lange im Hintergrund (30 Min.) und nichts angefangen → zur Startseite.
+      if (produkt) {
+        const wurzel = ((document.currentScript && document.currentScript.src) || '').replace(/konfig\.js(\?.*)?$/, '') || '/';
+        const ausnahme = () => /\/(zeit\/erfassen|r|p|b|buchen|treuhand|team|start)\//.test(location.pathname)
+          || /token_hash|access_token|refresh_token|[?&#](code|type|neu|paket|produkt|app)=/.test(location.search + location.hash);
+        const zurStart = () => { try { sessionStorage.setItem('ordasio.appSitzung', '1'); } catch { /* leer */ } location.replace(wurzel + 'start/'); };
+        let neu = false; try { neu = !sessionStorage.getItem('ordasio.appSitzung'); sessionStorage.setItem('ordasio.appSitzung', '1'); } catch { /* leer */ }
+        if (neu && !ausnahme()) zurStart();
+        let weg = 0, angefangen = false;
+        document.addEventListener('input', () => { angefangen = true; }, true);
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'hidden') { weg = Date.now(); return; }
+          if (weg && Date.now() - weg > 30 * 60 * 1000 && !angefangen && !document.querySelector('dialog[open]') && !ausnahme()) zurStart();
+        });
+      }
       // Links, die sonst einen neuen Browser-Tab öffnen würden: innerhalb von Ordasio im selben Fenster bleiben
       document.addEventListener('click', (e) => {
         const a = e.target.closest && e.target.closest('a[target=_blank]');
