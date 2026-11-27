@@ -202,6 +202,9 @@ body[data-thema=wald] .st-logo-hell,body[data-thema=nacht] .st-logo-hell{display
   // Was das Paket enthält (ohne Lizenz, z. B. eigene Nutzung: alles)
   const O = window.ORDASIO;
   const lizenz = () => window.NASUVIA_LIZENZ || null;
+  // Nur Privat (Home-Büro): kein Firmenname, kein Logo. Logo braucht, wer Rechnungen, Offerten oder Vorlagen macht.
+  const nurPrivat = () => { const l = lizenz(); return !!l && (l.paket === 'privat' || l.rechtsform === 'privat'); };
+  const brauchtLogo = (ids) => !nurPrivat() && (!ids || !ids.length || ids.some((id) => id !== 'privat'));
   const PROGRAMM = { loehne: 'lohn' };
   const zielOffen = (z) => !O || !lizenz() || O.darf(lizenz(), PROGRAMM[z.id] || z.bereich);
   // Gesperrtes Ziel: gehört es zu einem Zusatzpaket (dazubuchen) oder zu einer grösseren Lizenz?
@@ -235,6 +238,7 @@ body[data-thema=wald] .st-logo-hell,body[data-thema=nacht] .st-logo-hell{display
         <div class="ziele">${ZIELE.filter(zielOffen).map(zielFuerRechtsform).map((z) => `<button class="ziel ${wahl.has(z.id) ? 'an' : ''}" data-ziel="${z.id}"><span class="ic" style="background:${z.farbe}">${svg(z.ic)}</span><span><b>${esc(z.name)}</b><small>${esc(z.text)}</small></span><span class="h">${wahl.has(z.id) ? '✓' : ''}</span></button>`).join('')}</div>
         ${ZIELE.some((z) => !zielOffen(z)) ? `<p class="leise" style="margin:12px 0 0">Zum Dazubuchen: ${ZIELE.filter((z) => !zielOffen(z)).map((z) => `${esc(z.name)}${zielAb(z) ? ' (ab ' + esc(zielAb(z).name) + ')' : ''}`).join(', ')}. <a class="link" href="../lizenz/">Pakete ansehen</a></p>` : ''}
         <button class="knopf" data-weiter ${wahl.size ? '' : 'disabled'}>Weiter</button></div>`;
+    } else if (schritt === 2 && !brauchtLogo([...wahl])) { schritt = 3; einfuehrung(); return;
     } else if (schritt === 2) {
       const m = window.Marke ? Marke.daten() : {};
       el.innerHTML = `<div class="box">${punkte}<h2>Ihr Logo und Ihre Farben</h2><p>Geben Sie Ihre Website ein, dann übernimmt Ordasio Logo, Name und Farben automatisch. Oder laden Sie Ihr Logo selbst hoch. Das erscheint auf allen Rechnungen.</p>
@@ -370,7 +374,7 @@ body[data-thema=wald] .st-logo-hell,body[data-thema=nacht] .st-logo-hell{display
           <div class="st-knoepfe"><button class="st-btn dunkel" data-st-ordi>Ordi ausprobieren</button><button class="st-btn" style="background:var(--flaeche,#E8F4EE);color:var(--blau,#0B3B2E)" data-st-ordi-frage="Was kannst du alles für mich machen?">Was kann Ordi?</button></div>
         </div></section></div>
       ${neuNutzer ? `<div class="abschnitt"><h2>Neu hier? In drei Schritten startklar</h2><div class="st-raster">
-        <a class="st-karte" href="javascript:void 0" data-firma-start><span class="ic" style="background:#0B6B47">${svg(I.design)}</span><b>1. Firma und Logo</b><span>Website eingeben, Ordasio übernimmt Logo und Farben für Rechnungen.</span><em>Einrichten ›</em></a>
+        ${brauchtLogo() ? `<a class="st-karte" href="javascript:void 0" data-firma-start><span class="ic" style="background:#0B6B47">${svg(I.design)}</span><b>1. Firma und Logo</b><span>Website eingeben, Ordasio übernimmt Logo und Farben für Rechnungen.</span><em>Einrichten ›</em></a>` : ''}
         <a class="st-karte" href="../wechsel/"><span class="ic" style="background:#0E7490">${svg(I.teilen)}</span><b>2. Daten übernehmen</b><span>Aus bexio, Banana, Excel oder dem E-Banking. Oder einfach heute neu beginnen.</span><em>Übernehmen ›</em></a>
         <a class="st-karte" href="#uebersicht" data-st-ansicht="uebersicht"><span class="ic" style="background:#4F46E5">${svg(I.plus)}</span><b>3. Loslegen</b><span>Erste Rechnung, erster Beleg, erster Mitarbeiter: alles unter Übersicht.</span><em>Zur Übersicht ›</em></a>
       </div></div>` : ''}
@@ -406,7 +410,7 @@ body[data-thema=wald] .st-logo-hell,body[data-thema=nacht] .st-logo-hell{display
     const stunde = new Date().getHours(), gruss = stunde < 11 ? 'Guten Morgen' : stunde < 17 ? 'Guten Tag' : 'Guten Abend';
     const m = window.Marke ? Marke.daten() : {};
     const d = erledigt();
-    const schritte = [['firma', 'Firma, Logo und Farben einrichten', null, !!(m.name || m.logo)], ...gewaehlt.flatMap((z) => z.schritte.map(([id, t, url]) => [id, t, url, !!d[id]])), ['app', 'Als App auf den Home-Bildschirm legen', '../hilfe/#homescreen', !!d.app]];
+    const schritte = [...(brauchtLogo(gewaehlt.map((z) => z.id)) ? [['firma', 'Firma, Logo und Farben einrichten', null, !!(m.name || m.logo)]] : []), ...gewaehlt.flatMap((z) => z.schritte.map(([id, t, url]) => [id, t, url, !!d[id]])), ['app', 'Als App auf den Home-Bildschirm legen', '../hilfe/#homescreen', !!d.app]];
     const fertig = schritte.filter((s) => s[3]).length;
     const bereiche = [...new Set(gewaehlt.map((z) => z.bereich))];
     const uebersicht = `
@@ -444,11 +448,11 @@ body[data-thema=wald] .st-logo-hell,body[data-thema=nacht] .st-logo-hell{display
 
   // Startseite erst zeigen, wenn die Anmeldung geprüft ist (die Lizenzprüfung liegt sonst darüber)
   function los() {
-    if (!ziele || !ziele.length || q.has('anpassen')) einfuehrung();
+    if ((!ziele || !ziele.length || q.has('anpassen')) && !nurPrivat()) einfuehrung();
     zeichnen();
   }
   // Sobald die Lizenz da ist: Pakete und Rechtsform berücksichtigen
-  document.addEventListener('ordasio-lizenz', () => { if (document.querySelector('.einf')) einfuehrung(); zeichnen(); });
+  document.addEventListener('ordasio-lizenz', () => { const e = document.querySelector('.einf'); if (e && nurPrivat()) { e.remove(); document.documentElement.style.overflow = ''; } else if (e) einfuehrung(); zeichnen(); });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', los); else los();
 })();
 </script>
