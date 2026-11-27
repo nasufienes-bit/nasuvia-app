@@ -100,7 +100,13 @@
     '.nv-logo{display:inline-flex;align-items:center;gap:5px;text-decoration:none;padding:6px 8px 6px 4px;border-radius:100px}',
     '.nv-logo i{width:15px;height:15px;border-radius:50%;background:var(--blau,#0B3B2E);flex:none}',
     '.nv-logo img{height:18px;width:auto;display:block}',
-    '.nv-logo,.nv-bereich{white-space:nowrap;flex:none}','.nv-bereich{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.68rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;line-height:1;background:var(--flaeche,#E8F4EE);color:var(--blau,#0B3B2E);border-radius:100px;padding:6px 10px}',
+    '.nv-logo,.nv-bereich{white-space:nowrap;flex:none}',
+    // Kopfzeile auf schmalen Handys: Bereichsname kürzt sich, nichts ragt über den Rand
+    '.nv-logo.nv-app{flex:0 1 auto;min-width:0}',
+    '@media (max-width:400px){.nv-kz{gap:6px!important;padding:0 10px}.nv-rechts{gap:4px!important}.nv-app{gap:7px!important;padding-right:4px!important}.nv-app-ic{width:30px;height:30px}}',
+    // Kopfzeilen der Seiten selbst (Konto, Anleitung, Lizenz …): bleiben beim Scrollen oben, damit «Zurück» immer erreichbar ist
+    '.nv-klebt{position:sticky!important;top:0;z-index:40;transition:background .25s}',
+    '.nv-klebt.nv-gerollt{background:color-mix(in srgb,var(--papier,#F4FAF6) 94%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}','.nv-bereich{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.68rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;line-height:1;background:var(--flaeche,#E8F4EE);color:var(--blau,#0B3B2E);border-radius:100px;padding:6px 10px}',
     '.nv-rechts{margin-left:auto;display:flex;gap:4px;align-items:center}',
     '.nv-rechts button,.nv-rechts a{display:inline-flex;align-items:center;gap:7px;height:40px;margin:0;padding:0 14px;border:0;border-radius:100px;background:none;box-shadow:none;color:#0A1F17;font:500 .95rem "League Spartan",-apple-system,system-ui,sans-serif;text-decoration:none;white-space:nowrap;cursor:pointer;transition:background .2s}',
     '.nv-rechts button:hover,.nv-rechts a:hover{background:var(--flaeche,#E8F4EE)}',
@@ -291,6 +297,14 @@
         gr.appendChild(m); reihe.appendChild(gr);
       } else reihe.appendChild(m);
       requestAnimationFrame(function(){ var a = reihe.getBoundingClientRect(), b = m.getBoundingClientRect(), pad = parseFloat(getComputedStyle(reihe).paddingRight) || 0; if (a.right - pad - b.right > 8) m.style.marginLeft = 'auto'; });
+      // Kopfzeile oben festhalten (sonst verschwindet «Zurück» beim Scrollen)
+      var kopf = z.closest('header, .kopfzeile') || reihe;
+      while (kopf.parentElement && kopf.parentElement !== document.body && kopf.parentElement.tagName !== 'MAIN' && kopf.parentElement.children.length === 1) kopf = kopf.parentElement;
+      if (getComputedStyle(kopf).position === 'static') {
+        kopf.classList.add('nv-klebt');
+        var rolle = function(){ kopf.classList.toggle('nv-gerollt', (window.scrollY || document.documentElement.scrollTop) > 4); };
+        window.addEventListener('scroll', rolle, { passive: true }); rolle();
+      }
     });
     if (ds.schwebend) {
       var s = knopf();

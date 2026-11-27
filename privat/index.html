@@ -43,8 +43,8 @@ h1{font-size:30px;letter-spacing:-.02em;line-height:1.1}
 .btn.rot{color:var(--rot)}
 .raster{display:grid;gap:14px}
 .r2{grid-template-columns:repeat(2,minmax(0,1fr))}.r4{grid-template-columns:repeat(4,minmax(0,1fr))}
-@media(max-width:820px){.r2,.r4{grid-template-columns:1fr 1fr}.r2.voll{grid-template-columns:1fr}.tabs{display:none}}
-@media(max-width:520px){.r2{grid-template-columns:1fr}}
+@media(max-width:820px){.r2,.r4{grid-template-columns:repeat(2,minmax(0,1fr))}.r2.voll{grid-template-columns:minmax(0,1fr)}.tabs{display:none}}
+@media(max-width:520px){.r2{grid-template-columns:minmax(0,1fr)}}
 .card{background:var(--karte);border-radius:18px;padding:18px;box-shadow:var(--schatten)}
 .card h2{font-size:17px;margin-bottom:10px}
 .abstand{margin-top:14px}
@@ -80,7 +80,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 .dlg{padding:20px;display:grid;gap:10px;max-height:calc(100dvh - 40px);overflow:auto}
 .dlg h3{font-size:20px}
 .dlg label{display:grid;gap:4px;font-size:13px;color:var(--text)}
-.dlg .zwei{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dlg .zwei{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .dlg .fuss{display:flex;justify-content:space-between;gap:8px;margin-top:6px;flex-wrap:wrap}
 .unten-nav{display:none}
 @media(max-width:820px){.unten-nav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(247,249,253,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--linie);padding:6px 4px calc(6px + var(--unten))}
@@ -1177,8 +1177,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
         <div class="aktionen"><a class="btn" href="https://www.priminfo.admin.ch/de/praemien" target="_blank" rel="noopener">Offizielle Prämien (priminfo)</a><button class="btn haupt" data-hb="kkNeu">+ Angebot</button></div></div>
       ${tage >= 0 && tage <= 60 ? `<div class="info-box" style="background:rgba(229,72,77,.08);color:#B4282D;margin-bottom:14px"><b>Noch ${tage} ${tage === 1 ? 'Tag' : 'Tage'}:</b> Die Kündigung der Grundversicherung muss bis am 30. November bei Ihrer Kasse eintreffen, damit Sie auf 1. Januar wechseln können.</div>` : ''}
       <div class="raster r2 voll"><div class="card"><h2>Ihre heutige Versicherung</h2>
-        <form id="kkAktuell" class="raster" style="gap:8px"><div class="zwei" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input type="text" name="kasse" value="${esc(k.aktuell.kasse || '')}" placeholder="Kasse"><input type="text" name="modell" value="${esc(k.aktuell.modell || '')}" placeholder="Modell (z. B. Hausarzt)"></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><select name="franchise">${[300, 500, 1000, 1500, 2000, 2500].map((f) => `<option value="${f}" ${Number(akt.franchise) === f ? 'selected' : ''}>Franchise ${f}</option>`).join('')}</select><input type="text" inputmode="decimal" name="praemie" value="${akt.praemieRappen ? chf(akt.praemieRappen) : ''}" placeholder="Prämie pro Monat"></div>
+        <form id="kkAktuell" class="raster" style="gap:8px"><div class="zwei" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px"><input type="text" name="kasse" value="${esc(k.aktuell.kasse || '')}" placeholder="Kasse"><input type="text" name="modell" value="${esc(k.aktuell.modell || '')}" placeholder="Modell (z. B. Hausarzt)"></div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px"><select name="franchise">${[300, 500, 1000, 1500, 2000, 2500].map((f) => `<option value="${f}" ${Number(akt.franchise) === f ? 'selected' : ''}>Franchise ${f}</option>`).join('')}</select><input type="text" inputmode="decimal" name="praemie" value="${akt.praemieRappen ? chf(akt.praemieRappen) : ''}" placeholder="Prämie pro Monat"></div>
           <button class="btn">Speichern</button></form>
         ${geschaetzt && !k.aktuell.praemieRappen ? `<p class="hinweis abstand">Aus dem Kontoauszug geschätzt: CHF ${chf(geschaetzt)} pro Monat.</p>` : ''}</div>
         <div class="card"><h2>Ihre Gesundheitskosten</h2><p class="hinweis">Wie viel kosten Arzt, Medikamente und Spital ungefähr im Jahr? Davon hängt ab, welche Franchise sich lohnt.</p>

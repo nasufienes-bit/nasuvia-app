@@ -25,7 +25,9 @@
   // scrollende Teile (Tabellen, Reiter, Karussells) haben eigene Hüllen und bleiben unberührt.
   var s2 = document.createElement('style');
   s2.textContent = 'dialog[open]{overflow-x:hidden}' +
-    '@media (max-width:820px){:where(main,aside,section,article,form,.panel,.karte,.box){min-width:0}}';
+    '@media (max-width:820px){:where(main,aside,section,article,form,.panel,.karte,.box,.card,.zeile,label,fieldset){min-width:0}' +
+    // Eingabefelder haben von Haus aus eine Mindestbreite und drücken sonst Karten über den Rand
+    ':where(input:not([type=checkbox]):not([type=radio]),select,textarea){min-width:0;max-width:100%}}';
   (document.head || document.documentElement).appendChild(s2);
   var ABSICHT = /(^|[\s_-])(band|tabs?|reiter|karussell|chips|tabelle|scroll|leiste|filter|tp-|zp-|nv-unten|unten)/i;
   function pruefen() {
@@ -37,7 +39,8 @@
       var cs = getComputedStyle(el);
       if (cs.overflowX !== 'auto' && cs.overflowX !== 'scroll') continue;
       if (cs.overflowY !== 'auto' && cs.overflowY !== 'scroll') continue; // nur Bereiche, die eigentlich nach unten scrollen
-      if (ABSICHT.test(String(el.className)) || el.getAttribute('role') === 'tablist' || el.tagName === 'TABLE') { el.__stabilOk = true; continue; }
+      // Niedrige Leisten (Reiter, Auswahlknöpfe, Chips) dürfen absichtlich seitlich wischen
+      if (el.clientHeight < 160 || ABSICHT.test(String(el.className)) || el.getAttribute('role') === 'tablist' || el.tagName === 'TABLE') { el.__stabilOk = true; continue; }
       var tab = el.querySelector(':scope > table, :scope > div > table');
       if (tab && tab.scrollWidth > el.clientWidth) { el.__stabilOk = true; continue; }
       el.style.overflowX = 'hidden';
