@@ -237,7 +237,7 @@ input:focus{outline:0;border-color:var(--elektrik)}
       if (r1.error) throw r1.error;
       var upd = { data: { name: name } };
       if (mail && mail !== user.email) upd.email = mail;
-      var r2 = await sb.auth.updateUser(upd, { emailRedirectTo: location.href });
+      var r2 = await sb.auth.updateUser(upd, { emailRedirectTo: location.origin + location.pathname });
       if (r2.error) throw r2.error;
       window.OrdasioKonten && OrdasioKonten.merken({ uid: user.id, email: user.email, firma: firma || name });
       meldung('profilMeldung', upd.email ? '✓ Gespeichert. Bitte bestätigen Sie die neue E-Mail über den Link, den wir an beide Adressen geschickt haben.' : '✓ Gespeichert.', true);

@@ -221,6 +221,12 @@
       const t = String(fehler.message || fehler);
       m.textContent = /Invalid login/i.test(t) ? 'E-Mail oder Passwort stimmt nicht.' : /not confirmed/i.test(t) ? 'Bitte zuerst die E-Mail bestätigen (Link in Ihrem Postfach).'
         : /already registered/i.test(t) ? 'Mit dieser E-Mail gibt es schon ein Konto. Bitte anmelden.' : /rate limit/i.test(t) ? 'Bitte ein paar Minuten warten und nochmals versuchen.' : t;
+      if (/not confirmed/i.test(t) && d.email) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'lz-link'; b.textContent = 'Bestätigungslink nochmals senden';
+        b.onclick = async () => { b.disabled = true; const r = await sb.auth.resend({ type: 'signup', email: d.email.trim(), options: { emailRedirectTo: location.origin + location.pathname } });
+          m.textContent = r.error ? (/rate limit|seconds/i.test(r.error.message) ? 'Bitte eine Minute warten und nochmals versuchen.' : r.error.message) : 'Neuer Link ist unterwegs. Bitte im Postfach (auch im Spam-Ordner) nachsehen.'; };
+        m.append(' ', b);
+      }
     } finally { knopf.disabled = false; }
   });
 
@@ -325,5 +331,23 @@
     if (ereignis === 'SIGNED_OUT') location.reload();
   });
   window.NasuviaLizenz = { pruefen, abmelden: async () => { demoAus(); await sb.auth.signOut({ scope: 'local' }); location.reload(); } };
-  if (!/type=recovery/.test(location.hash)) pruefen().catch(() => sperre('Keine Verbindung', 'Bitte prüfen Sie Ihre Internetverbindung und laden Sie die Seite neu.', false));
+  const keineVerbindung = () => sperre('Keine Verbindung', 'Bitte prüfen Sie Ihre Internetverbindung und laden Sie die Seite neu.', false);
+  // Links aus den Ordasio-Mails (Bestätigen, Anmeldelink, Passwort, neue E-Mail) führen direkt hierher: ?token_hash=…&type=…
+  const URLP = new URLSearchParams(location.search);
+  const tokenHash = URLP.get('token_hash'), tokenTyp = URLP.get('type');
+  if (tokenHash && /^(signup|email|magiclink|recovery|invite|email_change)$/.test(tokenTyp || '')) {
+    URLP.delete('token_hash'); URLP.delete('type');
+    try { history.replaceState(null, '', location.pathname + (URLP.toString() ? '?' + URLP : '') + location.hash); } catch {}
+    (async () => {
+      const { error } = await sb.auth.verifyOtp({ token_hash: tokenHash, type: tokenTyp });
+      if (error) {
+        const { data: { session } } = await sb.auth.getSession();
+        if (session && tokenTyp !== 'recovery') { pruefen().catch(keineVerbindung); return; }
+        zeigen(`${SYMBOL}<h2>Link nicht mehr gültig</h2><p>Dieser Link ist abgelaufen oder wurde schon verwendet. ${tokenTyp === 'recovery' ? 'Fordern Sie bei der Anmeldung unter „Passwort vergessen“ einen neuen Link an.' : 'Melden Sie sich einfach mit E-Mail und Passwort an. Ist Ihre E-Mail noch nicht bestätigt, können Sie dort einen neuen Link anfordern.'}</p>
+          <a class="lz-knopf" href="${esc(location.pathname)}?anmelden">Zur Anmeldung</a>`);
+        return;
+      }
+      if (tokenTyp !== 'recovery') pruefen().catch(keineVerbindung);
+    })().catch(keineVerbindung);
+  } else if (!/type=recovery/.test(location.hash)) pruefen().catch(keineVerbindung);
 })();

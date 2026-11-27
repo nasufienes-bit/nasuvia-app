@@ -488,7 +488,15 @@ details>summary.btn{list-style:none;cursor:pointer}details>summary.btn::-webkit-
     if (!ev.target.matches('[data-suche]')) return;
     clearTimeout(sucheZeit); sucheZeit = setTimeout(() => { Z.suche = ev.target.value; const pos = ev.target.selectionStart; zeichnen(); const n = document.querySelector('[data-suche]'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }, 250);
   });
-  start();
+  (async () => {
+    const q = new URLSearchParams(location.search), th = q.get('token_hash'), typ = q.get('type');
+    if (th && /^(signup|email|magiclink|invite|email_change)$/.test(typ || '')) {
+      q.delete('token_hash'); q.delete('type'); try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '')); } catch {}
+      const { error } = await sb.auth.verifyOtp({ token_hash: th, type: typ });
+      if (error) { const { data: { session } } = await sb.auth.getSession(); if (!session) { login('Der Link ist abgelaufen oder wurde schon verwendet. Bitte melden Sie sich an.'); return; } }
+    }
+    start();
+  })();
 })();
 </script>
 </body>
