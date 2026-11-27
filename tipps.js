@@ -96,9 +96,7 @@
     .tp-steuer::before{content:"Tipp";margin-right:auto;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--elektrik,#0E7A55)}
     .tp-text small{display:none}
     .tp-karte{align-items:start}}
-  @media print{.tp-leiste{display:none}}
-  /* Solange ein Bereich noch leer ist, erklärt die Willkommens-Karte alles: dann keine Tipps darüber */
-  body:has(.start) .tp-leiste{display:none}`;
+  @media print{.tp-leiste{display:none}}`;
   document.head.appendChild(css);
   function bauen() {
     const l = TIPPS[hier]; if (!l) return null;
@@ -134,7 +132,15 @@
   function einsetzen() {
     const ziel = document.querySelector(ZIEL[hier] || 'main'); if (!ziel) return;
     const el = bauen(); if (!el) return;
-    const rein = () => { if (!ziel.querySelector(':scope > .tp-leiste') && !lies()[hier] && lies().alle !== false) ziel.insertBefore(el, ziel.firstChild); };
+    // Etwas Luft zur Kopfzeile: die Leiste soll nicht an ihr kleben
+    const abstand = () => requestAnimationFrame(() => {
+      if (window.scrollY > 4 || !el.isConnected) return;
+      const k = document.querySelector('.nv-kopfzeile, header.kopfzeile, .kopfzeile'); if (!k) return;
+      el.style.marginTop = '';
+      const d = el.getBoundingClientRect().top - k.getBoundingClientRect().bottom;
+      if (d < 12) el.style.marginTop = Math.round(14 - Math.max(0, d)) + 'px';
+    });
+    const rein = () => { if (!ziel.querySelector(':scope > .tp-leiste') && !lies()[hier] && lies().alle !== false) { ziel.insertBefore(el, ziel.firstChild); abstand(); } };
     rein();
     // Seiten zeichnen ihren Inhalt neu: die Leiste bleibt oben
     beobachter = new MutationObserver(() => { if (!el.isConnected) rein(); });
