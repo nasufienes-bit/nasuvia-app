@@ -318,6 +318,16 @@
     const h = heute();
     const gueltig = l.status !== 'gesperrt' && ((l.status === 'test' && l.test_bis >= h) || (l.status === 'aktiv' && (l.gueltig_bis || '') >= h));
     if (PRODUKT === 'start' && l.paket === 'privat') { location.replace(KAUFEN.replace(/lizenz\/$/, 'privat/')); return; }
+    // Erste Anmeldung nach der Registrierung (E-Mail-Link, Google, Apple …): immer auf der Startseite beginnen
+    try {
+      const k = 'ordasioErsterStart_' + session.user.id;
+      const frisch = session.user.created_at && Date.now() - new Date(session.user.created_at).getTime() < 3 * 864e5;
+      if (frisch && !localStorage.getItem(k)) {
+        localStorage.setItem(k, '1');
+        const ziel = l.paket === 'privat' ? 'privat' : 'start';
+        if (PRODUKT !== ziel) { location.replace(KAUFEN.replace(/lizenz\/$/, ziel + '/')); return; }
+      }
+    } catch {}
     // Bereich gehört zu einem Zusatzpaket: erklären, was es bringt, und per Knopfdruck dazubuchen
     const zm = O && O.modulFuer && O.modulFuer(PRODUKT);
     if (!darf(l) && zm && O.kannBuchen(l, zm.id) && gueltig) {
