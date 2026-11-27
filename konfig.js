@@ -54,6 +54,28 @@
           if (weg && Date.now() - weg > 30 * 60 * 1000 && !angefangen && !document.querySelector('dialog[open]') && !ausnahme()) zurStart();
         });
       }
+      // Leere Fenster (Drucken, Vorschau, Belege): In der App gäbe es dafür keinen Schliessen-Knopf und man käme nicht
+      // mehr zurück. Darum öffnen sie hier als Vorschau in der Seite, mit «Drucken» und «Schliessen».
+      const echtOeffnen = window.open.bind(window);
+      window.open = function (url, ziel, opt) {
+        if (url && url !== 'about:blank') return echtOeffnen(url, ziel, opt);
+        const h = document.createElement('div');
+        h.className = 'ov-vorschau';
+        h.innerHTML = '<style>.ov-vorschau{position:fixed;inset:0;z-index:2147483600;background:#F4FAF6;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top);font-family:inherit}'
+          + '.ov-kopf{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid #E1E9E5;background:#fff}.ov-kopf b{flex:1;font-size:17px;color:#0A1F17;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+          + '.ov-kopf button{border:0;border-radius:100px;padding:10px 16px;font:inherit;font-weight:700;font-size:15px;cursor:pointer}.ov-druck{background:#0E7A55;color:#fff}.ov-zu{background:#E8F4EE;color:#0B3B2E}'
+          + '.ov-vorschau iframe{flex:1;width:100%;border:0;background:#fff}</style>'
+          + '<div class="ov-kopf"><b>Vorschau</b><button type="button" class="ov-druck">Drucken / PDF</button><button type="button" class="ov-zu" aria-label="Schliessen">Schliessen</button></div><iframe title="Vorschau"></iframe>';
+        document.body.appendChild(h);
+        const fr = h.querySelector('iframe'), w = fr.contentWindow;
+        const zu = () => { h.remove(); };
+        h.querySelector('.ov-zu').onclick = zu;
+        h.querySelector('.ov-druck').onclick = () => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch { window.print(); } };
+        try { w.close = zu; } catch { /* leer */ }
+        fr.addEventListener('load', () => { try { const t = fr.contentDocument && fr.contentDocument.title; if (t) h.querySelector('.ov-kopf b').textContent = t; } catch { /* leer */ } });
+        setTimeout(() => { try { const t = fr.contentDocument && fr.contentDocument.title; if (t) h.querySelector('.ov-kopf b').textContent = t; } catch { /* leer */ } }, 400);
+        return w;
+      };
       // Links, die sonst einen neuen Browser-Tab öffnen würden: innerhalb von Ordasio im selben Fenster bleiben
       document.addEventListener('click', (e) => {
         const a = e.target.closest && e.target.closest('a[target=_blank]');
