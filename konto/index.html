@@ -88,11 +88,21 @@ input:focus{outline:0;border-color:var(--elektrik)}
       <div class="zeile"><span class="ic">🔑</span><span class="txt"><b>Passwort</b><small>Neues Passwort festlegen</small></span><button class="btn klein" id="passwortAendern">Ändern</button></div>
     </section>
 
-    <section class="karte">
-      <h2><span class="ic">🏢</span>Meine Firmen</h2>
-      <p>Jede Firma hat ein eigenes Konto mit eigener Lizenz. Die Daten bleiben strikt getrennt, auch auf demselben Gerät. Wechseln geht mit einem Tipp.</p>
+    <section class="karte" id="firmenKarte">
+      <h2><span class="ic">🏢</span>Firmen</h2>
+      <p id="firmenText">Für Buchhalter und Treuhänder: Legen Sie für jede Firma, die Sie betreuen, eine eigene Buchhaltung an. Sie wechseln mit einem Klick, ohne neues Passwort. Die Daten jeder Firma bleiben strikt getrennt.</p>
       <div id="firmen"></div>
-      <div class="knoepfe"><button class="btn haupt" id="firmaNeu">+ Weitere Firma hinzufügen</button><button class="btn" id="firmaAnmelden">Mit bestehendem Konto anmelden</button></div>
+      <div class="knoepfe" id="firmenKnoepfe"><button class="btn haupt" id="firmaNeu">+ Firma hinzufügen</button></div>
+      <h3 style="margin:20px 0 4px;font-size:16px">Ihrem Buchhalter Zugang geben</h3>
+      <p>Ihr Buchhalter oder Treuhänder kann dann in dieser Firma alles bearbeiten, wie Sie selbst. Er braucht dafür ein Ordasio-Konto (gratis). Sie können den Zugang jederzeit wieder entziehen.</p>
+      <div id="zugriff"></div>
+      <form class="knoepfe" id="freigabe" style="margin-top:8px"><input name="email" type="email" required placeholder="E-Mail des Buchhalters" autocomplete="off" style="flex:1;min-width:200px;padding:11px 14px;border:1px solid var(--linie);border-radius:12px;font:inherit"><button class="btn">Zugang geben</button></form>
+      <p class="meldung" id="freigabeMeldung"></p>
+      <details id="andereKonten" style="margin-top:14px"><summary style="cursor:pointer;font-weight:700">Andere Konten auf diesem Gerät</summary>
+        <p style="margin-top:8px">Firmen mit eigener E-Mail-Adresse und eigenem Passwort.</p>
+        <div id="firmenLokal"></div>
+        <div class="knoepfe"><button class="btn klein" id="firmaAnmelden">Mit bestehendem Konto anmelden</button></div>
+      </details>
     </section>
 
     <section class="karte">
@@ -137,6 +147,7 @@ input:focus{outline:0;border-color:var(--elektrik)}
 <script src="../zusatz.js"></script>
 <script src="../briefing.js"></script>
 <script src="../erinnerungen.js" defer></script>
+<script src="../firmen.js"></script>
 <script src="../navi.js" data-hier="konto" data-einfuegen=".kopf-links"></script>
 <script>
 (function(){
@@ -242,15 +253,41 @@ input:focus{outline:0;border-color:var(--elektrik)}
     UI.hinweis(r.error ? (/reauthentication|recent/i.test(r.error.message) ? 'Bitte melden Sie sich zuerst neu an und versuchen Sie es dann nochmals.' : r.error.message) : '✓ Neues Passwort gespeichert.');
   };
 
-  /* ---------- Mehrere Firmen ---------- */
-  function firmenZeichnen(){
-    var liste = window.OrdasioKonten ? OrdasioKonten.liste() : [];
-    if (!liste.some(function(x){ return x.uid === user.id; })) liste.unshift({ uid: user.id, email: user.email, firma: lizenz.firma || lizenz.name, paket: lizenz.paket });
-    $('firmen').innerHTML = liste.map(function(k){
-      var jetzt = k.uid === user.id, p = O && O.paket(k.paket);
-      return '<div class="zeile"><span class="ic">' + esc((k.firma || k.email || '?').trim().charAt(0).toUpperCase()) + '</span><span class="txt"><b>' + esc(k.firma || k.email) + '</b><small>' + esc(k.email) + (p ? ' · ' + esc(p.name) : '') + '</small></span>' +
-        (jetzt ? '<span class="marke">Aktuell</span>' : '<button class="btn klein" data-firma="' + esc(k.email) + '">Wechseln</button><button class="btn klein" data-firma-weg="' + k.uid + '" title="Aus der Liste entfernen" aria-label="Aus der Liste entfernen">×</button>') + '</div>';
-    }).join('');
+  /* ---------- Mehrere Firmen (Buchhalter) ---------- */
+  var F = function(){ return window.OrdasioFirmen; };
+  var RF_NAME = { einzel: 'Einzelunternehmen', klg: 'Kollektivgesellschaft', gmbh: 'GmbH', ag: 'AG', genossenschaft: 'Genossenschaft', verein: 'Verein', privat: 'Privat' };
+  var ST_NAME = { test: 'Test', aktiv: 'Aktiv', abgelaufen: 'Abgelaufen', gesperrt: 'Gesperrt' };
+  var initial = function(t){ return esc(String(t || '?').trim().charAt(0).toUpperCase() || '?'); };
+  async function firmenZeichnen(){
+    lokaleZeichnen();
+    if (!F()) { $('firmen').innerHTML = '<p class="meldung">Wird geladen …</p>'; setTimeout(firmenZeichnen, 400); return; }
+    var lage = await F().lage();
+    if (lage && lage.inFirma) {
+      $('firmenText').textContent = 'Sie arbeiten gerade in dieser Firma. Neue Firmen legen Sie in Ihrem eigenen Konto an.';
+      $('firmenKnoepfe').innerHTML = '<button class="btn haupt" data-zurueck-heim>Zurück zu meinem Konto' + (lage.heimName ? ' (' + esc(lage.heimName) + ')' : '') + '</button><button class="btn" data-firmen-wahl>Andere Firma</button>';
+    }
+    try {
+      var j = await F().liste();
+      $('firmen').innerHTML = (j.firmen || []).map(function(f){
+        var info = [RF_NAME[f.rechtsform] || '', ST_NAME[f.status] || '', f.rolle === 'buchhalter' ? 'vom Kunden freigegeben' : ''].filter(Boolean).join(' · ');
+        return '<div class="zeile"><span class="ic">' + initial(f.firma) + '</span><span class="txt"><b>' + esc(f.firma || 'Ohne Namen') + '</b><small>' + esc(info) + '</small></span>' +
+          '<button class="btn klein haupt" data-firma-oeffnen="' + esc(f.uid) + '">Öffnen</button>' +
+          (f.rolle === 'besitzer' ? '<button class="btn klein" data-firma-name="' + esc(f.uid) + '" data-name="' + esc(f.firma) + '" title="Umbenennen" aria-label="Umbenennen">Name</button>' : '<button class="btn klein" data-zugang-weg="' + esc(f.id) + '" title="Aus meiner Liste entfernen" aria-label="Aus meiner Liste entfernen">✕</button>') + '</div>';
+      }).join('') || (lage && lage.inFirma ? '' : '<p class="meldung">Noch keine weiteren Firmen.</p>');
+      $('zugriff').innerHTML = (j.zugriff || []).map(function(z){
+        return '<div class="zeile"><span class="ic">' + initial(z.name || z.email) + '</span><span class="txt"><b>' + esc(z.name || z.email) + '</b><small>' + esc(z.email) + ' · ' + (z.rolle === 'besitzer' ? 'hat diese Firma angelegt' : 'darf alles bearbeiten') + '</small></span>' +
+          (z.rolle === 'besitzer' ? '' : '<button class="btn klein gefahr" data-zugang-weg="' + esc(z.id) + '">Entziehen</button>') + '</div>';
+      }).join('');
+    } catch (x) { $('firmen').innerHTML = '<p class="meldung">' + esc(x.message) + '</p>'; }
+  }
+  function lokaleZeichnen(){
+    var liste = (window.OrdasioKonten ? OrdasioKonten.liste() : []).filter(function(k){ return k.uid !== user.id && !/@firmen\.ordasio\.ch$/i.test(k.email || ''); });
+    $('firmenLokal').innerHTML = liste.map(function(k){
+      var p = O && O.paket(k.paket);
+      return '<div class="zeile"><span class="ic">' + initial(k.firma || k.email) + '</span><span class="txt"><b>' + esc(k.firma || k.email) + '</b><small>' + esc(k.email) + (p ? ' · ' + esc(p.name) : '') + '</small></span>' +
+        '<button class="btn klein" data-firma="' + esc(k.email) + '">Wechseln</button><button class="btn klein" data-firma-weg="' + k.uid + '" title="Aus der Liste entfernen" aria-label="Aus der Liste entfernen">✕</button></div>';
+    }).join('') || '<p class="meldung">Keine.</p>';
+    if (liste.length) $('andereKonten').open = true;
   }
   async function wechseln(ziel){
     // Lokale Daten dieser Firma bleiben auf dem Gerät sicher beiseitegelegt (konten.js), der Server hat alles
@@ -259,14 +296,26 @@ input:focus{outline:0;border-color:var(--elektrik)}
     location.href = APP + ziel;
   }
   document.addEventListener('click', async function(e){
+    var o = e.target.closest('[data-firma-oeffnen]');
+    if (o) { o.disabled = true; o.textContent = 'Wechsle …'; try { await F().wechseln(o.dataset.firmaOeffnen); } catch (x) { UI.hinweis(x.message); o.disabled = false; o.textContent = 'Öffnen'; } return; }
+    var h = e.target.closest('[data-zurueck-heim]');
+    if (h) { var l = await F().lage(); h.disabled = true; try { await F().wechseln(l.heim); } catch (x) { UI.hinweis(x.message); h.disabled = false; } return; }
+    if (e.target.closest('[data-firmen-wahl]')) { F().auswahl(); return; }
+    var n = e.target.closest('[data-firma-name]');
+    if (n) { var neu = await UI.eingabe('Neuer Name der Firma', { vorgabe: n.dataset.name, ja: 'Speichern' }); if (neu && neu.trim().length > 1) { try { await F().umbenennen(n.dataset.firmaName, neu.trim()); firmenZeichnen(); } catch (x) { UI.hinweis(x.message); } } return; }
+    var zw = e.target.closest('[data-zugang-weg]');
+    if (zw) { if (!await UI.frage('Zugang entfernen? Danach kann diese Person bzw. Sie selbst die Firma nicht mehr öffnen. Die Daten der Firma bleiben erhalten.', { ja: 'Entfernen' })) return; try { await F().entziehen(zw.dataset.zugangWeg); firmenZeichnen(); } catch (x) { UI.hinweis(x.message); } return; }
     var w = e.target.closest('[data-firma]');
     if (w) { if (await UI.frage('Zu „' + w.dataset.firma + '“ wechseln? Sie melden sich dort mit dessen Passwort, Link oder Google/Apple an.', { ja: 'Wechseln', gefahr: false })) wechseln('start/?konto=' + encodeURIComponent(w.dataset.firma)); return; }
     var x = e.target.closest('[data-firma-weg]');
-    if (x) { OrdasioKonten.vergessen(x.dataset.firmaWeg); firmenZeichnen(); }
+    if (x) { OrdasioKonten.vergessen(x.dataset.firmaWeg); lokaleZeichnen(); }
   });
-  $('firmaNeu').onclick = async function(){
-    if (!await UI.frage('Eine weitere Firma hinzufügen? Sie erstellen dafür ein eigenes Konto mit einer anderen E-Mail (30 Tage gratis). Ihre jetzige Firma bleibt unverändert und ist jederzeit mit einem Tipp wieder da.', { ja: 'Weiter', gefahr: false })) return;
-    wechseln('start/?neu=1');
+  $('firmaNeu').onclick = function(){ F() && F().neuDialog(function(){ firmenZeichnen(); }); };
+  $('freigabe').onsubmit = async function(e){
+    e.preventDefault(); var f = this, b = f.querySelector('button'); b.disabled = true; meldung('freigabeMeldung', '');
+    try { await F().freigeben(f.email.value.trim()); meldung('freigabeMeldung', '✓ Zugang gegeben. Die Firma erscheint jetzt bei Ihrem Buchhalter unter „Firmen“.', true); f.reset(); firmenZeichnen(); }
+    catch (x) { meldung('freigabeMeldung', x.message); }
+    b.disabled = false;
   };
   $('firmaAnmelden').onclick = async function(){
     if (!await UI.frage('Mit einem anderen bestehenden Konto anmelden? Ihre jetzige Firma bleibt in der Liste.', { ja: 'Weiter', gefahr: false })) return;
