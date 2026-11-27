@@ -47,10 +47,11 @@
     const e = l.find((x) => !gezeigt.includes(x.id + x.wann)); if (!e) return;
     sessionStorage.setItem('er.gezeigt', JSON.stringify([...gezeigt, e.id + e.wann]));
     const b = document.createElement('div'); b.className = 'er-banner'; b.setAttribute('role', 'alert');
-    b.innerHTML = `<div>🔔 <b>${esc(e.titel)}</b><br><small>${wannText(e)}${e.notiz ? ' · ' + esc(e.notiz) : ''}</small></div><div class="er-k"><button class="ja" data-er="ok">✓ Erledigt</button><button data-er="spaeter">In 1 Stunde</button><button data-er="morgen">Morgen</button><button data-er="zu">Schliessen</button></div>`;
+    b.innerHTML = `<div>🔔 <b>${esc(e.titel)}</b><br><small>${wannText(e)}${e.notiz ? ' · ' + esc(e.notiz) : ''}</small></div><div class="er-k">${String(e.bezug || '').startsWith('hb-rechnung:') ? '<button class="ja" data-er="bezahlt">Ist bezahlt</button>' : ''}<button class="${String(e.bezug || '').startsWith('hb-rechnung:') ? '' : 'ja'}" data-er="ok">${String(e.bezug || '').startsWith('hb-rechnung:') && e.wiederholung !== 'nie' ? 'Später nochmals' : '✓ Erledigt'}</button><button data-er="spaeter">In 1 Stunde</button><button data-er="morgen">Morgen</button><button data-er="zu">Schliessen</button></div>`;
     document.body.appendChild(b);
     b.addEventListener('click', async (ev) => {
       const a = ev.target.closest('[data-er]'); if (!a) return;
+      if (a.dataset.er === 'bezahlt') { await c.from('erinnerungen').delete().eq('id', e.id); const id = String(e.bezug).split(':')[1]; try { const l = JSON.parse(localStorage.getItem('hb.bezahltVonErinnerung') || '[]'); l.push({ id, am: new Date().toLocaleDateString('sv-SE') }); localStorage.setItem('hb.bezahltVonErinnerung', JSON.stringify(l)); } catch {} document.dispatchEvent(new CustomEvent('ordasio-rechnung-bezahlt', { detail: { id } })); }
       if (a.dataset.er === 'ok') await erledigen(e);
       if (a.dataset.er === 'spaeter') await c.from('erinnerungen').update({ wann: new Date(Date.now() + 3600e3 + (e.vorher_min || 0) * 60000).toISOString() }).eq('id', e.id);
       if (a.dataset.er === 'morgen') { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(8, 0, 0, 0); await c.from('erinnerungen').update({ wann: new Date(d.getTime() + (e.vorher_min || 0) * 60000).toISOString() }).eq('id', e.id); }
@@ -103,7 +104,20 @@
       const m = e.target.closest('[data-er-min]'); if (m) { await c.from('kalender_abo').update({ erinnerung_min: Number(m.value) }).eq('user_id', abo.user_id); abo.erinnerung_min = Number(m.value); }
     });
   }
-  window.Erinnerungen = { dialog, pruefen, liste };
+  // Erinnerungen, die zu etwas gehören (z. B. einer offenen Rechnung im Home-Büro): bezug = 'hb-rechnung:<id>'
+  async function zuBezug(praefix) {
+    const c = sb(); if (!c) return [];
+    const { data } = await c.from('erinnerungen').select('*').eq('erledigt', false).like('bezug', praefix + '%').order('wann');
+    return data || [];
+  }
+  async function setzen(bezug, e) {
+    const c = sb(); if (!c) throw new Error('Bitte anmelden, damit Ordasio erinnern kann.');
+    await c.from('erinnerungen').delete().eq('bezug', bezug);
+    const { error } = await c.from('erinnerungen').insert({ ...e, bezug, bereich: location.pathname });
+    if (error) throw error;
+  }
+  async function entfernen(bezug) { const c = sb(); if (c) await c.from('erinnerungen').delete().eq('bezug', bezug); }
+  window.Erinnerungen = { dialog, pruefen, liste, zuBezug, setzen, entfernen, WDH };
   const los = () => setTimeout(pruefen, 1500);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', los); else los();
 })();

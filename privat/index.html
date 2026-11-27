@@ -119,6 +119,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 .st-werte{display:grid;gap:4px;margin:6px 0}.st-werte div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed var(--linie);padding:4px 0}
 .st-wert{background:var(--flaeche);border-radius:10px;padding:8px 10px}
 .st-tipps{margin:8px 0 0 18px;display:grid;gap:4px}
+.er-chips{display:flex;flex-wrap:wrap;gap:6px}.er-chips button{border:1px solid var(--linie);background:#fff;border-radius:100px;padding:8px 13px;font:inherit;font-size:14px;cursor:pointer;color:var(--tinte)}.er-chips button.an{background:var(--blau);color:#fff;border-color:var(--blau)}
+.er-block{background:var(--flaeche,#EEF5F1);border-radius:14px;padding:10px 12px}.er-marke{display:inline-block;background:#FFF4D6;color:#8A5A00;border-radius:100px;padding:1px 8px;font-size:12px;font-weight:600;margin-right:4px}
 </style>
 </head>
 <body>
@@ -585,8 +587,79 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
         <div class="card zahl"><div class="l">Bezahlt ${new Date().getFullYear()}</div><div class="w plus">${chf(l.filter((r) => r.status === 'bezahlt' && (r.bezahltAm || '').startsWith(String(new Date().getFullYear()))).reduce((a, r) => a + r.betragRappen, 0))}</div><div class="k">dieses Jahr</div></div>
         <div class="card zahl"><div class="l">Total erfasst</div><div class="w">${l.length}</div><div class="k">Rechnungen</div></div></div>
       <div class="card abstand">${l.map((r) => { const t = r.faellig ? tageBis(r.faellig) : null; return `<div class="zeile klick" data-rechnung="${r.id}"><span style="min-width:0"><b>${esc(r.titel || r.glaeubiger)}${r.status === 'bezahlt' ? '<span class="marke-s m-ok">bezahlt</span>' : t !== null && t < 0 ? '<span class="marke-s m-rot">überfällig</span>' : '<span class="marke-s m-offen">offen</span>'}${r.raten ? '<span class="marke-s m-blau">Raten</span>' : ''}</b>
-        <small>${r.mahnstufe && r.status === 'offen' ? `<span class="minus">${['', 'Zahlungserinnerung', '1. Mahnung', '2. Mahnung', 'Letzte Mahnung'][r.mahnstufe]}${r.gebuehr ? ' + ' + chf(r.gebuehr) + ' Gebühr' : ''}</span> · ` : ''}${r.datei ? '📎 ' : ''}${esc(r.glaeubiger || '')}${r.status === 'bezahlt' ? ` · bezahlt am ${dk(r.bezahltAm)}` : r.faellig ? ` · fällig ${dk(r.faellig)}${t !== null ? (t < 0 ? ` (seit ${-t} Tagen)` : ` (in ${t} Tagen)`) : ''}` : ''}</small></span><span class="betrag">${chf(r.betragRappen)}</span></div>`; }).join('') || '<p class="leer">Noch keine Rechnungen erfasst. Erfassen Sie Rechnungen, sobald sie ankommen, auch alte.</p>'}</div>`;
+        <small>${ER.has(r.id) && r.status === 'offen' ? `<span class="er-marke">Erinnerung ${esc(erText(ER.get(r.id)))}</span> ` : ''}${r.mahnstufe && r.status === 'offen' ? `<span class="minus">${['', 'Zahlungserinnerung', '1. Mahnung', '2. Mahnung', 'Letzte Mahnung'][r.mahnstufe]}${r.gebuehr ? ' + ' + chf(r.gebuehr) + ' Gebühr' : ''}</span> · ` : ''}${r.datei ? '📎 ' : ''}${esc(r.glaeubiger || '')}${r.status === 'bezahlt' ? ` · bezahlt am ${dk(r.bezahltAm)}` : r.faellig ? ` · fällig ${dk(r.faellig)}${t !== null ? (t < 0 ? ` (seit ${-t} Tagen)` : ` (in ${t} Tagen)`) : ''}` : ''}</small></span><span class="betrag">${chf(r.betragRappen)}</span></div>`; }).join('') || '<p class="leer">Noch keine Rechnungen erfasst. Erfassen Sie Rechnungen, sobald sie ankommen, auch alte.</p>'}</div>`;
   }
+  /* ---------- Erinnerungen für offene Rechnungen: wann zuerst und wie oft, bis bezahlt ---------- */
+  const ER = new Map(); let erGeladen = false;
+  const WDH_NAME = { nie: 'einmal', taeglich: 'täglich', woechentlich: 'wöchentlich', monatlich: 'monatlich', jaehrlich: 'jährlich' };
+  const erText = (e) => { const d = new Date(e.wann); return d.toLocaleDateString('de-CH', { weekday: 'short', day: '2-digit', month: '2-digit' }) + (e.ganztag ? '' : ' ' + d.toTimeString().slice(0, 5)) + ' · ' + (WDH_NAME[e.wiederholung] || 'einmal'); };
+  async function erLaden() {
+    if (!window.Erinnerungen || !Erinnerungen.zuBezug) { setTimeout(erLaden, 700); return; }
+    try {
+      const l = await Erinnerungen.zuBezug('hb-rechnung:');
+      ER.clear(); l.forEach((e) => ER.set(String(e.bezug).split(':')[1], e));
+      // Aufräumen: bezahlte oder gelöschte Rechnungen brauchen keine Erinnerung mehr
+      for (const [id] of ER) { const r = D.rechnungen.find((x) => x.id === id); if (!r || r.status !== 'offen') { Erinnerungen.entfernen('hb-rechnung:' + id); ER.delete(id); } }
+    } catch {}
+    const erst = !erGeladen; erGeladen = true;
+    if (erst && ansicht === 'rechnungen') zeichnen();
+  }
+  function erBlock(r) {
+    const el = $('rEr'); if (!el) return;
+    const e = ER.get(r.id);
+    if (!window.NASUVIA_KONFIG || !NASUVIA_KONFIG.produkt) { el.innerHTML = '<span class="hinweis">Erinnerungen gibt es mit Anmeldung.</span>'; return; }
+    el.innerHTML = e ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>Erinnerung</b><br><span class="hinweis">${esc(erText(e))}, bis bezahlt</span></span><span class="aktionen" style="margin-left:auto"><button type="button" class="btn klein" data-r-er>Ändern</button><button type="button" class="btn klein rot" data-r-er-weg>Entfernen</button></span></div>`
+      : `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>Erinnerung</b><br><span class="hinweis">Ordasio erinnert Sie, bis die Rechnung bezahlt ist.</span></span><button type="button" class="btn klein haupt" data-r-er style="margin-left:auto">Erinnerung setzen</button></div>`;
+  }
+  function erinnerungDialog(r) {
+    const alt = ER.get(r.id);
+    const tag = (n) => { const d = new Date((r.faellig || heute()) + 'T12:00'); d.setDate(d.getDate() - n); const h = heute(); const x = d.toLocaleDateString('sv-SE'); return x < h ? h : x; };
+    const WAHL = r.faellig ? [['f0', 'Am Fälligkeitstag', tag(0)], ['f1', '1 Tag vorher', tag(1)], ['f3', '3 Tage vorher', tag(3)], ['f7', '1 Woche vorher', tag(7)], ['heute', 'Heute', heute()], ['eigen', 'Anderes Datum', null]]
+      : [['heute', 'Heute', heute()], ['morgen', 'Morgen', (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toLocaleDateString('sv-SE'); })()], ['w1', 'In einer Woche', (() => { const d = new Date(); d.setDate(d.getDate() + 7); return d.toLocaleDateString('sv-SE'); })()], ['eigen', 'Anderes Datum', null]];
+    const startDatum = alt ? new Date(alt.wann).toLocaleDateString('sv-SE') : (WAHL[r.faellig ? 2 : 1] || WAHL[0])[2];
+    const startZeit = alt && !alt.ganztag ? new Date(alt.wann).toTimeString().slice(0, 5) : '08:00';
+    const dlg = $('dlg');
+    dlg.onchange = null;
+    dlg.innerHTML = `<form class="dlg" method="dialog"><h3>Erinnerung</h3>
+      <p class="hinweis" style="margin:0"><b>${esc(r.titel || r.glaeubiger || 'Rechnung')}</b> · ${chf(r.betragRappen || 0)}${r.faellig ? ' · fällig ' + dk(r.faellig) : ''}</p>
+      <label>Wann zum ersten Mal?</label>
+      <div class="er-chips">${WAHL.map(([k, n, d]) => `<button type="button" data-er-wahl="${k}" data-datum="${d || ''}" class="${d === startDatum ? 'an' : ''}">${n}</button>`).join('')}</div>
+      <div class="zwei"><label>Datum<input type="date" id="erDatum" value="${startDatum}" min="${heute()}" required></label><label>Uhrzeit<input type="time" id="erZeit" value="${startZeit}"></label></div>
+      <label>Wie oft?</label>
+      <div class="er-chips">${[['nie', 'Nur einmal'], ['taeglich', 'Jeden Tag'], ['woechentlich', 'Jede Woche'], ['monatlich', 'Jeden Monat']].map(([k, n]) => `<button type="button" data-er-wdh="${k}" class="${(alt ? alt.wiederholung : (r.faellig ? 'taeglich' : 'woechentlich')) === k ? 'an' : ''}">${n}</button>`).join('')}</div>
+      <p class="hinweis" style="margin:0">Die Erinnerung kommt so lange, bis Sie die Rechnung als bezahlt markieren. Auch in der Erinnerung selbst können Sie «Ist bezahlt» tippen.</p>
+      <p class="hinweis" style="margin:0">Damit sich das Handy auch meldet, wenn Ordasio zu ist: <button type="button" class="link" data-er-kal style="border:0;background:none;color:var(--elektrik);font:inherit;font-weight:700;cursor:pointer;padding:0">Kalender verbinden</button></p>
+      <div class="fuss">${alt ? '<button type="button" class="btn rot" data-er-weg>Entfernen</button>' : '<span></span>'}<span class="aktionen"><button type="button" class="btn" data-zu>Abbrechen</button><button class="btn haupt">Speichern</button></span></div></form>`;
+    let wdh = alt ? alt.wiederholung : (r.faellig ? 'taeglich' : 'woechentlich');
+    dlg.onclick = async (e) => {
+      if (e.target === dlg || e.target.closest('[data-zu]')) { dlg.close(); return; }
+      const w = e.target.closest('[data-er-wahl]');
+      if (w) { dlg.querySelectorAll('[data-er-wahl]').forEach((b) => b.classList.toggle('an', b === w)); if (w.dataset.datum) $('erDatum').value = w.dataset.datum; else $('erDatum').focus(); return; }
+      const h = e.target.closest('[data-er-wdh]'); if (h) { wdh = h.dataset.erWdh; dlg.querySelectorAll('[data-er-wdh]').forEach((b) => b.classList.toggle('an', b === h)); return; }
+      if (e.target.closest('[data-er-kal]')) { dlg.close(); Erinnerungen.dialog(); return; }
+      if (e.target.closest('[data-er-weg]')) { await Erinnerungen.entfernen('hb-rechnung:' + r.id); ER.delete(r.id); dlg.close(); zeichnen(); toast('Erinnerung entfernt'); }
+    };
+    dlg.querySelector('form').onsubmit = async (e) => {
+      e.preventDefault();
+      const datum = $('erDatum').value; if (!datum) { $('erDatum').focus(); return; }
+      const zeit = $('erZeit').value || '08:00';
+      const wann = new Date(`${datum}T${zeit}`);
+      try {
+        await Erinnerungen.setzen('hb-rechnung:' + r.id, { titel: `Rechnung bezahlen: ${r.titel || r.glaeubiger || 'Rechnung'} (${chf(r.betragRappen || 0)})`.slice(0, 160),
+          notiz: [r.glaeubiger, r.faellig ? 'fällig ' + dk(r.faellig) : ''].filter(Boolean).join(' · ').slice(0, 300), wann: wann.toISOString(), ganztag: false, wiederholung: wdh, vorher_min: 0 });
+        await erLaden(); dlg.close(); zeichnen(); toast('Erinnerung gesetzt: ' + erText(ER.get(r.id) || { wann: wann.toISOString(), wiederholung: wdh }));
+      } catch (x) { toast(x.message || 'Erinnerung konnte nicht gespeichert werden'); }
+    };
+    if (!dlg.open) dlg.showModal();
+  }
+  // Aus der Erinnerung heraus «Ist bezahlt» getippt
+  function bezahltAusErinnerung() {
+    let l = []; try { l = JSON.parse(localStorage.getItem('hb.bezahltVonErinnerung') || '[]'); localStorage.removeItem('hb.bezahltVonErinnerung'); } catch {}
+    let n = 0; for (const x of l) { const r = D.rechnungen.find((y) => y.id === x.id); if (r && r.status === 'offen') { r.status = 'bezahlt'; r.bezahltAm = x.am || heute(); n++; } ER.delete(x.id); }
+    if (n) { sichern(); zeichnen(); toast(n === 1 ? 'Rechnung als bezahlt markiert' : n + ' Rechnungen als bezahlt markiert'); }
+  }
+  document.addEventListener('ordasio-rechnung-bezahlt', bezahltAusErinnerung);
+
   function rechnungBearbeitenOffen(r, neu) { rechnungBearbeiten(r, neu); }
   function rechnungBearbeiten(r, neuErzwungen) {
     const neu = neuErzwungen !== undefined ? neuErzwungen : !r;
@@ -604,6 +677,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       ${r.datei ? `<div class="aktionen"><button type="button" class="btn klein" data-r-ocr>✨ Automatisch lesen</button>${r.datei.startsWith('data:image') ? '<button type="button" class="btn klein" data-r-bild>Foto bearbeiten</button>' : ''}<span class="hinweis" id="rOcr"></span></div>` : ''}
       ${r.datei ? `<div class="aktionen">${r.datei.startsWith('data:image') ? `<img src="${r.datei}" alt="Rechnung" style="max-width:100%;max-height:220px;border-radius:12px">` : ''}<a class="btn klein" href="${r.datei}" download="Rechnung">Öffnen</a><button type="button" class="btn klein rot" data-datei-weg>Datei entfernen</button></div>` : ''}
       <label>Notiz<textarea id="rNotiz" rows="2" placeholder="z. B. Referenznummer, Kundennummer">${esc(r.notiz || '')}</textarea></label>
+      ${!neu && r.status === 'offen' ? `<div class="er-block" id="rEr"><span class="hinweis">Erinnerung wird geladen …</span></div>` : neu ? '<p class="hinweis" style="margin:0">Nach dem Speichern können Sie eine Erinnerung setzen: wann und wie oft.</p>' : ''}
       <div class="fuss">${neu ? '<span></span>' : '<button type="button" class="btn rot" data-weg>Löschen</button>'}<span class="aktionen"><button type="button" class="btn" data-zu>Abbrechen</button><button class="btn haupt">Speichern</button></span></div></form>`;
     dlg.onchange = (e) => { if (e.target.id === 'rStatus' && e.target.value === 'bezahlt' && !$('rBezahlt').value) $('rBezahlt').value = heute(); };
     dlg.onclick = async (e) => {
@@ -612,7 +686,10 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       if (e.target.closest('[data-datei-weg]')) { r.datei = ''; sichern(); rechnungBearbeiten(neu ? null : r); }
       if (e.target.closest('[data-r-bild]')) { merkenR(); const n = await UI.bildBearbeiten(r.datei, { titel: 'Rechnung bearbeiten' }); if (n) { r.datei = n; if (!neu) sichern(); } rechnungBearbeitenOffen(r, neu); }
       if (e.target.closest('[data-r-ocr]')) { merkenR(); await rechnungLesen(); }
+      if (e.target.closest('[data-r-er]')) { merkenR(); dlg.close(); erinnerungDialog(r); }
+      if (e.target.closest('[data-r-er-weg]')) { await Erinnerungen.entfernen('hb-rechnung:' + r.id); ER.delete(r.id); erBlock(r); zeichnen(); }
     };
+    if (!neu && r.status === 'offen') erBlock(r);
     // Felder merken, ohne zu prüfen (vor dem Neu-Zeichnen)
     function merkenR() {
       const b = betragLesen($('rBetrag').value), gb = betragLesen($('rGebuehr').value);
@@ -659,6 +736,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
         status: $('rStatus').value, bezahltAm: $('rStatus').value === 'bezahlt' ? ($('rBezahlt').value || heute()) : '', raten: $('rRaten').checked, notiz: $('rNotiz').value.trim() });
       if (neu) D.rechnungen.push(r);
       sichern(); dlg.close(); zeichnen(); toast(neu ? 'Rechnung erfasst' : 'Gespeichert');
+      if (r.status !== 'offen' && ER.has(r.id) && window.Erinnerungen) { Erinnerungen.entfernen('hb-rechnung:' + r.id); ER.delete(r.id); }
+      else if (neu && r.status === 'offen' && window.Erinnerungen && window.NASUVIA_KONFIG && NASUVIA_KONFIG.produkt && await UI.frage('Soll Ordasio Sie an diese Rechnung erinnern? Sie wählen, wann und wie oft.', { ja: 'Erinnerung setzen', nein: 'Nein danke', gefahr: false })) erinnerungDialog(r);
     };
     if (!dlg.open) dlg.showModal();
   }
@@ -1042,6 +1121,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   });
   Object.assign(window.HomeBuero = window.HomeBuero || {}, { daten: D, abosFinden, sichern, zeichnen, toast, esc, chf, dk, heute, tageBis, betragLesen, neueId, katName, katFarbe, KAT, bildKlein, wegwerfen, listeVon, listeSetzen, ORT, restBetrag, ring, zeitWahl, imZeitraum, auszugLaden, setzeAnsicht: (a) => { ansicht = a; try { localStorage.setItem('homebuero.ansicht', a); } catch {} zeichnen(); window.scrollTo(0, 0); } });
   zeichnen();
+  bezahltAusErinnerung();
+  if (window.NASUVIA_KONFIG && NASUVIA_KONFIG.produkt) setTimeout(erLaden, 1200);
 })();
 </script>
 </body>
