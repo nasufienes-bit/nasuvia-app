@@ -103,10 +103,35 @@ body[data-dichte=gross] .aufgabe{padding:26px}
 .themen button{border:2px solid transparent;border-radius:14px;padding:10px;text-align:left;font-size:14px;color:#0A1F17;background:#fff;box-shadow:0 0 0 1px color-mix(in srgb,var(--blau,#0B3B2E) 15%,transparent)}
 .themen button.an{border-color:var(--elektrik,#0E7A55)}
 .themen i{display:block;height:34px;border-radius:9px;margin-bottom:6px}
+.st-logo{display:flex;align-items:center;flex:none}.st-logo img{height:24px;width:auto;display:block}.st-logo-dunkel{display:none!important}
+body[data-thema=wald] .st-logo-hell,body[data-thema=nacht] .st-logo-hell{display:none!important}body[data-thema=wald] .st-logo-dunkel,body[data-thema=nacht] .st-logo-dunkel{display:block!important}
+.st-tabs{display:inline-flex;gap:4px;background:color-mix(in srgb,var(--blau,#0B3B2E) 7%,transparent);border-radius:100px;padding:4px;margin:4px 0 18px}
+.st-tabs button{border:0;background:none;border-radius:100px;padding:9px 18px;font:inherit;font-weight:600;font-size:15px;color:var(--text);cursor:pointer}.st-tabs button.an{background:#fff;color:var(--blau,#0B3B2E);box-shadow:var(--schatten)}
+.st-hero{display:grid;gap:14px;background:radial-gradient(120% 140% at 0% 0%,#145C46 0%,#0B3B2E 55%,#051310 100%);color:#fff;border-radius:26px;padding:26px}
+.st-hero h1{color:#fff;margin:0}.st-hero p{margin:0;opacity:.88;font-size:16.5px;line-height:1.5;max-width:620px}
+.st-knoepfe{display:flex;flex-wrap:wrap;gap:10px}.st-btn{display:inline-flex;flex-direction:row;align-items:center;gap:8px;border:0;border-radius:14px;padding:13px 18px;font:inherit;font-weight:700;font-size:15.5px;cursor:pointer;text-decoration:none}
+.st-btn.hell{background:#6EE7A8;color:#062A1E}.st-btn.glas{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25)}.st-btn.dunkel{background:var(--blau,#0B3B2E);color:#fff}.st-btn svg{margin:0;width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2}
+.st-ordi{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:start;background:#fff;border-radius:22px;padding:22px;box-shadow:var(--schatten);border:1px solid color-mix(in srgb,var(--elektrik,#0E7A55) 25%,transparent)}
+.st-ordi .bild{width:64px;height:64px;border-radius:20px;display:grid;place-items:center;background:linear-gradient(135deg,#0E7A55,#0B3B2E);color:#fff}.st-ordi .bild svg{width:34px;height:34px;stroke:currentColor;fill:none;stroke-width:1.7}
+.st-ordi h3{margin:0 0 6px;font-size:21px;color:var(--tinte)}.st-ordi p{margin:0 0 10px;color:var(--text);line-height:1.5}
+.st-ordi ul{margin:0 0 14px;padding:0;list-style:none;display:grid;gap:6px}.st-ordi li{background:var(--papier,#F4FAF6);border-radius:12px;padding:8px 12px;font-size:14.5px;color:var(--tinte)}.st-ordi li i{font-style:normal;color:var(--elektrik,#0E7A55);font-weight:700}
+.st-raster{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.st-karte{background:#fff;border-radius:20px;padding:18px;box-shadow:var(--schatten);display:flex;flex-direction:column;gap:8px;text-decoration:none;color:inherit}
+.st-karte b{font-size:16.5px;color:var(--tinte)}.st-karte span{font-size:14.5px;color:var(--text);line-height:1.45}.st-karte em{margin-top:auto;font-style:normal;font-weight:700;color:var(--elektrik,#0E7A55);font-size:14px}
+.st-karte .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:#fff}.st-karte .ic svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8}
+.st-zwei{display:grid;grid-template-columns:1fr 1fr;gap:12px}.st-liste{margin:0;padding:0;list-style:none;display:grid;gap:8px}.st-liste li{display:grid;grid-template-columns:22px 1fr;gap:8px;font-size:14.5px;color:var(--text);line-height:1.45}
+.st-liste li::before{content:"";width:18px;height:18px;border-radius:50%;margin-top:1px;background:#EAF6F0 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230E7A55' stroke-width='3'%3E%3Cpath d='m6 12 4 4 8-8'/%3E%3C/svg%3E") center/12px no-repeat}
+.st-liste.info li::before{background:#FFF4E0 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B7791F' stroke-width='3'%3E%3Cpath d='M12 8v5M12 16.5v.5'/%3E%3C/svg%3E") center/12px no-repeat}
+.st-fakt{display:grid;gap:10px;background:linear-gradient(135deg,#F4E7C3,#E9D3A0);border-radius:22px;padding:22px;color:#3A2A0B}
+.st-fakt b{font-size:13px;letter-spacing:.12em;text-transform:uppercase;font-family:var(--mono)}.st-fakt p{margin:0;font-size:19px;line-height:1.4;font-weight:600}.st-fakt small{font-size:13.5px;opacity:.8}
+.st-fakt button{justify-self:start;border:0;border-radius:100px;background:rgba(58,42,11,.12);color:#3A2A0B;padding:8px 14px;font:inherit;font-weight:700;cursor:pointer}
+.st-neu{display:grid;gap:8px}.st-neu a{display:flex;gap:12px;align-items:center;background:#fff;border-radius:16px;padding:12px 14px;box-shadow:var(--schatten);text-decoration:none;color:var(--tinte)}
+.st-neu a i{flex:none;font-style:normal;font-size:11px;font-weight:800;letter-spacing:.06em;background:#EAF6F0;color:var(--elektrik,#0E7A55);border-radius:100px;padding:4px 8px}.st-neu a span{font-size:14.5px}.st-neu a small{display:block;color:var(--text);font-size:13px}
+@media(max-width:700px){.st-zwei{grid-template-columns:1fr}.st-ordi{grid-template-columns:1fr}.st-hero{padding:22px;border-radius:22px}.st-btn{flex:1 1 auto;justify-content:center}}
 </style>
 </head>
 <body>
-<header class="kopfzeile"><div class="wrap"><span id="kopfLinks" style="display:flex;align-items:center;gap:10px"></span><span style="margin-left:auto" data-suche-hier></span></div></header>
+<header class="kopfzeile"><div class="wrap"><a class="st-logo" href="./" aria-label="Ordasio Start"><img src="../logo.png" alt="Ordasio" class="st-logo-hell"><img src="../logo-weiss.png" alt="" class="st-logo-dunkel" aria-hidden="true"></a><span id="kopfLinks" style="display:flex;align-items:center;gap:10px"></span><span style="margin-left:auto" data-suche-hier></span></div></header>
 <main class="wrap" id="inhalt" style="padding-top:18px"></main>
 <script src="../pakete.js"></script>
 <script src="../branchen.js"></script>
@@ -274,6 +299,99 @@ body[data-dichte=gross] .aufgabe{padding:26px}
   document.addEventListener('click', (e) => { if (e.target.closest('[data-design]')) designDialog(); });
   designAnwenden();
 
+  /* ---------- Start: Infoseite (Ordi, für wen, Vorteile, Wussten Sie schon, Neu) ---------- */
+  let ANSICHT = location.hash === '#uebersicht' ? 'uebersicht' : 'start';
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('[data-st-ansicht]');
+    if (a) { ANSICHT = a.dataset.stAnsicht; history.replaceState(null, '', location.pathname + location.search + (ANSICHT === 'uebersicht' ? '#uebersicht' : '')); zeichnen(); window.scrollTo(0, 0); return; }
+    if (e.target.closest('[data-st-ordi]')) { if (window.Ordi) Ordi.auf(); return; }
+    const of = e.target.closest('[data-st-ordi-frage]'); if (of) { if (window.Ordi) Ordi.fragen(of.dataset.stOrdiFrage); return; }
+    if (e.target.closest('[data-st-fakt]')) { FAKT = (FAKT + 1) % FAKTEN.length; const f = document.querySelector('.st-fakt'); if (f) f.outerHTML = faktHtml(); }
+  });
+  window.addEventListener('hashchange', () => { const n = location.hash === '#uebersicht' ? 'uebersicht' : 'start'; if (n !== ANSICHT) { ANSICHT = n; zeichnen(); } });
+  const FAKTEN = [
+    ['Belege müssen in der Schweiz 10 Jahre aufbewahrt werden.', 'Digital ist erlaubt, wenn sie unveränderbar und lesbar bleiben (Art. 958f OR). Ordasio speichert jeden Beleg zur Buchung.'],
+    ['Die QR-Rechnung hat 2022 die roten und orangen Einzahlungsscheine abgelöst.', 'Seit dem 1. Oktober 2022 gilt nur noch die QR-Rechnung. Ordasio erstellt sie automatisch.'],
+    ['MWST-pflichtig wird man ab CHF 100\'000 Umsatz pro Jahr.', 'Der Normalsatz beträgt seit 2024 8,1 %, der reduzierte Satz 2,6 % und der Sondersatz für Beherbergung 3,8 %.'],
+    ['Über 99 % der Schweizer Unternehmen sind KMU.', 'Die meisten davon haben weniger als 10 Mitarbeitende. Für genau sie ist Ordasio gemacht.'],
+    ['Jeder Mitarbeitende hat Anrecht auf mindestens 4 Wochen Ferien.', 'Bis zum 20. Geburtstag sind es 5 Wochen (Art. 329a OR). Viele GAV sehen mehr vor.'],
+    ['Die Kinderzulage beträgt mindestens CHF 215 pro Monat, die Ausbildungszulage CHF 268.', 'Viele Kantone zahlen mehr. Mitarbeitende können die Zulage in Ordasio direkt beim Büro beantragen.'],
+    ['AHV, IV und EO kosten zusammen 10,6 % vom Lohn.', 'Je die Hälfte zahlen Arbeitgeber und Mitarbeitende. Ordasio rechnet das bei jedem Lohn automatisch.'],
+    ['Eine Einzelfirma muss ab CHF 100\'000 Umsatz ins Handelsregister.', 'Ab CHF 500\'000 Umsatz braucht sie zudem eine doppelte Buchhaltung mit Bilanz (Art. 957 OR).'],
+    ['Wer Belege sofort fotografiert, spart am Jahresende Stunden.', 'Mit dem Handy ist ein Beleg in 10 Sekunden erfasst. Ordi liest Betrag, Datum und MWST.'],
+  ];
+  let FAKT = new Date().getDate() % FAKTEN.length;
+  const faktHtml = () => `<div class="st-fakt"><b>Wussten Sie schon?</b><p>${esc(FAKTEN[FAKT][0])}</p><small>${esc(FAKTEN[FAKT][1])}</small><button type="button" data-st-fakt>Nächster Fakt</button></div>`;
+  const FUER = [
+    ['Sie nutzen bexio, Banana oder Excel?', 'Wechseln geht in rund 30 Minuten: Kontostände, Buchungen, Kunden und Artikel werden übernommen. Mit Anleitung für jedes Programm.', '../wechsel/', 'Wechsel starten', I.teilen, '#0B6B47'],
+    ['Handwerk und Bau', 'Mitarbeiter erfassen Stunden auf dem Handy, Rapporte mit Fotos und Unterschrift, Material aus dem Lager, daraus direkt die Rechnung.', '../zeit/', 'Zeiterfassung ansehen', I.uhr, '#4F46E5'],
+    ['Home-Büro für alle, die Ordnung wollen', 'Private Rechnungen, Abos, Krankenkasse, Verträge und Steuern an einem Ort. Erinnerungen, bevor etwas fällig wird.', '../privat/', 'Home-Büro öffnen', I.haus, '#DB2777'],
+    ['Buchhalter und Treuhänder', 'Mehrere Firmen in einem Konto, Wechsel mit einem Klick. Kunden geben Ihnen Zugang, Rückfragen laufen direkt in Ordasio.', '../konto/#firmenKarte', 'Firmen verwalten', I.buch, '#0E7490'],
+    ['Firmen mit Mitarbeitenden', 'Mitteilungen, Ferienanträge, Kinderzulagen, Lohnabrechnungen und Dokumente laufen über das Handy-Portal. Weniger Telefon, weniger Zettel.', '../ablage/?tab=antraege', 'Mitarbeiter-Portal', I.lohn, '#7C3AED'],
+    ['Neu selbständig', 'Anmeldung, AHV, Versicherungen, MWST und Preise: Schritt für Schritt erklärt, damit nichts vergessen geht.', '../selbstaendig/', 'Checkliste ansehen', I.hilfe, '#B7791F'],
+  ];
+  const NEU = [
+    ['Wechsel', 'Von bexio, Banana, Abacus und Co. übernehmen', 'Kontostände und Journal per Datei oder Kopieren', '../wechsel/'],
+    ['Firmen', 'Mehrere Firmen in einem Konto', 'Für Buchhalter und Treuhänder, Wechsel mit einem Klick', '../konto/#firmenKarte'],
+    ['Ordi', 'Ordi bucht für Sie, auf Wunsch geprüft von unserem Team', 'Beleg, Kontoauszug oder Frage schicken', null],
+    ['Lager', 'Mehrere Lager und Aufträge ans Lager', 'Der Lagerist bestätigt, der Projektleiter sieht alles', '../lager/'],
+    ['Team', 'Anfragen der Mitarbeitenden ans Büro', 'Kinderzulagen, Lohnabrechnung, Ferien und mehr', '../ablage/?tab=antraege'],
+  ];
+  function startSeite({ gruss, name, gewaehlt, fertig, schritte }) {
+    const neuNutzer = fertig < Math.min(3, schritte.length);
+    const datum = new Date().toLocaleDateString('de-CH', { weekday: 'long', day: 'numeric', month: 'long' });
+    return `
+      <section class="st-hero">
+        <span style="font-size:14px;opacity:.75">${esc(datum)}</span>
+        <h1>${gruss}${name ? ', ' + esc(name) : ''}</h1>
+        <p>${neuNutzer ? 'Willkommen bei Ordasio. Hier finden Sie Neuigkeiten, Tipps und alles, was Ordasio für Sie tun kann. Ihre Funktionen liegen unter «Übersicht».' : 'Schön, dass Sie da sind. Ihre Funktionen finden Sie unter «Übersicht», Fragen beantwortet Ordi.'}</p>
+        <div class="st-knoepfe"><button class="st-btn hell" data-st-ansicht="uebersicht">${svg('<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>')}Zur Übersicht</button><button class="st-btn glas" data-st-ordi>${svg('<path d="M4 5h16v11H8l-4 4z"/>')}Ordi fragen</button></div>
+      </section>
+      <div class="abschnitt" data-briefing id="brKarte"></div>
+      <div class="abschnitt"><section class="st-ordi">
+        <div class="bild">${svg('<path d="M4 5h16v11H8l-4 4z"/><path d="M9 10h.01M15 10h.01M9.5 13a3.5 3.5 0 0 0 5 0"/>')}</div>
+        <div><h3>Ordi, Ihr Buchhalter im Hosensack</h3>
+          <p>Schreiben Sie Ordi wie einem Menschen. Er bucht, sucht, rechnet und erklärt. Fotos und Dateien schicken Sie einfach mit. Sie bestätigen, bevor etwas gespeichert wird.</p>
+          <ul>
+            <li><i>«</i>Buche 45.20 Migros als Material<i>»</i></li>
+            <li><i>«</i>Rechnung 1023 ist bezahlt<i>»</i></li>
+            <li><i>«</i>Wie viel MWST schulde ich dieses Quartal?<i>»</i></li>
+            <li><i>«</i>Mach den Lohnlauf für November<i>»</i></li>
+          </ul>
+          <p style="font-size:14.5px"><b>Neu:</b> Unsicher? Lassen Sie Ihre Sache von einer Person aus unserem Team prüfen. Sie schreiben direkt mit ihr im Ordi-Fenster.</p>
+          <div class="st-knoepfe"><button class="st-btn dunkel" data-st-ordi>Ordi ausprobieren</button><button class="st-btn" style="background:#EAF6F0;color:#0B3B2E" data-st-ordi-frage="Was kannst du alles für mich machen?">Was kann Ordi?</button></div>
+        </div></section></div>
+      ${neuNutzer ? `<div class="abschnitt"><h2>Neu hier? In drei Schritten startklar</h2><div class="st-raster">
+        <a class="st-karte" href="javascript:void 0" data-firma-start><span class="ic" style="background:#0B6B47">${svg(I.design)}</span><b>1. Firma und Logo</b><span>Website eingeben, Ordasio übernimmt Logo und Farben für Rechnungen.</span><em>Einrichten ›</em></a>
+        <a class="st-karte" href="../wechsel/"><span class="ic" style="background:#0E7490">${svg(I.teilen)}</span><b>2. Daten übernehmen</b><span>Aus bexio, Banana, Excel oder dem E-Banking. Oder einfach heute neu beginnen.</span><em>Übernehmen ›</em></a>
+        <a class="st-karte" href="#uebersicht" data-st-ansicht="uebersicht"><span class="ic" style="background:#4F46E5">${svg(I.plus)}</span><b>3. Loslegen</b><span>Erste Rechnung, erster Beleg, erster Mitarbeiter: alles unter Übersicht.</span><em>Zur Übersicht ›</em></a>
+      </div></div>` : ''}
+      <div class="abschnitt">${faktHtml()}</div>
+      <div class="abschnitt"><h2>Für wen ist Ordasio?</h2><div class="st-raster">
+        ${FUER.map(([t, x, url, k, ic, f]) => `<a class="st-karte" href="${url}"><span class="ic" style="background:${f}">${svg(ic)}</span><b>${esc(t)}</b><span>${esc(x)}</span><em>${esc(k)} ›</em></a>`).join('')}
+      </div></div>
+      <div class="abschnitt"><h2>Ehrlich gesagt</h2><div class="st-zwei">
+        <div class="karte"><b style="display:block;margin-bottom:10px;color:var(--tinte)">Darum Ordasio</b><ul class="st-liste">
+          <li>Alles in einer App: Rechnungen, Buchhaltung, Löhne, Zeiterfassung, Lager, Termine und Home-Büro.</li>
+          <li>Daten in der Schweiz gespeichert, Belege sicher abgelegt.</li>
+          <li>Mitarbeitende brauchen kein Konto: ein Link aufs Handy genügt.</li>
+          <li>Ordi bucht und erklärt, auf Wunsch prüft ein Mensch aus unserem Team.</li>
+          <li>Schweizer Regeln eingebaut: QR-Rechnung, MWST-Ziffern, AHV, BVG, Lohnausweis, GAV-Vorgaben je Branche.</li>
+          <li>30 Tage gratis testen, ohne Kreditkarte.</li>
+        </ul></div>
+        <div class="karte"><b style="display:block;margin-bottom:10px;color:var(--tinte)">Gut zu wissen</b><ul class="st-liste info">
+          <li>Zahlungen geben Sie weiterhin in Ihrem E-Banking frei. Ordasio liest die Bankauszüge und ordnet sie zu.</li>
+          <li>Ordi ist eine KI. Er bereitet vor, gespeichert wird erst nach Ihrer Bestätigung.</li>
+          <li>Braucht Ihre Firma eine Revision, prüft diese weiterhin eine Revisionsstelle. Ihr Treuhänder bekommt kostenlos Zugang.</li>
+          <li>Buchhaltung und Rechnungen funktionieren auch ohne Internet. Abgeglichen wird, sobald Sie wieder online sind.</li>
+        </ul></div>
+      </div></div>
+      <div class="abschnitt"><h2>Neu in Ordasio</h2><div class="st-neu">
+        ${NEU.map(([m, t, k, url]) => url ? `<a href="${url}"><i>${esc(m)}</i><span>${esc(t)}<small>${esc(k)}</small></span></a>` : `<a href="#" data-st-ordi><i>${esc(m)}</i><span>${esc(t)}<small>${esc(k)}</small></span></a>`).join('')}
+      </div></div>
+      <div class="abschnitt" style="text-align:center"><button class="st-btn dunkel" data-st-ansicht="uebersicht" style="margin:0 auto">Alle Funktionen ansehen</button></div>`;
+  }
+
   function zeichnen() {
     const gewaehlt = ZIELE.filter((z) => (ziele || []).includes(z.id) && zielOffen(z)).map(zielFuerRechtsform);
     const name = ((lizenz() || {}).name || '').split(' ')[0];
@@ -283,9 +401,8 @@ body[data-dichte=gross] .aufgabe{padding:26px}
     const schritte = [['firma', 'Firma, Logo und Farben einrichten', null, !!(m.name || m.logo)], ...gewaehlt.flatMap((z) => z.schritte.map(([id, t, url]) => [id, t, url, !!d[id]])), ['app', 'Als App auf den Home-Bildschirm legen', '../hilfe/#homescreen', !!d.app]];
     const fertig = schritte.filter((s) => s[3]).length;
     const bereiche = [...new Set(gewaehlt.map((z) => z.bereich))];
-    $('inhalt').innerHTML = `
-      <h1>${gruss}${name ? ', ' + esc(name) : ''} 👋</h1>
-      <div data-briefing id="brKarte"></div>
+    const uebersicht = `
+      <h1>Alle Funktionen</h1>
       <p class="unter">Was möchten Sie heute erledigen?</p>
       <div class="abschnitt"><div class="aufgaben">
         ${gewaehlt.flatMap((z) => z.aufgaben.filter(([t]) => !lies('ordasio.startAus', []).includes(t)).map(([t, k, url, ic]) => `<a class="aufgabe" href="${url}"><span class="ic" style="background:${z.farbe}">${svg(ic)}</span><b>${esc(t)}</b><small>${esc(k)}</small></a>`)).join('')}
@@ -306,9 +423,11 @@ body[data-dichte=gross] .aufgabe{padding:26px}
         <a class="bereich" href="../hilfe/"><i style="background:#7C8499">${svg(I.hilfe)}</i>Anleitung</a>
       </div>
       <p class="leise" style="margin-top:14px">Etwas fehlt oder ist zu viel? <button class="link" data-anpassen>Bereiche anpassen</button> · <button class="link" data-design>Startseite anpassen</button> · <a class="link" href="../selbstaendig/" style="text-decoration:none">Tipps für Selbständige</a> · <a class="link" href="../lizenz/" style="text-decoration:none">Lizenz und Konto</a></p></div>`;
+    const tabs = `<div class="st-tabs" role="tablist"><button role="tab" class="${ANSICHT === 'start' ? 'an' : ''}" data-st-ansicht="start">Start</button><button role="tab" class="${ANSICHT === 'uebersicht' ? 'an' : ''}" data-st-ansicht="uebersicht">Übersicht</button></div>`;
+    $('inhalt').innerHTML = tabs + (ANSICHT === 'start' ? startSeite({ gruss, name, gewaehlt, fertig, schritte }) : uebersicht);
     // Passendes Zusatzpaket empfehlen (wegklickbar, wechselt täglich)
-    if (window.OrdasioZusatz) OrdasioZusatz.empfehlung($('zpEmpf'));
-    if (window.Briefing && window.NASUVIA_LIZENZ) Briefing.karte($('brKarte'));
+    if (window.OrdasioZusatz && $('zpEmpf')) OrdasioZusatz.empfehlung($('zpEmpf'));
+    if (window.Briefing && window.NASUVIA_LIZENZ && $('brKarte')) Briefing.karte($('brKarte'));
   }
   document.addEventListener('click', (e) => { if (e.target.closest('[data-firma-start]') && window.Marke) Marke.dialog({ beiSpeichern: () => zeichnen() }); });
 
