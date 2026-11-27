@@ -245,6 +245,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     ['freizeit', 'Freizeit und Ferien', '#06B6D4', /kino|pathé|ticketcorner|booking|airbnb|hotel|easyjet|swiss intern|edelweiss|ferien|reise|museum|zoo/i],
     ['bargeld', 'Bargeld', '#94A3B8', /bancomat|geldautomat|atm|bargeld|bezug/i],
     ['spenden', 'Spenden und Geschenke', '#84CC16', /spende|caritas|unicef|rotes kreuz|helvetas|glückskette/i],
+    ['kreditkarte', 'Kreditkarte (Abrechnung)', '#4F46E5', /kreditkartenabrechnung|kartenabrechnung|visa.?abrechnung|mastercard.?abrechnung|cembra|viseca|swisscard|cornèrcard|cornercard/i],
+    ['ueberweisung', 'Überweisungen und Twint', '#0EA5E9', /twint an|überweisung an|e-banking-auftrag|zahlungsauftrag|dauerauftrag an|revolut|wise\b/i],
     ['uebrig', 'Übriges', '#7C8499', /^$/],
   ];
   const KAT_EIN = [['lohn', 'Lohn und Einkommen', '#0E9F6E'], ['ein-uebrig', 'Übrige Einnahmen', '#14B8A6']];
@@ -257,7 +259,14 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     if (b.betragRappen > 0) return /lohn|salär|gehalt|salaire|ahv|rente|iv-stelle|arbeitslosen/i.test(`${b.partner} ${b.text}`) ? 'lohn' : 'ein-uebrig';
     const t = `${b.partner} ${b.text}`;
     const k = KAT.find((x) => x[3].test(t) && x[0] !== 'uebrig');
-    return k ? k[0] : 'uebrig';
+    if (k) return k[0];
+    // Sonst die Kategorie, die die Bank selbst angibt (z. B. UBS-Bericht «Kategorisierte Transaktionen»)
+    const bk = String(b.bankKat || '').toLowerCase();
+    const BANK = [[/lebensmittel|einkauf/, 'lebensmittel'], [/restaurant|gastronomie|ausgang/, 'restaurant'], [/transport|mobilit|reise.*öv|öffentlich/, 'mobilitaet'], [/auto|treibstoff|tank/, 'auto'],
+      [/shopping|kleidung|haushalt|elektronik/, 'shopping'], [/unterhaltung|freizeit|reisen|ferien|sport|hobby/, 'freizeit'], [/bargeld/, 'bargeld'], [/steuer|behörde|gebühr/, 'steuern'],
+      [/nebenkosten|wohnen|miete|energie/, 'wohnen'], [/spende/, 'spenden'], [/gesundheit|apotheke|arzt/, 'gesundheit'], [/versicherung/, 'versicherung'], [/telekom|telefon|internet|mobilfunk/, 'telefon'], [/abo|streaming|medien/, 'abos'], [/kreditkarte/, 'kreditkarte'], [/andere transaktion|kontoüberträg|überweisung|kredit|hypothek/, 'ueberweisung']];
+    const m = bk && BANK.find(([re]) => re.test(bk));
+    return m ? m[1] : 'uebrig';
   }
 
   /* ---------- Kontoauszüge lesen (camt.053 und CSV der Schweizer Banken) ---------- */

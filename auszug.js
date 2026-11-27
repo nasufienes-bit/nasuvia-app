@@ -83,6 +83,8 @@
 
   // Spaltenköpfe suchen: eine Zeile mit mindestens zwei bekannten Spaltennamen
   function kopfSpalten(zeile) {
+    // Eine Zeile mit Datum oder Betrag ist eine Buchung, keine Überschrift (z. B. «SALDO ZINSABSCHLUSS Ausgaben -20.60»)
+    if (zeile.w.some((w) => RE_BETRAG_WORT.test(w.t) || RE_DATUM.test(w.t))) return null;
     const sp = [];
     // Einzelne Wörter und Paare („Money out“, „Data valuta“)
     const kand = [];
@@ -102,41 +104,63 @@
     return abstand < 90 ? beste : null;
   }
 
+  // Text einer Buchung säubern: Konto-/Kartennummern, Ablaufdatum, Währung und Typ-Wörter weg
+  const saeubern = (t) => String(t || '')
+    .replace(/\b[A-Z]{2}\d{2}(?:\s?[0-9A-Z]{4}){3,7}(?:\s?[0-9A-Z]{1,4})?(?:\s[A-Z])?\b/g, ' ')
+    .replace(/\b\d{4}X{4,}\d{2,4}\b|X{4}(?:\s?X{4}){2}\s?\d{4}/gi, ' ')
+    .replace(/(^|\s)\d{2}\/\d{2}(?=\s|$)/g, ' ')
+    .replace(/(einnahmen|ausgaben)(?=\s|$)/gi, ' ')
+    .replace(/(^|\s)(CHF|EUR|USD)(?=\s|$)/g, ' ')
+    .replace(/\s+/g, ' ').trim();
+  const TYP_PLUS = /(?:^|\s|\d)(einnahmen?|gutschrift(en)?|zahlungseingang)(?=\s|$)/i;
+  const TYP_MINUS = /(?:^|\s|\d)(ausgaben?|belastung(en)?|lastschrift)(?=\s|$)/i;
+
   function pdfBewegungen(seiten) {
     const aus = [];
     let spalten = null, saldo = null, anfang = null, ende = null, letzte = null, mitSpalten = 0;
     for (const zeilen of seiten) {
+      const seite = []; // Zeilen dieser Seite in Reihenfolge: { art: 'zeile'|'lose'|'trenner', y, b?, w? }
+      letzte = null;
       for (const z of zeilen) {
-        const k = kopfSpalten(z); if (k) { spalten = k; letzte = null; continue; }
+        const k = kopfSpalten(z); if (k) { spalten = k; letzte = null; seite.push({ art: 'trenner', y: z.y }); continue; }
         const datumW = z.w.find((w) => RE_DATUM.test(w.t));
         const betraege = z.w.filter((w) => RE_BETRAG_WORT.test(w.t));
         const textOhne = z.w.filter((w) => !RE_DATUM.test(w.t) && !RE_BETRAG_WORT.test(w.t)).map((w) => w.t).join(' ').replace(/\s+/g, ' ').trim();
         // Saldo-Zeilen: Anfangssaldo, Übertrag zwischen Seiten, Schlusssaldo
-        const saldoZeile = betraege.length && /saldo|kontostand|übertrag|uebertrag|vortrag/i.test(textOhne) && (KEINE_BUCHUNG.test(textOhne) || textOhne.split(' ').length <= 4);
+        const saldoZeile = betraege.length && /saldo|kontostand|übertrag|uebertrag|vortrag/i.test(textOhne) && (KEINE_BUCHUNG.test(textOhne) || textOhne.split(' ').length <= 4) && !datumW;
         if (saldoZeile) {
           const wert = zahl(betraege[betraege.length - 1].t);
           if (!aus.length) { anfang = wert; saldo = wert; }
           else if (/übertrag|uebertrag|vortrag/i.test(textOhne)) saldo = wert;
           else ende = wert;
-          letzte = null; continue;
+          letzte = null; seite.push({ art: 'trenner', y: z.y }); continue;
         }
-        if (KEINE_BUCHUNG.test(textOhne)) { letzte = null; continue; }
+        if (KEINE_BUCHUNG.test(textOhne) && !datumW) { letzte = null; seite.push({ art: 'trenner', y: z.y }); continue; }
         if (datumW && betraege.length && datumW.x < (z.w[0].x + 80)) {
-          let betrag = null, neuerSaldo = null, sicher = false;
+          let betrag = null, neuerSaldo = null, sicher = false, bw = null;
+          const typ = TYP_PLUS.test(textOhne) && !TYP_MINUS.test(textOhne) ? 1 : TYP_MINUS.test(textOhne) && !TYP_PLUS.test(textOhne) ? -1 : 0;
           if (spalten) {
             for (const w of betraege) {
               const s = spalteVon(w, spalten);
               if (!s || s.art === 'valuta') continue;
               if (s.art === 'saldo') neuerSaldo = zahl(w.t);
-              else if (betrag === null) { const v = Math.abs(zahl(w.t)); betrag = s.art === 'minus' ? -v : s.art === 'plus' ? v : zahl(w.t); sicher = s.art !== 'betrag' || /^-|-$/.test(w.t); }
+              else if (betrag === null) {
+                const v = Math.abs(zahl(w.t)), vz = /^-|-$/.test(w.t);
+                betrag = s.art === 'minus' ? -v : s.art === 'plus' ? v : vz ? -v : typ ? typ * v : v;
+                sicher = s.art !== 'betrag' || vz || !!typ; bw = w;
+              }
             }
             if (betrag !== null) mitSpalten++;
           }
+          let vorzeichen = sicher ? 'sicher' : '';
           if (betrag === null) {
             // Ohne Spaltenköpfe: erster Betrag, letzter Betrag ist der Saldo
-            const v = Math.abs(zahl(betraege[0].t));
+            bw = betraege[0];
+            const v = Math.abs(zahl(bw.t));
             if (betraege.length >= 2) neuerSaldo = zahl(betraege[betraege.length - 1].t);
-            betrag = /^-|-$/.test(betraege[0].t) ? -v : PLUS.test(textOhne) && !MINUS.test(textOhne) ? v : -v;
+            if (/^-|-$/.test(bw.t)) { betrag = -v; sicher = true; vorzeichen = 'explizit'; }
+            else if (typ) { betrag = typ * v; sicher = true; vorzeichen = 'typ'; }
+            else { betrag = PLUS.test(textOhne) && !MINUS.test(textOhne) ? v : -v; vorzeichen = 'geraten'; }
           }
           if (!betrag) continue;
           // Saldo-Kontrolle: passt das Vorzeichen zum neuen Saldo?
@@ -147,16 +171,77 @@
             else pruefung = 'abweichung';
           } else if (saldo === null && neuerSaldo !== null && anfang === null) { anfang = neuerSaldo - betrag; }
           if (neuerSaldo !== null) saldo = neuerSaldo;
-          letzte = { datum: datumIso(datumW.t.match(RE_DATUM)), betragRappen: betrag, partner: '', text: textOhne, pruefung, unsicher: !sicher && pruefung !== 'ok', saldo: neuerSaldo, _x: betraege[0].r, _mitSp: !!spalten && sicher };
-          aus.push(letzte);
-        } else if (letzte && !datumW && !betraege.length && z.text.length > 2 && z.text.length < 120 && !/seite|page|iban|auszug|datum|valuta|bic|clearing/i.test(z.text)) {
-          // Folgezeile: meist Empfänger oder Mitteilung
-          if (!letzte.partner) letzte.partner = z.text.slice(0, 80);
-          else if (letzte.text.length < 100) letzte.text = (letzte.text + ' ' + z.text).slice(0, 140);
-        } else if (!datumW) letzte = letzte && betraege.length ? null : letzte;
+          const bx = bw ? bw.x : Infinity;
+          const inline = z.w.filter((w) => !RE_DATUM.test(w.t) && !RE_BETRAG_WORT.test(w.t) && w.x < bx - 2).map((w) => w.t).join(' ');
+          const katInline = bw ? z.w.filter((w) => w.x > bw.r + 8 && !RE_BETRAG_WORT.test(w.t) && !RE_DATUM.test(w.t) && !/^(CHF|EUR|USD)$/.test(w.t)).map((w) => w.t).join(' ') : '';
+          letzte = { datum: datumIso(datumW.t.match(RE_DATUM)), betragRappen: betrag, partner: '', text: '', pruefung, unsicher: !sicher && pruefung !== 'ok', saldo: neuerSaldo, _x: betraege[0].r, _bx: bx, _vz: vorzeichen, _inline: inline, _katInline: katInline, _katVor: [], _katNach: [], _vor: [], _nach: [], _tok: bw ? bw.t : '', _alle: betraege.map((w) => ({ t: w.t, x: w.x, r: w.r })), _alleW: z.w };
+          aus.push(letzte); seite.push({ art: 'zeile', y: z.y, b: letzte });
+        } else if (!datumW && !betraege.length && z.text.length > 1 && z.text.length < 160 && !/seite \d|page \d|iban|auszug|^datum|valuta|bic|clearing|transaktions/i.test(z.text)) {
+          seite.push({ art: 'lose', y: z.y, w: z.w });
+        } else { seite.push({ art: 'trenner', y: z.y }); if (!datumW && betraege.length) letzte = null; }
+      }
+      // Blöcke bilden: Zeilen mit kleinem Abstand gehören zusammen (Text über und unter der Datumszeile)
+      const abst = []; for (let k = 1; k < seite.length; k++) abst.push(Math.abs(seite[k - 1].y - seite[k].y));
+      const sortiert = [...abst].sort((a, b) => a - b), median = sortiert.length ? sortiert[Math.floor(sortiert.length / 2)] : 10;
+      const grenze = median * 1.6;
+      let block = [];
+      const blockFertig = () => {
+        const zeilenB = block.filter((x) => x.art === 'zeile');
+        if (zeilenB.length) {
+          let aktuell = null;
+          for (const x of block) {
+            if (x.art === 'zeile') { aktuell = x.b; continue; }
+            if (x.art !== 'lose') continue;
+            const ziel = aktuell || zeilenB[0].b;
+            const worte = x.w.filter((w) => w.x < ziel._bx - 2).map((w) => w.t).join(' ');
+            if (worte) (aktuell ? ziel._nach : ziel._vor).push(worte);
+            const kat = x.w.filter((w) => w.x > ziel._x + 8 && !/^(CHF|EUR|USD)$/.test(w.t)).map((w) => w.t).join(' ');
+            if (kat) (aktuell ? ziel._katNach : ziel._katVor).push(kat);
+          }
+        }
+        block = [];
+      };
+      seite.forEach((x, k) => {
+        if (x.art === 'trenner') { blockFertig(); return; }
+        if (block.length && Math.abs(block[block.length - 1].y - x.y) > grenze) blockFertig();
+        block.push(x);
+      });
+      blockFertig();
+    }
+    // Betragsspalte bestimmen: dort stehen die meisten Einzelbeträge. Zahlen im Text (z. B. «161.47 Avec») sind keine Beträge.
+    const einzeln = aus.filter((b) => b._alle.length === 1);
+    if (einzeln.length >= Math.max(5, aus.length * 0.5)) {
+      const zaehl = {}; einzeln.forEach((b) => { const k = Math.round(b._alle[0].r / 8); zaehl[k] = (zaehl[k] || 0) + 1; });
+      const [kBest, nBest] = Object.entries(zaehl).sort((x, y) => y[1] - x[1])[0] || [];
+      if (nBest >= einzeln.length * 0.6) {
+        const spR = (Number(kBest) + 0.5) * 8;
+        for (const b of aus) {
+          if (b._alle.length < 2 || b.pruefung === 'ok') continue;
+          const w = [...b._alle].sort((x, y) => Math.abs(x.r - spR) - Math.abs(y.r - spR))[0];
+          if (Math.abs(w.r - spR) > 30 || w.t === b._tok) continue;
+          b._tok = w.t; b._bx = w.x; b._x = w.r;
+          const v = Math.abs(zahl(w.t)); b.betragRappen = /^-|-$/.test(w.t) ? -v : b.betragRappen < 0 ? -v : v;
+          b._inline = b._alleW.filter((x) => !RE_DATUM.test(x.t) && x.x < w.x - 2 && x !== w).map((x) => x.t).join(' ');
+          if (/^-|-$/.test(w.t)) b._vz = 'explizit';
+        }
       }
     }
-    for (const b of aus) { if (!b.text && b.partner) b.text = b.partner; if (!b.partner) b.partner = b.text.split(/\s{2,}| \/ /)[0].slice(0, 80); }
+    // Betragsspalte mit Vorzeichen (z. B. UBS «-600.00» / «35.00»): dann gilt das Vorzeichen des Betrags, nicht die Spalte oder der Text
+    const mitMinus = aus.filter((b) => /^-|-$/.test(b._tok)).length;
+    if (mitMinus >= Math.max(3, aus.length * 0.1)) {
+      for (const b of aus) {
+        if (b.pruefung === 'ok' || !b._tok) continue;
+        const v = Math.abs(zahl(b._tok)); b.betragRappen = /^-|-$/.test(b._tok) ? -v : v; b._vz = 'explizit'; b.unsicher = false;
+      }
+    }
+    for (const b of aus) {
+      const teile = [...b._vor, b._inline, ...b._nach].map(saeubern).filter(Boolean);
+      b.partner = (teile[0] || '').slice(0, 80);
+      // Kategorie der Bank (z. B. UBS «Lebensmittel», «Steuern & Behörden»), über mehrere Zeilen umbrochen
+      const kt = [...b._katVor, b._katInline, ...b._katNach].map((x) => x.trim()).filter(Boolean);
+      if (kt.length) b.bankKat = kt.reduce((a, x) => (a && /^[a-zäöü]/.test(x) ? a + x : a ? a + ' ' + x : x), '').slice(0, 40);
+      b.text = teile.join(' · ').slice(0, 140) || b.partner;
+    }
     if (ende === null && saldo !== null && aus.some((b) => b.pruefung)) ende = saldo;
     // Saldo pro Zeile: Reihenfolge (auch neueste zuerst) und Vorzeichen daraus bestimmen
     const geht = (a, e) => a !== null && e !== null && Math.abs(a + aus.reduce((x, b) => x + b.betragRappen, 0) - e) <= 1;
@@ -170,7 +255,7 @@
     }
     // Ohne Spaltenköpfe und ohne Saldo: Beträge stehen oft in zwei Spalten (Belastung / Gutschrift) – die Spalte entscheidet
     if (!mitSpalten) {
-      const offen = aus.filter((b) => b.pruefung !== 'ok');
+      const offen = aus.filter((b) => b.pruefung !== 'ok' && b._vz === 'geraten');
       const gruppen = [];
       for (const b of offen) { const g = gruppen.find((x) => Math.abs(x.x - b._x) < 12); if (g) { g.n.push(b); g.x = (g.x * (g.n.length - 1) + b._x) / g.n.length; } else gruppen.push({ x: b._x, n: [b] }); }
       const gross = gruppen.filter((g) => g.n.length >= Math.max(2, offen.length * 0.12)).sort((a, b) => a.x - b.x);
@@ -181,14 +266,18 @@
         gross.forEach((g, i) => g.n.forEach((b) => { const v = Math.abs(b.betragRappen); b.betragRappen = (i === 1) === plusRechts ? v : -v; }));
       }
     }
-    aus.forEach((b) => { delete b._x; delete b._mitSp; delete b.saldo; });
-    return { liste: aus.filter((b) => b.datum && b.betragRappen), anfang, ende, spalten: mitSpalten > 0 };
+    const liste = aus.filter((b) => b.datum && b.betragRappen);
+    // Zuverlässig: fast alle Vorzeichen sind belegt (Minus, Spalte, Einnahmen/Ausgaben oder Saldo)
+    const belegt = liste.filter((b) => b._vz === 'explizit' || b._vz === 'typ' || b._vz === 'sicher' || b.pruefung === 'ok').length;
+    const zuverlaessig = liste.length >= 5 && belegt >= liste.length * 0.95;
+    aus.forEach((b) => { delete b._x; delete b._bx; delete b._vz; delete b._inline; delete b._vor; delete b._nach; delete b.saldo; delete b._tok; delete b._alle; delete b._alleW; delete b._katInline; delete b._katVor; delete b._katNach; });
+    return { liste, anfang, ende, spalten: mitSpalten > 0, zuverlaessig };
   }
 
   /* ---------- KI (falls eingerichtet) ---------- */
   // Ein Teil (Bild oder PDF) mit KI lesen
-  async function kiTeil(blob) {
-    const j = await Leser.ki(blob, 'kontoauszug').catch(() => null);
+  async function kiTeil(blob, hinweis) {
+    const j = await Leser.ki(blob, 'kontoauszug', hinweis ? { hinweis } : undefined).catch(() => null);
     if (!j) return null;
     if (j.fehler) return { fehler: j.fehler };
     const f = j.felder || {};
@@ -201,7 +290,34 @@
       unsicher: !!b.unsicher,
     })).filter((b) => b.datum && Number.isFinite(b.betragRappen) && b.betragRappen);
     const num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Math.round(Number(x) * 100));
-    return { liste, anfang: num(f.anfangssaldo), ende: num(f.endsaldo) };
+    // Saldo pro Zeile nachrechnen: falsches Vorzeichen wird korrigiert, wenn der Saldo danach aufgeht
+    let vor = num(f.anfangssaldo);
+    for (const b of liste) {
+      if (vor !== null && b.saldo !== null) {
+        if (Math.abs(vor + b.betragRappen - b.saldo) > 1 && Math.abs(vor - b.betragRappen - b.saldo) <= 1) { b.betragRappen = -b.betragRappen; b.unsicher = false; }
+        else if (Math.abs(vor + b.betragRappen - b.saldo) > 1) b.unsicher = true;
+      }
+      vor = b.saldo !== null ? b.saldo : vor !== null ? vor + b.betragRappen : null;
+    }
+    return { liste, anfang: num(f.anfangssaldo), ende: num(f.endsaldo), abgeschnitten: !!j.abgeschnitten };
+  }
+  // Teil prüfen: abgeschnitten → Seite für Seite; Saldo geht nicht auf → mit Hinweis nochmals lesen
+  async function kiTeilSicher(blob, seitenBlobs) {
+    let r = await kiTeil(blob);
+    if (!r || r.fehler) r = await kiTeil(blob);
+    if (r && !r.fehler && r.abgeschnitten && seitenBlobs && seitenBlobs.length > 1) {
+      const teile = []; for (const sb of seitenBlobs) { const t = await kiTeilSicher(sb, null); if (!t || t.fehler) return t; teile.push(t); }
+      return { liste: teile.flatMap((t) => t.liste), anfang: teile[0].anfang, ende: teile[teile.length - 1].ende };
+    }
+    if (r && !r.fehler && r.anfang != null && r.ende != null) {
+      const k = kontrolle(r);
+      if (k.stimmt === false) {
+        const diff = ((r.anfang + k.ein - k.aus - r.ende) / 100).toFixed(2);
+        const neu = await kiTeil(blob, `Anfangssaldo ${(r.anfang / 100).toFixed(2)} + Eingänge ${(k.ein / 100).toFixed(2)} − Ausgänge ${(k.aus / 100).toFixed(2)} ergibt nicht den Endsaldo ${(r.ende / 100).toFixed(2)} (Differenz ${diff}). Wahrscheinlich fehlt eine Buchung, eine ist doppelt oder ein Vorzeichen ist falsch.`);
+        if (neu && !neu.fehler && kontrolle(neu).stimmt) return neu;
+      }
+    }
+    return r;
   }
   // Grosse PDFs in Teile von wenigen Seiten aufteilen: jede Antwort der KI bleibt kurz und vollständig
   const PDFLIB = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
@@ -210,35 +326,31 @@
     if (!window.PDFLib) await laden(PDFLIB);
     const quelle = await window.PDFLib.PDFDocument.load(await datei.arrayBuffer(), { ignoreEncryption: true });
     const n = quelle.getPageCount();
-    if (n <= SEITEN_PRO_TEIL) return [datei];
+    const stueck = async (idx) => { const neu = await window.PDFLib.PDFDocument.create(); (await neu.copyPages(quelle, idx)).forEach((s) => neu.addPage(s)); return new Blob([await neu.save()], { type: 'application/pdf' }); };
     const teile = [];
     for (let a = 0; a < n; a += SEITEN_PRO_TEIL) {
-      const neu = await window.PDFLib.PDFDocument.create();
       const idx = Array.from({ length: Math.min(SEITEN_PRO_TEIL, n - a) }, (_, k) => a + k);
-      (await neu.copyPages(quelle, idx)).forEach((s) => neu.addPage(s));
-      teile.push(new Blob([await neu.save()], { type: 'application/pdf' }));
+      teile.push({ blob: n <= SEITEN_PRO_TEIL ? datei : await stueck(idx), seiten: idx.length > 1 ? await Promise.all(idx.map((i) => stueck([i]))) : null });
     }
     return teile;
   }
   async function mitKi(datei, melden, pdf) {
     if (!window.Leser || !Leser.ki) return null;
-    let teile = [datei];
-    if (pdf) { try { teile = await pdfTeile(datei); } catch { teile = [datei]; } }
-    if (teile.length === 1) return kiTeil(datei);
+    let teile = [{ blob: datei, seiten: null }];
+    if (pdf) { try { teile = await pdfTeile(datei); } catch { teile = [{ blob: datei, seiten: null }]; } }
+    if (teile.length === 1) return kiTeilSicher(teile[0].blob, teile[0].seiten);
     const erg = new Array(teile.length); let fertig = 0, naechster = 0;
-    const melde = () => { if (melden) melden(`Auszug wird mit KI gelesen … Teil ${fertig} von ${teile.length}`); };
+    const melde = () => { if (melden) melden(`Auszug wird mit KI gelesen und kontrolliert … Teil ${fertig} von ${teile.length}`); };
     melde();
     const arbeiter = async () => {
       while (naechster < teile.length) {
         const k = naechster++;
-        let r = await kiTeil(teile[k]);
-        if (!r || r.fehler) r = await kiTeil(teile[k]); // einmal wiederholen
-        erg[k] = r; fertig++; melde();
+        erg[k] = await kiTeilSicher(teile[k].blob, teile[k].seiten); fertig++; melde();
       }
     };
     await Promise.all(Array.from({ length: Math.min(4, teile.length) }, arbeiter));
     const fehlt = erg.findIndex((r) => !r || r.fehler);
-    if (fehlt >= 0) return { fehler: `Teil ${fehlt + 1} von ${teile.length} (Seiten ${fehlt * SEITEN_PRO_TEIL + 1}–${Math.min((fehlt + 1) * SEITEN_PRO_TEIL, 9999)}) liess sich nicht lesen.` };
+    if (fehlt >= 0) return { fehler: `Teil ${fehlt + 1} von ${teile.length} (Seiten ${fehlt * SEITEN_PRO_TEIL + 1}–${(fehlt + 1) * SEITEN_PRO_TEIL}) liess sich nicht lesen.` };
     const anfang = erg.map((r) => r.anfang).find((x) => x != null) ?? null;
     const ende = [...erg].reverse().map((r) => r.ende).find((x) => x != null) ?? null;
     return { liste: erg.flatMap((r) => r.liste), anfang, ende, teile: teile.length };
@@ -265,10 +377,13 @@
     const pdf = istPdf(datei, kopf), bild = !pdf && istBild(datei, bytes);
     if (pdf || bild) {
       if (melden) melden(bild ? 'Foto wird gelesen …' : 'PDF wird gelesen …');
+      let lokal = null;
+      if (pdf) { try { lokal = pdfBewegungen(await pdfSeiten(datei, melden)); } catch (f) { lokal = null; } }
+      // Sauber lesbares PDF (Saldo stimmt oder alle Vorzeichen belegt): exakt, schnell, ohne KI
+      if (lokal && lokal.liste.length && (lokal.zuverlaessig || kontrolle(lokal).stimmt)) return { ...lokal, quelle: 'pdf', pdf: true, exakt: true };
       let ki = null;
       try { ki = await mitKi(datei, melden, pdf); } catch { ki = null; }
-      let lokal = null;
-      if (pdf) { try { lokal = pdfBewegungen(await pdfSeiten(datei, melden)); } catch (f) { if (!ki || ki.fehler) throw f; } }
+      if (!lokal && (!ki || ki.fehler) && pdf) throw new Error('In diesem PDF habe ich keine Buchungen gefunden.');
       if (melden) melden('Beträge und Saldo werden kontrolliert …');
       const kiOk = ki && !ki.fehler && ki.liste.length;
       const lokalOk = lokal && lokal.liste.length;
@@ -276,7 +391,7 @@
       let wahl = null;
       if (kiOk && kontrolle(ki).stimmt) wahl = { ...ki, quelle: 'ki' };
       else if (lokalOk && kontrolle(lokal).stimmt) wahl = { ...lokal, quelle: 'pdf' };
-      else if (kiOk) wahl = { ...ki, quelle: 'ki' };
+      else if (kiOk && !(lokalOk && ki.liste.length < lokal.liste.length * 0.85)) wahl = { ...ki, quelle: 'ki' };
       else if (lokalOk) wahl = { ...lokal, quelle: 'pdf' };
       if (!wahl) {
         if (bild) throw new Error(ki && ki.fehler ? ki.fehler : 'Ein Foto vom Kontoauszug kann Ordasio nur mit dem automatischen Lesen auswerten. Bitte laden Sie den Auszug als PDF, CSV oder camt.053 aus dem E-Banking.');
@@ -645,7 +760,7 @@
     const zeilen = e.liste.map((b) => ({ ...b, an: !(optionen.doppelt && optionen.doppelt(b)), doppelt: !!(optionen.doppelt && optionen.doppelt(b)) }));
     return new Promise((fertig) => {
       const dlg = document.createElement('dialog'); dlg.className = 'az-dlg';
-      const quelle = (e.bank ? `Erkannt: Export von ${e.bank}. ` : '') + ({ ki: e.teile ? `Automatisch mit KI gelesen, in ${e.teile} Teilen.` : 'Automatisch mit KI gelesen.', pdf: (e.kiFehlt ? 'Achtung: Das Lesen mit KI war gerade nicht möglich, darum wurde das PDF nur einfach gelesen. Bitte Beträge und Vorzeichen genau prüfen oder den Auszug später nochmals hochladen. Am zuverlässigsten ist der CSV- oder camt.053-Export aus dem E-Banking.' : 'Aus dem PDF gelesen.'), csv: 'Aus der Datei gelesen.', camt: 'Aus der camt-Datei gelesen.' }[e.quelle] || 'Aus der Datei gelesen.');
+      const quelle = (e.bank ? `Erkannt: Export von ${e.bank}. ` : '') + ({ ki: e.teile ? `Automatisch mit KI gelesen, in ${e.teile} Teilen.` : 'Automatisch mit KI gelesen.', pdf: e.exakt ? 'Exakt aus dem PDF gelesen: alle Beträge mit Vorzeichen erkannt.' : (e.kiFehlt ? 'Achtung: Das Lesen mit KI war gerade nicht möglich, darum wurde das PDF nur einfach gelesen. Bitte Beträge und Vorzeichen genau prüfen oder den Auszug später nochmals hochladen. Am zuverlässigsten ist der CSV- oder camt.053-Export aus dem E-Banking.' : 'Aus dem PDF gelesen.'), csv: 'Aus der Datei gelesen.', camt: 'Aus der camt-Datei gelesen.' }[e.quelle] || 'Aus der Datei gelesen.');
       let bestaetigt = false;
       // Zweifel: Saldo geht nicht auf, oder er lässt sich nicht kontrollieren und die Lesung ist unsicher
       const zweifel = () => {
@@ -654,7 +769,7 @@
         if (k.stimmt === false) return 'saldo';
         const n = zeilen.length, neg = zeilen.filter((z) => z.betragRappen < 0).length;
         if (n >= 12 && !e.karte && (neg / n > 0.95 || neg / n < 0.05)) return 'einseitig';
-        if (e.quelle === 'pdf' || e.quelle === 'ki') return 'ungeprueft';
+        if ((e.quelle === 'pdf' && !e.exakt) || e.quelle === 'ki') return 'ungeprueft';
         return null;
       };
       const kopfHtml = () => {
@@ -666,6 +781,7 @@
         if (k.stimmt === true) box = `<div class="az-kontrolle ok">✓ <b>Saldo stimmt.</b> Anfangssaldo CHF ${chf(e.anfang)} + Eingänge ${chf(k.ein)} − Ausgänge ${chf(k.aus)} = Endsaldo CHF ${chf(e.ende)} wie auf dem Auszug.</div>`;
         else if (k.stimmt === false) box = `<div class="az-kontrolle warn">⚠ <b>Saldo geht nicht auf: Differenz CHF ${chf(k.differenz)}.</b> Anfangssaldo CHF ${chf(e.anfang)}, Endsaldo laut Auszug CHF ${chf(e.ende)}. Bitte die gelb oder rot markierten Zeilen mit dem Auszug vergleichen und Betrag oder Vorzeichen korrigieren.</div>`;
         else if (zw === 'einseitig') box = `<div class="az-kontrolle warn">⚠ <b>Fast alles ist als ${neg > n / 2 ? 'Ausgang' : 'Eingang'} erkannt (${neg > n / 2 ? neg : n - neg} von ${n}).</b> Das stimmt bei einem Kontoauszug selten. Bitte prüfen Sie Eingänge wie Lohn oder Gutschriften und wechseln Sie das Vorzeichen mit „−/+“. Sind alle verkehrt, hilft „Alle Vorzeichen umkehren“.</div>`;
+        else if (!zw && e.exakt && k.stimmt == null) box = `<div class="az-kontrolle ok">✓ <b>Alle ${n} Beträge stehen mit Vorzeichen im PDF</b> und wurden genau so übernommen. Einen Saldo zum Nachrechnen enthält dieser Bericht nicht: Eingänge CHF ${chf(k.ein)}, Ausgänge CHF ${chf(k.aus)}.</div>`;
         else if (zw === 'ungeprueft') box = `<div class="az-kontrolle warn">⚠ <b>Der Saldo lässt sich bei diesem PDF nicht automatisch kontrollieren.</b> Bitte vergleichen Sie Eingänge und Ausgänge unten mit Ihrem Auszug. Gelb markierte Zeilen sind unsicher.</div>`;
         else box = `<div class="az-kontrolle info">Bitte vergleichen Sie die Summen mit Ihrem Auszug, bevor Sie übernehmen. Unsichere Zeilen sind gelb markiert.</div>`;
         if (zw && e.quelle !== 'csv' && e.quelle !== 'camt') box += `<div class="az-kontrolle info" style="margin-top:8px">Am genausten ist der Export als <b>CSV</b> oder <b>camt.053</b> aus dem E-Banking: Dort stehen Beträge und Vorzeichen eindeutig drin, nichts muss erraten werden.</div>`;
