@@ -242,7 +242,7 @@
         if (bild) throw new Error(ki && ki.fehler ? ki.fehler : 'Ein Foto vom Kontoauszug kann Ordasio nur mit dem automatischen Lesen auswerten. Bitte laden Sie den Auszug als PDF, CSV oder camt.053 aus dem E-Banking.');
         throw new Error('In diesem PDF habe ich keine Buchungen gefunden. Am zuverlässigsten ist der Export als CSV oder camt.053 aus dem E-Banking.');
       }
-      return { ...wahl, pdf: true };
+      return { ...wahl, pdf: true, kiFehlt: wahl.quelle !== 'ki' && !kiOk };
     }
     const roh = istExcel(datei, bytes) ? await excelZuCsv(datei) : await alsText(datei);
     if (melden) melden('Spalten und Saldo werden erkannt …');
@@ -605,7 +605,7 @@
     const zeilen = e.liste.map((b) => ({ ...b, an: !(optionen.doppelt && optionen.doppelt(b)), doppelt: !!(optionen.doppelt && optionen.doppelt(b)) }));
     return new Promise((fertig) => {
       const dlg = document.createElement('dialog'); dlg.className = 'az-dlg';
-      const quelle = (e.bank ? `Erkannt: Export von ${e.bank}. ` : '') + ({ ki: 'Automatisch mit KI gelesen.', pdf: 'Aus dem PDF gelesen.', csv: 'Aus der Datei gelesen.', camt: 'Aus der camt-Datei gelesen.' }[e.quelle] || 'Aus der Datei gelesen.');
+      const quelle = (e.bank ? `Erkannt: Export von ${e.bank}. ` : '') + ({ ki: 'Automatisch mit KI gelesen.', pdf: (e.kiFehlt ? 'Achtung: Das Lesen mit KI war gerade nicht möglich, darum wurde das PDF nur einfach gelesen. Bitte Beträge und Vorzeichen genau prüfen oder den Auszug später nochmals hochladen. Am zuverlässigsten ist der CSV- oder camt.053-Export aus dem E-Banking.' : 'Aus dem PDF gelesen.'), csv: 'Aus der Datei gelesen.', camt: 'Aus der camt-Datei gelesen.' }[e.quelle] || 'Aus der Datei gelesen.');
       let bestaetigt = false;
       // Zweifel: Saldo geht nicht auf, oder er lässt sich nicht kontrollieren und die Lesung ist unsicher
       const zweifel = () => {
