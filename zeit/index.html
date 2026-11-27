@@ -222,7 +222,7 @@ a.live{text-decoration:none}
   const Z = { tab: 'uebersicht', woche: montag(heute()), monat: heute().slice(0, 7), fMa: '', fAuftrag: '', fStatus: 'offen', wahl: new Set(),
     mitarbeiter: [], auftraege: [], eintraege: [], einsaetze: [], planWoche: montag(heute()), bereit: false, planModus: (() => { try { return localStorage.getItem('ze.planModus') || 'woche'; } catch { return 'woche'; } })(), planMa: '', standorte: {} };
   if (Z.planModus === 'monat') Z.planWoche = heute().slice(0, 7) + '-01';
-  try { const t = sessionStorage.getItem('ze.tab'); if (TABS.some(([id]) => id === t)) Z.tab = t; } catch {}
+  try { const t = window.ordasioReiterBehalten ? sessionStorage.getItem('ze.tab') : null; if (TABS.some(([id]) => id === t)) Z.tab = t; } catch {}
   const q = new URLSearchParams(location.search);
   if (TABS.some(([id]) => id === q.get('tab'))) Z.tab = q.get('tab');
 

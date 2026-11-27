@@ -306,7 +306,7 @@
     try {
       var bz = BEREICHE.filter(function (b) { return b.id === hier; })[0] || {};
       var zl = JSON.parse(localStorage.getItem('ordasioZuletzt') || '[]').filter(function (x) { return x.id !== hier; });
-      zl.unshift({ id: hier, name: bz.name || ds.titel || hier, href: location.pathname + location.search, t: Date.now(), icon: bz.icon || '' });
+      zl.unshift({ id: hier, name: bz.name || ds.titel || hier, href: location.pathname + (function () { var q = new URLSearchParams(location.search); q.delete('ansicht'); q.delete('tab'); var t = q.toString(); return t ? '?' + t : ''; })(), t: Date.now(), icon: bz.icon || '' });
       localStorage.setItem('ordasioZuletzt', JSON.stringify(zl.slice(0, 6)));
     } catch (e) {}
   }

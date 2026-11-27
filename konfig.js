@@ -18,6 +18,8 @@
     } catch { /* ohne Speicher: eigene Nutzung */ }
   }
   window.NASUVIA_KONFIG = produkt ? KUNDEN : EIGEN;
+  // Bereiche öffnen immer bei der Übersicht. Nur bei Neuladen oder «Zurück» kommt der zuletzt gewählte Reiter wieder.
+  window.ordasioReiterBehalten = (() => { try { const n = performance.getEntriesByType('navigation')[0]; return !!n && (n.type === 'reload' || n.type === 'back_forward'); } catch { return false; } })();
 
   // App-Modus: Ordasio wurde vom Home-Bildschirm geöffnet (als App installiert). Dann wirkt alles wie eine App:
   // keine unterstrichenen Links, kein Lang-Drücken-Menü auf Knöpfen, kein Gummiband-Scrollen, keine Website-Teile.

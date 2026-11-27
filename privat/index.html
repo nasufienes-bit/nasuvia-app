@@ -465,7 +465,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   const TABS = GRUPPEN.flatMap((g) => g[2]);
   const gruppeVon = (id) => GRUPPEN.find((g) => g[2].some(([x]) => x === id)) || GRUPPEN[0];
   let ansicht = 'start', zeitraum = 'jahr', filterKat = '', suche = '';
-  try { ansicht = localStorage.getItem('homebuero.ansicht') || 'start'; } catch {}
+  try { ansicht = (window.ordasioReiterBehalten && localStorage.getItem('homebuero.ansicht')) || 'start'; } catch {}
   { const t = new URLSearchParams(location.search).get('tab'); if (t && TABS.some(([id]) => id === t)) ansicht = t; }
 
   function zeichnen() {
