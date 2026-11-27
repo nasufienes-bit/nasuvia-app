@@ -40,11 +40,23 @@ form.antwort textarea{flex:1;min-height:52px;max-height:200px;border:1px solid v
 form.antwort button{border:0;border-radius:14px;background:var(--blau);color:#fff;padding:0 18px;font:inherit;font-weight:700;cursor:pointer}
 .leer{padding:40px;text-align:center;color:var(--leise)}
 .zurueck{display:none}
+.kopfknopf{border:1px solid var(--linie);background:#fff;border-radius:100px;padding:7px 13px;font:inherit;font-weight:600;font-size:13.5px;cursor:pointer;color:var(--tinte)}.kopfknopf.an{background:var(--blau);color:#fff;border-color:var(--blau)}
+.ki{padding:18px;overflow:auto;height:100%}.ki h2{margin:0 0 4px;font-size:20px}.ki .unter{color:var(--leise);font-size:14px;margin:0 0 16px}
+.ki-zahlen{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:18px}
+.ki-zahl{background:#fff;border:1px solid var(--linie);border-radius:14px;padding:12px 14px}.ki-zahl small{display:block;color:var(--leise);font-size:12.5px}.ki-zahl b{font-size:22px}
+.ki-zahl.warn{border-color:#F5D58A;background:#FFF8E6}
+.ki table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--linie);border-radius:14px;overflow:hidden;font-size:14px;margin-bottom:18px}
+.ki th,.ki td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--linie)}.ki th{font-size:12.5px;color:var(--leise);font-weight:600}.ki td.z{text-align:right;font-variant-numeric:tabular-nums}
+.ki td button{border:1px solid var(--linie);background:#fff;border-radius:100px;padding:5px 11px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}.ki td button.sperr{color:#B42318;border-color:#F3C4C0}
+.ki-grenzen{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;background:#fff;border:1px solid var(--linie);border-radius:14px;padding:14px}
+.ki-grenzen label{font-size:13px;color:var(--text);display:flex;flex-direction:column;gap:4px}.ki-grenzen input{border:1px solid var(--linie);border-radius:10px;padding:7px 10px;font:inherit;font-size:14px}
+.ki-grenzen .knopf{grid-column:1/-1;justify-self:start;border:0;border-radius:100px;background:var(--blau);color:#fff;padding:9px 18px;font:inherit;font-weight:700;cursor:pointer}
+.ki .gesperrt{color:#B42318;font-weight:700;font-size:12px}
 @media(max-width:800px){.rahmen{grid-template-columns:1fr}.rahmen.offen .liste{display:none}.rahmen:not(.offen) .chat{display:none}.zurueck{display:inline-block}header input{width:110px}.msg{max-width:88%}}
 </style>
 </head>
 <body>
-<header><img src="../logo.png" alt="Ordasio"><b>Team: Anfragen</b><span class="r">Ihr Name <input id="name" placeholder="z. B. Enes" autocomplete="off"></span></header>
+<header><img src="../logo.png" alt="Ordasio"><b>Team: Anfragen</b><span class="r"><button class="kopfknopf" id="kiKnopf" type="button">KI-Verbrauch</button>Ihr Name <input id="name" placeholder="z. B. Enes" autocomplete="off"></span></header>
 <div class="rahmen" id="rahmen">
   <aside class="liste"><div class="filter" id="filter"></div><div id="faelle"><p class="leer">Wird geladen …</p></div></aside>
   <section class="chat" id="chat"><p class="leer">Links eine Anfrage wählen.</p></section>
@@ -87,7 +99,7 @@ form.antwort button{border:0;border-radius:14px;background:var(--blau);color:#ff
     }).join('') : '<p class="leer">Keine Anfragen.</p>';
   }
   async function oeffnen(id) {
-    Z.fall = Z.faelle.find(function (f) { return f.id === id; }); if (!Z.fall) return;
+    Z.fall = Z.faelle.find(function (f) { return f.id === id; }); if (!Z.fall) return; $('kiKnopf').classList.remove('an');
     $('rahmen').classList.add('offen'); listeMalen();
     await holen(); chatMalen(true);
     await gelesen();
@@ -126,10 +138,44 @@ form.antwort button{border:0;border-radius:14px;background:var(--blau);color:#ff
     var fi = e.target.closest('[data-filter]'); if (fi) { Z.filter = fi.dataset.filter; filterMalen(); listeMalen(); return; }
     var fa = e.target.closest('[data-fall]'); if (fa) { oeffnen(fa.dataset.fall); return; }
     var st = e.target.closest('[data-status]'); if (st) { status(st.dataset.status); return; }
-    if (e.target.closest('[data-zurueck]')) { $('rahmen').classList.remove('offen'); Z.fall = null; listeMalen(); }
+    if (e.target.closest('[data-zurueck]')) { $('kiKnopf').classList.remove('an'); $('rahmen').classList.remove('offen'); Z.fall = null; listeMalen(); }
   });
   document.addEventListener('submit', function (e) { if (e.target.id === 'antwort') { e.preventDefault(); senden(); } });
   document.addEventListener('keydown', function (e) { if (e.target.id === 'antwortText' && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); senden(); } });
+  // KI-Verbrauch: Kosten heute und im Monat, wer am meisten braucht, Konten sperren, Grenzen anpassen
+  var CHF = function (rp) { return 'CHF ' + (Number(rp || 0) / 100).toFixed(2); };
+  var GRUND = { tageslimit: 'Tageslimit', tempo: 'Tempo', notbremse: 'Notbremse', gesperrt: 'gesperrt' };
+  var FELDER = [['neu_anfragen_tag', 'Neue Konten (erste 24 h): Anfragen pro Tag'], ['neu_rappen_tag', 'Neue Konten: Rappen pro Tag'], ['test_anfragen_tag', 'Gratis-Test: Anfragen pro Tag'], ['test_rappen_tag', 'Gratis-Test: Rappen pro Tag'],
+    ['aktiv_anfragen_tag', 'Kunden mit Lizenz: Anfragen pro Tag'], ['aktiv_rappen_tag', 'Kunden mit Lizenz: Rappen pro Tag'], ['pro_minute', 'Höchstens pro Minute (eine Person)'], ['pro_stunde', 'Höchstens pro Stunde (eine Person)'], ['global_rappen_tag', 'Notbremse: Rappen pro Tag für alle zusammen']];
+  async function kiZeigen() {
+    Z.fall = null; listeMalen(); $('rahmen').classList.add('offen'); $('kiKnopf').classList.add('an');
+    $('chat').innerHTML = '<div class="ki"><p class="leer">Wird geladen …</p></div>';
+    var r = await sb.rpc('ki_uebersicht');
+    if (r.error) { $('chat').innerHTML = '<div class="ki"><p class="leer">Konnte nicht geladen werden: ' + esc(r.error.message) + '</p></div>'; return; }
+    var d = r.data || {}, h = d.heute || {}, m = d.monat || {}, g = d.grenzen || {};
+    var voll = g.global_rappen_tag ? Math.round(100 * (h.rappen || 0) / g.global_rappen_tag) : 0;
+    $('chat').innerHTML = '<div class="ki"><button class="zurueck kopfknopf" data-zurueck>‹ Liste</button><h2>KI-Verbrauch</h2><p class="unter">Kosten von Ordi und dem Dokumente-Lesen, geschätzt aus den verbrauchten Tokens. Abgelehnt = vom Schutz gestoppt, kostet nichts.</p>' +
+      '<div class="ki-zahlen"><div class="ki-zahl' + (voll >= 70 ? ' warn' : '') + '"><small>Heute</small><b>' + CHF(h.rappen) + '</b><small>' + voll + ' % der Notbremse</small></div>' +
+      '<div class="ki-zahl"><small>Anfragen heute</small><b>' + (h.anfragen || 0) + '</b><small>' + (h.abgelehnt || 0) + ' abgelehnt</small></div>' +
+      '<div class="ki-zahl"><small>Dieser Monat</small><b>' + CHF(m.rappen) + '</b><small>' + (m.anfragen || 0) + ' Anfragen</small></div></div>' +
+      '<table><thead><tr><th>Konto (letzte 7 Tage)</th><th>Lizenz</th><th class="z">Anfragen</th><th class="z">Abgelehnt</th><th class="z">Kosten</th><th></th></tr></thead><tbody>' +
+      ((d.nutzer || []).map(function (n) { return '<tr><td>' + esc(n.email || n.user_id) + (n.gesperrt ? ' <span class="gesperrt">gesperrt</span>' : '') + '</td><td>' + esc(n.status || '–') + '</td><td class="z">' + n.anfragen + '</td><td class="z">' + n.abgelehnt + '</td><td class="z">' + CHF(n.rappen) + '</td><td><button data-ki-sperre="' + n.user_id + '" data-an="' + (n.gesperrt ? '0' : '1') + '" class="' + (n.gesperrt ? '' : 'sperr') + '">' + (n.gesperrt ? 'Entsperren' : 'Sperren') + '</button></td></tr>'; }).join('') || '<tr><td colspan="6" class="leer">Noch keine Nutzung.</td></tr>') + '</tbody></table>' +
+      ((d.gesperrt || []).length ? '<table><thead><tr><th>Gesperrt</th><th>Grund</th><th>Seit</th><th></th></tr></thead><tbody>' + d.gesperrt.map(function (s) { return '<tr><td>' + esc(s.email || s.user_id) + '</td><td>' + esc(s.grund || '') + '</td><td>' + esc(zeit(s.seit)) + '</td><td><button data-ki-sperre="' + s.user_id + '" data-an="0">Entsperren</button></td></tr>'; }).join('') + '</tbody></table>' : '') +
+      '<h2 style="font-size:16px;margin:0 0 8px">Grenzen</h2><form class="ki-grenzen" id="kiGrenzen">' + FELDER.map(function (f) { return '<label>' + f[1] + '<input type="number" min="0" step="1" name="' + f[0] + '" value="' + esc(g[f[0]]) + '"></label>'; }).join('') + '<button class="knopf">Grenzen speichern</button></form></div>';
+  }
+  $('kiKnopf').onclick = kiZeigen;
+  document.addEventListener('click', async function (e) {
+    var b = e.target.closest('[data-ki-sperre]'); if (!b) return;
+    var an = b.dataset.an === '1', grund = null;
+    if (an) { grund = prompt('Grund für die Sperre (nur für Sie sichtbar):', 'Verdacht auf Missbrauch'); if (grund === null) return; }
+    var r = await sb.rpc('ki_sperren', { p_user: b.dataset.kiSperre, p_an: an, p_grund: grund });
+    if (r.error) { alert(r.error.message); return; } kiZeigen();
+  });
+  document.addEventListener('submit', async function (e) {
+    if (e.target.id !== 'kiGrenzen') return; e.preventDefault();
+    var p = {}; new FormData(e.target).forEach(function (v, k) { if (v !== '') p[k] = Number(v); });
+    var r = await sb.rpc('ki_grenzen_setzen', { p: p }); if (r.error) { alert(r.error.message); return; } kiZeigen();
+  });
   start();
 })();
 </script>

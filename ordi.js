@@ -209,6 +209,7 @@
         body: JSON.stringify({ frage, datei: datei || undefined, artikel, kontext: window.OrdiAktionen ? await window.OrdiAktionen.kontext().catch(() => null) : null, heute: new Date().toLocaleDateString('sv-SE'), bereich: BEREICH[hier] || hier, paket: (window.NASUVIA_LIZENZ || {}).paket || '', verlauf: verlauf.filter((m) => !m.fakt && !m.denkt).slice(-6).map((m) => ({ rolle: m.rolle, text: m.text })) }) });
       if (r.status === 501) { kiAus = true; return null; }
       const j = await r.json().catch(() => ({}));
+      if (r.status === 429 && j.fehler) return { text: j.fehler, aktion: null };  // Schutz: Tageslimit, Tempo, Sperre
       if (!r.ok || (!j.text && !j.aktion)) return null;
       const a = (S() ? S().finden(frage) : [])[0];
       return { text: j.text || '', aktion: j.aktion || null, ziel: !j.aktion && a && a.ziel };
