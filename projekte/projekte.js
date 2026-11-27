@@ -15,7 +15,7 @@
   const toast = (t, ms = 2800) => { const e = $('toast'); e.textContent = t; e.classList.add('da'); clearTimeout(toast.z); toast.z = setTimeout(() => e.classList.remove('da'), ms); };
   const fehlerText = (e) => { const t = e && (e.message || e.error_description || e.msg || e.hint || e.details); if (t) return String(t).replace(/^.*?: /, (m) => (/exception/i.test(m) ? '' : m)); if (typeof e === 'string' && e) return e; return navigator.onLine === false ? 'Keine Internetverbindung. Bitte später nochmals versuchen.' : 'Der Server hat nicht geantwortet. Bitte die Seite neu laden.'; };
   const ICON = {
-    projekte: '<path d="M4 20h16M6 20V9l6-5 6 5v11"/><path d="M10 20v-6h4v6"/>',
+    projekte: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18M11 13v2h2v-2"/>',
     kostenstellen: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
     rapporte: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h4"/>',
   };
