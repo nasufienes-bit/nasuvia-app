@@ -144,6 +144,10 @@
     .nr-dlg .leise{background:none;color:#3F5A4F;font-weight:500}
     .nr-dlg input{width:100%;box-sizing:border-box;font:inherit;padding:12px 14px;border:1.5px solid color-mix(in srgb,var(--blau,#0B3B2E) 18%,transparent);border-radius:10px;margin-bottom:10px}
     .nr-fehler{color:#E5484D;font-size:.9rem;min-height:1.2em;margin:-2px 0 8px}
+    .nr-direkt{margin-bottom:6px}.nr-lbl{display:block;font-size:.82rem;color:#5B6478;margin-bottom:4px}
+    .nr-dlg .nr-abs{font-size:.86rem;margin:0 0 8px}.nr-dlg .nr-oder{font-size:.82rem;color:#7C8499;margin:12px 0 0;text-align:center}
+    .nr-dlg .nr-link{display:inline;padding:0;background:none;color:var(--elektrik,#0E7A55);font-weight:600;font-size:inherit;text-decoration:underline}
+    .nr-dlg .nr-ok{color:#0E7A55;font-weight:600;font-size:1.05rem}
     .nr-status{position:fixed;right:14px;bottom:14px;z-index:50;display:flex;align-items:center;gap:8px;background:#fff;border-radius:100px;padding:9px 14px;box-shadow:0 10px 30px -12px rgba(12,18,38,.35);font-size:.85rem;color:#0A1F17;cursor:pointer;border:0;font-family:inherit}
     .nr-status i{width:9px;height:9px;border-radius:50%;background:#B7791F}
     .nr-status.ok i{background:#0E9F6E}.nr-status.aus i{background:#E5484D}
@@ -169,9 +173,17 @@
     const datei_ = new File([blob], datei, { type: 'application/pdf' });
     const teilenGeht = navigator.canShare && navigator.canShare({ files: [datei_] });
     const mailto = mail ? `mailto:${encodeURIComponent(mail.an || '')}?subject=${encodeURIComponent(mail.betreff || '')}&body=${encodeURIComponent(mail.text || '')}` : '';
+    const direkt = !!(mail && window.OrdasioMail && OrdasioMail.moeglich());
     const d = dialog(`
       <h3>${mail ? 'Versenden' : 'Als PDF gesichert'}</h3>
-      <p>${mail ? (teilenGeht ? 'Tippen Sie auf „Teilen“ und wählen Sie Mail. Die Rechnung ist schon angehängt.' : 'Laden Sie das PDF herunter und hängen Sie es an die Mail an.') : esc(datei)}</p>
+      ${direkt ? `<div class="nr-direkt" hidden>
+        <label class="nr-lbl" for="nrAn">An</label><input id="nrAn" type="email" multiple value="${esc(mail.an || '')}" placeholder="kunde@beispiel.ch">
+        <p class="nr-abs" data-abs></p>
+        <div class="nr-fehler" data-fehler></div>
+        <button class="haupt" data-direkt>Jetzt senden</button>
+        <p class="nr-oder">oder mit der Mail-App:</p>
+      </div>` : ''}
+      <p data-weg-text>${mail ? (teilenGeht ? 'Tippen Sie auf „Teilen“ und wählen Sie Mail. Die Rechnung ist schon angehängt.' : 'Laden Sie das PDF herunter und hängen Sie es an die Mail an.') : esc(datei)}</p>
       <div class="reihe">
         ${teilenGeht ? '<button class="haupt" data-teilen>Teilen</button>' : ''}
         <a class="${teilenGeht ? 'zweit' : 'haupt'}" href="${url}" target="_blank" rel="noopener">PDF öffnen</a>
@@ -180,6 +192,27 @@
         <button class="leise" data-zu>Schliessen</button>
       </div>`);
     d.querySelector('[data-zu]').onclick = () => d.close();
+    if (direkt) {
+      const box = d.querySelector('.nr-direkt'), knopf = d.querySelector('[data-direkt]'), fehlerEl = d.querySelector('[data-fehler]');
+      OrdasioMail.status().then((st) => {
+        if (!st.bereit) return;
+        box.hidden = false; d.querySelector('[data-weg-text]').hidden = true;
+        d.querySelector('[data-abs]').innerHTML = OrdasioMail.absenderText(st, (window.Marke && Marke.daten().name) || '', mail.antwortAn) + ' · <button type="button" class="nr-link" data-absender>ändern</button>';
+        d.querySelector('[data-absender]').onclick = () => { d.close(); OrdasioMail.einstellungen(); };
+      });
+      knopf.onclick = async () => {
+        const an = d.querySelector('#nrAn').value.trim();
+        if (!an) { fehlerEl.textContent = 'Bitte eine E-Mail-Adresse eingeben.'; return; }
+        knopf.disabled = true; knopf.textContent = 'Wird gesendet …'; fehlerEl.textContent = '';
+        try {
+          const erg = await OrdasioMail.senden({ an, betreff: mail.betreff, text: mail.text, html: mail.html, anhaenge: [{ name: datei, blob }], antwortAn: mail.antwortAn, absenderName: (window.Marke && Marke.daten().name) || '', art: mail.art });
+          if (mail.eintrag) await speichern('rechnung', [{ ...mail.eintrag, gesendet: true, gesendetAm: jetzt(), gesendetAn: an }]).catch(() => {});
+          box.innerHTML = `<p class="nr-ok">✓ Gesendet an ${esc(erg.an.join(', '))}</p>`;
+          d.querySelector('.reihe').innerHTML = '<button class="haupt" data-fertig>Fertig</button>';
+          d.querySelector('[data-fertig]').onclick = () => d.close();
+        } catch (f) { fehlerEl.textContent = f.message; knopf.disabled = false; knopf.textContent = 'Nochmals senden'; }
+      };
+    }
     const t = d.querySelector('[data-teilen]');
     if (t) t.onclick = async () => {
       try {
@@ -319,9 +352,16 @@
         }
         if (!blob) return fehler('Das PDF ist auf diesem Gerät noch nicht da. Bitte kurz warten, bis der Abgleich fertig ist.', 500);
         // Link zum Online-Ansehen in die Mail: so sehen Sie, wann der Kunde die Rechnung geöffnet hat
-        let text = d.text || '';
-        try { const url = await onlineLink(e, blob); if (url) text += `\n\n${WORT[artVon(e)]} online ansehen und als PDF laden:\n${url}`; } catch { /* ohne Link weiter */ }
-        pdfZeigen(blob, e.datei, { an: d.an, betreff: d.betreff, text });
+        let text = d.text || '', html = d.htmlEingebettet || d.html || '';
+        try {
+          const url = await onlineLink(e, blob);
+          if (url) {
+            text += `\n\n${WORT[artVon(e)]} online ansehen und als PDF laden:\n${url}`;
+            const knopf = `<p style="text-align:center;margin:18px 0;font-family:Arial,sans-serif;font-size:15px"><a href="${esc(url)}" style="color:#0B3B2E;font-weight:bold">${esc(WORT[artVon(e)])} online ansehen</a></p>`;
+            if (html) html = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, knopf + '</body>') : html + knopf;
+          }
+        } catch { /* ohne Link weiter */ }
+        pdfZeigen(blob, e.datei, { an: d.an, betreff: d.betreff, text, html, antwortAn: d.absender, art: artVon(e), eintrag: e });
         return { body: { ok: true, pfad: PFAD + e.datei, weg: 'teilen' } };
       }
       case '/api/laden': {

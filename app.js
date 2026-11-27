@@ -1394,8 +1394,9 @@
       <div class="dlg-kopf"><h3>Lohnabrechnung senden</h3><button type="button" class="x" data-zu aria-label="Schliessen">×</button></div>
       <div class="dlg-inhalt">
         <p><b>An:</b> ${esc(ziel.join(', '))}${cc.length ? `<br><b>Kopie:</b> ${esc(cc.join(', '))}` : ''}</p>
-        <p class="hinweis">${teilenGeht ? 'Tippen Sie auf „Teilen“ und wählen Sie Mail. Das PDF ist schon angehängt, die Adressen fügen Sie mit „Adressen kopieren“ ein.' : 'Laden Sie das PDF herunter, öffnen Sie dann die Mail und hängen Sie das PDF an. Empfänger, Betreff und Text sind schon ausgefüllt.'}</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+        <div data-lm-direkt hidden style="margin:10px 0 14px"><p class="hinweis" data-lm-abs></p><p class="hinweis" data-lm-fehler style="color:#C2373C"></p><button type="button" class="btn btn-haupt" data-lm="direkt">Jetzt senden</button><p class="hinweis" style="margin-top:12px">oder mit der Mail-App:</p></div>
+        <p class="hinweis" data-lm-alt>${teilenGeht ? 'Tippen Sie auf „Teilen“ und wählen Sie Mail. Das PDF ist schon angehängt, die Adressen fügen Sie mit „Adressen kopieren“ ein.' : 'Laden Sie das PDF herunter, öffnen Sie dann die Mail und hängen Sie das PDF an. Empfänger, Betreff und Text sind schon ausgefüllt.'}</p>
+        <div data-lm-alt style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
           ${teilenGeht ? '<button type="button" class="btn btn-haupt" data-lm="teilen">Teilen</button><button type="button" class="btn" data-lm="kopieren">Adressen kopieren</button>' : `<a class="btn btn-haupt" href="${url}" download="${esc(datei)}" data-lm="laden">PDF herunterladen</a><a class="btn" href="${mailto}" data-lm="mail">Mail öffnen</a>`}
           <a class="btn" href="${url}" target="_blank" rel="noopener">PDF ansehen</a>
         </div>
@@ -1404,8 +1405,24 @@
     </form>`;
     dlg.oninput = null; dlg.onchange = null;
     const vermerken = () => lohnEingabeSetzen(monat, id, { gesendet: heute() }).catch(() => {});
+    if (window.OrdasioMail && OrdasioMail.moeglich()) OrdasioMail.status().then((st) => {
+      const box = dlg.querySelector('[data-lm-direkt]'); if (!st.bereit || !box) return;
+      box.hidden = false;
+      box.querySelector('[data-lm-abs]').innerHTML = OrdasioMail.absenderText(st, F.name, F.mail) + ' · <button type="button" class="link" data-lm="absender">ändern</button>';
+    });
     dlg.onclick = async (ev) => {
       const k = ev.target.closest('[data-lm]');
+      if (k && k.dataset.lm === 'absender') { dlg.close(); OrdasioMail.einstellungen(); return; }
+      if (k && k.dataset.lm === 'direkt') {
+        const f = dlg.querySelector('[data-lm-fehler]'); k.disabled = true; k.textContent = 'Wird gesendet …'; f.textContent = '';
+        try {
+          const erg = await OrdasioMail.senden({ an: ziel, cc, betreff, text, anhaenge: [{ name: datei, blob }], antwortAn: F.mail, absenderName: F.name, art: 'lohn' });
+          await vermerken();
+          dlg.querySelectorAll('[data-lm-alt]').forEach((x) => { x.hidden = true; x.style.display = 'none'; });
+          dlg.querySelector('[data-lm-direkt]').innerHTML = `<p style="color:#0E7A55;font-weight:600">✓ Gesendet an ${esc([...erg.an, ...(erg.cc || [])].join(', '))}</p>`;
+        } catch (x) { f.textContent = x.message; k.disabled = false; k.textContent = 'Nochmals senden'; }
+        return;
+      }
       if (k && k.dataset.lm === 'teilen') {
         try { await navigator.share({ files: [datei_], title: betreff, text }); await vermerken(); toast('Lohnabrechnung geteilt'); } catch (f) { if (f && f.name !== 'AbortError') window.open(url, '_blank'); }
         return;

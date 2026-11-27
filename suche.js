@@ -101,6 +101,10 @@
       'Im Rechnungsprogramm oben „Auftrag“ oder „Lieferschein“ wählen. Beide bekommen eigene Nummern (A-001, L-001) und haben keinen Zahlteil.',
       'Der Lieferschein zeigt nur Mengen, ohne Preise, und hat Felder für Datum und Unterschrift.',
       'In „Gesicherte Rechnungen“ machen Sie aus einer Offerte mit einem Tipp einen Auftrag, einen Lieferschein oder die Rechnung.'], R + '?dok=auftrag'],
+    ['mail-absender', 'Rechnungen', 'E-Mails direkt aus Ordasio senden und Absender wählen', 'email mail senden versenden absender postfach smtp eigene adresse direkt hostpoint gmail infomaniak bluewin', [
+      'Bei „Per E-Mail senden“ oder bei der Lohnabrechnung „E-Mail“ auf „Jetzt senden“ tippen. Die E-Mail geht sofort mit dem PDF im Anhang raus.',
+      'Als Absender sehen Ihre Kunden Ihren Firmennamen. Antworten kommen direkt zu Ihnen.',
+      'Unter „Absender … ändern“ verbinden Sie Ihr eigenes Postfach, dann kommen die E-Mails von Ihrer Adresse.'], R + '?aktion=absender'],
     ['artikel', 'Rechnungen', 'Artikel und Leistungen mit Preis hinterlegen', 'artikel artikelstamm leistungen preisliste katalog produkte material stundensatz vorschlag', [
       'Im Rechnungsprogramm bei „Positionen“ auf „Artikel“ tippen und Bezeichnung, Preis und Einheit eintragen, oder eine CSV-Datei importieren.',
       'Beim Tippen einer Position schlägt Ordasio passende Artikel vor und setzt den Preis ein.',
