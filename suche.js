@@ -157,9 +157,10 @@
       'Im E-Banking den Kontoauszug als camt.053 (XML) oder CSV herunterladen.',
       'Unter „Buchungen“ auf „Bankauszug oder Daten importieren“ tippen und die Datei wählen.',
       'Kategorien werden vorgeschlagen, Zahlungen von Kunden werden offenen Rechnungen zugeordnet, Doppelte erkannt. Prüfen und übernehmen.'], B + '?aktion=bankImport'],
-    ['import', 'Buchhaltung', 'Daten aus Excel oder einem anderen Programm', 'import excel altes programm wechseln übernehmen bexio daten bisherige', [
-      'Exportieren Sie Ihre bisherigen Buchungen als CSV (Spalten Datum, Betrag, Text, wenn vorhanden Kategorie und MWST).',
-      'Unter „Buchungen“ auf „Bankauszug oder Daten importieren“ tippen. Spalten werden automatisch erkannt.'], B + '?aktion=bankImport'],
+    ['import', 'Buchhaltung', 'Von bexio, Banana, Abacus usw. wechseln', 'import excel altes programm wechseln übernehmen bexio banana abacus abaninja klara sage run my accounts daten bisherige saldenliste journal eröffnungsbilanz', [
+      'Im bisherigen Programm die Saldenliste per Stichtag (und wenn nötig das Journal) als Excel oder CSV exportieren. Aus Banana einfach die Tabelle kopieren.',
+      'In der Buchhaltung „Aus bexio, Banana … übernehmen“ tippen, Programm wählen, Datei wählen oder Tabelle einfügen.',
+      'Ordasio zeigt alles an, prüft Soll und Haben und legt fehlende Konten an. Eine Anleitung pro Programm finden Sie unter „Wechsel zu Ordasio“.'], B + '?aktion=fremdImport'],
     ['kategorien', 'Buchhaltung', 'Eigene Kategorien', 'kategorie kategorien konto eigene umbenennen farbe ausblenden', [
       'Einstellungen, dann „Kategorien anpassen“.',
       'Umbenennen, Farbe wählen, MWST-Satz festlegen, ausblenden oder mit „+ Kategorie“ neue anlegen.'], B + '?aktion=kategorien'],

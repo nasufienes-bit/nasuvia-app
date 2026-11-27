@@ -674,5 +674,10 @@
     });
   }
 
-  window.Auszug = { zerlegen, vorbereiten, pdfBewegungen, pdfSeiten, kontrolle, pruefen, csvLesen, camtLesen, geld, tagLesen };
+  // Beliebige Tabelle (CSV, TXT, Excel) in Zeilen und Zellen, z. B. für den Import aus anderen Programmen
+  async function tabelle(datei) {
+    const bytes = new Uint8Array(await datei.slice(0, 8).arrayBuffer());
+    return zerlegen(istExcel(datei, bytes) ? await excelZuCsv(datei) : await alsText(datei));
+  }
+  window.Auszug = { zerlegen, vorbereiten, pdfBewegungen, pdfSeiten, kontrolle, pruefen, csvLesen, camtLesen, geld, tagLesen, tabelle };
 })();

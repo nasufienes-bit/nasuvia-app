@@ -2219,7 +2219,7 @@
     return `
     <div class="kopf">
       <div><h1>Konten</h1><p class="unter">Doppelte Buchhaltung nach KMU-Kontenrahmen · ${esc(rfName)}${festBis() ? ` · festgeschrieben bis ${datumKurz(festBis())}` : ''}</p></div>
-      <div class="kopf-aktionen">${jahrWahl()}<button class="btn" onclick="NB.eroeffnung()">Eröffnungsbilanz</button><button class="btn" onclick="NB.journalCsv()">Journal als CSV</button><button class="btn btn-haupt" onclick="NB.journalNeu()">+ Buchung Soll an Haben</button></div>
+      <div class="kopf-aktionen">${jahrWahl()}<button class="btn" onclick="NB.eroeffnung()">Eröffnungsbilanz</button><button class="btn" onclick="NB.fremdImport()">Aus bexio, Banana … übernehmen</button><button class="btn" onclick="NB.journalCsv()">Journal als CSV</button><button class="btn btn-haupt" onclick="NB.journalNeu()">+ Buchung Soll an Haben</button></div>
     </div>
     ${eroeffnungHinweis()}
     <div class="segment" style="margin-bottom:12px">${tabs.map(([id, n]) => `<button class="${Z.kontenTab === id ? 'an' : ''}" data-ktab="${id}">${n}</button>`).join('')}</div>
@@ -2229,7 +2229,7 @@
     if (eroeffnung()) return '';
     return `<div class="card abstand-unten" style="border:1px solid rgba(183,121,31,.3)"><h2>Zuerst die Eröffnungsbilanz</h2>
       <p class="hinweis">Tragen Sie einmal ein, womit Ihre Buchhaltung startet: ${kapitalName() ? 'das einbezahlte ' + kapitalName() + ', ' : ''}Bankguthaben, Kasse, offene Rechnungen, Fahrzeuge, Darlehen. Bei einer Neugründung reicht meist eine Zeile: Bank an Kapital.</p>
-      <button class="btn btn-haupt abstand" onclick="NB.eroeffnung()">Eröffnungsbilanz erfassen</button></div>`;
+      <button class="btn btn-haupt abstand" onclick="NB.eroeffnung()">Eröffnungsbilanz erfassen</button> <button class="btn abstand" onclick="NB.fremdImport()">Aus bexio, Banana … übernehmen</button></div>`;
   }
 
   function journalTab() {
@@ -3021,7 +3021,36 @@
     vorlage.mwstRappen = mwstAus(vorlage.betragRappen, vorlage.mwstSatz);
     buchungBearbeiten(null, vorlage);
   }, 900);
+  /* ---------- Übernahme aus bexio, Banana, Abacus usw. (fremdimport.js) ---------- */
+  function fremdImport(vorgabe) {
+    if (!window.FremdImport || !window.Auszug) { toast('Wird noch geladen, bitte gleich nochmals versuchen'); return; }
+    const ekKonto = istFirma() ? '2970' : '2800';
+    FremdImport.oeffnen({
+      plan: kontenplan(), journal: Z.journal, doppelt: doppeltAktiv(), ekKonto, ekName: D.nameVon(kontenplan(), ekKonto),
+      artNachNummer: D.artNachNummer, istFest, toast, dateiWaehlen, eroeffnung,
+      idVon: FremdImport._id,
+      doppeltEinschalten: () => einstSpeichern({ doppelt: true }),
+      kontenErgaenzen: async (liste) => {
+        const plan = new Set(kontenplan().map((k) => k.nr)), eigene = [...(Z.einst.konten || [])];
+        for (const k of liste) if (/^\d{4}$/.test(k.nr) && !plan.has(k.nr) && !eigene.some((e) => e.nr === k.nr)) eigene.push({ nr: k.nr, name: k.name || 'Konto ' + k.nr, art: D.artNachNummer(k.nr) });
+        if (eigene.length !== (Z.einst.konten || []).length) await einstSpeichern({ konten: eigene });
+      },
+      eroeffnungSpeichern: async (werte) => {
+        const alt = eroeffnung();
+        const dt = alt ? alt.datum : (jahre().slice(-1)[0] || String(new Date().getFullYear())) + '-01-01';
+        const zeilen = Object.entries(werte).filter(([, v]) => v).map(([nr, v]) => {
+          const aktiv = D.artNachNummer(nr) === 'aktiv', sollSeite = aktiv ? v > 0 : v < 0;
+          return sollSeite ? { soll: nr, haben: '9100', betrag: Math.abs(v) } : { soll: '9100', haben: nr, betrag: Math.abs(v) };
+        });
+        await Speicher.speichern('journal', { ...(alt || {}), id: 'eroeffnung', art: 'eroeffnung', datum: dt, beleg: 'EB', text: 'Eröffnungsbilanz (übernommen)', zeilen, geloescht: false });
+      },
+      journalSpeichern: (liste) => (Speicher.mehrereSpeichern ? Speicher.mehrereSpeichern('journal', liste) : Promise.all(liste.map((j) => Speicher.speichern('journal', j)))),
+      fertig: (m) => { Z.ansicht = 'konten'; Z.kontenTab = 'journal'; neuLaden(m); },
+    }, vorgabe);
+  }
+
   window.NB = {
+    fremdImport: () => { let v = null; try { v = JSON.parse(sessionStorage.getItem('ordasio.fi') || 'null'); sessionStorage.removeItem('ordasio.fi'); } catch {} fremdImport(v || undefined); },
     shopImport: () => shopImport(),
     korb: () => korbDialog(),
     importe: () => importeZeigen(),

@@ -56,33 +56,75 @@ input:focus{outline:0;border-color:var(--elektrik)}
 .schritt .nr{grid-row:span 3;display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:var(--blau);color:#fff;font-weight:800;font-size:18px}
 .schritt ol{margin:4px 0 0 18px;font-size:14px;color:var(--text);line-height:1.6}
 .hilfe-karte{background:linear-gradient(135deg,var(--blau),var(--elektrik))!important;color:#fff}.hilfe-karte p,.hilfe-karte h2{color:#fff}.hilfe-karte .btn{background:#fff;color:var(--blau)}
+.anbieter{display:flex;flex-wrap:wrap;gap:6px}.anbieter button{border:1px solid var(--linie,#dfe7e3);background:#fff;border-radius:100px;padding:9px 15px;font:inherit;font-weight:600;font-size:14px;cursor:pointer;color:var(--tinte,#0A1F17)}.anbieter button.an{background:var(--blau);color:#fff;border-color:var(--blau)}
 </style>
 </head>
 <body>
 <header class="kopfzeile"><div class="wrap"><span class="kopf-links" style="display:flex;align-items:center;gap:10px"></span></div></header>
 <main class="wrap">
   <h1>Wechsel zu Ordasio</h1>
-  <p class="unter">Von bexio, Banana, Abacus, Excel oder Papier: in rund 30 Minuten sind Ihre wichtigsten Daten drin. Am einfachsten wechseln Sie auf den 1. Januar oder den Beginn eines Quartals.</p>
-  <div class="raster" style="grid-template-columns:1fr">
-    <section class="karte schritt"><span class="nr">1</span><h2>Kunden übernehmen</h2>
-      <ol><li>Im bisherigen Programm die Kontakte als CSV exportieren (in bexio: Kontakte › Liste › Exportieren).</li><li>Hier auf „Kunden importieren“ tippen und die Datei wählen. Doppelte Kunden überspringt Ordasio.</li></ol>
-      <div class="knoepfe" style="margin-top:8px"><a class="btn haupt" href="../rechnungen/?import=kunden">Kunden importieren</a></div></section>
-    <section class="karte schritt"><span class="nr">2</span><h2>Eröffnungsbilanz per Wechseldatum</h2>
-      <ol><li>Im bisherigen Programm die Bilanz per Stichtag ausdrucken (Kontostände Bank, Kasse, Debitoren, Kreditoren, Eigenkapital).</li><li>In der Buchhaltung unter Konten › Eröffnungsbilanz die Saldi eintragen. Ordasio prüft, ob Aktiven und Passiven aufgehen.</li></ol>
-      <div class="knoepfe" style="margin-top:8px"><a class="btn" href="../?bereich=buchhaltung">Zur Buchhaltung</a></div></section>
-    <section class="karte schritt"><span class="nr">3</span><h2>Bankauszüge laden</h2>
-      <ol><li>Im E-Banking die Bewegungen ab dem Wechseldatum als camt.053, CSV oder PDF herunterladen. Alle Schweizer Banken funktionieren.</li><li>In der Buchhaltung „Bankauszug importieren“: Ordasio prüft Saldo und Vorzeichen und schlägt die Kategorien vor.</li></ol>
-      <div class="knoepfe" style="margin-top:8px"><a class="btn" href="../?bereich=buchhaltung">Bankauszug laden</a></div></section>
-    <section class="karte schritt"><span class="nr">4</span><h2>Offene Rechnungen und Vorlagen</h2>
-      <ol><li>Offene Kundenrechnungen als Liste exportieren und in Ordasio mit gleicher Nummer und gleichem Datum erfassen, damit die Zahlungen zugeordnet werden.</li><li>Logo, Farben und Texte übernehmen Sie in den Rechnungen unter „Firma, Logo und Farben“, oder direkt von Ihrer Website.</li></ol>
-      <div class="knoepfe" style="margin-top:8px"><a class="btn" href="../rechnungen/">Zu den Rechnungen</a></div></section>
-    <section class="karte schritt"><span class="nr">5</span><h2>Treuhänder einladen</h2>
-      <ol><li>Ihr Treuhänder bekommt kostenlos Zugang, sieht alles und kann Rückfragen stellen.</li></ol>
-      <div class="knoepfe" style="margin-top:8px"><a class="btn" href="../lizenz/">Treuhänder freigeben</a></div></section>
-    <section class="karte hilfe-karte"><h2>Lieber machen lassen?</h2><p>Schicken Sie uns die Exporte, wir übernehmen Kunden, Artikel, offene Posten und Eröffnungsbilanz für Sie und zeigen Ihnen in 30 Minuten alles Wichtige. Einmalig CHF 190.</p>
-      <div class="knoepfe"><a class="btn" href="https://wa.me/41798218408?text=Hallo%2C%20ich%20m%C3%B6chte%20zu%20Ordasio%20wechseln%20und%20h%C3%A4tte%20gerne%20Hilfe." target="_blank" rel="noopener">💬 WhatsApp</a><a class="btn" href="tel:+41798218408">📞 079 821 84 08</a><a class="btn" href="mailto:support@ordasio.ch?subject=Wechsel%20zu%20Ordasio">✉ E-Mail</a></div></section>
+  <p class="unter">Von bexio, Banana, Abacus, Run my Accounts, Klara, Sage, Excel oder Papier: In rund 30 Minuten sind Ihre wichtigsten Daten drin. Am einfachsten wechseln Sie auf den 1. Januar oder den Beginn eines Quartals.</p>
+  <div class="karte" style="margin:14px 0">
+    <b>Woher kommen Sie?</b>
+    <div class="anbieter" id="anbieter"></div>
+    <p id="anbieterText" style="margin:0"></p>
   </div>
+  <div class="raster" style="grid-template-columns:1fr" id="schritte"></div>
+  <section class="karte hilfe-karte" style="margin-top:14px"><h2>Lieber machen lassen?</h2><p>Schicken Sie uns die Exporte, wir übernehmen Kunden, Artikel, offene Posten, Kontostände und Buchungen für Sie und zeigen Ihnen in 30 Minuten alles Wichtige. Einmalig CHF 190.</p>
+    <div class="knoepfe"><a class="btn" href="https://wa.me/41798218408?text=Hallo%2C%20ich%20m%C3%B6chte%20zu%20Ordasio%20wechseln%20und%20h%C3%A4tte%20gerne%20Hilfe." target="_blank" rel="noopener">WhatsApp</a><a class="btn" href="tel:+41798218408">079 821 84 08</a><a class="btn" href="mailto:support@ordasio.ch?subject=Wechsel%20zu%20Ordasio">E-Mail</a></div></section>
 </main>
+<script>
+(function () {
+  var A = {
+    bexio: { name: 'bexio', text: 'bexio exportiert Kontakte, Artikel, Bilanz und Journal als Excel oder CSV. Alles davon liest Ordasio direkt ein.',
+      kunden: 'In bexio unter Kontakte die Liste öffnen und exportieren (CSV oder Excel).', artikel: 'Unter Artikel die Liste exportieren (CSV oder Excel).',
+      saldo: 'Unter Buchhaltung die Bilanz bzw. Saldenliste per Stichtag (z. B. 31.12.) als Excel oder CSV herunterladen.', journal: 'Unter Buchhaltung das Journal ab dem 1.1. filtern und als Excel exportieren.',
+      offen: 'Unter Verkauf die offenen Rechnungen als Liste exportieren.' },
+    banana: { name: 'Banana', text: 'Banana sieht aus wie Excel. Sie können jede Tabelle einfach markieren, kopieren und in Ordasio einfügen.',
+      kunden: 'Adressen aus Banana oder Ihrem Adressprogramm als Excel/CSV speichern.', artikel: 'Artikelliste als Excel/CSV speichern.',
+      saldo: 'Tabelle «Konten» öffnen, alles markieren (Ctrl+A), kopieren (Ctrl+C) und in Ordasio einfügen. Oder als Excel exportieren.', journal: 'Tabelle «Buchungen» öffnen, markieren, kopieren und in Ordasio einfügen.',
+      offen: 'Offene Debitoren aus der Tabelle Konten (Kunden) ablesen.' },
+    abacus: { name: 'Abacus / AbaNinja', text: 'Abacus und AbaNinja exportieren Berichte als Excel oder CSV.',
+      kunden: 'Adressen als Excel oder CSV exportieren.', artikel: 'Produkte als Excel oder CSV exportieren.',
+      saldo: 'Unter Berichte die Saldoliste oder Bilanz per Stichtag als Excel/CSV exportieren.', journal: 'Das Journal für den Zeitraum als Excel/CSV exportieren.', offen: 'Offene Posten als Liste exportieren.' },
+    rma: { name: 'Run my Accounts', text: 'Bei Run my Accounts erhalten Sie Saldenliste und Journal als Excel, auch über Ihren Treuhänder.',
+      kunden: 'Kundenliste als Excel exportieren.', artikel: 'Artikel als Excel exportieren.', saldo: 'Saldenliste per Stichtag als Excel exportieren.', journal: 'Journal als Excel exportieren.', offen: 'Offene Posten als Excel exportieren.' },
+    klara: { name: 'Klara', text: 'Klara exportiert Adressen, Bilanz und Journal als Excel.',
+      kunden: 'Adressen als Excel herunterladen.', artikel: 'Artikel als Excel herunterladen.', saldo: 'Bilanz bzw. Saldenliste per Stichtag als Excel herunterladen.', journal: 'Buchungsjournal als Excel herunterladen.', offen: 'Offene Rechnungen als Liste herunterladen.' },
+    sage: { name: 'Sage 50 / Start', text: 'In Sage finden Sie alles unter Auswertungen und können es als Excel oder CSV speichern.',
+      kunden: 'Adressen als Excel/CSV speichern.', artikel: 'Artikelstamm als Excel/CSV speichern.', saldo: 'Saldoliste per Stichtag als Excel/CSV speichern.', journal: 'Journal als Excel/CSV speichern.', offen: 'OP-Liste Debitoren als Excel speichern.' },
+    excel: { name: 'Excel oder Papier', text: 'Kein Programm? Dann tragen Sie die Kontostände per Wechseldatum direkt in die Eröffnungsbilanz ein. Mehr braucht es nicht.',
+      kunden: 'Kundenliste in Excel (Name, Adresse, PLZ, Ort, E-Mail) als CSV speichern.', artikel: 'Artikel in Excel (Name, Preis, Einheit) als CSV speichern.',
+      saldo: 'Tabelle mit Konto, Bezeichnung, Saldo, oder die Saldi von Hand eintragen.', journal: 'Nur nötig, wenn Sie mitten im Jahr wechseln: Tabelle mit Datum, Beleg, Text, Soll, Haben, Betrag.', offen: 'Offene Rechnungen mit gleicher Nummer neu erfassen.' }
+  };
+  var wahl = 'bexio';
+  try { var q = new URLSearchParams(location.search).get('von'); if (A[q]) wahl = q; } catch (e) {}
+  var esc = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  function zeichnen() {
+    var a = A[wahl];
+    document.getElementById('anbieter').innerHTML = Object.keys(A).map(function (k) { return '<button type="button" class="' + (k === wahl ? 'an' : '') + '" data-von="' + k + '">' + esc(A[k].name) + '</button>'; }).join('');
+    document.getElementById('anbieterText').textContent = a.text;
+    var s = [
+      ['Kunden übernehmen', [a.kunden, 'In Ordasio auf «Kunden importieren» tippen und die Datei wählen. Doppelte Kunden überspringt Ordasio.'], '<a class="btn haupt" href="../rechnungen/?import=kunden">Kunden importieren</a>'],
+      ['Kontostände per Wechseldatum', [a.saldo, 'In Ordasio «Kontostände übernehmen» tippen und die Datei wählen oder die Tabelle einfügen. Ordasio zeigt alles an, prüft Aktiven gegen Passiven und legt fehlende Konten an.'], '<button class="btn haupt" data-import="saldo">Kontostände übernehmen</button>'],
+      ['Buchungen seit Jahresbeginn (falls Sie mitten im Jahr wechseln)', [a.journal, 'In Ordasio «Buchungen übernehmen». Sammelbuchungen werden richtig aufgeteilt, doppelte übersprungen.'], '<button class="btn" data-import="journal">Buchungen übernehmen</button>'],
+      ['Artikel und Preise', [a.artikel, 'In den Rechnungen unter «Artikel» die CSV-Datei importieren.'], '<a class="btn" href="../rechnungen/?aktion=artikel">Artikel importieren</a>'],
+      ['Bankauszüge ab Wechseldatum', ['Im E-Banking die Bewegungen ab dem Wechseldatum als camt.053, CSV, Excel oder PDF herunterladen. Alle Schweizer Banken funktionieren.', 'In der Buchhaltung «Bankauszug importieren»: Ordasio prüft den Saldo und schlägt die Kategorien vor.'], '<a class="btn" href="../?aktion=bankImport">Bankauszug laden</a>'],
+      ['Offene Rechnungen, Logo und Vorlagen', [a.offen, 'Offene Kundenrechnungen mit gleicher Nummer und gleichem Datum erfassen, damit Zahlungen automatisch zugeordnet werden. Logo und Farben übernehmen Sie unter «Firma, Logo und Farben», auch direkt von Ihrer Website.'], '<a class="btn" href="../rechnungen/">Zu den Rechnungen</a>'],
+      ['Treuhänder einladen', ['Ihr Treuhänder bekommt kostenlos Zugang, sieht alles und kann Rückfragen stellen. Oder geben Sie ihm unter Mein Konto › Firmen vollen Zugang.'], '<a class="btn" href="../konto/#firmenKarte">Zugang geben</a>']
+    ];
+    document.getElementById('schritte').innerHTML = s.map(function (x, i) {
+      return '<section class="karte schritt"><span class="nr">' + (i + 1) + '</span><h2>' + esc(x[0]) + '</h2><ol>' + x[1].map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('') + '</ol><div class="knoepfe" style="margin-top:8px">' + x[2] + '</div></section>';
+    }).join('');
+  }
+  document.addEventListener('click', function (e) {
+    var v = e.target.closest('[data-von]'); if (v) { wahl = v.dataset.von; zeichnen(); return; }
+    var im = e.target.closest('[data-import]');
+    if (im) { try { sessionStorage.setItem('ordasio.fi', JSON.stringify({ anbieter: wahl, art: im.dataset.import })); } catch (x) {} location.href = '../?aktion=fremdImport'; }
+  });
+  zeichnen();
+})();
+</script>
 <script src="../konten.js"></script>
 <script src="../lizenz.js" data-produkt="konto"></script>
 <script src="../ui.js"></script>

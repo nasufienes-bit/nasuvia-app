@@ -3076,6 +3076,7 @@ ${[[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' — '), [FIRMA.strasse, FIR
     const dok = q.get('dok');
     if (dok && DOK[dok] && dok !== 'mahnung') setTimeout(() => dokWechseln(dok), 600);
     if (q.get('aktion') === 'firma' && window.Marke) setTimeout(() => $('btnFirma').click(), 500);
+    if (q.get('aktion') === 'artikel') setTimeout(() => { const b = $('btnArtikel'); if (b) b.click(); }, 600);
     if (location.hash === '#archiv') setTimeout(() => $('archivListe').scrollIntoView({ behavior: 'smooth', block: 'start' }), 900);
   }
   aktualisiere({ sofort: true });
