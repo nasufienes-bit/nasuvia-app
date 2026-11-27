@@ -19,4 +19,37 @@
   document.addEventListener('gesturechange', stopp, { passive: false });
   document.addEventListener('touchmove', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
   // Doppeltipp-Zoom ist über touch-action:manipulation aus, ohne schnelle Doppelklicks auf Knöpfe zu schlucken
+
+  // Seitliches Verschieben verhindern: Bereiche, die nach unten scrollen (Seitenleisten, Fenster, Listen), dürfen sich
+  // nicht auch zur Seite schieben lassen, nur weil etwas darin ein paar Pixel zu breit ist. Absichtlich seitlich
+  // scrollende Teile (Tabellen, Reiter, Karussells) haben eigene Hüllen und bleiben unberührt.
+  var s2 = document.createElement('style');
+  s2.textContent = 'dialog[open]{overflow-x:hidden}' +
+    '@media (max-width:820px){:where(main,aside,section,article,form,.panel,.karte,.box){min-width:0}}';
+  (document.head || document.documentElement).appendChild(s2);
+  var ABSICHT = /(^|[\s_-])(band|tabs?|reiter|karussell|chips|tabelle|scroll|leiste|filter|tp-|zp-|nv-unten|unten)/i;
+  function pruefen() {
+    if (window.innerWidth > 820) return;
+    var alle = document.querySelectorAll('body *');
+    for (var i = 0; i < alle.length; i++) {
+      var el = alle[i];
+      if (el.__stabilOk || el.scrollWidth <= el.clientWidth + 1) continue;
+      var cs = getComputedStyle(el);
+      if (cs.overflowX !== 'auto' && cs.overflowX !== 'scroll') continue;
+      if (cs.overflowY !== 'auto' && cs.overflowY !== 'scroll') continue; // nur Bereiche, die eigentlich nach unten scrollen
+      if (ABSICHT.test(String(el.className)) || el.getAttribute('role') === 'tablist' || el.tagName === 'TABLE') { el.__stabilOk = true; continue; }
+      var tab = el.querySelector(':scope > table, :scope > div > table');
+      if (tab && tab.scrollWidth > el.clientWidth) { el.__stabilOk = true; continue; }
+      el.style.overflowX = 'hidden';
+      el.scrollLeft = 0;
+    }
+  }
+  var warten = 0;
+  function bald() { clearTimeout(warten); warten = setTimeout(pruefen, 250); }
+  if (window.MutationObserver) {
+    var start = function () { new MutationObserver(bald).observe(document.body, { childList: true, subtree: true }); bald(); };
+    if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+  }
+  window.addEventListener('resize', bald);
+  window.addEventListener('orientationchange', bald);
 })();
