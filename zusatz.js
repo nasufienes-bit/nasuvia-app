@@ -16,31 +16,42 @@
 
   const stil = document.createElement('style');
   stil.textContent = `
-  .zp-karte{position:relative;display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:start;padding:16px 18px;border-radius:18px;margin:0 0 16px;
-    background:linear-gradient(135deg,color-mix(in srgb,var(--elektrik,#1F9D6B) 12%,#fff),#fff 70%);border:1px solid color-mix(in srgb,var(--elektrik,#1F9D6B) 30%,transparent);box-shadow:0 6px 22px -14px rgba(0,0,0,.35)}
-  .zp-ic{grid-row:span 3;display:grid;place-items:center;width:48px;height:48px;border-radius:15px;background:#fff;font-size:26px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-  .zp-karte small{font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--elektrik,#1F9D6B);padding-right:28px}
-  .zp-karte b{font-size:16.5px;line-height:1.3;color:var(--blau,#0B3B2E)}
-  .zp-karte p{margin:2px 0 8px;font-size:14px;line-height:1.5;color:#3d4a44}
-  .zp-knoepfe{grid-column:2;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-  .zp-knoepfe button{border:0;border-radius:100px;padding:9px 16px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;background:var(--blau,#0B3B2E);color:#fff}
-  .zp-knoepfe button.zweit{background:#fff;color:var(--blau,#0B3B2E);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--blau,#0B3B2E) 30%,transparent)}
-  .zp-knoepfe span{font-size:13px;color:#5b6862}
-  .zp-zu{position:absolute;top:10px;right:10px;width:30px;height:30px;border:0;border-radius:50%;background:transparent;font-size:18px;line-height:30px;cursor:pointer;color:#6b7771}
-  .zp-zu:hover{background:rgba(0,0,0,.06)}
+  .zp-karte{position:relative;display:flex;flex-direction:column;gap:6px;padding:20px 22px 18px;border-radius:20px;margin:0 0 16px;min-width:0;
+    background:var(--karte,#fff);border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 10%,transparent);box-shadow:0 1px 2px rgba(12,18,38,.04),0 14px 30px -22px rgba(12,18,38,.35)}
+  .zp-kopf{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+  .zp-ic{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:14px;font-size:22px;color:var(--elektrik,#0E7A55);background:color-mix(in srgb,var(--elektrik,#0E7A55) 11%,transparent)}
+  .zp-ic svg{width:22px;height:22px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.zp-ic .oi{width:22px;height:22px;vertical-align:0}
+  .zp-marke{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;letter-spacing:.04em;color:var(--elektrik,#0E7A55);background:color-mix(in srgb,var(--elektrik,#0E7A55) 9%,transparent);padding:5px 10px;border-radius:100px}
+  .zp-marke::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+  .zp-titel{display:block;font-size:17px;line-height:1.3;font-weight:700;color:var(--tinte,#0A1F17);letter-spacing:-.005em}
+  .zp-unter{display:block;font-size:14px;line-height:1.45;color:var(--elektrik,#0E7A55);font-weight:600}
+  .zp-karte p{margin:2px 0 6px;font-size:14px;line-height:1.55;color:var(--text,#3F5A4F)}
+  .zp-knoepfe{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:auto;padding-top:6px}
+  .zp-knoepfe button{display:inline-flex;align-items:center;justify-content:center;gap:6px;line-height:1.2;border:0;border-radius:100px;padding:10px 18px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;background:var(--blau,#0B3B2E);color:#fff}
+  .zp-knoepfe button.zweit{background:transparent;color:var(--blau,#0B3B2E);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--blau,#0B3B2E) 22%,transparent)}
+  .zp-knoepfe button:hover{filter:brightness(1.08)}
+  .zp-preis{margin-left:auto;font-size:13px;font-weight:600;color:var(--leise,#7C8499);white-space:nowrap}
+  .zp-zu{margin-left:auto;flex:none;width:32px;height:32px;border:0;border-radius:50%;background:transparent;cursor:pointer;color:var(--leise,#7C8499);display:grid;place-items:center;padding:0}
+  .zp-zu:hover{background:color-mix(in srgb,var(--blau,#0B3B2E) 7%,transparent);color:var(--tinte,#0A1F17)}
   .zp-dlg h3{margin:0 0 4px}.zp-dlg .zp-gross{font-size:38px;line-height:1}.zp-dlg ul{margin:10px 0;padding-left:20px;line-height:1.6;font-size:14.5px}
   .zp-dlg .zp-wie{background:var(--flaeche,#E8F4EE);border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.55;margin:10px 0}
-  .zp-dlg .zp-preis{font-size:15px;margin:8px 0 0}
-  @media (max-width:560px){.zp-karte{grid-template-columns:1fr;padding:14px}.zp-ic{grid-row:auto;width:42px;height:42px;font-size:22px}.zp-knoepfe{grid-column:1}}`;
+  .zp-dlg .zp-preis{font-size:15px;margin:8px 0 0;display:block;color:inherit;font-weight:400}
+  @media (max-width:560px){
+    .zp-karte{align-items:center;text-align:center;padding:22px 20px 20px}
+    .zp-kopf{flex-direction:column;gap:10px;margin-bottom:2px}
+    .zp-zu{position:absolute;top:10px;right:10px}
+    .zp-knoepfe{flex-direction:column;align-items:stretch;width:100%}
+    .zp-knoepfe button{width:100%;padding:12px 18px}
+    .zp-preis{margin:2px auto 0}}`;
   document.head.appendChild(stil);
 
   function karte(id, { grund = '' } = {}) {
     const m = O() && O().modul(id); if (!m) return '';
-    return `<div class="zp-karte" data-zp-karte="${m.id}"><span class="zp-ic">${m.icon}</span>
-      <small>Könnte interessant für Sie sein</small><button class="zp-zu" data-zusatz-weg="${m.id}" aria-label="Ausblenden"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-      <b>${esc(m.name)}: ${esc(m.kurz)}</b>
+    return `<div class="zp-karte" data-zp-karte="${m.id}">
+      <div class="zp-kopf"><span class="zp-ic">${m.icon}</span><span class="zp-marke">Könnte interessant für Sie sein</span><button class="zp-zu" data-zusatz-weg="${m.id}" aria-label="Ausblenden"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+      <b class="zp-titel">${esc(m.name)}</b><span class="zp-unter">${esc(m.kurz)}</span>
       <p>${esc(grund || m.erklaerung.split('. ')[0] + '.')}</p>
-      <div class="zp-knoepfe"><button data-zusatz-info="${m.id}">So funktioniert es</button><button class="zweit" data-zusatz-buchen="${m.id}">Dazubuchen</button><span>CHF ${m.monat} / Monat</span></div></div>`;
+      <div class="zp-knoepfe"><button data-zusatz-info="${m.id}">So funktioniert es</button><button class="zweit" data-zusatz-buchen="${m.id}">Dazubuchen</button><span class="zp-preis">CHF ${m.monat} / Monat</span></div></div>`;
   }
 
   // Eine passende Empfehlung zeigen. Weggeklickte Pakete erscheinen 14 Tage nicht mehr.
@@ -76,28 +87,24 @@
   const IC_ORDI = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9 11h.01M15 11h.01M9.5 14.5c1.4 1 3.6 1 5 0"/></svg>';
   const PFEIL = (r) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${r ? 'M9 6l6 6-6 6' : 'M15 6l-6 6 6 6'}"/></svg>`;
   stil.textContent += `
-  .zp-band-wrap{margin:0 0 18px}
-  .zp-band{display:grid;grid-auto-flow:column;grid-auto-columns:100%;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;padding:2px 0 4px}
+  .zp-band-wrap{margin:28px auto 22px;max-width:980px}
+  .zp-band{display:grid;grid-auto-flow:column;grid-auto-columns:100%;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;padding:4px 2px 8px}
   .zp-band::-webkit-scrollbar{display:none}
-  @media (min-width:760px){.zp-band{grid-auto-columns:calc((100% - 12px) / 2)}}
-  .zp-band > .zp-karte{margin:0;scroll-snap-align:start;min-width:0;align-content:start}
-  .zp-karte.zp-idee{background:linear-gradient(135deg,color-mix(in srgb,#4F46E5 9%,#fff),#fff 70%);border-color:color-mix(in srgb,#4F46E5 24%,transparent)}
-  .zp-karte.zp-idee small{color:#4F46E5}
-  .zp-ic svg{width:24px;height:24px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-  .zp-ic .oi{width:24px;height:24px;vertical-align:0}
-  .zp-idee .zp-ic{color:#4F46E5}
-  .zp-zitat{display:block;margin:2px 0 10px;padding:8px 12px;border-radius:12px;background:#fff;box-shadow:inset 0 0 0 1px color-mix(in srgb,#4F46E5 18%,transparent);font-size:14px;color:#2b2f4a}
-  .zp-knoepfe button{display:inline-flex;align-items:center;justify-content:center;gap:6px;line-height:1.2}
-  .zp-zu{display:grid;place-items:center;padding:0;line-height:1}
+  @media (min-width:760px){.zp-band{grid-auto-columns:calc((100% - 14px) / 2)}}
+  .zp-band > .zp-karte{margin:0;scroll-snap-align:start}
+  .zp-idee .zp-ic{color:#4F46E5;background:color-mix(in srgb,#4F46E5 10%,transparent)}
+  .zp-idee .zp-marke{color:#4F46E5;background:color-mix(in srgb,#4F46E5 8%,transparent)}
+  .zp-zitat{display:block;margin:10px 0 2px;padding:10px 14px;border-radius:14px 14px 14px 4px;background:color-mix(in srgb,#4F46E5 7%,transparent);font-size:14px;font-style:italic;color:#2b2f4a;text-align:left}
   .zp-zu svg,.zp-nav svg{width:16px;height:16px;display:block;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-  .zp-fuss{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:8px}
-  .zp-nav{width:30px;height:30px;border:0;border-radius:50%;padding:0;display:grid;place-items:center;background:var(--flaeche,#E8F4EE);color:var(--blau,#0B3B2E);cursor:pointer}
+  .zp-fuss{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px}
+  .zp-nav{width:34px;height:34px;border:0;border-radius:50%;padding:0;display:grid;place-items:center;background:var(--karte,#fff);color:var(--blau,#0B3B2E);cursor:pointer;box-shadow:0 0 0 1px color-mix(in srgb,var(--blau,#0B3B2E) 12%,transparent)}
   .zp-nav:disabled{opacity:.35;cursor:default}
-  .zp-punkte{display:flex;gap:6px;align-items:center}.zp-punkte i{width:6px;height:6px;border-radius:50%;background:color-mix(in srgb,var(--blau,#0B3B2E) 22%,transparent);transition:width .2s}.zp-punkte i.an{width:18px;border-radius:4px;background:var(--blau,#0B3B2E)}`;
+  .zp-punkte{display:flex;gap:6px;align-items:center}.zp-punkte i{width:7px;height:7px;border-radius:50%;background:color-mix(in srgb,var(--blau,#0B3B2E) 20%,transparent);transition:width .2s}.zp-punkte i.an{width:20px;border-radius:4px;background:var(--blau,#0B3B2E)}
+  @media (max-width:560px){.zp-band-wrap{margin:24px 0 18px}.zp-zitat{text-align:center;border-radius:14px}}`;
   function ideeKarte(i) {
-    return `<div class="zp-karte zp-idee" data-zp-idee="${i.f.replace(/"/g, '')}"><span class="zp-ic">${IC_ORDI}</span>
-      <small>Mit Ordi ganz einfach</small><button class="zp-zu" data-zp-idee-weg aria-label="Ausblenden"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-      <b>${esc(i.t)}</b><p>${esc(i.x)}<span class="zp-zitat">«${esc(i.f)}»</span></p>
+    return `<div class="zp-karte zp-idee" data-zp-idee="${i.f.replace(/"/g, '')}">
+      <div class="zp-kopf"><span class="zp-ic">${IC_ORDI}</span><span class="zp-marke">Mit Ordi ganz einfach</span><button class="zp-zu" data-zp-idee-weg aria-label="Ausblenden"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+      <b class="zp-titel">${esc(i.t)}</b><p>${esc(i.x)}<span class="zp-zitat">«${esc(i.f)}»</span></p>
       <div class="zp-knoepfe"><button data-zp-ordi="${esc(i.f)}">Ausprobieren</button></div></div>`;
   }
   // Band mit mehreren Vorschlägen: passende Zusatzpakete und Ideen mit Ordi (nur für eigene Bereiche)
@@ -112,8 +119,8 @@
     if (!karten.length) { ziel.innerHTML = ''; return; }
     ziel.innerHTML = `<div class="zp-band-wrap"><div class="zp-band">${karten.join('')}</div><div class="zp-fuss"><button class="zp-nav" data-zp-nav="-1" aria-label="Zurück">${PFEIL(0)}</button><span class="zp-punkte"></span><button class="zp-nav" data-zp-nav="1" aria-label="Weiter">${PFEIL(1)}</button></div></div>`;
     const b = ziel.querySelector('.zp-band'), pk = ziel.querySelector('.zp-punkte');
-    const breite = () => { const k = b.firstElementChild; return k ? k.offsetWidth + 12 : 1; };
-    const pro = () => Math.max(1, Math.round((b.clientWidth + 12) / breite()));
+    const breite = () => { const k = b.firstElementChild; return k ? k.offsetWidth + 14 : 1; };
+    const pro = () => Math.max(1, Math.round((b.clientWidth + 14) / breite()));
     const seiten = () => Math.max(1, Math.ceil(b.children.length / pro()));
     const jetzt = () => Math.round(b.scrollLeft / (breite() * pro()));
     const malen = () => { const n = seiten(), i = Math.min(jetzt(), n - 1);
