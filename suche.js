@@ -308,6 +308,10 @@
       'Mitarbeitende tippen auf ihrem Handy-Link unter „Anfragen ans Büro“ auf das Passende und senden es ab.',
       'Im Büro erscheint es in der Firmenablage unter „Anträge und Anfragen“. Mit „Dokument senden“ legen Sie z. B. die Lohnabrechnung direkt aufs Handy der Person.',
       '„Erledigt“ oder „Ablehnen“ tippen, eine kurze Nachricht schreiben. Der Mitarbeiter sieht die Antwort sofort.'], WURZEL + 'ablage/?tab=antraege'],
+    ['hb-jahr', 'Home-Büro', 'Mein Jahr: verdient, ausgegeben, Monate, Zahlungen suchen', 'jahr verdient ausgegeben monate monat übersicht private buchhaltung zahlung suchen coop migros kontoauszug sparquote', [
+      'Home-Büro, Geld, „Mein Jahr“: Verdient, Ausgegeben, Übrig und jeder Monat einzeln.',
+      'Oben im Suchfeld z. B. „coop“ eingeben: alle Coop-Zahlungen mit Total, Durchschnitt und pro Monat. Auch als Excel.',
+      'Einen Monat antippen zeigt alle Bewegungen dieses Monats.'], WURZEL + 'privat/?tab=jahr'],
     ['gav', 'Löhne', 'GAV: Mindestlöhne und Beiträge pro Branche', 'gav gesamtarbeitsvertrag mindestlohn l-gav lmv elektro gebäudetechnik maler gipser schreiner reinigung coiffeur gastro vollzugskosten far parifonds', [
       'Buchhaltung, Löhne, Karte „Gesamtarbeitsvertrag“: GAV wählen (passend zur Branche vorgeschlagen).',
       'Beim Mitarbeiter die GAV-Kategorie wählen: Ordasio warnt, wenn der Lohn unter dem Minimum liegt.',

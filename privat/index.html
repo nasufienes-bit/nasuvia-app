@@ -119,6 +119,18 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 .st-werte{display:grid;gap:4px;margin:6px 0}.st-werte div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed var(--linie);padding:4px 0}
 .st-wert{background:var(--flaeche);border-radius:10px;padding:8px 10px}
 .st-tipps{margin:8px 0 0 18px;display:grid;gap:4px}
+.js-such{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--linie);border-radius:14px;padding:4px 6px 4px 14px;box-shadow:var(--schatten);margin-bottom:14px}
+.js-such:focus-within{border-color:var(--elektrik)}.js-such svg{width:20px;height:20px;flex:none;fill:none;stroke:var(--leise);stroke-width:2;stroke-linecap:round}
+.js-such input{flex:1;min-width:0;border:0;outline:0;background:none;font:inherit;font-size:17px;padding:10px 0;color:var(--tinte)}
+.js-such input::-webkit-search-cancel-button{display:none}.js-such button{border:0;background:var(--flaeche);border-radius:10px;padding:8px 12px;font:inherit;cursor:pointer;color:var(--text)}
+.j-balken{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;align-items:end;height:190px;padding-top:8px}
+.j-balken .m{display:grid;grid-template-rows:1fr auto;height:100%;cursor:pointer;border-radius:8px;padding:0 2px}.j-balken .m:hover,.j-balken .m.an{background:var(--flaeche)}
+.j-balken .s{display:flex;gap:2px;align-items:end;justify-content:center;height:100%}.j-balken .s i{display:block;width:42%;max-width:16px;border-radius:4px 4px 0 0;min-height:1px}
+.j-balken .ein{background:var(--gruen)}.j-balken .aus{background:var(--blau)}.j-balken small{display:block;text-align:center;font-size:11px;color:var(--leise);padding:4px 0;font-family:var(--mono)}
+.j-leg{display:flex;gap:14px;font-size:12.5px;color:var(--leise);margin-top:6px}.j-leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.j-tab{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}.j-tab td,.j-tab th{padding:9px 6px;border-bottom:1px solid var(--linie);text-align:right}.j-tab td:first-child,.j-tab th:first-child{text-align:left}
+.j-tab th{font:500 10px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--leise)}.j-tab tr.k{cursor:pointer}.j-tab tr.k:hover td{background:var(--flaeche)}.j-tab tr.an td{background:var(--flaeche);font-weight:600}.j-tab tr.t td{font-weight:700;border-top:2px solid var(--tinte)}
+.j-spur{height:6px;border-radius:4px;background:var(--flaeche);overflow:hidden;margin-top:5px}.j-spur i{display:block;height:100%;border-radius:4px}
 .er-chips{display:flex;flex-wrap:wrap;gap:6px}.er-chips button{border:1px solid var(--linie);background:#fff;border-radius:100px;padding:8px 13px;font:inherit;font-size:14px;cursor:pointer;color:var(--tinte)}.er-chips button.an{background:var(--blau);color:#fff;border-color:var(--blau)}
 .er-block{background:var(--flaeche,#EEF5F1);border-radius:14px;padding:10px 12px}.er-marke{display:inline-block;background:#FFF4D6;color:#8A5A00;border-radius:100px;padding:1px 8px;font-size:12px;font-weight:600;margin-right:4px}
 </style>
@@ -407,7 +419,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   };
   const GRUPPEN = [
     ['start', 'Übersicht', [['start', 'Übersicht']]],
-    ['geld', 'Geld', [['konto', 'Konto'], ['bargeld', 'Bargeld'], ['budget', 'Budget'], ['abos', 'Abos'], ['fix', 'Fixe Zahlungen']]],
+    ['geld', 'Geld', [['jahr', 'Mein Jahr'], ['konto', 'Konto'], ['bargeld', 'Bargeld'], ['budget', 'Budget'], ['abos', 'Abos'], ['fix', 'Fixe Zahlungen']]],
     ['schulden', 'Rechnungen', [['rechnungen', 'Rechnungen'], ['betreibung', 'Betreibungen'], ['guthaben', 'Mir geschuldet'], ['teilen', 'Teilen']]],
     ['planen', 'Planen', [['kalender', 'Kalender'], ['sparen', 'Sparziele'], ['steuern', 'Steuern'], ['kk', 'Krankenkasse']]],
     ['dokumente', 'Dokumente', [['dokumente', 'Ordner'], ['papierkorb', 'Zuletzt gelöscht']]],
@@ -423,7 +435,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     $('tabs').innerHTML = GRUPPEN.map(([g, n, l]) => `<button class="${gr[0] === g ? 'an' : ''}" data-tab="${g === gr[0] ? ansicht : l[0][0]}">${n}</button>`).join('');
     $('untenNav').innerHTML = GRUPPEN.map(([g, n, l]) => `<button class="${gr[0] === g ? 'an' : ''}" data-tab="${g === gr[0] ? ansicht : l[0][0]}">${ICON[g] || ICON.start}${n}</button>`).join('');
     if (!TABS.some(([id]) => id === ansicht)) ansicht = 'start';
-    const ANS = { start, konto, abos: abosAnsicht, rechnungen: rechnungenAnsicht, betreibung: betreibungenAnsicht, budget: budgetAnsicht, teilen: teilenAnsicht, steuern: steuernAnsicht, kk: kkAnsicht, ...(window.HomeBuero && window.HomeBuero.ansichten || {}) };
+    const ANS = { start, konto, jahr: jahrAnsicht, abos: abosAnsicht, rechnungen: rechnungenAnsicht, betreibung: betreibungenAnsicht, budget: budgetAnsicht, teilen: teilenAnsicht, steuern: steuernAnsicht, kk: kkAnsicht, ...(window.HomeBuero && window.HomeBuero.ansichten || {}) };
     const unter = gr[2].length > 1 ? `<div class="segment unterwahl" style="margin-bottom:16px">${gr[2].map(([id, n]) => `<button class="${ansicht === id ? 'an' : ''}" data-tab="${id}">${n}</button>`).join('')}</div>` : '';
     $('inhalt').innerHTML = unter + (ANS[ansicht] ? ANS[ansicht]() : '<p class="leer">Wird geladen …</p>');
   }
@@ -495,6 +507,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     return `
     <div class="kopf"><div><h1>Übersicht</h1><p class="unter">Ihr Geld, Ihre Abos und was noch zu tun ist</p></div>
       <div class="aktionen">${zeitWahl()}<button class="btn" data-hbm="startAnpassen">Übersicht anpassen</button><button class="btn haupt" data-aktion="auszug">Kontoauszug hochladen</button></div></div>
+    ${D.bewegungen.length ? `<label class="js-such">${LUPE}<input type="search" data-jsuche-start placeholder="Zahlung suchen, z. B. Coop, Miete, Lohn" autocomplete="off" /></label>` : ''}
     ${S.dringend && dringend.length ? `<div class="card" style="border-left:4px solid var(--rot);margin-bottom:14px"><h2>Jetzt wichtig</h2>${dringend.map((x) => `<div class="zeile zwei klick" data-tab="${x.k === 'rechnung' ? 'rechnungen' : x.k === 'betreibung' ? 'betreibung' : x.k}"><b>${esc(x.t)}</b><span class="frist ${tageBis(x.d) < 0 ? 'minus' : ''}">${tageBis(x.d) < 0 ? `seit ${-tageBis(x.d)} Tagen fällig` : tageBis(x.d) === 0 ? 'heute' : `in ${tageBis(x.d)} Tagen`} · ${dk(x.d)}</span></div>`).join('')}</div>` : ''}
     ${zeig('zahlen', `<div class="raster r4">
       <div class="card zahl"><div class="l">Eingang</div><div class="w plus">${chf(ein)}</div><div class="k">Lohn und andere Einnahmen</div></div>
@@ -514,6 +527,101 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     </div>`)}
     ${S.betreibungen && betr.length ? `<div class="card abstand"><h2>Betreibungen <span class="marke-s m-rot">${betr.length} offen</span></h2><p class="hinweis">Total CHF ${chf(betr.reduce((a, b) => a + restBetrag(b), 0))} noch offen. <button class="btn klein" data-tab="betreibung">Ansehen</button></p></div>` : ''}`;
   }
+
+  /* ---------- Mein Jahr: private Buchhaltung mit Monaten und Suche ---------- */
+  const LUPE = '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
+  const MON = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+  const MON_L = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+  const monatText = (ym) => MON_L[Number(ym.slice(5, 7)) - 1] + ' ' + ym.slice(0, 4);
+  let jJahr = '', jSuche = '', jMonat = '', jAlle = false;
+  const jPasst = (q) => (b) => !q || `${b.partner || ''} ${b.text || ''} ${b.notiz || ''} ${katName(b.kategorie)} ${chf(Math.abs(b.betragRappen))}`.toLowerCase().includes(q);
+  function jahrDaten() {
+    const jahre = [...new Set(D.bewegungen.map((b) => (b.datum || '').slice(0, 4)).filter(Boolean))].sort().reverse();
+    const J = jJahr && jahre.includes(jJahr) ? jJahr : (jahre.includes(heute().slice(0, 4)) ? heute().slice(0, 4) : jahre[0]);
+    const q = jSuche.trim().toLowerCase();
+    const alle = jAlle && !!q;
+    const liste = D.bewegungen.filter((b) => b.datum && (alle || b.datum.startsWith(J)) && jPasst(q)(b)).sort((a, b) => b.datum.localeCompare(a.datum));
+    return { jahre, J, q, alle, liste };
+  }
+  function jahrAnsicht() {
+    if (!D.bewegungen.length) return `<div class="kopf"><div><h1>Mein Jahr</h1><p class="unter">Verdient, ausgegeben und gespart, Monat für Monat</p></div></div>
+      <div class="card start"><h2>Noch kein Kontoauszug</h2><p>Laden Sie den Auszug Ihrer Bank hoch (CSV, camt.053 oder PDF). Danach sehen Sie hier, was Sie dieses Jahr verdient und ausgegeben haben, jeden Monat einzeln, und können jede Zahlung suchen.</p>
+      <div class="aktionen" style="justify-content:center"><button class="btn haupt" data-aktion="auszug">Kontoauszug hochladen</button><button class="btn" data-hbm="bankHilfe">So holen Sie den Auszug</button></div></div>`;
+    const { jahre, J, q, alle, liste } = jahrDaten();
+    const sum = (l, f) => l.filter(f).reduce((a, b) => a + b.betragRappen, 0);
+    const ein = sum(liste, (b) => b.betragRappen > 0), aus = -sum(liste, (b) => b.betragRappen < 0);
+    const lohn = sum(liste, (b) => b.betragRappen > 0 && b.kategorie === 'lohn');
+    // Monate
+    let monate;
+    if (alle) monate = [...new Set(liste.map((b) => b.datum.slice(0, 7)))].sort();
+    else { const bis = J === heute().slice(0, 4) ? Number(heute().slice(5, 7)) : 12; monate = Array.from({ length: bis }, (_, i) => `${J}-${String(i + 1).padStart(2, '0')}`); }
+    const proMonat = monate.map((ym) => { const l = liste.filter((b) => b.datum.startsWith(ym)); return { ym, l, ein: sum(l, (b) => b.betragRappen > 0), aus: -sum(l, (b) => b.betragRappen < 0) }; });
+    const mitDaten = proMonat.filter((m) => m.l.length).length || 1;
+    const max = Math.max(1, ...proMonat.map((m) => Math.max(m.ein, m.aus)));
+    const vjBis = J === heute().slice(0, 4) ? String(Number(J) - 1) + heute().slice(4) : String(Number(J) - 1) + '-12-31';
+    const vj = !q ? D.bewegungen.filter((b) => b.datum && b.datum.startsWith(String(Number(J) - 1)) && b.datum <= vjBis) : [];
+    const vjAus = -sum(vj, (b) => b.betragRappen < 0), vjEin = sum(vj, (b) => b.betragRappen > 0);
+    const vergleich = (jetzt, vor) => (vor ? ` · Vorjahr${J === heute().slice(0, 4) ? ' bis ' + dk(vjBis).slice(0, 6) : ''} ${chf(vor)}` : '');
+    const ausZ = liste.filter((b) => b.betragRappen < 0);
+    // Kategorien und Händler
+    const kat = {}; for (const b of ausZ) kat[b.kategorie] = (kat[b.kategorie] || 0) - b.betragRappen;
+    const ks = Object.entries(kat).sort((a, b) => b[1] - a[1]);
+    const haendler = {}; for (const b of ausZ) { const k = normPartner(b.partner || b.text) || '?'; const h = haendler[k] || (haendler[k] = { n: b.partner || b.text || 'Unbekannt', w: 0, z: 0 }); h.w -= b.betragRappen; h.z++; }
+    const hs = Object.values(haendler).sort((a, b) => b.w - a.w).slice(0, 10);
+    const mSel = jMonat && proMonat.find((m) => m.ym === jMonat);
+    const zeile = (b) => `<div class="zeile klick" data-bewegung="${b.id}"><span style="min-width:0"><b>${esc(b.partner || b.text)}</b><small>${dk(b.datum)} · <span style="color:${katFarbe(b.kategorie)}">●</span> ${esc(katName(b.kategorie))}${b.text && b.partner ? ' · ' + esc(b.text) : ''}${b.notiz ? ' · ' + esc(b.notiz) : ''}</small></span><span class="betrag ${b.betragRappen > 0 ? 'plus' : ''}">${b.betragRappen > 0 ? '+' : '−'} ${chf(Math.abs(b.betragRappen))}</span></div>`;
+    const titel = q ? `„${esc(jSuche.trim())}“ ${alle ? 'in allen Jahren' : 'im Jahr ' + J}` : '';
+    return `<div class="kopf"><div><h1>Mein Jahr ${alle ? '' : J}</h1><p class="unter">Verdient, ausgegeben und gespart, Monat für Monat</p></div>
+      <div class="aktionen">${jahre.length > 1 ? `<div class="segment">${jahre.slice(0, 6).map((y) => `<button class="${y === J ? 'an' : ''}" data-jjahr="${y}">${y}</button>`).join('')}</div>` : ''}<button class="btn haupt" data-aktion="auszug">Kontoauszug hochladen</button></div></div>
+    <label class="js-such">${LUPE}<input type="search" data-jsuche value="${esc(jSuche)}" placeholder="Zahlungen suchen, z. B. Coop, Migros, Miete, Lohn" autocomplete="off" />${q ? '<button type="button" data-jsuche-weg>Löschen</button>' : ''}</label>
+    ${q ? `<div class="filter" style="margin:-4px 0 14px"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-jalle ${jAlle ? 'checked' : ''} /> In allen Jahren suchen</label><button class="btn klein" data-jcsv>Als Excel</button></div>` : ''}
+    <div class="raster r4">
+      ${q ? `<div class="card zahl"><div class="l">Ausgegeben</div><div class="w">${chf(aus)}</div><div class="k">${titel}</div></div>
+      <div class="card zahl"><div class="l">Zahlungen</div><div class="w">${ausZ.length}</div><div class="k">${liste.length - ausZ.length ? `dazu ${liste.length - ausZ.length} Eingänge` : 'Belastungen'}</div></div>
+      <div class="card zahl"><div class="l">Pro Zahlung</div><div class="w">${chf(ausZ.length ? Math.round(aus / ausZ.length) : 0)}</div><div class="k">im Durchschnitt</div></div>
+      <div class="card zahl"><div class="l">Pro Monat</div><div class="w">${chf(Math.round(aus / mitDaten))}</div><div class="k">${ein ? `Eingang ${chf(ein)}` : `über ${mitDaten} ${mitDaten === 1 ? 'Monat' : 'Monate'}`}</div></div>`
+      : `<div class="card zahl"><div class="l">Verdient</div><div class="w plus">${chf(ein)}</div><div class="k">${lohn ? `davon Lohn ${chf(lohn)}` : 'alle Eingänge'}${vergleich(ein, vjEin)}</div></div>
+      <div class="card zahl"><div class="l">Ausgegeben</div><div class="w">${chf(aus)}</div><div class="k">${ausZ.length} Zahlungen${vergleich(aus, vjAus)}</div></div>
+      <div class="card zahl"><div class="l">Übrig</div><div class="w ${ein - aus < 0 ? 'minus' : 'plus'}">${chf(ein - aus)}</div><div class="k">${ein ? `Sparquote ${Math.round((ein - aus) / ein * 100)} %` : 'verdient minus ausgegeben'}</div></div>
+      <div class="card zahl"><div class="l">Pro Monat</div><div class="w">${chf(Math.round(aus / mitDaten))}</div><div class="k">ausgegeben im Durchschnitt</div></div>`}
+    </div>
+    <div class="raster r2 abstand">
+      <div class="card"><h2>${q ? 'Pro Monat' : 'Monate'}</h2>
+        <div class="j-balken">${proMonat.map((m) => `<div class="m ${jMonat === m.ym ? 'an' : ''}" data-jmonat="${m.ym}" title="${monatText(m.ym)}: verdient ${chf(m.ein)}, ausgegeben ${chf(m.aus)}"><div class="s">${q && !ein ? '' : `<i class="ein" style="height:${m.ein / max * 100}%"></i>`}<i class="aus" style="height:${m.aus / max * 100}%"></i></div><small>${MON[Number(m.ym.slice(5, 7)) - 1]}${alle ? "'" + m.ym.slice(2, 4) : ''}</small></div>`).join('')}</div>
+        <div class="j-leg">${q && !ein ? '' : '<span><i style="background:var(--gruen)"></i>Verdient</span>'}<span><i style="background:var(--blau)"></i>Ausgegeben</span><span>Monat antippen für Details</span></div></div>
+      <div class="card"><h2>${q ? 'Monate im Detail' : 'Jeder Monat'}</h2><div class="tabelle-scroll"><table class="j-tab"><tr><th>Monat</th><th>Verdient</th><th>Ausgegeben</th><th>Übrig</th></tr>
+        ${proMonat.slice().reverse().map((m) => `<tr class="k ${jMonat === m.ym ? 'an' : ''}" data-jmonat="${m.ym}"><td>${monatText(m.ym)}</td><td class="plus">${m.ein ? chf(m.ein) : '–'}</td><td>${m.aus ? chf(m.aus) : '–'}</td><td class="${m.ein - m.aus < 0 ? 'minus' : ''}">${m.l.length ? chf(m.ein - m.aus) : '–'}</td></tr>`).join('')}
+        <tr class="t"><td>Total</td><td class="plus">${chf(ein)}</td><td>${chf(aus)}</td><td class="${ein - aus < 0 ? 'minus' : ''}">${chf(ein - aus)}</td></tr></table></div></div>
+    </div>
+    ${mSel ? `<div class="card abstand"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>${monatText(mSel.ym)}${q ? ' · ' + titel : ''}</h2><button class="btn klein" data-jmonat="">Schliessen</button></div>
+      <p class="hinweis">Verdient <b class="plus">${chf(mSel.ein)}</b> · Ausgegeben <b>${chf(mSel.aus)}</b> · Übrig <b class="${mSel.ein - mSel.aus < 0 ? 'minus' : 'plus'}">${chf(mSel.ein - mSel.aus)}</b></p>
+      ${mSel.l.length ? mSel.l.map(zeile).join('') : '<p class="leer">Keine Bewegungen in diesem Monat.</p>'}</div>` : ''}
+    ${q ? `<div class="card abstand"><h2>Alle Zahlungen: ${titel} <span class="marke-s">${liste.length}</span></h2>${liste.length ? liste.slice(0, 500).map(zeile).join('') : `<p class="leer">Nichts gefunden. Tipp: nur einen Teil des Namens eingeben, z. B. „coop“ statt „Coop Pronto Bern“.${!alle && jahre.length > 1 ? ' Oder „In allen Jahren suchen“ anhaken.' : ''}</p>`}</div>`
+    : `<div class="raster r2 abstand">
+      <div class="card"><h2>Wofür ausgegeben</h2>${ks.length ? ks.map(([id, w]) => `<div class="zeile klick" data-jsuche-setzen="${esc(katName(id))}"><span style="min-width:0"><b>${esc(katName(id))}</b><div class="j-spur"><i style="width:${Math.round(w / ks[0][1] * 100)}%;background:${katFarbe(id)}"></i></div></span><span class="betrag">${chf(w)}<small>${aus ? Math.round(w / aus * 100) : 0} %</small></span></div>`).join('') : '<p class="leer">Noch keine Ausgaben.</p>'}</div>
+      <div class="card"><h2>Wo am meisten</h2>${hs.length ? hs.map((h) => `<div class="zeile klick" data-jsuche-setzen="${esc(normPartner(h.n).split(' ')[0] || h.n)}"><span style="min-width:0"><b>${esc(h.n)}</b><small>${h.z} ${h.z === 1 ? 'Zahlung' : 'Zahlungen'} · Ø ${chf(Math.round(h.w / h.z))}</small></span><span class="betrag">${chf(h.w)}</span></div>`).join('') : '<p class="leer">Noch keine Ausgaben.</p>'}
+        <p class="hinweis abstand">Antippen zeigt alle Zahlungen dieses Händlers.</p></div>
+    </div>`}`;
+  }
+  const jFokus = () => { const n = document.querySelector('[data-jsuche]'); if (n) { n.focus(); const l = n.value.length; n.setSelectionRange(l, l); } };
+  document.addEventListener('input', (e) => {
+    if (e.target.matches('[data-jsuche]')) { jSuche = e.target.value; jMonat = ''; const p = e.target.selectionStart; zeichnen(); const n = document.querySelector('[data-jsuche]'); if (n) { n.focus(); n.setSelectionRange(p, p); } }
+    else if (e.target.matches('[data-jsuche-start]')) { jSuche = e.target.value; jMonat = ''; ansicht = 'jahr'; try { localStorage.setItem('homebuero.ansicht', 'jahr'); } catch {} zeichnen(); jFokus(); }
+  });
+  document.addEventListener('change', (e) => { if (e.target.matches('[data-jalle]')) { jAlle = e.target.checked; jMonat = ''; zeichnen(); } });
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    if (t.closest('[data-jjahr]')) { jJahr = t.closest('[data-jjahr]').dataset.jjahr; jMonat = ''; zeichnen(); return; }
+    if (t.closest('[data-jmonat]')) { const v = t.closest('[data-jmonat]').dataset.jmonat; jMonat = jMonat === v ? '' : v; zeichnen(); if (jMonat) setTimeout(() => { const k = [...document.querySelectorAll('#inhalt .card h2')].find((h) => h.textContent.startsWith(monatText(jMonat))); if (k) k.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); return; }
+    if (t.closest('[data-jsuche-weg]')) { e.preventDefault(); jSuche = ''; jMonat = ''; zeichnen(); jFokus(); return; }
+    if (t.closest('[data-jsuche-setzen]')) { jSuche = t.closest('[data-jsuche-setzen]').dataset.jsucheSetzen; jMonat = ''; zeichnen(); window.scrollTo(0, 0); return; }
+    if (t.closest('[data-jcsv]')) {
+      const { liste, J, alle } = jahrDaten();
+      const z = (x) => `"${String(x ?? '').replace(/"/g, '""')}"`;
+      const text = '﻿' + [['Datum', 'Empfänger / Absender', 'Text', 'Kategorie', 'Betrag CHF'].map(z).join(';'), ...liste.map((b) => [dk(b.datum), b.partner || '', b.text || '', katName(b.kategorie), (b.betragRappen / 100).toFixed(2)].map(z).join(';'))].join('\r\n');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv' })); a.download = `Zahlungen ${jSuche.trim()} ${alle ? 'alle Jahre' : J}.csv`; a.click();
+    }
+  });
 
   function konto() {
     const q = suche.trim().toLowerCase();
