@@ -84,6 +84,36 @@
       <button class="lz-link" data-lz-andere>Andere E-Mail-Adresse verwenden</button>
       <p class="lz-klein" data-lz-bmeldung></p>`);
   }
+  // Aus Versehen nochmals registriert: Konto gibt es schon, also direkt zur Anmeldung führen
+  let bestehendeMail = '';
+  function kontoExistiertKarte(email) {
+    bestehendeMail = email;
+    zeigen(`${SYMBOL}<h2>Sie haben bereits ein Konto</h2>
+      <p>Mit <b>${esc(email)}</b> sind Sie schon bei Ordasio registriert. Melden Sie sich einfach an, Ihre Daten sind alle noch da.</p>
+      <button class="lz-knopf" data-lz-ex="anmelden">Jetzt anmelden</button>
+      <button class="lz-knopf zweit" data-lz-ex="link">Anmeldelink per E-Mail schicken</button>
+      <button class="lz-link" data-lz-ex="passwort">Passwort vergessen?</button>
+      <button class="lz-link" data-lz-ex="andere">Andere E-Mail-Adresse verwenden</button>
+      <p class="lz-klein" data-lz-exmeldung></p>`);
+  }
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-lz-ex]'); if (!b || !bestehendeMail) return;
+    e.preventDefault();
+    const m = document.querySelector('[data-lz-exmeldung]'), mail = bestehendeMail, was = b.dataset.lzEx;
+    if (was === 'anmelden' || was === 'andere') {
+      bestehendeMail = '';
+      anmelden(was === 'anmelden' ? 'anmelden' : 'neu');
+      const em = decke.querySelector('input[name=email]'); if (em && was === 'anmelden') { em.value = mail; const pw = decke.querySelector('input[name=passwort]'); if (pw) pw.focus(); }
+      return;
+    }
+    b.disabled = true;
+    const r = was === 'link'
+      ? await sb.auth.signInWithOtp({ email: mail, options: { shouldCreateUser: false, emailRedirectTo: location.origin + location.pathname, captchaToken: await window.ordasioCaptcha() } })
+      : await sb.auth.resetPasswordForEmail(mail, { redirectTo: location.origin + location.pathname, captchaToken: await window.ordasioCaptcha() });
+    setTimeout(() => { b.disabled = false; }, 30000);
+    if (m) m.textContent = r.error ? (/rate limit|seconds|security purposes/i.test(r.error.message) ? 'Bitte eine Minute warten und nochmals versuchen.' : r.error.message)
+      : was === 'link' ? '✓ Der Anmeldelink ist unterwegs. Öffnen Sie die E-Mail auf diesem Gerät und tippen Sie auf den Link.' : '✓ Ein Link zum Zurücksetzen des Passworts ist unterwegs.';
+  });
   document.addEventListener('click', async (e) => {
     if (!wartetAufBestaetigung) return;
     const m = document.querySelector('[data-lz-bmeldung]');
@@ -232,8 +262,7 @@
         if (error) throw error;
         // Gibt es die E-Mail schon, schickt der Server aus Sicherheitsgründen keine Mail (und meldet trotzdem «ok»)
         if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-          anmelden('anmelden', 'Mit dieser E-Mail gibt es schon ein Konto. Bitte melden Sie sich an. Passwort vergessen? Unten auf «Passwort vergessen» tippen.');
-          const em = decke.querySelector('input[name=email]'); if (em) em.value = d.email.trim();
+          kontoExistiertKarte(d.email.trim());
           return;
         }
         if (!data.session) { bestaetigenKarte(d.email.trim(), 'Fast geschafft!'); return; }
