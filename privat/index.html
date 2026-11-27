@@ -202,6 +202,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     try { localStorage.setItem(KEY, neu); } catch { toast('Speicher voll — bitte eine Sicherung herunterladen'); return; }
     if (rgVorher === null) rgVorher = letzterStand;
     letzterStand = neu;
+    pushPlanen();
     clearTimeout(rgTimer);
     rgTimer = setTimeout(() => {
       const vorher = rgVorher, text = rgText; rgVorher = null; rgText = 'Gespeichert';
@@ -1268,6 +1269,29 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     ({ auszug: auszugLaden, importe: importeZeigen, rechnung: () => rechnungBearbeiten(), betreibung: () => betreibungBearbeiten(), sicherung })[a.dataset.aktion]();
   });
   Object.assign(window.HomeBuero = window.HomeBuero || {}, { ABZUG, daten: D, abosFinden, sichern, zeichnen, toast, esc, chf, dk, heute, tageBis, betragLesen, neueId, katName, katFarbe, KAT, bildKlein, wegwerfen, listeVon, listeSetzen, ORT, restBetrag, ring, zeitWahl, imZeitraum, auszugLaden, setzeAnsicht: (a) => { ansicht = a; try { localStorage.setItem('homebuero.ansicht', a); } catch {} zeichnen(); window.scrollTo(0, 0); } });
+  /* ---------- Mitteilungen aufs Handy: Kalender, fällige Rechnungen, Rechtsvorschlag, Steuerfrist ---------- */
+  function pushPlanen() {
+    if (!window.OrdasioPush) return;
+    const um = (d, z) => new Date(`${d}T${z || '09:00'}`);
+    const vor = (d, n) => { const x = new Date(d + 'T12:00'); x.setDate(x.getDate() - n); return x.toLocaleDateString('sv-SE'); };
+    const l = [];
+    (D.kalender || []).forEach((k) => { if (!k.datum) return;
+      l.push({ id: 'kal-' + k.id, wann: k.zeit ? new Date(um(k.datum, k.zeit).getTime() - 30 * 60000) : um(k.datum, '08:00'), thema: 'fristen', titel: k.titel || 'Termin', text: (k.zeit ? `Heute um ${k.zeit}` : 'Heute') + (k.notiz ? ' · ' + k.notiz : ''), url: '/privat/?tab=kalender' }); });
+    (D.rechnungen || []).filter((r) => r.status === 'offen' && r.faellig).forEach((r) => {
+      const t = (r.glaeubiger || r.titel || 'Rechnung') + (r.betragRappen ? ' · CHF ' + chf(r.betragRappen) : '');
+      l.push({ id: 'rg1-' + r.id, wann: um(vor(r.faellig, 1)), thema: 'zahlungen', titel: 'Rechnung morgen fällig', text: t, url: '/privat/?tab=rechnungen' });
+      l.push({ id: 'rg0-' + r.id, wann: um(r.faellig), thema: 'zahlungen', titel: 'Rechnung heute fällig', text: t, url: '/privat/?tab=rechnungen' }); });
+    (D.betreibungen || []).filter((b) => b.status === 'zahlungsbefehl' && b.zugestellt).forEach((b) => { const f = rvFrist(b);
+      l.push({ id: 'rv3-' + b.id, wann: um(vor(f, 3)), thema: 'zahlungen', titel: 'Rechtsvorschlag: noch 3 Tage', text: (b.glaeubiger || 'Betreibung') + ' · Frist ' + dk(f), url: '/privat/?tab=betreibung' });
+      l.push({ id: 'rv1-' + b.id, wann: um(vor(f, 1)), thema: 'zahlungen', titel: 'Rechtsvorschlag: Frist morgen', text: (b.glaeubiger || 'Betreibung') + ' · Frist ' + dk(f), url: '/privat/?tab=betreibung' }); });
+    Object.entries(D.steuerErkl || {}).forEach(([j, x]) => { if (!x || !x.frist || x.eingereicht) return;
+      l.push({ id: 'st14-' + j, wann: um(vor(x.frist, 14)), thema: 'steuern', titel: `Steuererklärung ${j}: noch 2 Wochen`, text: 'Frist ' + dk(x.frist) + '. Verlängern geht online vor Ablauf.', url: '/privat/?tab=steuererklaerung' });
+      l.push({ id: 'st1-' + j, wann: um(vor(x.frist, 1)), thema: 'steuern', titel: `Steuererklärung ${j}: Frist morgen`, text: 'Einreichen oder Verlängerung beantragen.', url: '/privat/?tab=steuererklaerung' }); });
+    const jetzt = Date.now();
+    OrdasioPush.planen('privat', l.filter((x) => x.wann.getTime() > jetzt - 5 * 60000 && x.wann.getTime() < jetzt + 400 * 864e5));
+  }
+  setTimeout(pushPlanen, 3000);
+  document.addEventListener('ordasio-push', () => { try { sessionStorage.removeItem('ordasio.pushPlan.privat'); } catch {} pushPlanen(); });
   zeichnen();
   // Aus den Einstellungen: «Sicherung herunterladen»
   if (new URLSearchParams(location.search).get('aktion') === 'sicherung') setTimeout(sicherung, 600);

@@ -325,6 +325,7 @@
     } catch (e) {}
   }
   if (PRODUKT && !window.OrdasioNeu && !document.querySelector('script[src$="neu.js"]')) { var ns = document.createElement('script'); ns.src = WURZEL + 'neu.js'; document.head.appendChild(ns); }
+  if (PRODUKT && !window.OrdasioPush && !document.querySelector('script[src$="push.js"]')) { var ps = document.createElement('script'); ps.src = WURZEL + 'push.js'; document.head.appendChild(ps); }
   if (PRODUKT && window.supabase && !window.OrdasioFirmen && !document.querySelector('script[src$="firmen.js"]')) {
     var fs = document.createElement('script'); fs.src = WURZEL + 'firmen.js'; document.head.appendChild(fs);
   }

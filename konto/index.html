@@ -64,6 +64,14 @@ h2 .ic svg,.zeile .ic svg{width:19px;height:19px;fill:none;stroke:var(--blau);st
 .karte{scroll-margin-top:130px}
 .gefahr-zeile b{color:var(--rot)}
 .btn.gefahr{background:#FDECEC}
+.push-themen{display:grid;gap:2px;margin:2px 0 4px}
+.schalter{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--linie);cursor:pointer;font-weight:400;flex-direction:row}
+.schalter .txt{flex:1;min-width:0}.schalter b{display:block;color:var(--tinte);font-size:15px}.schalter small{display:block;color:var(--text);font-size:13px;font-weight:400}
+.schalter input{position:absolute;opacity:0;width:1px;height:1px}
+.schalter i{flex:none;width:46px;height:28px;border-radius:100px;background:#D7DED9;position:relative;transition:background .2s}
+.schalter i::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+.schalter input:checked + i{background:var(--elektrik)}.schalter input:checked + i::after{transform:translateX(18px)}
+.schalter input:focus-visible + i{outline:2px solid var(--elektrik);outline-offset:2px}
 .ld-feld{display:grid;gap:6px;margin:10px 0}.ld-feld input{width:100%}
 @media (max-width:560px){.einst-nav{margin:10px -18px 0;padding:6px 18px}}
 
@@ -128,9 +136,14 @@ h2 .ic svg,.zeile .ic svg{width:19px;height:19px;fill:none;stroke:var(--blau);st
     </section>
 
     <section class="karte" id="briefing">
-      <h2><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>Briefing und Erinnerungen</h2>
+      <h2><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>Benachrichtigungen</h2>
+      <div class="zeile" style="border-top:0"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg></span><span class="txt"><b>Mitteilungen auf diesem Gerät</b><small id="pushText" style="white-space:normal">Wird geprüft …</small></span><button class="btn klein" id="pushKnopf" hidden>Einschalten</button></div>
+      <div id="pushThemen" class="push-themen" hidden></div>
+      <div class="knoepfe" id="pushMehr" hidden><button class="btn klein" id="pushTest">Test-Mitteilung senden</button></div>
+      <p class="meldung" id="pushMeldung"></p>
+      <h3 style="margin:10px 0 0;font-size:16px">Briefing und Kalender</h3>
       <p>Die wichtigsten Punkte auf einen Blick: Kontostand, überfällige Rechnungen, MWST-Frist, Abwesenheiten im Team. Auf der Startseite und als Termin aufs Handy. Sie wählen, was und wann.</p>
-      <div class="knoepfe"><button class="btn haupt" data-br-einst>Briefing einstellen</button><button class="btn" data-nv-erinnerung>Kalender aufs Handy</button></div>
+      <div class="knoepfe"><button class="btn" data-br-einst>Briefing einstellen</button><button class="btn" data-nv-erinnerung>Kalender aufs Handy</button></div>
     </section>
 
     <section class="karte" id="lizenz-k">
@@ -186,6 +199,7 @@ h2 .ic svg,.zeile .ic svg{width:19px;height:19px;fill:none;stroke:var(--blau);st
 <script src="../briefing.js"></script>
 <script src="../erinnerungen.js" defer></script>
 <script src="../firmen.js"></script>
+<script src="../push.js"></script>
 <script src="../navi.js" data-hier="konto" data-einfuegen=".kopf-links"></script>
 <script>
 (function(){
@@ -423,6 +437,44 @@ h2 .ic svg,.zeile .ic svg{width:19px;height:19px;fill:none;stroke:var(--blau);st
   // Leiste mit den Bereichen bleibt unter der Kopfzeile stehen
   setTimeout(function(){ var k = document.querySelector('header.kopfzeile'); var n = document.querySelector('.einst-nav'); if (k && n && getComputedStyle(k).position === 'sticky') n.style.top = k.offsetHeight + 'px'; }, 400);
 
+  /* ---------- Mitteilungen (Push) ---------- */
+  var P = function(){ return window.OrdasioPush; };
+  var TEXTE = { an: 'Eingeschaltet. Mitteilungen kommen auf dieses Gerät, auch wenn Ordasio geschlossen ist.', aus: 'Ausgeschaltet.',
+    blockiert: 'Im Handy blockiert. Öffnen Sie die Einstellungen des Handys, dort «Mitteilungen» und bei Ordasio erlauben.',
+    'ios-app': 'Auf dem iPhone gehen Mitteilungen nur, wenn Ordasio als App auf dem Home-Bildschirm liegt (ab iOS 16.4): In Safari auf Teilen tippen, «Zum Home-Bildschirm», dann Ordasio von dort öffnen.',
+    nicht: 'Dieser Browser kann keine Mitteilungen empfangen.' };
+  async function pushZeichnen(){
+    if (!P() || !sb || !user) return;
+    var st = await P().status(); var an = st.zustand === 'an';
+    $('pushText').textContent = TEXTE[st.zustand] || '';
+    $('pushKnopf').hidden = !(st.zustand === 'an' || st.zustand === 'aus');
+    $('pushKnopf').textContent = an ? 'Ausschalten' : 'Einschalten'; $('pushKnopf').className = 'btn klein' + (an ? '' : ' haupt');
+    $('pushMehr').hidden = !an; $('pushThemen').hidden = !an;
+    if (!an) return;
+    var privat = lizenz && (lizenz.paket === 'privat' || lizenz.rechtsform === 'privat');
+    var t = {}; try { t = await P().themenLaden(); } catch (e) {}
+    $('pushThemen').innerHTML = P().THEMEN.filter(function(x){ return x[3] === 'alle' || (privat ? x[3] === 'privat' : true); }).map(function(x){
+      return '<label class="schalter"><span class="txt"><b>' + esc(x[1]) + '</b><small>' + esc(x[2]) + '</small></span><input type="checkbox" data-push-thema="' + x[0] + '" ' + (t[x[0]] === false ? '' : 'checked') + '><i></i></label>';
+    }).join('');
+  }
+  $('pushKnopf').onclick = async function(){
+    var b = this; b.disabled = true; meldung('pushMeldung', '');
+    try { if (b.textContent === 'Ausschalten') { await P().ausschalten(); } else { await P().einschalten(); meldung('pushMeldung', '✓ Eingeschaltet. Tippen Sie auf «Test-Mitteilung senden», um es auszuprobieren.', true); } }
+    catch (f) { meldung('pushMeldung', f.message || String(f)); }
+    b.disabled = false; pushZeichnen();
+  };
+  $('pushTest').onclick = async function(){
+    var b = this; b.disabled = true; meldung('pushMeldung', '');
+    try { var r = await P().test(); meldung('pushMeldung', r.ok ? '✓ Gesendet. Die Mitteilung kommt in wenigen Sekunden.' : 'Das Gerät hat nicht geantwortet. Bitte aus- und wieder einschalten.', !!r.ok); }
+    catch (f) { meldung('pushMeldung', f.message || String(f)); }
+    setTimeout(function(){ b.disabled = false; }, 5000);
+  };
+  document.addEventListener('change', async function(e){
+    var c = e.target.closest && e.target.closest('[data-push-thema]'); if (!c) return;
+    var t = {}; document.querySelectorAll('[data-push-thema]').forEach(function(x){ t[x.dataset.pushThema] = x.checked; });
+    try { await P().themenSetzen(t); meldung('pushMeldung', '✓ Gespeichert', true); } catch (f) { meldung('pushMeldung', f.message || String(f)); }
+  });
+
   /* ---------- Daten löschen ---------- */
   async function ordnerLeeren(bucket, pfad, tiefe){
     var r = await sb.storage.from(bucket).list(pfad, { limit: 1000 }); var dateien = [], ordner = [];
@@ -486,7 +538,7 @@ h2 .ic svg,.zeile .ic svg{width:19px;height:19px;fill:none;stroke:var(--blau);st
     };
   };
 
-  document.addEventListener('ordasio-lizenz', function(e){ laden(e.detail); privatAnpassen(); });
+  document.addEventListener('ordasio-lizenz', function(e){ laden(e.detail).then(pushZeichnen); privatAnpassen(); });
 })();
 </script>
 </body>
