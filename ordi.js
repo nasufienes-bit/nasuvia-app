@@ -31,8 +31,8 @@
     termine: ['Wie buchen Kunden online?', 'Öffnungszeiten ändern'],
     lager: ['Artikel erfassen', 'Was muss ich nachbestellen?'],
   };
-  const AUFGABEN = ['Umsatz diesen Monat?', 'Offene Rechnungen?', 'Erinnere mich morgen um 9 an die Offerte', 'Füge Mitarbeiter Luca Meier hinzu und erstelle den Auftrag Badsanierung Müller und teile ihn Luca zu'];
-  const vorschlaege = () => [...(VORSCHLAEGE[hier] || ['Was kann Ordasio?', 'Wie schreibe ich eine Rechnung?']).slice(0, 2), ...(hier === 'zeit' ? [AUFGABEN[3]] : AUFGABEN.slice(0, 2))];
+  const AUFGABEN = ['Buche 45.20 Migros als Material', 'Umsatz diesen Monat?', 'Offene Rechnungen?', 'Erinnere mich morgen um 9 an die Offerte', 'Füge Mitarbeiter Luca Meier hinzu und erstelle den Auftrag Badsanierung Müller und teile ihn Luca zu'];
+  const vorschlaege = () => [...(VORSCHLAEGE[hier] || ['Was kann Ordasio?', 'Wie schreibe ich eine Rechnung?']).slice(0, 2), ...(hier === 'zeit' ? [AUFGABEN[4]] : AUFGABEN.slice(0, 2))];
   // Aufgaben-Teil nachladen (Rechnung, Erinnerung, Zahlen …)
   try { if (!window.OrdiAktionen) { const sc = document.createElement('script'); sc.src = new URL('ordi-aktionen.js', skript.src).href; document.head.appendChild(sc); } } catch {}
 
@@ -79,6 +79,8 @@
   .ordi-eingabe{display:flex;gap:8px;padding:10px;border-top:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 10%,transparent);background:#fff}
   .ordi-eingabe input{flex:1;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 22%,transparent);border-radius:100px;padding:11px 14px;font:inherit;font-size:16px;min-width:0}
   .ordi-eingabe button{border:0;border-radius:100px;background:var(--blau,#0B3B2E);color:#fff;padding:0 16px;font:inherit;font-weight:700;cursor:pointer}
+  .ordi-eingabe .ordi-datei{flex:none;width:44px;padding:0;display:grid;place-items:center;background:#fff;color:var(--blau,#0B3B2E);border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 22%,transparent)}
+  .ordi-msg img.ordi-vorschau{display:block;max-width:180px;max-height:140px;border-radius:10px;margin-top:6px;object-fit:cover}
   .ordi-tippt span{display:inline-block;width:7px;height:7px;border-radius:50%;background:#7C8499;margin-right:3px;animation:ordiPunkt 1s infinite}
   .ordi-tippt span:nth-child(2){animation-delay:.15s}.ordi-tippt span:nth-child(3){animation-delay:.3s}
   @keyframes ordiPunkt{50%{opacity:.25;transform:translateY(-2px)}}
@@ -87,7 +89,7 @@
 
   let knopf = null, panel = null;
   const verlauf = lies('ordi.verlauf', []).slice(-20);
-  const sichern = () => setz('ordi.verlauf', verlauf.slice(-20));
+  const sichern = () => setz('ordi.verlauf', verlauf.slice(-20).map((m) => (m.html && m.html.includes('ordi-vorschau') ? { ...m, html: m.html.replace(/<img class="ordi-vorschau"[^>]*>/g, '') } : m)));
 
   // Ordi sitzt oben in der Kopfzeile neben „Suchen“, damit er nichts auf der Seite verdeckt.
   // Nur wo es keine Kopfzeile gibt, schwebt er unten rechts.
@@ -124,20 +126,26 @@
   function auf() {
     zu();
     panel = document.createElement('div'); panel.className = 'ordi-panel' + (knopf && knopf.classList.contains('ordi-kopfknopf') && innerWidth > 820 ? ' oben' : ''); panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Ordi');
-    panel.innerHTML = `<div class="ordi-kopf">${GESICHT(36)}<div><b>Ordi</b><small>Ihr Helfer in Ordasio</small></div><button class="ordi-menue" data-ordi-menue title="Optionen">⋯</button><button data-ordi-zu aria-label="Schliessen">×</button></div>
+    panel.innerHTML = `<div class="ordi-kopf">${GESICHT(36)}<div><b>Ordi</b><small>Ihr Buchhalter und Helfer</small></div><button class="ordi-menue" data-ordi-menue title="Optionen">⋯</button><button data-ordi-zu aria-label="Schliessen">×</button></div>
       <div class="ordi-verlauf" id="ordiVerlauf"></div>
-      <form class="ordi-eingabe"><input id="ordiFrage" placeholder="Frage stellen …" autocomplete="off" enterkeyhint="send"><button>Senden</button></form>`;
+      <form class="ordi-eingabe"><button type="button" class="ordi-datei" data-ordi-datei aria-label="Foto oder Datei senden" title="Foto oder Datei senden"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l9.2-9.2a3.7 3.7 0 0 1 5.2 5.2l-9.2 9.2a1.8 1.8 0 0 1-2.6-2.6l8.5-8.5"/></svg></button><input type="file" id="ordiDateien" multiple accept="image/*,application/pdf,.pdf,.csv,.xml,.xlsx,.xls,.txt,.053" hidden><input id="ordiFrage" placeholder="Frage stellen oder Beleg senden …" autocomplete="off" enterkeyhint="send"><button>Senden</button></form>`;
     document.body.appendChild(panel);
     if (!verlauf.length) {
-      verlauf.push({ rolle: 'ordi', text: 'Hallo! Ich bin Ordi. Ich zeige Ihnen, wie etwas geht, und erledige auch Aufgaben, zum Beispiel: «Rechnung an Müller über 3 Stunden à 95», «Erinnere mich am Freitag an die MWST» oder «Umsatz im Oktober?». Ich frage immer, bevor ich etwas ausführe.' });
+      verlauf.push({ rolle: 'ordi', text: 'Hallo! Ich bin Ordi, Ihr Buchhalter in Ordasio. Sagen Sie mir einfach, was zu tun ist, zum Beispiel: «Buche 45.20 Migros als Material», «Alle Swisscom-Buchungen unter Telefon», «Rechnung 1023 ist bezahlt» oder «Rechnung an Müller über 3 Stunden à 95». Fotos und PDFs von Belegen schicken Sie mit der Büroklammer, ich lese und buche sie. Ich frage immer, bevor ich etwas ausführe.' });
       verlauf.push({ rolle: 'ordi', text: '💡 ' + FUNFACTS[0], fakt: true });
     } else if (Math.random() < 0.35) verlauf.push({ rolle: 'ordi', text: '💡 ' + FUNFACTS[1 + Math.floor(Math.random() * (FUNFACTS.length - 1))], fakt: true });
     malen();
+    panel.querySelector('#ordiDateien').addEventListener('change', (e) => { const l = [...e.target.files]; e.target.value = ''; if (l.length) dateienSenden(l); });
+    // Dateien auch aufs Fenster ziehen
+    panel.addEventListener('dragover', (e) => { if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')) { e.preventDefault(); e.stopPropagation(); } });
+    panel.addEventListener('drop', (e) => { if (!e.dataTransfer || !e.dataTransfer.files.length) return; e.preventDefault(); e.stopPropagation(); dateienSenden([...e.dataTransfer.files]); });
     panel.querySelector('form').addEventListener('submit', (e) => { e.preventDefault(); const f = panel.querySelector('#ordiFrage'); const t = f.value.trim(); if (!t) return; f.value = ''; fragen(t); });
     panel.addEventListener('click', (e) => {
       if (e.target.closest('[data-ordi-zu]')) zu();
       const c = e.target.closest('[data-ordi-frage]'); if (c) fragen(c.dataset.ordiFrage);
       if (e.target.closest('[data-ordi-menue]')) menue();
+      if (e.target.closest('[data-ordi-datei]')) panel.querySelector('#ordiDateien').click();
+      const bk = e.target.closest('[data-ordi-bank]'); if (bk) alsKontoauszug(bk.dataset.ordiBank);
       if (e.target.closest('[data-ordi-ja]') || e.target.closest('[data-ordi-nein]')) aktionAntwort(!!e.target.closest('[data-ordi-ja]'));
     });
     setTimeout(() => { const f = panel && panel.querySelector('#ordiFrage'); if (f && !matchMedia('(max-width: 820px)').matches) f.focus(); }, 50);
@@ -207,11 +215,57 @@
     let a = (auf && auf.aktion) || (ki && ki.aktion);
     // KI-Vorschläge ebenfalls an die Lizenz anpassen
     if (!auf && a && window.OrdiAktionen && OrdiAktionen.pruefen) { const p = OrdiAktionen.pruefen(a); if (p && !p.aktion) { a = null; auf = p; } else if (p) { a = p.aktion; if (p.hinweis) verlauf.push({ rolle: 'ordi', html: p.hinweis.html, text: p.hinweis.text }); } }
+    if (a && window.OrdiAktionen && OrdiAktionen.vorbereiten) { try { a = await OrdiAktionen.vorbereiten(a); } catch {} }
     if (auf && auf.vorher) verlauf.push({ rolle: 'ordi', html: auf.vorher.html, text: auf.vorher.text });
     if (a && window.OrdiAktionen) verlauf.push({ rolle: 'ordi', html: (ki && ki.text ? md(ki.text) + '<br>' : '') + window.OrdiAktionen.karte(a), text: 'Vorschlag', aktion: a });
     else if (auf) verlauf.push({ rolle: 'ordi', ...auf });
     else verlauf.push(ki ? { rolle: 'ordi', text: ki.text, ziel: ki.ziel } : { rolle: 'ordi', ...lokal(frage) });
     sichern(); malen();
+  }
+  /* ---------- Fotos und Dateien an Ordi: Belege lesen und buchen, Kontoauszüge einlesen ---------- */
+  const temp = new Map();
+  const istBank = (f) => /\.(csv|xml|xlsx?|txt|053)$/i.test(f.name || '') || /csv|xml|spreadsheet|excel/.test(f.type || '');
+  const skriptLaden = (name) => new Promise((ok) => { const sc = document.createElement('script'); sc.src = new URL(name, skript.src).href; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); });
+  async function alsKontoauszug(k) {
+    const f = temp.get(k); if (!f) { verlauf.push({ rolle: 'ordi', text: 'Die Datei ist nicht mehr da. Bitte nochmals senden.' }); sichern(); malen(); return; }
+    if (window.NB && NB.bankImport) { zu(); NB.bankImport(f); return; }
+    try {
+      const db = await new Promise((ok, x) => { const r = indexedDB.open('ordasio-ordi', 1); r.onupgradeneeded = () => r.result.createObjectStore('datei'); r.onsuccess = () => ok(r.result); r.onerror = () => x(r.error); });
+      await new Promise((ok, x) => { const t = db.transaction('datei', 'readwrite'); t.objectStore('datei').put(f, 'bank'); t.oncomplete = ok; t.onerror = () => x(t.error); }); db.close();
+      verlauf.push({ rolle: 'ordi', text: 'Ich öffne die Buchhaltung und lese den Kontoauszug ein …' }); sichern(); malen();
+      location.href = new URL('?bereich=buchhaltung&aktion=ordiDatei', new URL('.', new URL('ordi.js', skript.src))).href;
+    } catch { verlauf.push({ rolle: 'ordi', text: 'Bitte öffnen Sie die Buchhaltung und laden Sie den Auszug dort unter „Bankauszug importieren“.' }); sichern(); malen(); }
+  }
+  async function dateienSenden(liste) {
+    if (!panel) auf();
+    const eingabe = panel.querySelector('#ordiFrage'), hinweis = eingabe.value.trim(); eingabe.value = '';
+    for (const f of liste.slice(0, 10)) {
+      const k = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); temp.set(k, f);
+      const bild = /^image\//.test(f.type) ? URL.createObjectURL(f) : '';
+      verlauf.push({ rolle: 'ich', text: 'Datei: ' + (f.name || 'Foto') + (hinweis ? ' – ' + hinweis : ''), html: `${esc(f.name || 'Foto')}${hinweis ? '<br>' + esc(hinweis) : ''}${bild ? `<img class="ordi-vorschau" src="${bild}" alt="">` : ''}` });
+      if (istBank(f)) { verlauf.push({ rolle: 'ordi', html: `Das sieht nach einem Kontoauszug aus.<div class="ordi-chips" style="margin-top:8px"><button data-ordi-bank="${k}">Als Kontoauszug einlesen</button></div>`, text: 'Kontoauszug' }); sichern(); malen(); continue; }
+      if (f.size > 10e6) { verlauf.push({ rolle: 'ordi', text: 'Die Datei ist zu gross (höchstens 10 MB).' }); sichern(); malen(); continue; }
+      verlauf.push({ rolle: 'ordi', html: '<span class="ordi-tippt"><span></span><span></span><span></span></span> Ich lese den Beleg …', text: '', denkt: true }); malen();
+      if (!window.Leser) await skriptLaden('leser.js');
+      if (!window.OrdiAktionen) await skriptLaden('ordi-aktionen.js');
+      let r = null;
+      try { const kats = await OrdiAktionen.kategorien(); r = window.Leser ? await Leser.ki(f, 'beleg', { kategorien: [...kats.ausgabe, ...kats.einnahme].map((x) => ({ id: x.id, name: x.name })) }) : null; } catch (x) { r = { fehler: x.message }; }
+      verlauf.pop();
+      if (!r) { verlauf.push({ rolle: 'ordi', text: 'Belege lese ich mit der KI. Dafür müssen Sie in Ordasio angemeldet sein. Sie können den Beleg sonst in der Buchhaltung unter „Belege hochladen“ erfassen.' }); sichern(); malen(); continue; }
+      if (r.fehler) { verlauf.push({ rolle: 'ordi', text: r.fehler }); sichern(); malen(); continue; }
+      const w = r.felder || {};
+      if (w.lesbar === false || !w.betrag) {
+        verlauf.push({ rolle: 'ordi', html: `Ich finde auf ${esc(f.name || 'dem Bild')} keinen Beleg mit Betrag.${/pdf/.test(f.type) ? '<div class="ordi-chips" style="margin-top:8px"><button data-ordi-bank="' + k + '">Ist ein Kontoauszug, einlesen</button></div>' : ' Probieren Sie ein schärferes Foto, ganz von oben.'}`, text: 'Kein Beleg erkannt' }); sichern(); malen(); continue;
+      }
+      const einnahme = /einnahme|verkauf|erhalten|bezahlt bekommen/i.test(hinweis);
+      let a = { typ: 'buchung', art: einnahme ? 'einnahme' : 'ausgabe', betrag: Math.round(Number(w.betrag) * 100), datum: /^\d{4}-\d{2}-\d{2}$/.test(w.datum || '') ? w.datum : new Date().toLocaleDateString('sv-SE'),
+        partner: w.lieferant || '', text: hinweis || w.beschreibung || '', kategorie: w.kategorie || '', mwst: w.mwst_satz != null ? w.mwst_satz : '', mwst_betrag: w.mwst_betrag != null ? Math.round(Number(w.mwst_betrag) * 100) : '',
+        zahlung: w.zahlung || '', _belegTemp: OrdiAktionen.belegMerken(f) };
+      try { a = await OrdiAktionen.vorbereiten(a); } catch {}
+      const unsicher = (w.unsicher || []).length ? `<br><small>Bitte prüfen: ${esc(w.unsicher.join(', '))}</small>` : '';
+      verlauf.push({ rolle: 'ordi', html: `Gelesen. Soll ich das so buchen?${unsicher}${w.offen ? '<br><small>Das ist eine offene Rechnung' + (w.faellig ? ', zahlbar bis ' + esc(w.faellig) : '') + '. Ich buche sie als Ausgabe, sobald Sie Ja sagen.</small>' : ''}` + OrdiAktionen.karte(a), text: 'Beleg gelesen', aktion: a });
+      sichern(); malen();
+    }
   }
   // Text ins Eingabefeld legen, damit man ihn anpassen und selbst abschicken kann
   function vorschlag(text) { if (!panel) auf(); const f = panel && panel.querySelector('#ordiFrage'); if (f) { f.value = text; f.focus(); try { f.setSelectionRange(text.length, text.length); } catch {} } }

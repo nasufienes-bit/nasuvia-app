@@ -34,7 +34,17 @@
     const offen = rechn.filter((x) => !x.bezahlt), ueber = offen.filter((x) => x.faellig && x.faellig < h);
     const haupt = e.find((x) => x.id === 'haupt') || {};
     const kat = {}; for (const x of b) if (x.typ === 'ausgabe' && (x.datum || '').startsWith(j)) kat[x.kategorie] = (kat[x.kategorie] || 0) + netto(x);
-    return { heute: h, monate, offen: { anzahl: offen.length, summe: offen.reduce((s, x) => s + (x.betragRappen || 0), 0) }, ueberfaellig: { anzahl: ueber.length, summe: ueber.reduce((s, x) => s + (x.betragRappen || 0), 0), liste: ueber.slice(0, 8).map((x) => ({ nr: x.nr, kunde: x.kunde, betrag: x.betragRappen, faellig: x.faellig })) },
+    const kats = kategorien(haupt);
+    const letzte = [...b].sort((x, y) => String(y.datum).localeCompare(String(x.datum))).slice(0, 70)
+      .map((x) => [String(x.id).slice(0, 8), x.datum, x.typ === 'einnahme' ? 'E' : 'A', x.betragRappen, x.kategorie, (x.partner || '').slice(0, 30), (x.text || '').slice(0, 40), x.mwstSatz].join('|'));
+    const D = window.Doppelt, rf = (lizenz() || {}).rechtsform || haupt.rechtsform || 'einzel';
+    const doppelt = !!haupt.doppelt || /gmbh|ag|genossenschaft|verein|stiftung/.test(rf);
+    return { heute: h, rechtsform: rf, doppelt, festgeschriebenBis: haupt.festBis || '', kmAnsatz: Number(haupt.kmAnsatz) || 0.7,
+      kategorien: { ausgabe: kats.ausgabe.map((k) => `${k.id}=${k.name} (${k.satz}%)`), einnahme: kats.einnahme.map((k) => `${k.id}=${k.name} (${k.satz}%)`) },
+      buchungen_neueste: 'ref|datum|E/A|rappen|kategorie|partner|text|mwst ; ' + letzte.join(' ; '),
+      offeneRechnungen: offen.slice(0, 25).map((x) => `${x.nr}|${x.kunde || ''}|${x.betragRappen}|${x.faellig || ''}`),
+      ...(doppelt && D && D.kontenplan ? { konten: D.kontenplan(rf, haupt.konten || []).map((k) => k.nr + ' ' + k.name).join('; ') } : {}),
+      monate, offen: { anzahl: offen.length, summe: offen.reduce((s, x) => s + (x.betragRappen || 0), 0) }, ueberfaellig: { anzahl: ueber.length, summe: ueber.reduce((s, x) => s + (x.betragRappen || 0), 0), liste: ueber.slice(0, 8).map((x) => ({ nr: x.nr, kunde: x.kunde, betrag: x.betragRappen, faellig: x.faellig })) },
       kontostand: haupt.liquiStand || null, ausgabenKategorien: kat, kunden: [...new Set(rechn.map((x) => x.kunde).filter(Boolean))].slice(0, 60) };
   }
 
@@ -115,7 +125,8 @@
   /* ---------- Lizenz: jedes Werkzeug gehört zu einem Bereich ---------- */
   const BRAUCHT = {
     rechnung: ['rechnungen'], offerte: ['rechnungen'], kunde: ['rechnungen'], mahnen: ['rechnungen'],
-    buchung: ['buchhaltung'],
+    buchung: ['buchhaltung'], buchung_aendern: ['buchhaltung'], buchung_loeschen: ['buchhaltung'], journal: ['buchhaltung'], fahrt: ['buchhaltung'], kontostand: ['buchhaltung'],
+    rechnung_bezahlt: [['rechnungen', 'buchhaltung']], lohnlauf: ['lohn'],
     mitarbeiter: ['zeit'], zuweisen: ['zeit'], einsatz: ['zeit'], spesen: ['zeit'], ferien: ['zeit'], mitteilung: ['zeit'],
     auftrag: ['zeit', 'projekte'], auftrag_rechnung: ['rechnungen', ['zeit', 'projekte']],
     lager: ['lager'], bereitstellen: ['lager', 'zeit'], termin: ['termine'], stelle: ['bewerbungen'],
@@ -138,7 +149,7 @@
     if (l.paket === 'privat') return { html: `${esc(was)} gibt es in den Firmenlizenzen. Ihr Home-Büro ist für die privaten Finanzen. Wenn Sie selbständig sind oder eine Firma führen: <b>${esc(ab ? ab.name : 'Selbständig')}</b> ab CHF ${ab ? ab.monat : 29} pro Monat, 30 Tage gratis.<div class="ordi-chips" style="margin-top:8px"><a class="ordi-hin" href="${WURZEL}lizenz/">Lizenzen ansehen ›</a></div>`, text: 'Empfehlung Firmenlizenz' };
     return { html: `${esc(was)} ist in Ihrer Lizenz nicht enthalten${ab ? `. Das gibt es ab <b>${esc(ab.name)}</b> (CHF ${ab.monat} pro Monat)` : ''}.<div class="ordi-chips" style="margin-top:8px"><a class="ordi-hin" href="${WURZEL}lizenz/">Lizenzen ansehen ›</a></div>`, text: 'Empfehlung' };
   }
-  const WAS = { bereitstellen: 'Material bereitstellen lassen', rechnung: 'Rechnungen schreiben', offerte: 'Offerten', kunde: 'Kunden verwalten', mahnen: 'Mahnen', buchung: 'Buchen', mitarbeiter: 'Mitarbeitende erfassen', zuweisen: 'Aufträge zuteilen', einsatz: 'Einsätze planen', spesen: 'Spesen', ferien: 'Ferienanträge', mitteilung: 'Mitteilungen ans Team', auftrag: 'Aufträge', auftrag_rechnung: 'Rechnungen zu Aufträgen', lager: 'Das Lager', termin: 'Online-Termine', stelle: 'Offene Stellen' };
+  const WAS = { bereitstellen: 'Material bereitstellen lassen', rechnung: 'Rechnungen schreiben', offerte: 'Offerten', kunde: 'Kunden verwalten', mahnen: 'Mahnen', buchung: 'Buchen', buchung_aendern: 'Buchungen ändern', buchung_loeschen: 'Buchungen löschen', journal: 'Buchungssätze', fahrt: 'Fahrten', kontostand: 'Der Kontostand', rechnung_bezahlt: 'Zahlungen vermerken', lohnlauf: 'Der Lohnlauf', mitarbeiter: 'Mitarbeitende erfassen', zuweisen: 'Aufträge zuteilen', einsatz: 'Einsätze planen', spesen: 'Spesen', ferien: 'Ferienanträge', mitteilung: 'Mitteilungen ans Team', auftrag: 'Aufträge', auftrag_rechnung: 'Rechnungen zu Aufträgen', lager: 'Das Lager', termin: 'Online-Termine', stelle: 'Offene Stellen' };
   // Prüft eine Aktion (auch Pläne). Gibt { aktion } mit den erlaubten Schritten zurück, oder die Empfehlung.
   function pruefen(a) {
     if (!a) return null;
@@ -149,6 +160,178 @@
     const emp = empfehlung(nein[0].f, WAS[nein[0].z.typ] || 'Das');
     if (!ok.length) return emp;
     return { aktion: ok.length > 1 ? { typ: 'plan', schritte: ok } : ok[0], hinweis: emp };
+  }
+
+
+  /* ---------- Ordi als Buchhalter: direkt in der Buchhaltung arbeiten ---------- */
+  const KAT_STD = {
+    ausgabe: [['material', 'Material', 8.1], ['fremd', 'Subunternehmer und Fremdarbeiten', 8.1], ['werkzeug', 'Werkzeug und Kleingeräte', 8.1], ['anschaffung', 'Anschaffungen (Geräte, Maschinen)', 8.1],
+      ['fahrzeug', 'Fahrzeug (Benzin, Service, Leasing)', 8.1], ['telefon', 'Telefon und Internet', 8.1], ['software', 'Software und Abos', 8.1], ['buero', 'Miete und Büro', 8.1], ['werbung', 'Werbung und Website', 8.1],
+      ['spesen', 'Spesen und Verpflegung', 8.1], ['weiterbildung', 'Weiterbildung', 8.1], ['versicherung', 'Versicherungen', 0], ['bank', 'Bank- und Kartengebühren', 0], ['gebuehren', 'Gebühren und Abgaben', 0],
+      ['loehne', 'Löhne', 0], ['sozial', 'Sozialversicherungen und Vorsorge', 0], ['fahrten', 'Fahrten (Kilometer)', 0], ['uebrig', 'Übriges', 8.1], ['steuern', 'Steuern (Gewinn und Kapital)', 0]],
+    einnahme: [['dienstleistung', 'Dienstleistungen', 8.1], ['materialverkauf', 'Materialverkauf', 8.1], ['uebrig-ein', 'Übrige Einnahmen', 8.1]],
+  };
+  let einstCache = null;
+  const einst = async () => (einstCache = (await idb('nasuvia-buchhaltung', 'einstellungen')).find((x) => x.id === 'haupt') || {});
+  function kategorien(e) {
+    if (window.NB && NB.kategorienListe) { const k = NB.kategorienListe(); return { ausgabe: k.aus, einnahme: k.ein }; }
+    const eigen = (e && e.kategorien) || {};
+    const misch = (std, x) => { const m = new Map(std.map(([id, name, satz]) => [id, { id, name, satz }])); for (const k of x || []) if (k && k.id) m.set(k.id, { ...(m.get(k.id) || { satz: 8.1 }), ...k }); return [...m.values()].filter((k) => !k.versteckt); };
+    return { ausgabe: misch(KAT_STD.ausgabe, eigen.aus), einnahme: misch(KAT_STD.einnahme, eigen.ein) };
+  }
+  const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  function katFinden(text, typ, e) {
+    const l = kategorien(e)[typ === 'einnahme' ? 'einnahme' : 'ausgabe'], n = norm(text);
+    if (!n) return null;
+    return l.find((k) => k.id === text) || l.find((k) => norm(k.name) === n) || l.find((k) => norm(k.name).includes(n) || n.includes(norm(k.name).split(/[ (]/)[0])) || null;
+  }
+  const mwstAus = (brutto, satz) => Math.round(brutto * satz / (100 + satz));
+  // Schreiben in die Buchhaltung: über den Speicher der Seite, sonst direkt in die Datenbank auf dem Gerät
+  function bhDb() {
+    return new Promise((ok, f) => {
+      const auf = (v) => { const r = v ? indexedDB.open('nasuvia-buchhaltung', v) : indexedDB.open('nasuvia-buchhaltung');
+        r.onupgradeneeded = () => ['buchungen', 'belege', 'einstellungen', 'journal'].forEach((s) => { if (!r.result.objectStoreNames.contains(s)) r.result.createObjectStore(s, { keyPath: 'id' }); });
+        r.onsuccess = () => ok(r.result); r.onerror = () => (v ? auf(0) : f(r.error)); };
+      auf(2);
+    });
+  }
+  const neueId = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now().toString(36) + Math.random().toString(36).slice(2));
+  async function bhSchreiben(store, liste) {
+    const jetzt = new Date().toISOString(), fertig = liste.map((e) => ({ ...e, id: e.id || neueId(), geaendert: jetzt, offen: true }));
+    if (window.Speicher && Speicher.mehrereSpeichern) return Speicher.mehrereSpeichern(store, fertig);
+    const db = await bhDb();
+    await new Promise((ok, f) => { const t = db.transaction(store, 'readwrite'); fertig.forEach((e) => t.objectStore(store).put(e)); t.oncomplete = ok; t.onerror = () => f(t.error); });
+    db.close(); return fertig;
+  }
+  async function nachher() { einstCache = null; try { if (window.NB && NB.neuLaden) await NB.neuLaden(); } catch {} }
+  const festBis = (e) => (e && e.festBis) || '';
+  // Buchungen finden: Suchtext (Partner, Text), Zeitraum, Betrag, Kategorie, Art oder Kurz-ID aus dem Kontext
+  function filtern(liste, a, e) {
+    const s = norm(a.suche), refs = [].concat(a.ref || []).filter(Boolean);
+    const art = ['einnahme', 'ausgabe'].includes(a.art) ? a.art : '';
+    const kAlt = a.kategorie_alt ? katFinden(a.kategorie_alt, art || 'ausgabe', e) : null;
+    if (!s && !refs.length && !a.von && !a.bis && !a.betrag && !kAlt) return [];
+    return liste.filter((b) => !b.geloescht && (!refs.length || refs.some((r) => String(b.id).startsWith(r)))
+      && (!art || b.typ === art) && (!a.von || b.datum >= a.von) && (!a.bis || b.datum <= a.bis)
+      && (!a.betrag || Math.abs(b.betragRappen) === Math.abs(a.betrag)) && (!kAlt || b.kategorie === kAlt.id)
+      && (!s || norm(`${b.partner || ''} ${b.text || ''} ${b.rechnungNr || ''}`).includes(s)));
+  }
+  // Belege, die man Ordi gibt, bis zum Ausführen merken
+  const belegZwischen = new Map();
+  function belegMerken(datei) { const k = 'b' + Date.now().toString(36); belegZwischen.set(k, datei); return k; }
+  async function belegFertig(datei) {
+    let daten = datei, typ = datei.type || 'application/octet-stream';
+    if (typ.startsWith('image/') && datei.size > 900000) {
+      try {
+        const bild = await createImageBitmap(datei), f = Math.min(1, 1800 / Math.max(bild.width, bild.height));
+        const c = document.createElement('canvas'); c.width = Math.round(bild.width * f); c.height = Math.round(bild.height * f);
+        c.getContext('2d').drawImage(bild, 0, 0, c.width, c.height);
+        daten = await new Promise((ok) => c.toBlob(ok, 'image/jpeg', 0.85)); typ = 'image/jpeg';
+      } catch { /* Original behalten */ }
+    }
+    return { name: (datei.name || 'Beleg').replace(/\.(heic|png|webp)$/i, typ === 'image/jpeg' ? '.jpg' : '$&'), typ, daten };
+  }
+
+  // Vor der Vorschau: Treffer zählen und prüfen, damit die Karte genau sagt, was passiert
+  async function vorbereiten(a) {
+    if (!a) return a;
+    if (a.typ === 'plan') return { ...a, schritte: await Promise.all((a.schritte || []).map(vorbereiten)) };
+    if (['buchung_aendern', 'buchung_loeschen'].includes(a.typ)) {
+      const e = await einst(), l = filtern(await idb('nasuvia-buchhaltung', 'buchungen'), a, e);
+      return { ...a, _n: l.length, _fest: l.filter((b) => festBis(e) && b.datum <= festBis(e)).length, _beispiele: l.slice(0, 4).map((b) => `${dk(b.datum)} ${b.partner || b.text || ''} ${chf(b.betragRappen)}`) };
+    }
+    if (a.typ === 'rechnung_bezahlt') {
+      const r = (await idb('nasuvia-rechnungen', 'rechnung')).filter((x) => (x.dokArt || 'rechnung') === 'rechnung' && !x.bezahlt);
+      // Auch Rechnungen, die nur in der Buchhaltung stehen (z. B. importiert)
+      for (const b of await idb('nasuvia-buchhaltung', 'buchungen')) if (b.quelle === 'rechnung' && !b.bezahlt && b.rechnungNr && !r.some((x) => String(x.nr) === String(b.rechnungNr))) r.push({ nr: b.rechnungNr, kunde: b.partner, betragRappen: b.betragRappen, faellig: b.faellig });
+      const t = r.find((x) => a.nr && String(x.nr).trim() === String(a.nr).trim()) || (!a.nr && a.kunde ? r.filter((x) => norm(x.kunde).includes(norm(a.kunde))).sort((x, y) => (a.betrag ? Math.abs(x.betragRappen - a.betrag) - Math.abs(y.betragRappen - a.betrag) : 0))[0] : null);
+      return { ...a, _rg: t ? { nr: t.nr, kunde: t.kunde, betrag: t.betragRappen } : null };
+    }
+    if (a.typ === 'buchung' && a.kategorie) { const k = katFinden(a.kategorie, a.art, await einst()); return { ...a, _kat: k ? k.name : '' }; }
+    return a;
+  }
+
+  async function bhAusfuehren(a) {
+    const e = await einst();
+    const fest = (d) => festBis(e) && d && d <= festBis(e);
+    if (a.typ === 'buchung') {
+      const typ = a.art === 'einnahme' ? 'einnahme' : 'ausgabe', betrag = Math.abs(Math.round(Number(a.betrag) || 0));
+      if (!betrag) { try { sessionStorage.setItem('ordasio.buchung', JSON.stringify(a)); } catch {} location.href = WURZEL + '?bereich=buchhaltung'; return 'Ich öffne das Buchungsfenster …'; }
+      const datum = /^\d{4}-\d{2}-\d{2}$/.test(a.datum || '') ? a.datum : heute();
+      if (fest(datum)) return `Bis ${dk(festBis(e))} ist die Buchhaltung festgeschrieben. Bitte ein späteres Datum nennen.`;
+      const k = katFinden(a.kategorie, typ, e) || katFinden(typ === 'einnahme' ? 'uebrig-ein' : 'uebrig', typ, e);
+      const satz = a.mwst != null && a.mwst !== '' && Number.isFinite(Number(a.mwst)) ? Number(a.mwst) : (k ? Number(k.satz) || 0 : 8.1);
+      const b = { typ, datum, betragRappen: betrag, mwstSatz: satz, mwstRappen: a.mwst_betrag != null && a.mwst_betrag !== '' ? Math.round(Number(a.mwst_betrag)) : mwstAus(betrag, satz),
+        kategorie: k ? k.id : (typ === 'einnahme' ? 'uebrig-ein' : 'uebrig'), partner: String(a.partner || '').slice(0, 120), text: String(a.text || '').slice(0, 200),
+        zahlung: ['Bank', 'Karte', 'TWINT', 'Bar'].includes(a.zahlung) ? a.zahlung : 'Bank', quelle: 'ordi' };
+      if (a._belegTemp && belegZwischen.has(a._belegTemp)) {
+        const [g] = await bhSchreiben('belege', [await belegFertig(belegZwischen.get(a._belegTemp))]);
+        b.belegId = g.id; belegZwischen.delete(a._belegTemp);
+      }
+      await bhSchreiben('buchungen', [b]); await nachher();
+      return `✓ ${typ === 'einnahme' ? 'Einnahme' : 'Ausgabe'} ${chf(betrag)}${b.partner ? ' ' + b.partner : ''} gebucht (${k ? k.name : 'Übriges'}, MWST ${satz} %, ${dk(datum)})${b.belegId ? ', Beleg abgelegt' : ''}.`;
+    }
+    if (a.typ === 'buchung_aendern' || a.typ === 'buchung_loeschen') {
+      const alle = await idb('nasuvia-buchhaltung', 'buchungen'), l = filtern(alle, a, e).filter((b) => !fest(b.datum));
+      if (!l.length) return 'Ich finde keine passende Buchung (oder sie liegt in der festgeschriebenen Zeit).';
+      if (a.typ === 'buchung_loeschen') {
+        if (window.Speicher && Speicher.mehrereLoeschen) await Speicher.mehrereLoeschen('buchungen', l.map((b) => b.id));
+        else await bhSchreiben('buchungen', l.map((b) => ({ ...b, geloescht: true })));
+        await nachher();
+        return `✓ ${l.length} ${l.length === 1 ? 'Buchung' : 'Buchungen'} gelöscht. Sie finden sie unter „Zuletzt gelöscht“.`;
+      }
+      const neu = l.map((b) => {
+        const x = { ...b };
+        if (a.neu_kategorie) { const k = katFinden(a.neu_kategorie, b.typ, e); if (k) { x.kategorie = k.id; if (a.neu_mwst == null || a.neu_mwst === '') { x.mwstSatz = Number(k.satz) || 0; x.mwstRappen = mwstAus(x.betragRappen, x.mwstSatz); } } }
+        if (a.neu_mwst != null && a.neu_mwst !== '' && Number.isFinite(Number(a.neu_mwst))) { x.mwstSatz = Number(a.neu_mwst); x.mwstRappen = mwstAus(x.betragRappen, x.mwstSatz); }
+        if (/^\d{4}-\d{2}-\d{2}$/.test(a.neu_datum || '') && !fest(a.neu_datum)) x.datum = a.neu_datum;
+        if (a.neu_text) x.text = String(a.neu_text).slice(0, 200);
+        if (a.neu_partner) x.partner = String(a.neu_partner).slice(0, 120);
+        if (['Bank', 'Karte', 'TWINT', 'Bar'].includes(a.neu_zahlung)) x.zahlung = a.neu_zahlung;
+        if (a.neu_betrag) { x.betragRappen = Math.abs(Math.round(Number(a.neu_betrag))); x.mwstRappen = mwstAus(x.betragRappen, x.mwstSatz || 0); }
+        return x;
+      });
+      await bhSchreiben('buchungen', neu); await nachher();
+      return `✓ ${neu.length} ${neu.length === 1 ? 'Buchung' : 'Buchungen'} geändert.`;
+    }
+    if (a.typ === 'rechnung_bezahlt') {
+      const p = await vorbereiten(a); if (!p._rg) return `Ich finde keine offene Rechnung${a.nr ? ' Nr. ' + a.nr : a.kunde ? ' von ' + a.kunde : ''}.`;
+      const am = /^\d{4}-\d{2}-\d{2}$/.test(a.datum || '') ? a.datum : heute(), jetzt = new Date().toISOString();
+      const rg = (await idb('nasuvia-rechnungen', 'rechnung')).filter((x) => String(x.nr) === String(p._rg.nr) && (x.dokArt || 'rechnung') === 'rechnung');
+      await new Promise((ok) => { const r = indexedDB.open('nasuvia-rechnungen'); r.onsuccess = () => { const db = r.result; if (!db.objectStoreNames.contains('rechnung')) { db.close(); return ok(); } const t = db.transaction('rechnung', 'readwrite'); rg.forEach((x) => t.objectStore('rechnung').put({ ...x, bezahlt: true, bezahltAm: am, geaendert: jetzt, offen: true })); t.oncomplete = () => { db.close(); ok(); }; t.onerror = () => { db.close(); ok(); }; }; r.onerror = () => ok(); });
+      const bu = (await idb('nasuvia-buchhaltung', 'buchungen')).filter((b) => b.quelle === 'rechnung' && String(b.rechnungNr) === String(p._rg.nr));
+      if (bu.length) await bhSchreiben('buchungen', bu.map((b) => ({ ...b, bezahlt: true, bezahltAm: am })));
+      await nachher();
+      return `✓ Rechnung Nr. ${p._rg.nr}${p._rg.kunde ? ' (' + p._rg.kunde + ')' : ''} über ${chf(p._rg.betrag)} ist als bezahlt vermerkt (${dk(am)}).`;
+    }
+    if (a.typ === 'journal') {
+      const zeilen = (a.zeilen || []).map((z) => ({ soll: String(z.soll || '').trim(), haben: String(z.haben || '').trim(), betrag: Math.abs(Math.round(Number(z.betrag) || 0)) })).filter((z) => /^\d{4}$/.test(z.soll) && /^\d{4}$/.test(z.haben) && z.betrag);
+      if (!zeilen.length) return 'Für den Buchungssatz brauche ich Soll-Konto, Haben-Konto (je vierstellig) und den Betrag.';
+      const datum = /^\d{4}-\d{2}-\d{2}$/.test(a.datum || '') ? a.datum : heute();
+      if (fest(datum)) return `Bis ${dk(festBis(e))} ist die Buchhaltung festgeschrieben.`;
+      const nr = (await idb('nasuvia-buchhaltung', 'journal')).length + 1;
+      await bhSchreiben('journal', [{ datum, beleg: 'O-' + nr, text: String(a.text || 'Buchung über Ordi').slice(0, 200), art: 'manuell', zeilen, geloescht: false }]); await nachher();
+      return `✓ Buchungssatz gespeichert: ${zeilen.map((z) => `${z.soll} an ${z.haben} ${chf(z.betrag)}`).join(', ')}.${e.doppelt || /gmbh|ag|genossenschaft|verein|stiftung/.test((lizenz() || {}).rechtsform || '') ? '' : ' Sichtbar ist er, sobald die doppelte Buchhaltung eingeschaltet ist.'}`;
+    }
+    if (a.typ === 'fahrt') {
+      const km = Math.abs(Number(a.km) || 0) * (a.retour ? 2 : 1); if (!km) return 'Wie viele Kilometer?';
+      const datum = /^\d{4}-\d{2}-\d{2}$/.test(a.datum || '') ? a.datum : heute(); if (fest(datum)) return `Bis ${dk(festBis(e))} ist die Buchhaltung festgeschrieben.`;
+      const ansatz = Number(e.kmAnsatz) || 0.7;
+      await bhSchreiben('buchungen', [{ typ: 'ausgabe', quelle: 'fahrt', kategorie: 'fahrten', datum, km, kmAnsatz: ansatz, betragRappen: Math.round(km * ansatz * 100), mwstSatz: 0, mwstRappen: 0, text: String(a.zweck || `Fahrt ${km} km`).slice(0, 200), partner: '', zahlung: 'Bar' }]); await nachher();
+      return `✓ Fahrt ${km} km gebucht: ${chf(Math.round(km * ansatz * 100))} (${ansatz.toFixed(2)} pro km).`;
+    }
+    if (a.typ === 'kontostand') {
+      const b = Math.round(Number(a.betrag)); if (!Number.isFinite(b)) return 'Welcher Kontostand?';
+      await bhSchreiben('einstellungen', [{ ...e, id: 'haupt', liquiStand: { betragRappen: b, datum: /^\d{4}-\d{2}-\d{2}$/.test(a.datum || '') ? a.datum : heute(), quelle: 'hand' } }]); await nachher();
+      return `✓ Kontostand ${chf(b)} eingetragen. Die Liquiditätsvorschau rechnet ab jetzt damit.`;
+    }
+    if (a.typ === 'lohnlauf') {
+      const monat = /^\d{4}-\d{2}$/.test(a.monat || '') ? a.monat : heute().slice(0, 7);
+      if (window.NB && NB.lohnBuchen) { await NB.lohnBuchen(monat); return `✓ Lohnlauf ${monat} gebucht.`; }
+      try { sessionStorage.setItem('ordasio.nb', JSON.stringify({ fn: 'lohnBuchen', monat })); } catch {}
+      location.href = WURZEL + '?bereich=buchhaltung'; return 'Ich buche den Lohnlauf in der Buchhaltung …';
+    }
+    return null;
   }
 
   // Ohne KI: die häufigsten Aufträge selbst verstehen
@@ -180,6 +363,15 @@
       const ein = /einnahme|von\s/i.test(t.slice(0, 30)) && !/ausgabe/i.test(t);
       return { aktion: { typ: 'buchung', art: ein ? 'einnahme' : 'ausgabe', betrag: Math.round(zahl(m[1]) * 100), partner: m[2].trim(), kategorie: (m[3] || '').trim(), datum: (m[4] && datumAus(m[4])) || heute() } };
     }
+    // Rechnung bezahlt: „Rechnung 1023 ist bezahlt“, „Rechnung Nr. 12 bezahlt am 3.12.“
+    if ((m = t.match(/^(?:die\s+)?rechnung\s+(?:nr\.?\s*)?([\w-]+)\s+(?:ist\s+|wurde\s+)?bezahlt(?:\s+(?:am|vom)\s+(.+))?$/i)) && /\d/.test(m[1])) return { aktion: { typ: 'rechnung_bezahlt', nr: m[1], datum: (m[2] && datumAus(m[2])) || heute() } };
+    // Fahrt: „Fahrt 45 km nach Zürich“, „45 km Kunde Müller hin und zurück“
+    if ((m = t.match(/^(?:fahrt\s+)?(\d+(?:[.,]\d+)?)\s*km\b\s*(.*)$/i)) && (/^fahrt/i.test(t) || /km/i.test(t))) {
+      const rest = m[2] || '';
+      return { aktion: { typ: 'fahrt', km: zahl(m[1]), retour: /hin und zur|retour|zurück/i.test(rest), zweck: rest.replace(/\b(hin und zurück|retour)\b/gi, '').replace(/^(nach|zu|für)\s+/i, '').trim(), datum: datumAus(rest) || heute() } };
+    }
+    // Kontostand: „Kontostand 12'480.50“
+    if ((m = t.match(/^(?:mein\s+|der\s+)?kontostand\s+(?:ist\s+)?(?:chf\s*)?(-?\d+(?:['’]\d{3})*(?:[.,]\d+)?)/i))) return { aktion: { typ: 'kontostand', betrag: Math.round(zahl(m[1]) * 100) } };
     // Bereitstellen: „Stelle 30 Meter Kabel zur Verfügung für Robert“, „Fabian soll 30 m Kabel für Robert bereitstellen“
     {
       let lagerist = '', tx = t;
@@ -267,14 +459,21 @@
   }
 
   // Vorschau-Karte
-  const TITEL = { bereitstellen: '📦 Material bereitstellen', offerte: '🧾 Offerte vorbereiten', buchung: '🧾 Buchung erfassen', lager: '📦 Material buchen', kunde: '👤 Kunde erfassen', termin: '📅 Termin eintragen', ferien: '🏖 Ferienantrag', spesen: '🧾 Spesen', mitteilung: '📣 Mitteilung ans Team', briefing: '☀ Briefing einstellen', zusatz: '📦 Zusatzpaket', auftrag_rechnung: '🧾 Rechnung zum Auftrag', plan: '📋 Mehrere Schritte', mitarbeiter: '👤 Mitarbeiter erfassen', auftrag: '📍 Auftrag erstellen', zuweisen: '🔗 Auftrag zuteilen', rechnung: '🧾 Rechnung vorbereiten', erinnerung: '🔔 Erinnerung eintragen', mahnen: '⏰ Überfällige erinnern', stelle: '🧑‍💼 Offene Stelle vorbereiten', einsatz: '🗓️ Einsatz planen', navigieren: '➡️ Hinführen' };
+  const TITEL = { bereitstellen: '📦 Material bereitstellen', offerte: '🧾 Offerte vorbereiten', buchung: '🧾 Buchung erfassen', lager: '📦 Material buchen', kunde: '👤 Kunde erfassen', termin: '📅 Termin eintragen', ferien: '🏖 Ferienantrag', spesen: '🧾 Spesen', mitteilung: '📣 Mitteilung ans Team', briefing: '☀ Briefing einstellen', zusatz: '📦 Zusatzpaket', auftrag_rechnung: '🧾 Rechnung zum Auftrag', plan: '📋 Mehrere Schritte', buchung_aendern: 'Buchungen ändern', buchung_loeschen: 'Buchungen löschen', rechnung_bezahlt: 'Zahlung vermerken', journal: 'Buchungssatz', fahrt: 'Fahrt buchen', kontostand: 'Kontostand', lohnlauf: 'Lohnlauf buchen', mitarbeiter: '👤 Mitarbeiter erfassen', auftrag: '📍 Auftrag erstellen', zuweisen: '🔗 Auftrag zuteilen', rechnung: '🧾 Rechnung vorbereiten', erinnerung: '🔔 Erinnerung eintragen', mahnen: '⏰ Überfällige erinnern', stelle: '🧑‍💼 Offene Stelle vorbereiten', einsatz: '🗓️ Einsatz planen', navigieren: '➡️ Hinführen' };
   const schrittText = (a) => ({
     mitarbeiter: () => `Mitarbeiter <b>${esc(a.name)}</b> erfassen${a.stundenlohn ? ', Stundenlohn ' + chf(a.stundenlohn) : ''}${a.ansatz ? ', Ansatz ' + chf(a.ansatz) : ''}`,
     auftrag: () => `Auftrag <b>${esc(a.name)}</b> erstellen${a.kunde ? ' für ' + esc(a.kunde) : ''}${a.adresse ? ', ' + esc(a.adresse) : ''}`,
     zuweisen: () => `Auftrag <b>${esc(a.auftrag)}</b> an <b>${esc(a.mitarbeiter)}</b> zuteilen`,
     rechnung: () => `Rechnung${a.kunde ? ' an <b>' + esc(a.kunde) + '</b>' : a.auftrag ? ' zum Auftrag <b>' + esc(a.auftrag) + '</b>' : ''}: ${(a.positionen || []).map((p) => `${esc(p.text)} ${Number(p.menge).toLocaleString('de-CH')} × ${chf(p.preis)}`).join(', ')} vorbereiten`,
     offerte: () => `Offerte an <b>${esc(a.kunde)}</b>: ${(a.positionen || []).map((p) => `${esc(p.text)} ${Number(p.menge).toLocaleString('de-CH')} × ${chf(p.preis)}`).join(', ')}`,
-    buchung: () => `${a.art === 'einnahme' ? 'Einnahme' : 'Ausgabe'} <b>${chf(a.betrag)}</b>${a.partner ? ' · ' + esc(a.partner) : ''}${a.kategorie ? ' · Kategorie ' + esc(a.kategorie) : ''} · ${dk(a.datum)}<br><small>Das Buchungsfenster öffnet sich ausgefüllt, Sie speichern selbst.</small>`,
+    buchung: () => `${a.art === 'einnahme' ? 'Einnahme' : 'Ausgabe'} <b>${chf(a.betrag)}</b>${a.partner ? ' · ' + esc(a.partner) : ''}${a._kat || a.kategorie ? ' · ' + esc(a._kat || a.kategorie) : ''}${a.mwst != null && a.mwst !== '' ? ' · MWST ' + esc(a.mwst) + ' %' : ''} · ${dk(a.datum || heute())}${a.text ? '<br>' + esc(a.text) : ''}${a._belegTemp ? '<br><small>Mit Beleg</small>' : ''}${a.betrag ? '' : '<br><small>Das Buchungsfenster öffnet sich, Sie ergänzen den Betrag.</small>'}`,
+    buchung_aendern: () => `${a._n != null ? `<b>${a._n} ${a._n === 1 ? 'Buchung' : 'Buchungen'}</b>` : 'Buchungen'}${a.suche ? ' mit «' + esc(a.suche) + '»' : ''}${a.von || a.bis ? ` (${dk(a.von) || '…'} bis ${dk(a.bis) || '…'})` : ''} ändern:${a.neu_kategorie ? ' Kategorie ' + esc(a.neu_kategorie) : ''}${a.neu_mwst != null && a.neu_mwst !== '' ? ', MWST ' + esc(a.neu_mwst) + ' %' : ''}${a.neu_datum ? ', Datum ' + dk(a.neu_datum) : ''}${a.neu_text ? ', Text «' + esc(a.neu_text) + '»' : ''}${a.neu_partner ? ', Partner ' + esc(a.neu_partner) : ''}${a.neu_zahlung ? ', bezahlt mit ' + esc(a.neu_zahlung) : ''}${a.neu_betrag ? ', Betrag ' + chf(a.neu_betrag) : ''}${(a._beispiele || []).length ? '<br><small>' + a._beispiele.map(esc).join('<br>') + (a._n > 4 ? '<br>…' : '') + '</small>' : ''}${a._fest ? `<br><small>${a._fest} davon sind festgeschrieben und bleiben.</small>` : ''}`,
+    buchung_loeschen: () => `${a._n != null ? `<b>${a._n} ${a._n === 1 ? 'Buchung' : 'Buchungen'}</b>` : 'Buchungen'}${a.suche ? ' mit «' + esc(a.suche) + '»' : ''} löschen${(a._beispiele || []).length ? '<br><small>' + a._beispiele.map(esc).join('<br>') + (a._n > 4 ? '<br>…' : '') + '</small>' : ''}<br><small>Gelöschtes finden Sie unter „Zuletzt gelöscht“.</small>`,
+    rechnung_bezahlt: () => a._rg ? `Rechnung Nr. <b>${esc(a._rg.nr)}</b>${a._rg.kunde ? ' · ' + esc(a._rg.kunde) : ''} · ${chf(a._rg.betrag)} als bezahlt vermerken (${dk(a.datum || heute())})` : `Rechnung ${a.nr ? 'Nr. ' + esc(a.nr) : esc(a.kunde || '')} als bezahlt vermerken<br><small>Ich finde sie noch nicht unter den offenen Rechnungen.</small>`,
+    journal: () => `${dk(a.datum || heute())} · ${esc(a.text || '')}<br>${(a.zeilen || []).map((z) => `<b>${esc(z.soll)}</b> an <b>${esc(z.haben)}</b> ${chf(z.betrag)}`).join('<br>')}`,
+    fahrt: () => `<b>${(Number(a.km) || 0) * (a.retour ? 2 : 1)} km</b>${a.zweck ? ' · ' + esc(a.zweck) : ''} · ${dk(a.datum || heute())}`,
+    kontostand: () => `Kontostand <b>${chf(a.betrag)}</b>${a.datum ? ' per ' + dk(a.datum) : ''}`,
+    lohnlauf: () => `Lohnlauf <b>${esc(a.monat || heute().slice(0, 7))}</b> buchen: Löhne, Arbeitgeberbeiträge und Spesen`,
     bereitstellen: () => `<b>${Number(a.menge).toLocaleString('de-CH')} ${esc(a.einheit || '')} ${esc(a.artikel)}</b> für <b>${esc(a.fuer)}</b>${a.an ? '<br>Lager: ' + esc(a.an) : '<br>Lager: alle, die das Lager führen'}${a.auftrag ? '<br>Auftrag: ' + esc(a.auftrag) : ''}${a.bis ? '<br>Bis ' + dk(a.bis) : ''}<br><small>Das Lager sieht es auf dem Handy und stellt es bereit.</small>`,
     lager: () => `${a.art === 'eingang' ? 'Eingang' : 'Verbrauch'}: <b>${Number(a.menge).toLocaleString('de-CH')} ${esc(a.artikel)}</b>${a.auftrag ? ' auf Auftrag <b>' + esc(a.auftrag) + '</b>' : ''}`,
     kunde: () => `<b>${esc(a.name)}</b>${a.strasse ? '<br>' + esc(a.strasse) : ''}${a.plz || a.ort ? '<br>' + esc([a.plz, a.ort].filter(Boolean).join(' ')) : ''}${a.mail ? '<br>' + esc(a.mail) : ''}`,
@@ -290,7 +489,7 @@
   function karte(a) {
     let inhalt = '';
     if (a.typ === 'plan') inhalt = `<ol style="margin:0;padding-left:18px">${(a.schritte || []).map((z) => `<li>${schrittText(z)}</li>`).join('')}</ol>`;
-    if (['bereitstellen', 'mitarbeiter', 'auftrag', 'zuweisen', 'auftrag_rechnung', 'offerte', 'buchung', 'lager', 'kunde', 'termin', 'ferien', 'spesen', 'mitteilung', 'briefing', 'zusatz'].includes(a.typ)) inhalt = schrittText(a) + (a.typ === 'auftrag_rechnung' ? '<br><small>Sie sehen die Rechnung danach und senden sie selbst.</small>' : '');
+    if (['bereitstellen', 'mitarbeiter', 'auftrag', 'zuweisen', 'auftrag_rechnung', 'offerte', 'buchung', 'lager', 'kunde', 'termin', 'ferien', 'spesen', 'mitteilung', 'briefing', 'zusatz', 'buchung_aendern', 'buchung_loeschen', 'rechnung_bezahlt', 'journal', 'fahrt', 'kontostand', 'lohnlauf'].includes(a.typ)) inhalt = schrittText(a) + (a.typ === 'auftrag_rechnung' ? '<br><small>Sie sehen die Rechnung danach und senden sie selbst.</small>' : '');
     if (a.typ === 'rechnung') inhalt = `An: <b>${esc(a.kunde)}</b><br>${(a.positionen || []).map((p) => `${esc(p.text)}: ${Number(p.menge).toLocaleString('de-CH')} × ${chf(p.preis)} = <b>${chf(Math.round(p.menge * p.preis))}</b>`).join('<br>')}<br><small>Sie sehen die Rechnung danach und senden sie selbst.</small>`;
     if (a.typ === 'erinnerung') inhalt = `<b>${esc(a.titel)}</b><br>${dk(a.datum)}${a.zeit ? ' um ' + esc(a.zeit) : ' (ganzer Tag)'}`;
     if (a.typ === 'mahnen') inhalt = 'Ich öffne die Rechnungen mit dem Mahn-Assistenten. Dort sehen Sie alle Überfälligen und bereiten Erinnerung oder Mahnung mit einem Klick vor.';
@@ -339,6 +538,7 @@
     }
     // Lizenz auch beim Ausführen prüfen (falls die Lizenz inzwischen anders ist)
     const fehlt = fehltFuer(a.typ); if (fehlt) return `${WAS[a.typ] || 'Das'} ist in Ihrer Lizenz nicht enthalten.`;
+    if (['buchung', 'buchung_aendern', 'buchung_loeschen', 'rechnung_bezahlt', 'journal', 'fahrt', 'kontostand', 'lohnlauf'].includes(a.typ)) { const r = await bhAusfuehren(a); if (r) return r; }
     if (a.typ === 'zusatz') { if (window.OrdasioZusatz) window.OrdasioZusatz.erklaeren(a.modul); return 'Hier ist die Übersicht.'; }
     if (a.typ === 'briefing') {
       if (!sb) return 'Bitte zuerst anmelden.';
@@ -434,5 +634,5 @@
     if (a.typ === 'navigieren' && a.ziel) { location.href = new URL(a.ziel, WURZEL).href; return 'Ich führe Sie hin …'; }
     return 'Das kann ich noch nicht.';
   }
-  window.OrdiAktionen = { erkennen, karte, ausfuehren, kontext, pruefen };
+  window.OrdiAktionen = { erkennen, karte, ausfuehren, kontext, pruefen, vorbereiten, belegMerken, kategorien: async () => kategorien(await einst()) };
 })();

@@ -155,5 +155,5 @@
   @media(max-width:640px){.leser-raster,.leser-raster.ohne .leser-felder{grid-template-columns:1fr}.leser-bild,.leser-bild img{max-height:28vh}.leser-bild iframe{height:28vh}}`;
   document.head.appendChild(css);
 
-  window.Leser = { lesen, pruefen, lesenUndPruefen, ki: (blob, art) => mitKi(blob, art) };
+  window.Leser = { lesen, pruefen, lesenUndPruefen, ki: (blob, art, extra) => mitKi(blob, art, extra) };
 })();

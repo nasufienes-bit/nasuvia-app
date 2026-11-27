@@ -3004,6 +3004,11 @@
       <div style="display:grid;gap:8px">${START_KARTEN.map(([id, n]) => `<label class="haken"><input type="checkbox" name="${id}" ${startKarten()[id] ? 'checked' : ''} />${n}</label>`).join('')}</div>`,
       async (fd) => { await einstSpeichern({ start: Object.fromEntries(START_KARTEN.map(([id]) => [id, fd.get(id) === 'on'])) }); zeichnen(); toast('Übersicht angepasst'); });
   }
+  // Von Ordi angestossene Aufgabe auf einer anderen Seite (z. B. Lohnlauf)
+  setTimeout(async () => {
+    let v = null; try { v = JSON.parse(sessionStorage.getItem('ordasio.nb') || 'null'); sessionStorage.removeItem('ordasio.nb'); } catch {}
+    if (v && v.fn === 'lohnBuchen' && lohnErlaubt()) { if (/^\d{4}-\d{2}$/.test(v.monat || '')) Z.lohnMonat = v.monat; Z.ansicht = 'loehne'; zeichnen(); await lohnBuchen(); }
+  }, 900);
   // Von Ordi vorbereitete Buchung: Fenster ausgefüllt öffnen, gespeichert wird erst durch den Nutzer
   setTimeout(() => {
     let v = null; try { v = JSON.parse(sessionStorage.getItem('ordasio.buchung') || 'null'); sessionStorage.removeItem('ordasio.buchung'); } catch {}
@@ -3044,7 +3049,18 @@
     belege: () => belegeStapel(),
     zwischenbilanz: () => { Z.jahr = String(new Date().getFullYear()); Z.stichtag = heute(); Z.ansicht = 'abschluss'; zeichnen(); window.scrollTo(0, 0); },
     mitarbeiter: () => mitarbeiterBearbeiten(),
-    lohnBuchen: () => lohnBuchen(),
+    lohnBuchen: (monat) => { if (/^\d{4}-\d{2}$/.test(monat || '')) Z.lohnMonat = monat; return lohnBuchen(); },
+    neuLaden: () => neuLaden(),
+    kategorienListe: () => ({ aus: KAT_AUS.filter((k) => !k.versteckt), ein: KAT_EIN.filter((k) => !k.versteckt) }),
+    // Von Ordi geschickte Datei (Kontoauszug) einlesen
+    ordiDatei: async () => {
+      try {
+        const db = await new Promise((ok, f) => { const r = indexedDB.open('ordasio-ordi', 1); r.onupgradeneeded = () => r.result.createObjectStore('datei'); r.onsuccess = () => ok(r.result); r.onerror = () => f(r.error); });
+        const datei = await new Promise((ok) => { const t = db.transaction('datei', 'readwrite'), st = t.objectStore('datei'), g = st.get('bank'); g.onsuccess = () => { st.delete('bank'); ok(g.result); }; g.onerror = () => ok(null); });
+        db.close();
+        if (datei) bankImport(datei);
+      } catch { /* nichts da */ }
+    },
     lohnzettel: (id) => lohnzettel(id),
     lohnDetails: (id) => lohnDetails(id),
     lohnMail: (id) => lohnMail(id),
