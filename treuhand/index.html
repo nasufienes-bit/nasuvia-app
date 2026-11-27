@@ -151,6 +151,7 @@ details>summary.btn{list-style:none;cursor:pointer}details>summary.btn::-webkit-
 <div class="toast" id="toast"></div>
 <script src="../ui.js"></script>
 <script src="../navi.js" data-hier="treuhand" data-einfuegen=".kopfzeile .wrap"></script>
+<script src="../seitenleiste.js"></script>
 <script src="../pakete.js"></script>
 <script src="../branchen.js"></script>
 <script src="../doppelt.js"></script>
@@ -267,13 +268,14 @@ details>summary.btn{list-style:none;cursor:pointer}details>summary.btn::-webkit-
     if (!T.some(([id]) => id === Z.ansicht)) Z.ansicht = 'pruefen';
     const jahre = [...new Set([...Z.buchungen.map((b) => b.datum.slice(0, 4)), Z.jahr])].sort().reverse();
     const rfName = O && O.RECHTSFORMEN[rf()] ? O.RECHTSFORMEN[rf()].name : '';
+    $('tabs').innerHTML = T.map(([id, n]) => `<button class="${Z.ansicht === id ? 'an' : ''}" data-ansicht="${id}">${n}</button>`).join('');
     $('inhalt').innerHTML = `<div class="kopf"><div><p class="hinweis"><a href="?" data-zurueck>← Alle Kunden</a></p><h1>${esc(Z.kunde.firma || Z.kunde.email)}</h1>
         <p class="unter">${esc([rfName, doppelt() ? 'doppelte Buchhaltung' : 'einfache Buchhaltung', Z.einst.festBis ? 'festgeschrieben bis ' + dk(Z.einst.festBis) : ''].filter(Boolean).join(' · '))}</p></div>
         <div class="aktionen"><select data-jahr>${jahre.map((j) => `<option ${j === Z.jahr ? 'selected' : ''}>${j}</option>`).join('')}</select>
           <details style="position:relative"><summary class="btn">Exportieren ▾</summary><div class="card export" style="position:absolute;right:0;top:46px;z-index:30;width:250px;display:grid;gap:6px">
             <button class="btn klein" data-export="buchungen">Buchungen (CSV)</button>${doppelt() ? '<button class="btn klein" data-export="journal">Journal Soll/Haben (CSV)</button><button class="btn klein" data-export="salden">Saldenliste (CSV)</button>' : ''}
             <button class="btn klein" data-export="belege">Alle Belege ${Z.jahr} (ZIP)</button><button class="btn klein" onclick="window.print()">Drucken oder PDF</button></div></details></div></div>
-      <div class="segment" style="margin-bottom:14px">${T.map(([id, n]) => `<button class="${Z.ansicht === id ? 'an' : ''}" data-ansicht="${id}">${n}</button>`).join('')}</div>
+      <div class="segment sl-handy" style="margin-bottom:14px">${T.map(([id, n]) => `<button class="${Z.ansicht === id ? 'an' : ''}" data-ansicht="${id}">${n}</button>`).join('')}</div>
       ${({ pruefen, abschluss, salden, journal, erfolg, mwst, buchungen, fragen })[Z.ansicht]()}`;
   }
 
