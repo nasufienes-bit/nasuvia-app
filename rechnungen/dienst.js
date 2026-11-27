@@ -592,9 +592,9 @@
     .nr-zurueck:hover{background:color-mix(in srgb,var(--elektrik,#0E7A55) 14%,transparent)}
     .nr-zurueck svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
     .nr-ue-knopf svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-    .nr-ue{margin:auto;border:0;padding:0;width:min(980px,calc(100% - 48px));max-height:calc(100vh - 64px);overflow:hidden;border-radius:20px;box-shadow:0 40px 100px -30px rgba(12,18,38,.5);color:#0A1F17;font-family:inherit}
+    .nr-ue{margin:auto;border:0;padding:0;width:min(980px,calc(100% - 48px));max-height:calc(100dvh - 64px);overflow:hidden;border-radius:20px;box-shadow:0 40px 100px -30px rgba(12,18,38,.5);color:#0A1F17;font-family:inherit}
     .nr-ue::backdrop{background:rgba(12,18,38,.38);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-    .nr-ue-innen{display:flex;flex-direction:column;max-height:calc(100vh - 64px)}
+    .nr-ue-innen{display:flex;flex-direction:column;max-height:calc(100dvh - 64px)}
     .nr-ue-kopf{padding:22px 26px 14px;border-bottom:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 10%,transparent);background:linear-gradient(180deg,#F4F6FD,#fff)}
     .nr-ue-kopf .zeile1{display:flex;align-items:center;justify-content:space-between;gap:12px}
     .nr-ue-kopf h3{margin:0;font-size:1.35rem}

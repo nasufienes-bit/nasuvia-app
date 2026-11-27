@@ -110,9 +110,9 @@
 
   const stil = document.createElement('style');
   stil.textContent = `
-  .mk-dlg{border:0;border-radius:22px;padding:0;width:min(620px,calc(100% - 20px));max-height:calc(100vh - 30px);box-shadow:0 40px 100px -30px rgba(12,18,38,.5);font-family:inherit;color:#0A1F17}
+  .mk-dlg{border:0;border-radius:22px;padding:0;width:min(620px,calc(100% - 20px));max-height:calc(100dvh - 30px);box-shadow:0 40px 100px -30px rgba(12,18,38,.5);font-family:inherit;color:#0A1F17}
   .mk-dlg::backdrop{background:rgba(12,18,38,.35)}
-  .mk-in{padding:22px;overflow:auto;max-height:calc(100vh - 30px)}
+  .mk-in{padding:22px;overflow:auto;max-height:calc(100dvh - 30px)}
   .mk-dlg h3{font-size:1.35rem;margin:0 0 4px}
   .mk-dlg p.mk-sub{color:#3F5A4F;font-size:14px;margin:0 0 14px}
   .mk-box{background:#EEF7F2;border-radius:16px;padding:14px;margin-bottom:14px}

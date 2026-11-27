@@ -3,12 +3,17 @@
 (() => {
   const stil = document.createElement('style');
   stil.textContent = `
-  dialog[open]{position:fixed;inset:0;margin:auto;max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  dialog[open]{position:fixed;inset:0;margin:auto;max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:none;-webkit-overflow-scrolling:touch}
+  /* Kein Wackeln: Das Formular im Fenster ist nie höher als das Fenster selbst (sonst lässt sich das ganze Fenster ein Stück verschieben) */
+  dialog[open] > form{max-height:calc(100dvh - 32px)}
+  dialog[open] *{overscroll-behavior:contain}
+  html,body{overscroll-behavior-y:none}
   dialog .ui-zu{position:sticky;float:right;top:10px;right:10px;margin:10px 10px -46px 0;z-index:5;width:36px;height:36px;border:0;border-radius:50%;background:var(--flaeche,#E8F4EE);color:var(--blau,#0B3B2E);font-size:18px;line-height:1;cursor:pointer;display:grid;place-items:center}
   dialog .ui-zu:hover{background:#E1E6F3}
   dialog[open] > form{width:100%;box-sizing:border-box}
   dialog:has(.dlg-kopf > .x) > .ui-zu{display:none}
   @media (max-width:640px){
+    dialog[open] > form{max-height:calc(var(--ui-hoehe,100dvh) - 10px - env(safe-area-inset-bottom,0px))!important}
     dialog[open]{inset:auto 0 var(--ui-tastatur,0px) 0;margin:0;width:100%!important;max-width:100%!important;max-height:calc(var(--ui-hoehe,100dvh) - 10px);border-radius:22px 22px 0 0!important;padding-bottom:env(safe-area-inset-bottom,0px);animation:uiHoch .28s cubic-bezier(.2,.9,.3,1)}
   }
   dialog.ui-frage{width:min(420px,calc(100vw - 24px));border:0;border-radius:18px;padding:0;background:#fff;color:#0A1F17;box-shadow:0 30px 80px -20px rgba(12,18,38,.45);font-family:'League Spartan',-apple-system,system-ui,sans-serif}

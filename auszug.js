@@ -724,9 +724,9 @@
   function stil() {
     if (stilDa) return; stilDa = true;
     const s = document.createElement('style');
-    s.textContent = `.az-dlg{border:0;border-radius:22px;padding:0;width:min(760px,calc(100vw - 16px));max-height:calc(100vh - 24px);box-shadow:0 30px 80px -30px rgba(0,0,0,.5);font-family:inherit;color:#0A1F17}
+    s.textContent = `.az-dlg{border:0;border-radius:22px;padding:0;width:min(760px,calc(100vw - 16px));max-height:calc(100dvh - 24px);box-shadow:0 30px 80px -30px rgba(0,0,0,.5);font-family:inherit;color:#0A1F17}
     .az-dlg::backdrop{background:rgba(10,20,16,.45)}
-    .az-dlg form{display:flex;flex-direction:column;max-height:calc(100vh - 24px)}
+    .az-dlg form{display:flex;flex-direction:column;max-height:calc(100dvh - 24px)}
     .az-kopf{padding:18px 20px 10px}.az-kopf h3{margin:0;font-size:1.2rem}.az-kopf p{margin:4px 0 0;color:#3F5A4F;font-size:.9rem}
     .az-kontrolle{margin:10px 20px 0;border-radius:14px;padding:12px 14px;font-size:.9rem;line-height:1.45}
     .az-kontrolle.ok{background:#E7F7EF;color:#0A5C3C}.az-kontrolle.warn{background:#FFF3E0;color:#7A4A00}.az-kontrolle.info{background:#EEF2F6;color:#334155}
@@ -749,6 +749,8 @@
     .az-fuss small{margin-right:auto;color:#7C8499;font-size:.8rem;max-width:340px}
     .az-fuss button{border:0;border-radius:100px;padding:11px 18px;font:inherit;font-weight:600;cursor:pointer}
     .az-fuss .nein{background:#EEF2F0;color:#0A1F17}.az-fuss .ja{background:var(--elektrik,#0E7A55);color:#fff}
+    /* Handy: Kopf scrollt mit der Liste weg, unten bleiben die Knöpfe stehen. Das Fenster selbst bewegt sich nicht. */
+    @media(max-width:640px){.az-dlg form{overflow-y:auto;overscroll-behavior:none}.az-dlg .az-liste{overflow:visible;flex:none;min-height:0}.az-fuss{position:sticky;bottom:0;background:#fff;z-index:2}.az-fuss small{display:none}}
     @media(max-width:560px){.az-zeile{grid-template-columns:24px 1fr 118px;row-gap:2px}.az-zeile input[type=date]{grid-column:2;grid-row:2;width:130px}.az-text{grid-column:2;grid-row:1}.az-betrag{grid-column:3;grid-row:1/3}}`;
     document.head.appendChild(s);
   }

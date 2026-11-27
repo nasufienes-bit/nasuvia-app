@@ -140,7 +140,7 @@
     var Z = { anbieter: vorgabe.anbieter || 'bexio', art: vorgabe.art || 'saldo', zeilen: null, start: 0, sp: {}, dateiName: '' };
     var d = document.createElement('dialog');
     d.className = 'fi-dlg';
-    d.style.cssText = 'width:min(760px,calc(100vw - 24px));max-height:calc(100vh - 30px);border:0;border-radius:20px;padding:0';
+    d.style.cssText = 'width:min(760px,calc(100vw - 24px));max-height:calc(100dvh - 30px);border:0;border-radius:20px;padding:0';
     document.body.appendChild(d);
     d.addEventListener('close', function () { d.remove(); });
     var stil = '<style>.fi-in{padding:22px;display:grid;gap:14px}.fi-chips{display:flex;flex-wrap:wrap;gap:6px}.fi-chips button{border:1px solid var(--hairline-strong,#d5dfda);background:var(--karte,#fff);border-radius:100px;padding:8px 14px;font:inherit;font-size:14px;cursor:pointer}' +
