@@ -119,6 +119,12 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 .st-werte{display:grid;gap:4px;margin:6px 0}.st-werte div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed var(--linie);padding:4px 0}
 .st-wert{background:var(--flaeche);border-radius:10px;padding:8px 10px}
 .st-tipps{margin:8px 0 0 18px;display:grid;gap:4px}
+.hb-frisch{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid color-mix(in srgb,var(--gruen) 35%,transparent);border-left:4px solid var(--gruen);border-radius:14px;padding:12px 12px 12px 14px;margin-bottom:12px;box-shadow:var(--schatten)}
+.hb-frisch-ic{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--gruen) 14%,transparent);color:var(--gruen)}.hb-frisch-ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.hb-frisch-t{flex:1;min-width:200px}.hb-frisch-t b{display:block;color:var(--tinte);overflow-wrap:anywhere}.hb-frisch-t small{color:var(--leise);font-size:13px}
+.hb-frisch-a{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.hb-frisch-zu{width:32px;height:32px;border:0;border-radius:50%;background:transparent;cursor:pointer;color:var(--leise);display:grid;place-items:center}.hb-frisch-zu:hover{background:var(--flaeche)}.hb-frisch-zu svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+@media(max-width:560px){.hb-frisch-a{width:100%}.hb-frisch-a .btn{flex:1}}
 .js-such{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--linie);border-radius:14px;padding:4px 6px 4px 14px;box-shadow:var(--schatten);margin-bottom:14px}
 .js-such:focus-within{border-color:var(--elektrik)}.js-such svg{width:20px;height:20px;flex:none;fill:none;stroke:var(--leise);stroke-width:2;stroke-linecap:round}
 .js-such input{flex:1;min-width:0;border:0;outline:0;background:none;font:inherit;font-size:17px;padding:10px 0;color:var(--tinte)}
@@ -317,7 +323,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       }
       if (!neu) { if (fehler) toast(fehler); return; }
       const bezahlt = rechnungenAbgleichen();
-      sichern(); zeichnen();
+      frischSetzen([...imps, ...frisch.filter((x) => !imps.includes(x))].slice(0, 5));
+      sichern(); zeichnen(); window.scrollTo(0, 0);
       toast(`${neu} Bewegungen übernommen${bezahlt ? `, ${bezahlt} Rechnungen als bezahlt erkannt` : ''}`);
       // Gleich danach rückgängig machen; später unter „Importe“
       if (window.Rueckgaengig) Rueckgaengig.zeigen(`${neu} Bewegungen übernommen`, () => {
@@ -328,6 +335,33 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   }
   // Importe: jede hochgeladene Datei lässt sich als Ganzes wieder entfernen.
   // Frühere Importe ohne Kennung werden über die Erfassungszeit erkannt (alle in derselben Sekunde gespeichert).
+  // Gerade hochgeladene Dateien: oben als Leiste, jede einzeln löschbar (bleibt bis zum Schliessen, auch nach Neuladen im gleichen Tab)
+  let frisch = []; try { frisch = JSON.parse(sessionStorage.getItem('hb.frischImporte') || '[]'); } catch {}
+  const frischSetzen = (l) => { frisch = l; try { sessionStorage.setItem('hb.frischImporte', JSON.stringify(l)); } catch {} };
+  async function importEntfernen(id, fragen = true) {
+    const g = importGruppen().find((x) => x.id === id); if (!g) { frischSetzen(frisch.filter((x) => x !== id)); zeichnen(); return false; }
+    if (fragen && !await UI.frage(`${g.liste.length} Bewegungen aus „${g.name}“ entfernen?\n\nNur diese Datei wird entfernt, alle anderen Importe bleiben. Danach können Sie den Auszug neu hochladen.`, { ja: 'Diesen Import löschen' })) return false;
+    const weg = new Set(g.liste.map((b) => b.id));
+    D.bewegungen = D.bewegungen.filter((b) => !weg.has(b.id));
+    D.importe = (D.importe || []).filter((x) => x.id !== g.id);
+    frischSetzen(frisch.filter((x) => x !== id));
+    sichern(); zeichnen(); toast(`${weg.size} Bewegungen aus „${g.name}“ entfernt`);
+    return true;
+  }
+  function frischLeiste() {
+    const gr = importGruppen();
+    const l = frisch.map((id) => gr.find((g) => g.id === id)).filter(Boolean);
+    if (!l.length) return '';
+    return l.map((g) => { const ein = g.liste.filter((b) => b.betragRappen > 0).reduce((a, b) => a + b.betragRappen, 0), aus = g.liste.filter((b) => b.betragRappen < 0).reduce((a, b) => a - b.betragRappen, 0);
+      const d = g.liste.map((b) => b.datum).sort();
+      return `<div class="hb-frisch"><span class="hb-frisch-ic"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <div class="hb-frisch-t"><b>„${esc(g.name)}“ hochgeladen</b><small>${g.liste.length} Bewegungen${d.length ? ` · ${dk(d[0])} bis ${dk(d[d.length - 1])}` : ''} · Eingang <span class="plus">${chf(ein)}</span> · Ausgang ${chf(aus)}</small></div>
+        <div class="hb-frisch-a"><button class="btn klein" data-tab="jahr">Ansehen</button><button class="btn klein rot" data-frisch-weg="${esc(g.id)}">Diesen Import löschen</button><button class="hb-frisch-zu" data-frisch-zu="${esc(g.id)}" aria-label="Hinweis schliessen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div></div>`; }).join('');
+  }
+  document.addEventListener('click', (e) => {
+    const w = e.target.closest('[data-frisch-weg]'); if (w) { importEntfernen(w.dataset.frischWeg); return; }
+    const z = e.target.closest('[data-frisch-zu]'); if (z) { frischSetzen(frisch.filter((x) => x !== z.dataset.frischZu)); zeichnen(); }
+  });
   function importGruppen() {
     const gruppen = [];
     const mitImp = new Map();
@@ -355,13 +389,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     dlg.onclick = async (e) => {
       if (e.target === dlg || e.target.closest('[data-zu]')) { dlg.close(); return; }
       const w = e.target.closest('[data-imp-weg]'); if (!w) return;
-      const g = importGruppen().find((x) => x.id === w.dataset.impWeg); if (!g) return;
-      if (!await UI.frage(`${g.liste.length} Bewegungen aus „${g.name}“ entfernen?\n\nDanach können Sie den Auszug neu hochladen. Direkt danach lässt sich das noch rückgängig machen.`)) return;
-      const weg = new Set(g.liste.map((b) => b.id));
-      D.bewegungen = D.bewegungen.filter((b) => !weg.has(b.id));
-      D.importe = (D.importe || []).filter((x) => x.id !== g.id);
-      sichern(); zeichnen(); malen();
-      toast(`${weg.size} Bewegungen entfernt`);
+      if (await importEntfernen(w.dataset.impWeg)) malen();
     };
     dlg.onsubmit = (e) => { e.preventDefault(); dlg.close(); };
     if (!dlg.open) dlg.showModal();
@@ -437,7 +465,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     if (!TABS.some(([id]) => id === ansicht)) ansicht = 'start';
     const ANS = { start, konto, jahr: jahrAnsicht, abos: abosAnsicht, rechnungen: rechnungenAnsicht, betreibung: betreibungenAnsicht, budget: budgetAnsicht, teilen: teilenAnsicht, steuern: steuernAnsicht, kk: kkAnsicht, ...(window.HomeBuero && window.HomeBuero.ansichten || {}) };
     const unter = gr[2].length > 1 ? `<div class="segment unterwahl" style="margin-bottom:16px">${gr[2].map(([id, n]) => `<button class="${ansicht === id ? 'an' : ''}" data-tab="${id}">${n}</button>`).join('')}</div>` : '';
-    $('inhalt').innerHTML = unter + (ANS[ansicht] ? ANS[ansicht]() : '<p class="leer">Wird geladen …</p>');
+    $('inhalt').innerHTML = unter + frischLeiste() + (ANS[ansicht] ? ANS[ansicht]() : '<p class="leer">Wird geladen …</p>');
   }
   document.addEventListener('click', (e) => {
     const t = e.target.closest('[data-tab]');
