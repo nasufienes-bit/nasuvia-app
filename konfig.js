@@ -18,6 +18,32 @@
     } catch { /* ohne Speicher: eigene Nutzung */ }
   }
   window.NASUVIA_KONFIG = produkt ? KUNDEN : EIGEN;
+
+  // App-Modus: Ordasio wurde vom Home-Bildschirm geöffnet (als App installiert). Dann wirkt alles wie eine App:
+  // keine unterstrichenen Links, kein Lang-Drücken-Menü auf Knöpfen, kein Gummiband-Scrollen, keine Website-Teile.
+  // Zum Testen im Browser: ?app=1 (bleibt für den Tab), ?app=0 schaltet aus.
+  try {
+    const q = new URLSearchParams(location.search).get('app');
+    if (q !== null) sessionStorage.setItem('ordasio.app', q);
+    const app = (window.matchMedia && matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches) || navigator.standalone === true || sessionStorage.getItem('ordasio.app') === '1';
+    window.ORDASIO_APP = !!app;
+    if (app) {
+      document.documentElement.classList.add('app-modus');
+      const st = document.createElement('style');
+      st.id = 'app-modus-stil';
+      st.textContent = 'html.app-modus,html.app-modus body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}'
+        + 'html.app-modus a{text-decoration:none!important}'
+        + 'html.app-modus a,html.app-modus button,html.app-modus img,html.app-modus svg,html.app-modus label,html.app-modus nav,html.app-modus [role=tab],html.app-modus summary{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}'
+        + 'html.app-modus .web-teil{display:none!important}';
+      document.head.appendChild(st);
+      // Links, die sonst einen neuen Browser-Tab öffnen würden: innerhalb von Ordasio im selben Fenster bleiben
+      document.addEventListener('click', (e) => {
+        const a = e.target.closest && e.target.closest('a[target=_blank]');
+        if (!a || !a.href) return;
+        try { const u = new URL(a.href, location.href); if (u.origin === location.origin && !a.hasAttribute('download')) { e.preventDefault(); location.href = u.href; } } catch { /* leer */ }
+      }, true);
+    }
+  } catch { /* ohne App-Modus weiter */ }
   // Token der Sicherheitsprüfung holen (lädt captcha.js erst bei Bedarf). Gibt undefined, wenn keine Prüfung eingerichtet ist.
   const basis = (document.currentScript && document.currentScript.src) || '';
   window.ordasioCaptcha = () => {

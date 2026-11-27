@@ -307,15 +307,16 @@ body[data-thema=wald] .st-logo-hell,body[data-thema=nacht] .st-logo-hell{display
   designAnwenden();
 
   /* ---------- Start: Infoseite (Ordi, für wen, Vorteile, Wussten Sie schon, Neu) ---------- */
-  let ANSICHT = location.hash === '#uebersicht' ? 'uebersicht' : 'start';
+  // Als App vom Home-Bildschirm: direkt die Funktionen zeigen (wie bei einer App), «Start» bleibt als Reiter
+  let ANSICHT = location.hash === '#uebersicht' || (window.ORDASIO_APP && location.hash !== '#start') ? 'uebersicht' : 'start';
   document.addEventListener('click', (e) => {
     const a = e.target.closest('[data-st-ansicht]');
-    if (a) { ANSICHT = a.dataset.stAnsicht; history.replaceState(null, '', location.pathname + location.search + (ANSICHT === 'uebersicht' ? '#uebersicht' : '')); zeichnen(); window.scrollTo(0, 0); return; }
+    if (a) { ANSICHT = a.dataset.stAnsicht; history.replaceState(null, '', location.pathname + location.search + (ANSICHT === 'uebersicht' ? '#uebersicht' : window.ORDASIO_APP ? '#start' : '')); zeichnen(); window.scrollTo(0, 0); return; }
     if (e.target.closest('[data-st-ordi]')) { if (window.Ordi) Ordi.auf(); return; }
     const of = e.target.closest('[data-st-ordi-frage]'); if (of) { if (window.Ordi) Ordi.fragen(of.dataset.stOrdiFrage); return; }
     if (e.target.closest('[data-st-fakt]')) { FAKT = (FAKT + 1) % FAKTEN.length; const f = document.querySelector('.st-fakt'); if (f) f.outerHTML = faktHtml(); }
   });
-  window.addEventListener('hashchange', () => { const n = location.hash === '#uebersicht' ? 'uebersicht' : 'start'; if (n !== ANSICHT) { ANSICHT = n; zeichnen(); } });
+  window.addEventListener('hashchange', () => { const n = location.hash === '#uebersicht' || (window.ORDASIO_APP && location.hash !== '#start') ? 'uebersicht' : 'start'; if (n !== ANSICHT) { ANSICHT = n; zeichnen(); } });
   const FAKTEN = [
     ['Belege müssen in der Schweiz 10 Jahre aufbewahrt werden.', 'Digital ist erlaubt, wenn sie unveränderbar und lesbar bleiben (Art. 958f OR). Ordasio speichert jeden Beleg zur Buchung.'],
     ['Die QR-Rechnung hat 2022 die roten und orangen Einzahlungsscheine abgelöst.', 'Seit dem 1. Oktober 2022 gilt nur noch die QR-Rechnung. Ordasio erstellt sie automatisch.'],
@@ -373,11 +374,11 @@ body[data-thema=wald] .st-logo-hell,body[data-thema=nacht] .st-logo-hell{display
         <a class="st-karte" href="../wechsel/"><span class="ic" style="background:#0E7490">${svg(I.teilen)}</span><b>2. Daten übernehmen</b><span>Aus bexio, Banana, Excel oder dem E-Banking. Oder einfach heute neu beginnen.</span><em>Übernehmen ›</em></a>
         <a class="st-karte" href="#uebersicht" data-st-ansicht="uebersicht"><span class="ic" style="background:#4F46E5">${svg(I.plus)}</span><b>3. Loslegen</b><span>Erste Rechnung, erster Beleg, erster Mitarbeiter: alles unter Übersicht.</span><em>Zur Übersicht ›</em></a>
       </div></div>` : ''}
-      <div class="abschnitt">${faktHtml()}</div>
-      <div class="abschnitt"><h2>Für wen ist Ordasio?</h2><div class="st-raster">
+      <div class="abschnitt web-teil">${faktHtml()}</div>
+      <div class="abschnitt web-teil"><h2>Für wen ist Ordasio?</h2><div class="st-raster">
         ${FUER.map(([t, x, url, k, ic, f]) => `<a class="st-karte" href="${url}"><span class="ic" style="background:${f}">${svg(ic)}</span><b>${esc(t)}</b><span>${esc(x)}</span><em>${esc(k)} ›</em></a>`).join('')}
       </div></div>
-      <div class="abschnitt"><h2>Ehrlich gesagt</h2><div class="st-zwei">
+      <div class="abschnitt web-teil"><h2>Ehrlich gesagt</h2><div class="st-zwei">
         <div class="karte"><b style="display:block;margin-bottom:10px;color:var(--tinte)">Darum Ordasio</b><ul class="st-liste">
           <li>Alles in einer App: Rechnungen, Buchhaltung, Löhne, Zeiterfassung, Lager, Termine und Home-Büro.</li>
           <li>Daten in der Schweiz gespeichert, Belege sicher abgelegt.</li>
@@ -393,7 +394,7 @@ body[data-thema=wald] .st-logo-hell,body[data-thema=nacht] .st-logo-hell{display
           <li>Buchhaltung und Rechnungen funktionieren auch ohne Internet. Abgeglichen wird, sobald Sie wieder online sind.</li>
         </ul></div>
       </div></div>
-      <div class="abschnitt"><h2>Neu in Ordasio</h2><div class="st-neu">
+      <div class="abschnitt web-teil"><h2>Neu in Ordasio</h2><div class="st-neu">
         ${NEU.map(([m, t, k, url]) => url ? `<a href="${url}"><i>${esc(m)}</i><span>${esc(t)}<small>${esc(k)}</small></span></a>` : `<a href="#" data-st-ordi><i>${esc(m)}</i><span>${esc(t)}<small>${esc(k)}</small></span></a>`).join('')}
       </div></div>
       <div class="abschnitt" style="text-align:center"><button class="st-btn dunkel" data-st-ansicht="uebersicht" style="margin:0 auto">Alle Funktionen ansehen</button></div>`;
@@ -426,7 +427,7 @@ body[data-thema=wald] .st-logo-hell,body[data-thema=nacht] .st-logo-hell{display
         <p class="leise" style="margin-top:8px">Tippen Sie auf den Kreis, um einen Schritt selbst abzuhaken.</p></div></div>`
         : `<div class="abschnitt"><div class="karte" style="display:flex;gap:12px;align-items:center"><span style="font-size:30px">🎉</span><b>Alles eingerichtet. Ordasio ist bereit.</b></div></div>`}
       ${!lizenz() || ['einzel', undefined, null].includes((lizenz() || {}).rechtsform) ? `<div class="abschnitt"><a class="selbst" href="../selbstaendig/"><span><b>Zum ersten Mal selbständig?</b><span>Anmeldung, Versicherungen, AHV, MWST, Preise: die wichtigsten Schritte und Tipps zum Abhaken.</span></span><em>Tipps ansehen ›</em></a></div>` : ''}
-      <div class="abschnitt"><a class="selbst" href="../dienste/" style="background:radial-gradient(500px 240px at 90% 0%,rgba(201,164,92,.35),transparent 60%),#0A1F17"><span><b>Ihre Website, von uns gestaltet</b><span>Massgeschneidert statt Baukasten. Der erste Entwurf ist kostenlos.</span></span><em style="background:linear-gradient(135deg,#E9D7A9,#C9A45C);color:#0A1F17">Ansehen ›</em></a></div>
+      <div class="abschnitt web-teil"><a class="selbst" href="../dienste/" style="background:radial-gradient(500px 240px at 90% 0%,rgba(201,164,92,.35),transparent 60%),#0A1F17"><span><b>Ihre Website, von uns gestaltet</b><span>Massgeschneidert statt Baukasten. Der erste Entwurf ist kostenlos.</span></span><em style="background:linear-gradient(135deg,#E9D7A9,#C9A45C);color:#0A1F17">Ansehen ›</em></a></div>
       <div class="abschnitt"><h2>Ihre Bereiche</h2><div class="bereiche">
         ${(() => { const G = window.OrdasioGruppen, gf = (b, f) => (G ? G.von(b).farbe : f), reihe = ['buchhaltung', 'rechnungen', 'zeit', 'projekte', 'lager', 'termine', 'ablage', 'vorlagen', 'privat'];
           return bereiche.slice().sort((x, y) => reihe.indexOf(x) - reihe.indexOf(y)).filter((b) => BEREICH_NAME[b]).map((b) => { const [n, url, ic, f] = BEREICH_NAME[b]; return `<a class="bereich" href="${url}"><i style="background:${gf(b, f)}">${svg(ic)}</i><span>${n}${G && G.von(b).name ? `<small style="color:${gf(b, f)}">${G.von(b).name}</small>` : ''}</span></a>`; }).join(''); })()}

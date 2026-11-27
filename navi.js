@@ -112,6 +112,11 @@
     '.nv-hinten{position:fixed;inset:0;z-index:9998;background:rgba(12,18,38,.32);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s}',
     '.nv-leiste{position:fixed;top:0;bottom:0;right:0;left:auto;z-index:9999;width:min(320px,86vw);background:var(--papier,#F4FAF6);border-radius:26px 0 0 26px;box-shadow:none;transform:translateX(104%);visibility:hidden;transition:transform .42s cubic-bezier(.2,.9,.3,1),box-shadow .42s,visibility 0s .42s;display:flex;flex-direction:column;padding:max(18px,env(safe-area-inset-top)) 16px max(18px,env(safe-area-inset-bottom));font-family:inherit;color:#0A1F17;overflow-y:auto}',
     '.nv-offen .nv-hinten{opacity:1;visibility:visible}',
+    // App-Modus auf dem Handy: Menü kommt als Blatt von unten (wie bei Apps), nicht als Leiste von der Seite
+    '@media (max-width:820px){html.app-modus .nv-leiste{top:auto;left:0;right:0;bottom:0;width:auto;max-height:88vh;border-radius:26px 26px 0 0;transform:translateY(104%);padding-top:10px}',
+    'html.app-modus .nv-offen .nv-leiste{transform:none;box-shadow:0 -30px 80px -30px rgba(12,18,38,.5)}',
+    'html.app-modus .nv-leiste::before{content:"";display:block;width:40px;height:5px;border-radius:3px;background:rgba(10,31,23,.18);margin:0 auto 8px;flex:none}',
+    'html.app-modus .nv-ziel{transform:translateY(10px)}html.app-modus .nv-offen .nv-ziel{transform:none}}',
     '.nv-offen .nv-leiste{transform:none;visibility:visible;box-shadow:-30px 0 80px -30px rgba(12,18,38,.5);transition:transform .42s cubic-bezier(.2,.9,.3,1),box-shadow .42s,visibility 0s}',
     '.nv-kopf{display:flex;align-items:center;justify-content:space-between;padding:4px 4px 18px}',
     '.nv-marke{display:flex;align-items:center;gap:7px;font-weight:700;font-size:1.25rem;letter-spacing:-.02em;color:#0A1F17}',

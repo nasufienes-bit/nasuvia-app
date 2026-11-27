@@ -1,6 +1,7 @@
 {
   "name": "Ordasio",
   "short_name": "Ordasio",
+  "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
