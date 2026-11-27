@@ -32,6 +32,9 @@ button{font:inherit;cursor:pointer}
 .summen b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
 .summen span{font-size:12px;color:rgba(255,255,255,.75)}
 .btn-klein{border:0;border-radius:100px;padding:7px 12px;font:600 13px/1.2 inherit;font-family:inherit;background:var(--flaeche,#EEF2F7);color:var(--blau,#0B3B2E);cursor:pointer;white-space:nowrap}.btn-klein.voll{background:var(--blau,#0B3B2E);color:#fff}.btn-klein:disabled{opacity:.5}
+.team-ansicht{border:0;padding:0;border-radius:22px;width:min(420px,calc(100vw - 16px));height:min(820px,calc(100vh - 24px));overflow:hidden;display:flex;flex-direction:column}.team-ansicht[open]{display:flex}.team-ansicht::backdrop{background:rgba(5,19,16,.55)}
+.ta-kopf{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#0B3B2E;color:#fff}.ta-kopf button{margin-left:auto;border:0;background:rgba(255,255,255,.15);color:#fff;width:34px;height:34px;border-radius:10px;font-size:20px}
+.team-ansicht iframe{flex:1;border:0;width:100%}
 .vorschau-band{position:sticky;top:0;z-index:50;background:#4F46E5;color:#fff;font:600 13px/1.35 system-ui,sans-serif;text-align:center;padding:8px 12px}
 .lg-art{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 10px}.lg-art label{margin:0}.lg-art label{position:relative}.lg-art input{position:absolute;inset:0;width:1px!important;height:1px;opacity:0;pointer-events:none}dialog.ui-frage{overflow-x:hidden}.lg-art span{display:block;text-align:center;padding:9px 4px;border-radius:12px;background:var(--flaeche,#EEF2F7);font-weight:600;font-size:14px;cursor:pointer}.lg-art input:checked+span{background:var(--blau,#0B3B2E);color:#fff}
 .karte{background:#fff;border-radius:20px;padding:18px;box-shadow:var(--schatten);margin-top:14px}
@@ -117,15 +120,19 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
   const toast = (t, ms = 2600) => { const e = $('toast'); e.textContent = t; e.classList.add('da'); clearTimeout(toast.z); toast.z = setTimeout(() => e.classList.remove('da'), ms); };
   const fehlerText = (e) => String((e && e.message) || e || 'Unbekannter Fehler');
   const lies = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
-  const setz = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} };
+  let NUR_LESEN = false; // in der Vorschau nichts auf dem Gerät speichern (sonst würde z. B. der eigene Link überschrieben)
+  const setz = (k, v) => { if (NUR_LESEN) return; try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} };
 
   // Der Link enthält den persönlichen Schlüssel. Auf dem Gerät gemerkt, damit es auch als App vom Home-Bildschirm klappt.
   const q = new URLSearchParams(location.search);
   // Vorschau: der Chef sieht die App wie der Mitarbeiter, es wird nichts gespeichert und nichts gemerkt
-  const VORSCHAU = q.get('vorschau') === '1';
-  let token = q.get('t') || (VORSCHAU ? '' : lies('ze.token')) || '';
+  // Vorschau mit Lese-Schlüssel (?v=…): der Projektleiter sieht die App eines Teammitglieds, der Server lässt nur Lesen zu
+  const VT = /^[0-9a-f]{40,80}$/.test(q.get('v') || '') ? q.get('v') : '';
+  const VORSCHAU = q.get('vorschau') === '1' || !!VT;
+  let token = VT ? 'vorschau-' + VT.slice(0, 40) : q.get('t') || (VORSCHAU ? '' : lies('ze.token')) || '';
+  NUR_LESEN = VORSCHAU;
   if (q.get('t') && !VORSCHAU) setz('ze.token', q.get('t'));
-  if (!q.get('t') && token) history.replaceState(null, '', '?t=' + token);
+  if (!q.get('t') && token && !VORSCHAU) history.replaceState(null, '', '?t=' + token);
   const K_START = 'ze.start.' + token.slice(0, 12);
 
   const Z = { monat: heute().slice(0, 7), daten: null, form: null, modus: 'zeit' };
@@ -135,8 +142,8 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
     const LESEN = ['ze_ich', 'ze_spesen_meine', 'ab_ich', 'ze_lager', 'ze_material'];
     const rpc = sb.rpc.bind(sb), inv = sb.functions.invoke.bind(sb.functions);
     const nein = () => { toast('Vorschau: Hier wird nichts gespeichert.'); return Promise.resolve({ data: null, error: { message: 'Vorschau: nichts gespeichert' } }); };
-    sb.rpc = (n, a) => (LESEN.includes(n) ? rpc(n, a) : nein());
-    sb.functions.invoke = (n, o) => ((n === 'ze-foto' && o && o.body && o.body.aktion === 'liste') || n === 'ablage-ma' ? inv(n, o) : nein());
+    sb.rpc = (n, a) => (!LESEN.includes(n) ? nein() : VT ? rpc('ze_vorschau', { p_vtoken: VT, p_fn: n, p_von: (a && a.p_von) || null, p_bis: (a && a.p_bis) || null }) : rpc(n, a));
+    sb.functions.invoke = (n, o) => (!VT && ((n === 'ze-foto' && o && o.body && o.body.aktion === 'liste') || n === 'ablage-ma') ? inv(n, o) : nein());
     const LOS = ['monatZurueck', 'monatVor', 'zurueck'];
     document.addEventListener('click', (e) => {
       const z = e.target.closest('[data-a],[data-pruefen],[data-foto-weg],[data-lg-buchen],[data-lg],[data-anf],[data-anf-neu]');
@@ -144,7 +151,7 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
       e.preventDefault(); e.stopImmediatePropagation(); toast('Vorschau: Diese Aktion macht nur der Mitarbeiter selbst.');
     }, true);
     document.addEventListener('change', (e) => { if (e.target.matches('input[type=file]')) { e.target.value = ''; toast('Vorschau: Hier wird nichts hochgeladen.'); } }, true);
-    const b = document.createElement('div'); b.className = 'vorschau-band'; b.textContent = 'Vorschau: So sieht Ihr Mitarbeiter die App. Nichts wird gespeichert.';
+    const b = document.createElement('div'); b.className = 'vorschau-band'; b.textContent = VT ? 'Ansicht: So sieht Ihr Teammitglied die App. Nur lesen, nichts wird gespeichert.' : 'Vorschau: So sieht Ihr Mitarbeiter die App. Nichts wird gespeichert.';
     document.body.prepend(b);
   }
 
@@ -347,11 +354,26 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
         <div class="anf-chips">${[['offen', 'Offen'], ['erledigt', 'Erledigt'], ['nicht', 'Nicht möglich'], ['alle', 'Alle']].map(([k, t]) => `<button class="${f === k ? 'an' : ''}" data-anf-filter="${k}">${t} ${u.filter(F[k]).length}</button>`).join('')}</div>
         <button class="gross leicht" data-anf-neu style="margin:8px 0 4px">+ Auftrag ans Lager</button>
         ${l.length ? l.slice(0, 40).map((a) => `<div class="zeile" style="cursor:default"><div style="min-width:0"><b>${anfMenge(a)}</b><small>${[a.fuer ? 'für ' + a.fuer : '', a.an ? 'Lager: ' + a.an : 'Lager: alle', a.lagerort, a.auftrag, a.von ? 'von ' + a.von : '', a.bis ? 'bis ' + dk(a.bis) : '', zeitK(a.erstellt)].filter(Boolean).map(esc).join(' · ')}</small>${bestaetigung(a)}${a.abgeholt_am ? `<small>Abgeholt ${zeitK(a.abgeholt_am)}</small>` : ''}</div>${anfStatus(a)}</div>`).join('') : '<p class="hinweis" style="margin-top:8px">Nichts in dieser Auswahl.</p>'}</div>`;
-    } else if (M.darf_anfordern) html += `<div class="karte"><h2>Auftrag ans Lager</h2><p class="hinweis">Material bereitstellen lassen oder eine Aufgabe ans Lager geben.</p>
+    }
+    if (M.projektleiter && !VORSCHAU && (M.team || []).length > 1) {
+      html += `<div class="karte" id="teamKarte"><h2>Mein Team</h2><p class="hinweis">Tippen Sie auf «Ansicht», um zu sehen, was die Person auf ihrem Handy sieht: Aufträge, Einsätze, Stunden und Mitteilungen. Nur zum Ansehen.</p>
+        ${M.team.filter((t) => t.name !== Z.daten.name).map((t) => `<div class="zeile" style="cursor:default"><div style="min-width:0"><b>${esc(t.name)}</b>${t.lager ? '<small>Lager</small>' : ''}</div><button class="btn-klein" data-team-ansicht="${t.id}" data-name="${esc(t.name)}">Ansicht</button></div>`).join('')}</div>`;
+    }
+    if (M.projektleiter) {} else if (M.darf_anfordern) html += `<div class="karte"><h2>Auftrag ans Lager</h2><p class="hinweis">Material bereitstellen lassen oder eine Aufgabe ans Lager geben.</p>
       <button class="gross leicht" data-anf-neu style="margin-top:10px">+ Auftrag ans Lager</button>
       ${(M.von_mir || []).length ? M.von_mir.slice(0, 6).map((a) => `<div class="zeile" style="cursor:default"><div style="min-width:0"><b>${anfMenge(a)}</b><small>${a.fuer ? 'für ' + esc(a.fuer) : ''}${a.an ? ' · Lager: ' + esc(a.an) : ''}</small>${bestaetigung(a)}</div>${anfStatus(a)}</div>`).join('') : ''}</div>`;
     return html;
   }
+  async function teamAnsicht(id, name) {
+    const { data: vt, error } = await sb.rpc('ze_vorschau_link', { p_token: token, p_ma: id });
+    if (error || !vt) { toast('Die Ansicht ist gerade nicht möglich.'); return; }
+    const dlg = document.createElement('dialog'); dlg.className = 'team-ansicht';
+    dlg.innerHTML = `<div class="ta-kopf"><b>So sieht ${esc(name.split(' ')[0])} die App</b><button type="button" data-ta-zu aria-label="Schliessen">×</button></div><iframe src="?v=${encodeURIComponent(vt)}" title="Ansicht von ${esc(name)}"></iframe>`;
+    document.body.appendChild(dlg); dlg.addEventListener('close', () => dlg.remove());
+    dlg.addEventListener('click', (ev) => { if (ev.target === dlg || ev.target.closest('[data-ta-zu]')) dlg.close(); });
+    dlg.showModal();
+  }
+  document.addEventListener('click', (ev) => { const b = ev.target.closest('[data-team-ansicht]'); if (b) teamAnsicht(b.dataset.teamAnsicht, b.dataset.name || ''); });
   function anfordernFenster() {
     const M = Z.mat; if (!M) return;
     const dlg = document.createElement('dialog'); dlg.className = 'ui-frage';
