@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="../icon-180.png" />
 <link rel="stylesheet" href="../schrift.css" />
 <script src="../konfig.js"></script>
+<script src="../postfach.js"></script>
 <script src="../lib/supabase.js"></script>
 <style>
 :root{--papier:#F4FAF6;--flaeche:#E8F4EE;--karte:#fff;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--blau:#0B3B2E;--elektrik:#0E7A55;--gruen:#0E9F6E;--rot:#E5484D;--linie:color-mix(in srgb,var(--blau,#0B3B2E) 14%,transparent);--schatten:0 1px 2px rgba(12,18,38,.04),0 14px 34px -22px color-mix(in srgb,var(--blau,#0B3B2E) 40%,transparent);--display:'League Spartan',-apple-system,system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace;--unten:env(safe-area-inset-bottom,0px)}
@@ -202,7 +203,17 @@ details>summary.btn{list-style:none;cursor:pointer}details>summary.btn::-webkit-
       ? await sb.auth.signUp({ email: d.email.trim(), password: d.passwort, options: { emailRedirectTo: location.origin + location.pathname, data: { name: d.email.trim(), firma: 'Treuhand', paket: 'kombi', zyklus: 'jahr' } } })
       : await sb.auth.signInWithPassword({ email: d.email.trim(), password: d.passwort });
     if (r.error) { $('meldung').textContent = /Invalid login/i.test(r.error.message) ? 'E-Mail oder Passwort stimmt nicht.' : /not confirmed/i.test(r.error.message) ? 'Bitte zuerst die E-Mail bestätigen.' : r.error.message; return; }
-    if (modus === 'neu' && !r.data.session) { login('✓ Bitte bestätigen Sie Ihre E-Mail über den Link, den wir Ihnen geschickt haben.'); $('meldung').style.color = 'var(--gruen)'; return; }
+    if (modus === 'neu' && !r.data.session) {
+      const em = d.email.trim();
+      $('inhalt').innerHTML = `<div class="card login"><h2>Bitte bestätigen Sie Ihre E-Mail</h2>
+        <p class="hinweis" style="margin-bottom:12px">Wir haben Ihnen eine Bestätigung an <b>${esc(em)}</b> geschickt. Öffnen Sie die E-Mail von Ordasio und tippen Sie auf «E-Mail-Adresse bestätigen». Danach sind Sie angemeldet.</p>
+        <div class="aktionen">${window.OrdasioPostfach ? OrdasioPostfach.knoepfe(em, { haupt: 'btn haupt', zweit: 'btn' }) : ''}</div>
+        <p class="hinweis abstand">Keine E-Mail da? Auch im Spam-Ordner nachsehen. Absender: noreply@ordasio.ch</p>
+        <div class="aktionen abstand"><button class="btn" data-th-nochmals>Bestätigung nochmals senden</button><button class="btn" data-th-login>Zur Anmeldung</button></div><p class="hinweis" id="thMeldung"></p></div>`;
+      document.querySelector('[data-th-login]').onclick = () => login();
+      document.querySelector('[data-th-nochmals]').onclick = async (ev2) => { ev2.target.disabled = true; const x = await sb.auth.resend({ type: 'signup', email: em, options: { emailRedirectTo: location.origin + location.pathname } }); $('thMeldung').textContent = x.error ? 'Bitte eine Minute warten und nochmals versuchen.' : '✓ Neue E-Mail ist unterwegs.'; };
+      return;
+    }
     start();
   });
   document.addEventListener('click', (ev) => {

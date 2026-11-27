@@ -52,6 +52,8 @@
   .lz-modul h2{text-align:center;margin:2px 0 10px}.lz-modul-ic{display:grid;place-items:center;width:58px;height:58px;margin:0 auto 8px;border-radius:18px;background:var(--flaeche,#E8F4EE);font-size:30px}
   .lz-modul ul{margin:10px 0 12px;padding-left:20px;line-height:1.55;font-size:14.5px}.lz-preis{text-align:center;margin:0 0 12px}
   .lz-link{display:block;margin:12px auto 0;background:none;border:0;color:var(--elektrik,#0E7A55);font:inherit;font-size:14px;cursor:pointer}
+  .lz-postfach{display:grid;gap:8px;margin:4px 0 12px}.lz-postfach:empty{display:none}.lz-postfach a{text-decoration:none}
+  .lz-klein{font-size:13px!important;color:#7a8a83!important;margin:0 0 4px!important}
   .lz-hinweis{font-size:13px!important;margin:-4px 0 10px!important;color:#3F5A4F}
   .lz-meldung{min-height:1.3em;font-size:14px;color:#C53030;margin:4px 0 6px}
   .lz-meldung.ok{color:var(--elektrik,#0A7150)}
@@ -67,6 +69,35 @@
   decke.innerHTML = '<div class="lz-karte"><p>Wird geladen …</p></div>';
   // Erst anhängen, wenn die Seite einen <body> hat (lizenz.js steht teils im <head>)
   const anhaengen = (el) => { if (document.body) document.body.appendChild(el); else document.addEventListener('DOMContentLoaded', () => document.body.appendChild(el), { once: true }); };
+  // Postfach-Knöpfe nach der Registrierung
+  try { if (!window.OrdasioPostfach) { const ps = document.createElement('script'); ps.src = new URL('postfach.js', new URL('.', skript.src)).href; document.head.appendChild(ps); } } catch {}
+  let wartetAufBestaetigung = '';
+  function bestaetigenKarte(email, hinweis) {
+    wartetAufBestaetigung = email;
+    const P = window.OrdasioPostfach;
+    zeigen(`${SYMBOL}<h2>Bitte bestätigen Sie Ihre E-Mail</h2>
+      <p>${hinweis ? esc(hinweis) + ' ' : ''}Wir haben Ihnen eine Bestätigung an <b>${esc(email)}</b> geschickt. Öffnen Sie die E-Mail von <b>Ordasio</b> und tippen Sie auf <b>«E-Mail-Adresse bestätigen»</b>. Danach sind Sie automatisch angemeldet.</p>
+      <div class="lz-postfach">${P ? P.knoepfe(email) : ''}</div>
+      <p class="lz-klein">Keine E-Mail da? Schauen Sie auch im Spam- oder Werbung-Ordner nach. Absender: noreply@ordasio.ch</p>
+      <button class="lz-link" data-lz-nochmals>Bestätigung nochmals senden</button>
+      <button class="lz-link" data-lz-weiter>Ich habe bestätigt, weiter</button>
+      <button class="lz-link" data-lz-andere>Andere E-Mail-Adresse verwenden</button>
+      <p class="lz-klein" data-lz-bmeldung></p>`);
+  }
+  document.addEventListener('click', async (e) => {
+    if (!wartetAufBestaetigung) return;
+    const m = document.querySelector('[data-lz-bmeldung]');
+    if (e.target.closest('[data-lz-nochmals]')) {
+      const b = e.target.closest('[data-lz-nochmals]'); b.disabled = true;
+      const r = await sb.auth.resend({ type: 'signup', email: wartetAufBestaetigung, options: { emailRedirectTo: location.origin + location.pathname } });
+      if (m) m.textContent = r.error ? (/rate limit|seconds|security purposes/i.test(r.error.message) ? 'Bitte eine Minute warten und nochmals versuchen.' : r.error.message) : '✓ Neue E-Mail ist unterwegs.';
+      setTimeout(() => { b.disabled = false; }, 30000);
+    } else if (e.target.closest('[data-lz-weiter]')) {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session) location.reload();
+      else { wartetAufBestaetigung = ''; anmelden('anmelden', 'Melden Sie sich jetzt mit E-Mail und Passwort an.'); }
+    } else if (e.target.closest('[data-lz-andere]')) { wartetAufBestaetigung = ''; anmelden('neu'); }
+  });
   const zeigen = (html) => { decke.querySelector('.lz-karte').innerHTML = html; if (!decke.isConnected) anhaengen(decke); };
   const weg = () => decke.remove();
   anhaengen(decke);
@@ -199,7 +230,7 @@
           options: { emailRedirectTo: location.origin + location.pathname, data: { empf: (() => { try { return localStorage.getItem('ordasio.empf') || ''; } catch { return ''; } })(), aktion: (window.OrdasioAktion() || {}).code || '', name: d.name.trim(), firma: (d.firma || '').trim(), paket: d.paket || '', rechtsform: d.rechtsform || 'einzel', branche: d.branche || '', zyklus: 'jahr' } } });
         try { if (d.branche) localStorage.setItem('ordasio.branche', d.branche); } catch {}
         if (error) throw error;
-        if (!data.session) { anmelden('anmelden', '✓ Fast geschafft: Bitte bestätigen Sie Ihre E-Mail über den Link, den wir Ihnen gerade geschickt haben.'); return; }
+        if (!data.session) { bestaetigenKarte(d.email.trim(), 'Fast geschafft!'); return; }
         location.reload();
       } else if (f.dataset.lzForm === 'mfa') {
         const { data: fa } = await sb.auth.mfa.listFactors();
@@ -221,12 +252,7 @@
       const t = String(fehler.message || fehler);
       m.textContent = /Invalid login/i.test(t) ? 'E-Mail oder Passwort stimmt nicht.' : /not confirmed/i.test(t) ? 'Bitte zuerst die E-Mail bestätigen (Link in Ihrem Postfach).'
         : /already registered/i.test(t) ? 'Mit dieser E-Mail gibt es schon ein Konto. Bitte anmelden.' : /rate limit/i.test(t) ? 'Bitte ein paar Minuten warten und nochmals versuchen.' : t;
-      if (/not confirmed/i.test(t) && d.email) {
-        const b = document.createElement('button'); b.type = 'button'; b.className = 'lz-link'; b.textContent = 'Bestätigungslink nochmals senden';
-        b.onclick = async () => { b.disabled = true; const r = await sb.auth.resend({ type: 'signup', email: d.email.trim(), options: { emailRedirectTo: location.origin + location.pathname } });
-          m.textContent = r.error ? (/rate limit|seconds/i.test(r.error.message) ? 'Bitte eine Minute warten und nochmals versuchen.' : r.error.message) : 'Neuer Link ist unterwegs. Bitte im Postfach (auch im Spam-Ordner) nachsehen.'; };
-        m.append(' ', b);
-      }
+      if (/not confirmed/i.test(t) && d.email) { bestaetigenKarte(d.email.trim(), 'Ihre E-Mail ist noch nicht bestätigt.'); return; }
     } finally { knopf.disabled = false; }
   });
 
@@ -329,6 +355,7 @@
   sb.auth.onAuthStateChange((ereignis) => {
     if (ereignis === 'PASSWORD_RECOVERY') zeigen(`${SYMBOL}<h2>Neues Passwort</h2><form data-lz-form="passwort"><label>Neues Passwort (mindestens 8 Zeichen)<input name="passwort" type="password" minlength="8" autocomplete="new-password" required></label><p class="lz-meldung" data-lz-meldung></p><button class="lz-knopf">Speichern</button></form>`);
     if (ereignis === 'SIGNED_OUT') location.reload();
+    if (ereignis === 'SIGNED_IN' && wartetAufBestaetigung) location.reload();
   });
   window.NasuviaLizenz = { pruefen, abmelden: async () => { demoAus(); await sb.auth.signOut({ scope: 'local' }); location.reload(); } };
   const keineVerbindung = () => sperre('Keine Verbindung', 'Bitte prüfen Sie Ihre Internetverbindung und laden Sie die Seite neu.', false);
