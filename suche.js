@@ -318,6 +318,17 @@
     ['tastenkuerzel', 'Allgemein', 'Tastenkürzel am Computer', 'tastenkürzel tastatur shortcut kürzel taste schnell', [
       'N: Neu erstellen · / oder Ctrl/⌘ K: Suchen · ?: alle Kürzel anzeigen.',
       'G und dann ein Buchstabe wechselt den Bereich: G B Buchhaltung, G R Rechnungen, G Z Zeiterfassung, G T Termine, G S Start.'], WURZEL + 'start/'],
+    ['einstellungen', 'Einstellungen', 'Einstellungen: Konto, Sicherheit, Darstellung, Daten', 'einstellungen konto profil passwort zwei faktor sicherheit darstellung farbe abmelden version', [
+      'Menü oben rechts, «Einstellungen».',
+      'Oben wählen Sie den Bereich: Profil, Sicherheit, Darstellung, Benachrichtigungen, Lizenz, Daten, Hilfe.'], WURZEL + 'konto/'],
+    ['konto-loeschen', 'Einstellungen', 'Konto löschen oder alle Daten löschen', 'konto löschen account löschen kündigen daten löschen datenschutz entfernen abmelden sicherung', [
+      'Einstellungen, ganz unten «Ihre Daten».',
+      '«Alle Daten löschen»: Daten weg, Konto und Lizenz bleiben.',
+      '«Konto löschen»: Konto, Lizenz und alle Daten endgültig. Vorher eine Sicherung herunterladen.'], WURZEL + 'konto/#daten'],
+    ['hb-steuer', 'Home-Büro', 'Steuererklärung vorbereiten (Assistent)', 'steuererklärung steuern assistent lohnausweis abzüge kanton frist einreichen etax vermögen', [
+      'Home-Büro, Planen, «Steuererklärung».',
+      'Kanton und Frist wählen, Lohnausweis fotografieren, Abzüge und Vermögen prüfen.',
+      'Am Schluss die Ausfüllhilfe mit Belegen als PDF und der Link zum Portal Ihres Kantons.'], WURZEL + 'privat/?tab=steuererklaerung'],
     ['hb-jahr', 'Home-Büro', 'Mein Jahr: verdient, ausgegeben, Monate, Zahlungen suchen', 'jahr verdient ausgegeben monate monat übersicht private buchhaltung zahlung suchen coop migros kontoauszug sparquote', [
       'Home-Büro, Geld, „Mein Jahr“: Verdient, Ausgegeben, Übrig und jeder Monat einzeln.',
       'Oben im Suchfeld z. B. „coop“ eingeben: alle Coop-Zahlungen mit Total, Durchschnitt und pro Monat. Auch als Excel.',

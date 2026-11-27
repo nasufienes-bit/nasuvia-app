@@ -1269,6 +1269,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   });
   Object.assign(window.HomeBuero = window.HomeBuero || {}, { ABZUG, daten: D, abosFinden, sichern, zeichnen, toast, esc, chf, dk, heute, tageBis, betragLesen, neueId, katName, katFarbe, KAT, bildKlein, wegwerfen, listeVon, listeSetzen, ORT, restBetrag, ring, zeitWahl, imZeitraum, auszugLaden, setzeAnsicht: (a) => { ansicht = a; try { localStorage.setItem('homebuero.ansicht', a); } catch {} zeichnen(); window.scrollTo(0, 0); } });
   zeichnen();
+  // Aus den Einstellungen: «Sicherung herunterladen»
+  if (new URLSearchParams(location.search).get('aktion') === 'sicherung') setTimeout(sicherung, 600);
   bezahltAusErinnerung();
   if (window.NASUVIA_KONFIG && NASUVIA_KONFIG.produkt) setTimeout(erLaden, 1200);
 })();

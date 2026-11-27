@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="../icon-180.png" />
 <script src="../stabil.js"></script>
 <link rel="icon" type="image/png" href="../favicon.png" />
-<title>Mein Konto · Ordasio</title>
+<title>Einstellungen · Ordasio</title>
 <meta name="theme-color" content="#F4FAF6" />
 <link rel="stylesheet" href="../schrift.css" />
 <script src="../konfig.js"></script>
@@ -57,20 +57,31 @@ input:focus{outline:0;border-color:var(--elektrik)}
 .empf-karte p,.empf-karte h2{color:#fff}.empf-karte .code{background:rgba(255,255,255,.12);color:#fff}.empf-karte .zahlen div{background:rgba(255,255,255,.1)}.empf-karte .zahlen b,.empf-karte .zahlen span{color:#fff}
 .empf-karte input{background:rgba(255,255,255,.95)}.empf-karte .btn{background:#fff;color:var(--blau)}.empf-karte .btn.haupt{background:linear-gradient(135deg,#F59E0B,#EA580C);color:#fff}
 @media (max-width:560px){.karte{padding:16px;border-radius:18px}.link-feld{flex-direction:column}}
+h2 .ic svg,.zeile .ic svg{width:19px;height:19px;fill:none;stroke:var(--blau);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.empf-karte h2 .ic svg{stroke:#fff}
+.einst-nav{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:14px 0 0;padding:6px 0;position:sticky;top:0;z-index:30;background:var(--papier)}.einst-nav::-webkit-scrollbar{display:none}
+.einst-nav a{flex:none;text-decoration:none;font-size:14px;font-weight:600;color:var(--blau);background:#fff;border:1px solid var(--linie);border-radius:100px;padding:7px 13px}
+.karte{scroll-margin-top:130px}
+.gefahr-zeile b{color:var(--rot)}
+.btn.gefahr{background:#FDECEC}
+.ld-feld{display:grid;gap:6px;margin:10px 0}.ld-feld input{width:100%}
+@media (max-width:560px){.einst-nav{margin:10px -18px 0;padding:6px 18px}}
+
 </style>
 </head>
 <body>
 <header class="kopfzeile"><div class="wrap"><span class="kopf-links" style="display:flex;align-items:center;gap:10px"></span></div></header>
 <main class="wrap">
-  <h1>Mein Konto</h1>
-  <p class="unter" id="unter">Anmeldung, Sicherheit, Ihre Firmen und Empfehlungen.</p>
+  <h1>Einstellungen</h1>
+  <p class="unter" id="unter">Konto, Sicherheit, Darstellung, Lizenz und Ihre Daten.</p>
+  <nav class="einst-nav" aria-label="Bereiche der Einstellungen"><a href="#profil-k">Profil</a><a href="#sicherheit">Sicherheit</a><a href="#darstellung">Darstellung</a><a href="#briefing">Benachrichtigungen</a><a href="#lizenz-k">Lizenz</a><a href="#firmenKarte" data-nur-firma>Firmen</a><a href="#empfehlen" data-nur-firma>Empfehlen</a><a href="#daten">Daten</a><a href="#hilfe-k">Hilfe</a></nav>
 
   <div class="raster">
-    <section class="karte">
-      <h2><span class="ic">👤</span>Persönliche Angaben</h2>
+    <section class="karte" id="profil-k">
+      <h2><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>Persönliche Angaben</h2>
       <form id="profil" class="felder" style="gap:10px">
         <label>Vor- und Nachname<input name="name" autocomplete="name"></label>
-        <label>Firma<input name="firma" autocomplete="organization"></label>
+        <label data-nur-firma>Firma<input name="firma" autocomplete="organization"></label>
         <label>Telefon<input name="telefon" type="tel" autocomplete="tel"></label>
         <label>E-Mail<input name="email" type="email" autocomplete="email"></label>
       </form>
@@ -78,8 +89,8 @@ input:focus{outline:0;border-color:var(--elektrik)}
       <div class="knoepfe"><button class="btn haupt" id="profilSpeichern">Speichern</button></div>
     </section>
 
-    <section class="karte">
-      <h2><span class="ic">🔐</span>Anmeldung und Sicherheit</h2>
+    <section class="karte" id="sicherheit">
+      <h2><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>Anmeldung und Sicherheit</h2>
       <div id="wege"></div>
       <div class="zeile" id="mfaZeile"><span class="ic">2F</span><span class="txt"><b>Zwei-Faktor-Schutz</b><small id="mfaText">Wird geladen …</small></span><span id="mfaKnopf"></span></div>
       <div id="mfaEinrichten" hidden>
@@ -90,11 +101,11 @@ input:focus{outline:0;border-color:var(--elektrik)}
         <p class="meldung" id="mfaMeldung"></p>
         <div class="knoepfe"><button class="btn haupt" id="mfaBestaetigen">Aktivieren</button><button class="btn" id="mfaAbbrechen">Abbrechen</button></div>
       </div>
-      <div class="zeile"><span class="ic">🔑</span><span class="txt"><b>Passwort</b><small>Neues Passwort festlegen</small></span><button class="btn klein" id="passwortAendern">Ändern</button></div>
+      <div class="zeile"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 9.2-9.2M16 7l3 3M19 4l2 2"/></svg></span><span class="txt"><b>Passwort</b><small>Neues Passwort festlegen</small></span><button class="btn klein" id="passwortAendern">Ändern</button></div>
     </section>
 
-    <section class="karte" id="firmenKarte">
-      <h2><span class="ic">🏢</span>Firmen</h2>
+    <section class="karte" id="firmenKarte" data-nur-firma>
+      <h2><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg></span>Firmen</h2>
       <p id="firmenText">Für Buchhalter und Treuhänder: Legen Sie für jede Firma, die Sie betreuen, eine eigene Buchhaltung an. Sie wechseln mit einem Klick, ohne neues Passwort. Die Daten jeder Firma bleiben strikt getrennt.</p>
       <div id="firmen"></div>
       <div class="knoepfe" id="firmenKnoepfe"><button class="btn haupt" id="firmaNeu">+ Firma hinzufügen</button></div>
@@ -110,21 +121,27 @@ input:focus{outline:0;border-color:var(--elektrik)}
       </details>
     </section>
 
-    <section class="karte">
-      <h2><span class="ic">☀️</span>Briefing und Erinnerungen</h2>
+    <section class="karte" id="darstellung">
+      <h2><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4A5.6 5.6 0 0 0 22 10c0-4.4-4.5-8-10-8z"/></svg></span>Darstellung</h2>
+      <p>Farbe, Hintergrund, Kopfzeile und Schriftgrösse. Gilt für alle Bereiche auf diesem Gerät, Ordi und Symbole passen sich an.</p>
+      <div class="zeile"><span class="ic" id="farbPunkt" style="background:var(--elektrik)"></span><span class="txt"><b id="farbName">Tanne</b><small>Aktuelle Farbe</small></span><button class="btn klein" data-ui-darstellung>Ändern</button></div>
+    </section>
+
+    <section class="karte" id="briefing">
+      <h2><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>Briefing und Erinnerungen</h2>
       <p>Die wichtigsten Punkte auf einen Blick: Kontostand, überfällige Rechnungen, MWST-Frist, Abwesenheiten im Team. Auf der Startseite und als Termin aufs Handy. Sie wählen, was und wann.</p>
       <div class="knoepfe"><button class="btn haupt" data-br-einst>Briefing einstellen</button><button class="btn" data-nv-erinnerung>Kalender aufs Handy</button></div>
     </section>
 
-    <section class="karte">
-      <h2><span class="ic">📦</span>Lizenz und Zusatzpakete</h2>
+    <section class="karte" id="lizenz-k">
+      <h2><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5"/><path d="M12 12v10"/></svg></span>Lizenz und Zusatzpakete</h2>
       <div id="lizenzKurz"><p>Wird geladen …</p></div>
       <div class="knoepfe"><a class="btn haupt" href="../lizenz/#zusatzpakete">Zusatzpakete ansehen</a><a class="btn" href="../lizenz/">Lizenz verwalten</a></div>
-      <div class="zeile" style="border-top:1px solid var(--linie);margin-top:4px"><span class="ic">🤝</span><span class="txt"><b>Fair-Abo</b><small id="fairText">Keine automatische Verlängerung, kündbar per Knopfdruck</small></span><button class="btn klein" id="kuendigen">Kündigen</button></div>
+      <div class="zeile" style="border-top:1px solid var(--linie);margin-top:4px"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span class="txt"><b>Fair-Abo</b><small id="fairText">Keine automatische Verlängerung, kündbar per Knopfdruck</small></span><button class="btn klein" id="kuendigen">Kündigen</button></div>
     </section>
 
-    <section class="karte breit empf-karte" id="empfehlen">
-      <h2><span class="ic" style="background:rgba(255,255,255,.14)">🎁</span>Empfehlen und belohnt werden</h2>
+    <section class="karte breit empf-karte" id="empfehlen" data-nur-firma>
+      <h2><span class="ic" style="background:rgba(255,255,255,.14)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18"/><path d="M12 8S10 3 7.5 3a2.5 2.5 0 0 0 0 5M12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg></span>Empfehlen und belohnt werden</h2>
       <p>Geben Sie Ihren Link an andere Firmen weiter. Sobald eine Firma Ordasio bezahlt, erhalten <b>Sie und die neue Firma je einen Monat gratis</b>. Ohne Grenze: zwölf Empfehlungen sind ein Jahr gratis.</p>
       <div class="raster" style="margin-top:4px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))">
         <div style="display:grid;gap:10px">
@@ -139,9 +156,25 @@ input:focus{outline:0;border-color:var(--elektrik)}
       </div>
     </section>
 
-    <section class="karte breit" style="flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between">
-      <div><b>Angemeldet als</b> <span id="wer">…</span></div>
-      <div class="knoepfe"><a class="btn" href="../lizenz/">Daten herunterladen oder löschen</a><button class="btn gefahr" id="abmelden">Abmelden</button></div>
+    <section class="karte breit" id="daten">
+      <h2><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span>Ihre Daten</h2>
+      <p>Ihre Daten liegen verschlüsselt in Zürich und gehören Ihnen. Sie können sie jederzeit herunterladen oder löschen.</p>
+      <div class="zeile"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></span><span class="txt"><b>Sicherung herunterladen</b><small>Alle Daten als Datei, auch ohne gültige Lizenz</small></span><a class="btn klein" id="sicherungLink" href="../?ansicht=mehr">Herunterladen</a></div>
+      <div class="zeile"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 15h10l1-15"/></svg></span><span class="txt"><b>Alle Daten löschen</b><small>Konto und Lizenz bleiben, Sie beginnen neu</small></span><button class="btn klein gefahr" id="datenLoeschen">Löschen …</button></div>
+      <div class="zeile gefahr-zeile"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 13-6.2"/><path d="m17 17 4 4M21 17l-4 4"/></svg></span><span class="txt"><b>Konto löschen</b><small>Konto, Lizenz und alle Daten endgültig entfernen</small></span><button class="btn klein gefahr" id="kontoLoeschen">Konto löschen …</button></div>
+    </section>
+
+    <section class="karte" id="hilfe-k">
+      <h2><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"/><path d="M12 17h.01"/></svg></span>Hilfe und Kontakt</h2>
+      <div class="zeile"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/></svg></span><span class="txt"><b>Anleitung</b><small>Schritt für Schritt, mit Suche</small></span><a class="btn klein" href="../hilfe/">Öffnen</a></div>
+      <div class="zeile"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span><span class="txt"><b>Support</b><small>support@ordasio.ch</small></span><a class="btn klein" href="mailto:support@ordasio.ch?subject=Frage%20zu%20Ordasio">Schreiben</a></div>
+      <div class="zeile"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4"/></svg></span><span class="txt"><b>Version</b><small id="version">–</small></span><button class="btn klein" id="aktualisieren">Neu laden</button></div>
+    </section>
+
+    <section class="karte">
+      <h2><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg></span>Abmelden</h2>
+      <p>Angemeldet als <b id="wer">…</b></p>
+      <div class="knoepfe"><button class="btn gefahr" id="abmelden">Abmelden</button></div>
     </section>
   </div>
 </main>
@@ -374,7 +407,86 @@ input:focus{outline:0;border-color:var(--elektrik)}
   $('abmelden').onclick = async function(){ try { sessionStorage.setItem('nk.ohneDemo', '1'); } catch (e) {} if (window.NasuviaLizenz) NasuviaLizenz.abmelden(); };
 
   if (window.NASUVIA_LIZENZ) laden(window.NASUVIA_LIZENZ);
-  document.addEventListener('ordasio-lizenz', function(e){ laden(e.detail); });
+  /* ---------- Einstellungen: Privat, Darstellung, Version ---------- */
+  function privatAnpassen(){
+    var privat = lizenz && (lizenz.paket === 'privat' || lizenz.rechtsform === 'privat');
+    document.querySelectorAll('[data-nur-firma]').forEach(function(x){ x.hidden = !!privat; });
+    $('sicherungLink').href = privat ? '../privat/?aktion=sicherung' : '../?ansicht=mehr';
+  }
+  var AKZ = { tanne: 'Tanne', smaragd: 'Smaragd', petrol: 'Petrol', ozean: 'Ozean', nachtblau: 'Nachtblau', indigo: 'Indigo', aubergine: 'Aubergine', beere: 'Beere', bordeaux: 'Bordeaux', rubin: 'Rubin', koralle: 'Koralle', terrakotta: 'Terrakotta', gold: 'Gold', graphit: 'Graphit', eigen: 'Eigene Farbe' };
+  function farbeZeigen(){ var d = {}; try { d = JSON.parse(localStorage.getItem('ordasio.darstellung') || '{}'); } catch (e) {} $('farbName').textContent = AKZ[d.akzent] || 'Tanne'; }
+  farbeZeigen();
+  document.addEventListener('click', function(e){ if (e.target.closest('[data-ui-darstellung]') && window.UI && UI.darstellung) UI.darstellung(); });
+  document.addEventListener('close', function(){ setTimeout(farbeZeigen, 50); }, true);
+  (window.caches ? caches.keys() : Promise.resolve([])).then(function(k){ var n = (k || []).filter(function(x){ return /app-\d+/.test(x); })[0]; var m = n && n.match(/app-(\d+)/); $('version').textContent = m ? 'Stand ' + new Date(Number(m[1]) * 1000).toLocaleString('de-CH', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'aktuell'; });
+  $('aktualisieren').onclick = async function(){ try { var r = await navigator.serviceWorker.getRegistration(); if (r) await r.update(); } catch (e) {} location.reload(); };
+  // Leiste mit den Bereichen bleibt unter der Kopfzeile stehen
+  setTimeout(function(){ var k = document.querySelector('header.kopfzeile'); var n = document.querySelector('.einst-nav'); if (k && n && getComputedStyle(k).position === 'sticky') n.style.top = k.offsetHeight + 'px'; }, 400);
+
+  /* ---------- Daten löschen ---------- */
+  async function ordnerLeeren(bucket, pfad, tiefe){
+    var r = await sb.storage.from(bucket).list(pfad, { limit: 1000 }); var dateien = [], ordner = [];
+    (r.data || []).forEach(function(x){ if (x.id) dateien.push(pfad + '/' + x.name); else ordner.push(pfad + '/' + x.name); });
+    if (dateien.length) await sb.storage.from(bucket).remove(dateien);
+    if (tiefe > 0) for (var i = 0; i < ordner.length; i++) await ordnerLeeren(bucket, ordner[i], tiefe - 1);
+  }
+  function geraetLeeren(auchAnmeldung){
+    Object.keys(localStorage).forEach(function(k){ if (/^(nasuvia\.|homebuero|nb\.|ordasio|ze\.|nr\.|hb\.)/.test(k) && (auchAnmeldung || k !== K.speicher)) localStorage.removeItem(k); });
+    if (auchAnmeldung) try { localStorage.removeItem(K.speicher); sessionStorage.clear(); } catch (e) {}
+    ['nasuvia-buchhaltung', 'nasuvia-rechnungen', 'homebuero-dateien'].forEach(function(n){ try { indexedDB.deleteDatabase(n); } catch (e) {} });
+  }
+  $('datenLoeschen').onclick = async function(){
+    if (!user) return;
+    if (!await UI.frage('Wirklich ALLE Ihre Daten löschen? Rechnungen, Buchungen, Belege, Mitarbeiter, Aufträge, Fotos, Termine, Lager und Home-Büro, auf diesem Gerät und auf dem Server.\n\nIhr Konto und Ihre Lizenz bleiben. Das lässt sich nicht rückgängig machen.')) return;
+    var ok = await UI.eingabe('Zur Sicherheit: Bitte LÖSCHEN in Grossbuchstaben eingeben.');
+    if (ok !== 'LÖSCHEN') { await UI.hinweis('Nichts gelöscht.'); return; }
+    var b = this; b.disabled = true; b.textContent = 'Wird gelöscht …';
+    try {
+      for (var o of [['belege', 2], ['auftrag-fotos', 2], ['ablage', 1], ['bewerbungen', 2]]) await ordnerLeeren(o[0], user.id, o[1]);
+      var links = await sb.from('rg_links').select('token');
+      if (links.data && links.data.length) await sb.storage.from('rechnung-links').remove(links.data.map(function(x){ return x.token + '.pdf'; }));
+      var r = await sb.rpc('konto_daten_loeschen', { p_bestaetigung: 'LÖSCHEN' }); if (r.error) throw r.error;
+      geraetLeeren(false);
+      await UI.hinweis('Alle Ihre Daten sind gelöscht. Sie können jederzeit neu beginnen.');
+      location.href = '../start/';
+    } catch (f) { await UI.hinweis('Das hat nicht ganz geklappt: ' + (f.message || f)); b.disabled = false; b.textContent = 'Löschen …'; }
+  };
+
+  /* ---------- Konto löschen ---------- */
+  $('kontoLoeschen').onclick = function(){
+    if (!user) return;
+    var d = document.createElement('dialog'); d.className = 'ui-frage';
+    d.innerHTML = '<form method="dialog"><h3>Konto endgültig löschen</h3>' +
+      '<p>Damit werden gelöscht: Ihr Konto und die Anmeldung, die Lizenz und alle Zusatzpakete, alle Daten und Dateien auf dem Server' + (lizenz && lizenz.paket !== 'privat' ? ', sowie Firmen, die Sie in Ordasio angelegt haben' : '') + '. Eine bezahlte Lizenz wird nicht zurückerstattet.</p>' +
+      '<p><b>Das lässt sich nicht rückgängig machen.</b> Laden Sie vorher eine Sicherung herunter, falls Sie die Daten noch brauchen. Rechnungen und Buchungen müssen Firmen in der Schweiz 10 Jahre aufbewahren.</p>' +
+      '<label class="ld-feld">Ihre E-Mail zur Bestätigung<input name="email" type="email" autocomplete="off" placeholder="' + esc(user.email) + '"></label>' +
+      '<label class="ld-feld">Bitte LÖSCHEN eingeben<input name="wort" autocomplete="off" placeholder="LÖSCHEN"></label>' +
+      '<p class="meldung" data-ld-meldung></p>' +
+      '<div class="knoepfe" style="justify-content:flex-end"><button type="button" class="btn" data-ld-zu>Abbrechen</button><button type="submit" class="btn gefahr" data-ld-ja>Endgültig löschen</button></div></form>';
+    document.body.appendChild(d); d.showModal();
+    var f = d.querySelector('form'), m = d.querySelector('[data-ld-meldung]');
+    d.querySelector('[data-ld-zu]').onclick = function(){ d.close(); d.remove(); };
+    f.onsubmit = async function(e){
+      e.preventDefault();
+      if (f.email.value.trim().toLowerCase() !== String(user.email || '').toLowerCase()) { m.textContent = 'Die E-Mail stimmt nicht mit Ihrem Konto überein.'; return; }
+      if (f.wort.value.trim() !== 'LÖSCHEN') { m.textContent = 'Bitte LÖSCHEN in Grossbuchstaben eingeben.'; return; }
+      var b = d.querySelector('[data-ld-ja]'); b.disabled = true; b.textContent = 'Wird gelöscht …'; m.textContent = '';
+      try {
+        var s = (await sb.auth.getSession()).data.session;
+        var r = await fetch(K.url + '/functions/v1/konto-loeschen', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (s && s.access_token), apikey: K.key }, body: JSON.stringify({ bestaetigung: 'LÖSCHEN', email: f.email.value.trim() }) });
+        var j = await r.json().catch(function(){ return {}; });
+        if (!r.ok || !j.ok) throw new Error(j.fehler || 'Das Löschen hat nicht geklappt.');
+        d.close(); d.remove();
+        geraetLeeren(false);
+        await UI.hinweis('Ihr Konto ist gelöscht. Danke, dass Sie Ordasio genutzt haben.');
+        geraetLeeren(true);
+        try { await sb.auth.signOut({ scope: 'local' }); } catch (x) {}
+        location.href = '../';
+      } catch (x) { m.textContent = x.message || String(x); b.disabled = false; b.textContent = 'Endgültig löschen'; }
+    };
+  };
+
+  document.addEventListener('ordasio-lizenz', function(e){ laden(e.detail); privatAnpassen(); });
 })();
 </script>
 </body>
