@@ -96,7 +96,9 @@
     .tp-steuer::before{content:"Tipp";margin-right:auto;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--elektrik,#0E7A55)}
     .tp-text small{display:none}
     .tp-karte{align-items:start}}
-  @media print{.tp-leiste{display:none}}`;
+  @media print{.tp-leiste{display:none}}
+  /* Solange ein Bereich noch leer ist, erklärt die Willkommens-Karte alles: dann keine Tipps darüber */
+  body:has(.start) .tp-leiste{display:none}`;
   document.head.appendChild(css);
   function bauen() {
     const l = TIPPS[hier]; if (!l) return null;
