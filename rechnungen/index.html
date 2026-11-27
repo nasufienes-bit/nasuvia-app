@@ -427,6 +427,33 @@ body.server .archiv-card { display: flex; }
 .sheet.layout-minimal h2.titel .dot { display: none; }
 .sheet.layout-minimal .sender, .sheet.layout-minimal td.pos { color: var(--text, #3F5A4F); }
 .seg.drei button { flex: 1; }
+.seg.seg-dok { display: grid; grid-template-columns: repeat(6, 1fr); }
+.seg.seg-dok button { min-width: 0; padding: 7px 4px; grid-column: span 2; }
+.seg.seg-dok button:nth-child(n+4) { grid-column: span 3; }
+.sheet.ohne-preise table th:nth-child(4), .sheet.ohne-preise table th:nth-child(5),
+.sheet.ohne-preise table td:nth-child(4), .sheet.ohne-preise table td:nth-child(5),
+.sheet.ohne-preise .totals, .sheet.ohne-preise .notice, .sheet.ohne-preise .skonto { display: none; }
+.sheet .quittung { display: none; margin-top: 12mm; font-size: 8.5pt; color: var(--tinte); }
+.sheet.ohne-preise .quittung { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; }
+.sheet .quittung span { border-top: 0.5pt solid var(--tinte); padding-top: 1.5mm; }
+.artikel-wahl { position: absolute; z-index: 30; left: 0; right: 0; top: 100%; margin-top: 4px; background: var(--karte, #fff); border: 1px solid var(--linie, #E3E6EF); border-radius: 10px; box-shadow: 0 10px 30px rgba(12,18,38,.14); max-height: 240px; overflow: auto; }
+.artikel-wahl button { display: flex; justify-content: space-between; gap: 10px; width: 100%; padding: 9px 12px; border: 0; background: none; text-align: left; font: inherit; font-size: 14px; cursor: pointer; color: var(--text); }
+.artikel-wahl button:hover, .artikel-wahl button.aktiv { background: color-mix(in srgb, var(--blau, #0B3B2E) 7%, transparent); }
+.artikel-wahl small { color: var(--leise); white-space: nowrap; }
+.pos-row { position: relative; }
+.pos-titel { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.pos-titel h2 { margin-bottom: 0; }
+.artikel-dlg { width: min(640px, calc(100vw - 24px)); border: 0; border-radius: 16px; padding: 0; }
+.artikel-form { padding: 20px; display: grid; gap: 10px; }
+.artikel-form h3 { margin: 0; }
+.artikel-kopf, .artikel-zeile { display: grid; grid-template-columns: minmax(0, 1fr) 90px 90px 34px; gap: 6px; align-items: center; }
+.artikel-kopf span { font-size: 11px; color: var(--leise); text-transform: uppercase; letter-spacing: .05em; }
+.artikel-liste { display: grid; gap: 6px; max-height: 50vh; overflow: auto; }
+.artikel-zeile input { width: 100%; box-sizing: border-box; padding: 8px 9px; }
+.artikel-aktionen, .artikel-fuss { display: flex; gap: 8px; flex-wrap: wrap; }
+.artikel-fuss { justify-content: flex-end; margin-top: 6px; }
+.btn-haupt-klein { border: 0; border-radius: 9px; padding: 8px 16px; background: var(--blau, #0B3B2E); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+@media (max-width: 520px) { .artikel-kopf, .artikel-zeile { grid-template-columns: minmax(0, 1fr) 72px 60px 30px; } }
 .dok-hint { background: rgba(229,72,77,.08); color: #9B2C2F; border-radius: 10px; padding: 9px 11px; font-size: 13px; margin: 0 0 10px; display: flex; gap: 8px; align-items: center; justify-content: space-between; }
 .dok-hint.info { background: color-mix(in srgb,var(--elektrik,#0E7A55) 8%,transparent); color: var(--blau); }
 .marke-art { background: color-mix(in srgb,var(--elektrik,#0E7A55) 10%,transparent); color: var(--blau); }
@@ -691,9 +718,11 @@ body.nv-mit-kopf .preview { min-height: calc(100vh - 64px); }
     <!-- Rechnung -->
     <section class="card">
       <h2 id="dokKarte">Rechnung</h2>
-      <div class="seg drei" id="dokArt" role="group" aria-label="Dokumentart" style="margin-bottom:10px">
+      <div class="seg drei seg-dok" id="dokArt" role="group" aria-label="Dokumentart" style="margin-bottom:10px">
         <button type="button" data-art="rechnung" aria-pressed="true">Rechnung</button>
         <button type="button" data-art="offerte" aria-pressed="false">Offerte</button>
+        <button type="button" data-art="auftrag" aria-pressed="false">Auftrag</button>
+        <button type="button" data-art="lieferschein" aria-pressed="false">Lieferschein</button>
         <button type="button" data-art="gutschrift" aria-pressed="false">Gutschrift</button>
       </div>
       <div class="dok-hint" id="dokHint" hidden><span id="dokHintText"></span><button type="button" class="mini-btn" id="dokHintZu">Zur Rechnung</button></div>
@@ -732,7 +761,7 @@ Herzlichen Dank für das entgegengebrachte Vertrauen. Wir stellen Ihnen folgende
 
     <!-- Positionen -->
     <section class="card">
-      <h2>Positionen</h2>
+      <div class="pos-titel"><h2>Positionen</h2><button type="button" class="mini-btn" id="btnArtikel">Artikel</button></div>
       <div class="pos-head"><span>Bezeichnung</span><span>Menge</span><span>Preis</span><span></span></div>
       <div id="posList"></div>
       <button type="button" class="add-btn" id="posAdd">
@@ -947,6 +976,7 @@ Herzlichen Dank für das entgegengebrachte Vertrauen. Wir stellen Ihnen folgende
           </div>
           <p class="skonto" id="vSkonto"></p>
           <p class="schluss" id="vSchluss"></p>
+          <div class="quittung"><span>Ware erhalten: Datum</span><span>Unterschrift</span></div>
         </div>
 
         <div class="foot" id="vFuss">
@@ -1295,6 +1325,8 @@ const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
   const DOK = {
     rechnung: { titel: 'Rechnung', nr: 'RECHNUNG NR.', datum: 'RECHNUNGSDATUM', faellig: 'ZAHLBAR BIS', total: 'RECHNUNGSBETRAG', summe: 'Rechnungsbetrag', frist: 'Zahlbar in', faelligLbl: 'Fällig am', zahlteil: true },
     offerte: { titel: 'Offerte', nr: 'OFFERTE NR.', datum: 'DATUM', faellig: 'GÜLTIG BIS', total: 'OFFERTBETRAG', summe: 'Offertbetrag', frist: 'Gültig', faelligLbl: 'Gültig bis', zahlteil: false },
+    auftrag: { titel: 'Auftragsbestätigung', nr: 'AUFTRAG NR.', datum: 'DATUM', faellig: 'AUSFÜHRUNG BIS', total: 'AUFTRAGSSUMME', summe: 'Auftragssumme', frist: 'Ausführung in', faelligLbl: 'Ausführung bis', zahlteil: false },
+    lieferschein: { titel: 'Lieferschein', nr: 'LIEFERSCHEIN NR.', datum: 'DATUM', faellig: 'GELIEFERT AM', total: 'TOTAL', summe: 'Warenwert', frist: 'Lieferung', faelligLbl: 'Geliefert am', zahlteil: false, ohnePreise: true },
     gutschrift: { titel: 'Gutschrift', nr: 'GUTSCHRIFT NR.', datum: 'DATUM', faellig: 'ZU RECHNUNG', total: 'GUTSCHRIFT', summe: 'Gutschrift', frist: 'Frist', faelligLbl: 'Fällig am', zahlteil: false },
     mahnung: { titel: 'Mahnung', nr: 'RECHNUNG NR.', datum: 'MAHNDATUM', faellig: 'NEU ZAHLBAR BIS', total: 'OFFENER BETRAG', summe: 'Offener Betrag', frist: 'Zahlbar in', faelligLbl: 'Neu fällig am', zahlteil: true },
   };
@@ -1307,6 +1339,8 @@ const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
   const STD_TEXTE = {
     rechnung: { intro: 'Sehr geehrte Damen und Herren\nHerzlichen Dank für das entgegengebrachte Vertrauen. Wir stellen Ihnen folgende Leistungen in Rechnung:', schluss: '' },
     offerte: { intro: 'Sehr geehrte Damen und Herren\nBesten Dank für Ihre Anfrage. Gerne offerieren wir Ihnen folgende Leistungen:', schluss: 'Wir freuen uns auf Ihren Auftrag. Für Fragen sind wir gerne für Sie da.' },
+    auftrag: { intro: 'Sehr geehrte Damen und Herren\nBesten Dank für Ihren Auftrag. Gerne bestätigen wir Ihnen folgende Leistungen:', schluss: 'Wir freuen uns auf die Zusammenarbeit. Bitte melden Sie sich, falls etwas nicht stimmt.' },
+    lieferschein: { intro: 'Sehr geehrte Damen und Herren\nWir liefern Ihnen folgende Positionen:', schluss: 'Bitte prüfen Sie die Lieferung und bestätigen Sie den Erhalt mit Ihrer Unterschrift.' },
     gutschrift: { intro: 'Sehr geehrte Damen und Herren\nWir schreiben Ihnen folgende Beträge gut:', schluss: 'Den Betrag verrechnen wir mit Ihrer nächsten Rechnung oder überweisen ihn auf Ihr Konto.' },
   };
   const mahnText = (stufe, nr, datum, neu) => [
@@ -1345,6 +1379,7 @@ const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
       iText.addEventListener('input', () => { p.text = iText.value; planeAktualisierung(); });
       iMenge.addEventListener('input', () => { p.menge = iMenge.value; planeAktualisierung(); });
       iPreis.addEventListener('input', () => { p.preis = iPreis.value; planeAktualisierung(); });
+      artikelAnbinden(row, p, iText, iMenge, iPreis);
       row.querySelector('button').addEventListener('click', () => {
         positionen.splice(i, 1);
         if (!positionen.length) positionen.push({ text: '', menge: '1', preis: '' });
@@ -1366,6 +1401,104 @@ const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
       el.textContent = b ? 'CHF ' + chf(b) : '';
     });
   };
+
+
+  /* ---------- Artikelstamm: Leistungen und Material mit Preis zum Auswählen ---------- */
+  const KEY_ARTIKEL = 'nasuvia.artikel.v1';
+  const artikelListe = () => { try { const l = JSON.parse(localStorage.getItem(KEY_ARTIKEL) || '[]'); return Array.isArray(l) ? l : []; } catch { return []; } };
+  const artikelSichern = (l) => localStorage.setItem(KEY_ARTIKEL, JSON.stringify(l));
+  const normal = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  function artikelAnbinden(row, p, iText, iMenge, iPreis) {
+    let box = null, wahl = 0, treffer = [];
+    const zu = () => { if (box) { box.remove(); box = null; } };
+    const nehmen = (a) => {
+      p.text = a.text; iText.value = a.text;
+      if (a.preis !== '' && a.preis != null) { p.preis = String(a.preis); iPreis.value = p.preis; }
+      if (!String(p.menge || '').trim()) { p.menge = '1'; iMenge.value = '1'; }
+      zu(); planeAktualisierung(); posSummen(); iMenge.focus(); iMenge.select();
+    };
+    const zeigen = () => {
+      const q = normal(iText.value);
+      treffer = q ? artikelListe().filter((a) => normal(a.text).includes(q) || normal(a.nr).startsWith(q)).slice(0, 8) : [];
+      if (!treffer.length || (treffer.length === 1 && normal(treffer[0].text) === q)) { zu(); return; }
+      if (!box) { box = document.createElement('div'); box.className = 'artikel-wahl'; row.appendChild(box); }
+      wahl = Math.min(wahl, treffer.length - 1);
+      box.innerHTML = treffer.map((a, i) => `<button type="button" data-i="${i}" class="${i === wahl ? 'aktiv' : ''}"><span>${esc(a.text)}</span><small>${a.preis !== '' && a.preis != null ? 'CHF ' + chf(zuRappen(a.preis)) : ''}${a.einheit ? ' / ' + esc(a.einheit) : ''}</small></button>`).join('');
+      box.onmousedown = (e) => { const b = e.target.closest('button[data-i]'); if (b) { e.preventDefault(); nehmen(treffer[+b.dataset.i]); } };
+    };
+    iText.addEventListener('input', () => { wahl = 0; zeigen(); });
+    iText.addEventListener('focus', zeigen);
+    iText.addEventListener('blur', () => setTimeout(zu, 150));
+    iText.addEventListener('keydown', (e) => {
+      if (!box) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); wahl = (wahl + (e.key === 'ArrowDown' ? 1 : -1) + treffer.length) % treffer.length; zeigen(); }
+      else if (e.key === 'Enter') { e.preventDefault(); nehmen(treffer[wahl]); }
+      else if (e.key === 'Escape') zu();
+    });
+  }
+  function artikelDialog() {
+    let liste = artikelListe().map((a) => ({ ...a }));
+    const d = document.createElement('dialog');
+    d.className = 'artikel-dlg';
+    const zeile = (a, i) => `<div class="artikel-zeile" data-i="${i}">
+        <input type="text" data-f="text" value="${esc(a.text)}" placeholder="Bezeichnung" aria-label="Bezeichnung" />
+        <input type="text" data-f="preis" class="n" inputmode="decimal" value="${esc(a.preis ?? '')}" placeholder="0.00" aria-label="Preis" />
+        <input type="text" data-f="einheit" value="${esc(a.einheit || '')}" placeholder="Std., m, Stk." aria-label="Einheit" />
+        <button type="button" class="icon-btn" data-weg aria-label="Artikel entfernen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`;
+    const malen = () => {
+      d.innerHTML = `<form method="dialog" class="artikel-form">
+        <h3>Artikel und Leistungen</h3>
+        <p class="hint" style="margin-top:0">Beim Tippen einer Position schlägt Ordasio passende Artikel vor und setzt den Preis ein.</p>
+        <div class="artikel-kopf"><span>Bezeichnung</span><span>Preis CHF</span><span>Einheit</span><span></span></div>
+        <div class="artikel-liste">${liste.length ? liste.map(zeile).join('') : '<p class="hint">Noch keine Artikel. Fügen Sie einen hinzu oder übernehmen Sie die Positionen dieser Rechnung.</p>'}</div>
+        <div class="artikel-aktionen">
+          <button type="button" class="mini-btn" data-neu>+ Artikel</button>
+          <button type="button" class="mini-btn" data-pos>Positionen übernehmen</button>
+          <button type="button" class="mini-btn" data-csv>CSV importieren</button>
+        </div>
+        <div class="artikel-fuss"><button type="button" class="mini-btn" data-zu>Abbrechen</button><button type="submit" class="btn-haupt-klein">Speichern</button></div>
+      </form>`;
+    };
+    malen();
+    d.addEventListener('input', (e) => { const z = e.target.closest('.artikel-zeile'); if (z) liste[+z.dataset.i][e.target.dataset.f] = e.target.value; });
+    d.addEventListener('click', (e) => {
+      if (e.target === d || e.target.closest('[data-zu]')) { d.close(); return; }
+      if (e.target.closest('[data-weg]')) { liste.splice(+e.target.closest('.artikel-zeile').dataset.i, 1); malen(); return; }
+      if (e.target.closest('[data-neu]')) { liste.push({ id: 'art-' + Date.now(), text: '', preis: '', einheit: '' }); malen(); d.querySelector('.artikel-zeile:last-child input').focus(); return; }
+      if (e.target.closest('[data-pos]')) {
+        let n = 0;
+        positionen.filter((p) => p.text.trim() && !p.frei).forEach((p) => {
+          const alt = liste.find((a) => normal(a.text) === normal(p.text));
+          if (alt) { if (p.preis) alt.preis = p.preis; } else { liste.push({ id: 'art-' + Date.now() + '-' + n, text: p.text.trim(), preis: p.preis || '', einheit: '' }); n++; }
+        });
+        malen(); toast(n ? `${n} ${n === 1 ? 'Position' : 'Positionen'} übernommen` : 'Alle Positionen sind schon Artikel');
+        return;
+      }
+      if (e.target.closest('[data-csv]')) {
+        const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.csv,.txt,text/csv';
+        inp.onchange = async () => {
+          const roh = (await inp.files[0].text()).replace(/^﻿/, '');
+          const zeilen = roh.split(/\r?\n/).filter((z) => z.trim());
+          const tr = (zeilen[0].match(/;/g) || []).length >= (zeilen[0].match(/,/g) || []).length ? ';' : ',';
+          let n = 0;
+          zeilen.forEach((z, i) => {
+            const f = z.split(tr).map((x) => x.replace(/^"|"$/g, '').trim());
+            if (!f[0] || (i === 0 && /bezeichnung|artikel|name|text/i.test(f[0]) && !zuZahl(f[1]))) return;
+            liste.push({ id: 'art-' + Date.now() + '-' + i, text: f[0], preis: f[1] ? String(zuZahl(f[1])) : '', einheit: f[2] || '' }); n++;
+          });
+          malen(); toast(`${n} Artikel importiert`);
+        };
+        inp.click();
+      }
+    });
+    d.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const sauber = liste.filter((a) => String(a.text || '').trim()).map((a) => ({ id: a.id || 'art-' + Math.random().toString(36).slice(2), text: a.text.trim(), preis: String(a.preis || '').trim(), einheit: String(a.einheit || '').trim() }));
+      artikelSichern(sauber); d.close(); toast(`${sauber.length} Artikel gespeichert`);
+    });
+    d.addEventListener('close', () => setTimeout(() => d.remove(), 200));
+    document.body.appendChild(d); d.showModal();
+  }
 
   /* ---------- Berechnung ---------- */
   const rechne = () => {
@@ -1557,6 +1690,7 @@ const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
     $('vSchluss').textContent = $('schluss').value.trim();
     const skPct = zuZahl($('skonto').value);
     $('vSkonto').textContent = skPct <= 0 || dokArt === 'gutschrift' ? ''
+      : ['auftrag', 'lieferschein'].includes(dokArt) ? ''
       : dokArt === 'offerte' ? `Bei Zahlung innert ${$('skontoTage').value} Tagen gewähren wir ${skPct} % Skonto.`
       : `Bei Zahlung innert ${$('skontoTage').value} Tagen dürfen Sie ${skPct} % Skonto abziehen (CHF ${chf(Math.round(totalR * skPct / 100))}).`;
     $('vRabattZeile').style.display = rabattR ? '' : 'none';
@@ -1569,6 +1703,7 @@ const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
     $('sumRabattZeile').hidden = !rabattR; $('sumRabattLbl').textContent = `Rabatt ${rabattPct} %`; $('sumRabatt').textContent = '− CHF ' + chf(rabattR);
     const blattEl = $('sheet');
     blattEl.classList.toggle('ohne-zahlteil', !mitZahlteil);
+    blattEl.classList.toggle('ohne-preise', !!D.ohnePreise);
     ['klassisch', 'modern', 'minimal'].forEach((l) => blattEl.classList.toggle('layout-' + l, $('layout').value === l));
     $('dokKarte').textContent = titel;
     $('btnPrintText').textContent = titel + ' sichern';
@@ -1666,13 +1801,14 @@ const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
     }
     if (qrRechnet) st.push({ art: 'warn', text: 'Rechnung wird berechnet — einen Augenblick oder auf „Rechnung erstellen" klicken.' });
     if (!speicherOk) st.push({ art: 'warn', text: 'Kunden lassen sich hier nicht dauerhaft speichern.' });
-    if (!mitZahlteil && !platzt && totalR > 0 && k.name) st.push({ art: 'ok', text: `${titel} ist bereit — ohne Zahlteil.` });
+    const inhaltDa = DOK[dokArt].ohnePreise ? positionen.some((p) => p.text.trim()) : totalR > 0;
+    if (!mitZahlteil && !platzt && inhaltDa && k.name) st.push({ art: 'ok', text: `${titel} ist bereit — ohne Zahlteil.` });
     if (mitZahlteil && qrOk && !platzt && !fehlendeFelder.length) st.push({ art: 'ok', text: refTyp === 'QRR'
       ? 'Geprüft: QR-IBAN, Referenz und Betrag sind stimmig — die Rechnung passt auf eine Seite.'
       : 'Geprüft: IBAN und Betrag sind stimmig (Zahlung ohne Referenznummer).' });
     zeigeStatus(st);
 
-    const fertig = (mitZahlteil ? qrOk : totalR > 0 && !!k.name) && !platzt && !fehlendeFelder.length && !!$('rgNr').value.trim();
+    const fertig = (mitZahlteil ? qrOk : inhaltDa && !!k.name) && !platzt && !fehlendeFelder.length && !!$('rgNr').value.trim();
     $('btnPrint').disabled = !fertig;
     $('btnMail').disabled = !fertig;
     $('btnErstellen').classList.toggle('bereit', fertig);
@@ -2055,9 +2191,13 @@ ${[[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' — '), [FIRMA.strasse, FIR
     const t = r.titel, d = datumDe(r.datum);
     const satz = r.dokArt === 'offerte' ? `Besten Dank für Ihre Anfrage. Gerne senden wir Ihnen unsere Offerte Nr. ${r.nr} vom ${d}. Sie liegt dieser E-Mail als PDF-Datei bei.`
       : r.dokArt === 'gutschrift' ? `Wir senden Ihnen die Gutschrift Nr. ${r.nr} vom ${d}. Sie liegt dieser E-Mail als PDF-Datei bei.`
+      : r.dokArt === 'auftrag' ? `Besten Dank für Ihren Auftrag. Gerne bestätigen wir ihn mit der Auftragsbestätigung Nr. ${r.nr} vom ${d}. Sie liegt dieser E-Mail als PDF-Datei bei.`
+      : r.dokArt === 'lieferschein' ? `Wir senden Ihnen den Lieferschein Nr. ${r.nr} vom ${d}. Er liegt dieser E-Mail als PDF-Datei bei.`
       : `Gerne erinnern wir Sie an unsere Rechnung Nr. ${r.nr}. Die ${t} vom ${d} liegt dieser E-Mail als PDF-Datei bei.`;
     const qr = r.dokArt === 'offerte' ? `Die Offerte ist gültig bis ${datumDe(r.faellig)}. Für den Auftrag genügt eine kurze Antwort auf diese E-Mail.`
-      : r.dokArt === 'gutschrift' ? 'Den Betrag verrechnen wir mit Ihrer nächsten Rechnung oder überweisen ihn auf Ihr Konto.' : null;
+      : r.dokArt === 'gutschrift' ? 'Den Betrag verrechnen wir mit Ihrer nächsten Rechnung oder überweisen ihn auf Ihr Konto.'
+      : r.dokArt === 'auftrag' ? `Wir führen den Auftrag bis ${datumDe(r.faellig)} aus. Die Rechnung folgt nach Abschluss.`
+      : r.dokArt === 'lieferschein' ? 'Die Rechnung folgt separat.' : null;
     html = html.replace(/Besten Dank f&uuml;r Ihren Auftrag\.[\s\S]*?im Anhang bei\./, esc(satz));
     text = text.replace(/Besten Dank für Ihren Auftrag\.[\s\S]*?im Anhang bei\./, satz);
     if (qr) {
@@ -2069,6 +2209,8 @@ ${[[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' — '), [FIRMA.strasse, FIR
     html = tausch(html).replace(/>Rechnung<span/, '>' + esc(t) + '<span');
     text = tausch(text);
     if (r.dokArt === 'offerte') { html = html.replace(/zahlbar bis/g, 'g&uuml;ltig bis'); text = text.replace(/zahlbar bis/g, 'gültig bis'); }
+    if (r.dokArt === 'auftrag') { html = html.replace(/zahlbar bis/g, 'ausgef&uuml;hrt bis'); text = text.replace(/zahlbar bis/g, 'ausgeführt bis'); }
+    if (r.dokArt === 'lieferschein') { html = html.replace(/zahlbar bis/g, 'geliefert am'); text = text.replace(/zahlbar bis/g, 'geliefert am'); }
     return { text, html };
   };
 
@@ -2149,6 +2291,8 @@ ${[[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' — '), [FIRMA.strasse, FIR
       let marke = '';
       if (art === 'offerte') marke = '<span class="marke marke-art">Offerte</span>';
       else if (art === 'gutschrift') marke = '<span class="marke marke-art">Gutschrift</span>';
+      else if (art === 'auftrag') marke = '<span class="marke marke-art">Auftrag</span>';
+      else if (art === 'lieferschein') marke = '<span class="marke marke-art">Lieferschein</span>';
       else if (art === 'mahnung') marke = `<span class="marke marke-mahn">${esc(MAHN_TITEL[r.mahnStufe] || 'Mahnung')}</span>`;
       else if (r.bezahlt) marke = '<span class="marke marke-bezahlt">bezahlt</span>';
       else if (r.faellig && r.faellig < heute) marke = '<span class="marke marke-faellig">überfällig</span>';
@@ -2166,7 +2310,9 @@ ${[[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' — '), [FIRMA.strasse, FIR
       if (r.bearbeitbar) knopfMachen(knoepfe, 'Bearbeiten', 'Eingaben dieser Rechnung übernehmen',
         () => rechnungLaden(r));
       if (r.bearbeitbar && art !== 'mahnung') knopfMachen(knoepfe, 'Kopieren', 'Als neues Dokument mit neuer Nummer übernehmen', () => kopieren(r));
-      if (art === 'offerte' && r.bearbeitbar) knopfMachen(knoepfe, 'Zu Rechnung', 'Aus dieser Offerte eine Rechnung machen', () => offerteZuRechnung(r));
+      if (art === 'offerte' && r.bearbeitbar) knopfMachen(knoepfe, 'Zu Auftrag', 'Aus dieser Offerte eine Auftragsbestätigung machen', () => umwandeln(r, 'auftrag'));
+      if (['auftrag', 'offerte'].includes(art) && r.bearbeitbar) knopfMachen(knoepfe, 'Lieferschein', 'Lieferschein zu diesem Auftrag', () => umwandeln(r, 'lieferschein'));
+      if (['offerte', 'auftrag', 'lieferschein'].includes(art) && r.bearbeitbar) knopfMachen(knoepfe, 'Zu Rechnung', 'Daraus eine Rechnung machen', () => umwandeln(r, 'rechnung'));
       if (art === 'rechnung' && !r.bezahlt && r.faellig && r.faellig < heute && r.bearbeitbar && (r.mahnStufe || 0) < 3)
         knopfMachen(knoepfe, (r.mahnStufe || 0) === 0 ? 'Erinnern' : 'Mahnen', 'Zahlungserinnerung oder Mahnung erstellen', () => mahnen(r));
       if (art === 'rechnung') knopfMachen(knoepfe, r.bezahlt ? 'Offen' : 'Bezahlt', 'Zahlungseingang vermerken', async () => {
@@ -2256,7 +2402,7 @@ ${[[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' — '), [FIRMA.strasse, FIR
       // Beim Start nur ersetzen, wenn das Feld leer ist oder die Nummer schon verwendet wurde
       if (setzen && nurWennBelegt && !vergebeneNummern.has(nrSchluessel(nurWennBelegt))) setzen = false;
       // Noch keine Rechnung mit Nummer: eine Offerten- oder Gutschriftnummer nicht weiterverwenden
-      if (setzen && !nr && dokArt === 'rechnung' && /^[OG]-/i.test($('rgNr').value.trim())) { $('rgNr').value = '1'; $('referenz').value = refAnzeige(refAusNummer('1')); }
+      if (setzen && !nr && dokArt === 'rechnung' && /^[OGAL]-/i.test($('rgNr').value.trim())) { $('rgNr').value = '1'; $('referenz').value = refAnzeige(refAusNummer('1')); }
       if (setzen && nr && dokArt !== 'mahnung') {
         if (nurWennBelegt) toast(`Rechnung ${nurWennBelegt} ist schon gespeichert. Die nächste bekommt die Nummer ${nr}.`, 5000);
         $('rgNr').value = nr;
@@ -2282,6 +2428,8 @@ ${[[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' — '), [FIRMA.strasse, FIR
     $('intro').value = (v && v.intro) || std.intro;
     $('schluss').value = v && v.schluss != null ? v.schluss : std.schluss;
     if (v && v.frist) $('frist').value = v.frist;
+    else if (art === 'lieferschein') $('frist').value = '0';
+    else if ($('frist').value === '0' && art !== 'rechnung') $('frist').value = '30';
     if (v && v.layout) $('layout').value = v.layout;
     if (v && v.rundung != null) { $('rundung').value = v.rundung; $('rundungRichtung').value = v.rundungRichtung || 'kfm'; }
     if (v && v.zusatzAn) { ZUSATZ.forEach(([k]) => { zusatz[k].an = v.zusatzAn[k] !== false; }); zusatzZeichnen(); }
@@ -2306,18 +2454,21 @@ ${[[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' — '), [FIRMA.strasse, FIR
   $('dokHintZu').addEventListener('click', () => dokWechseln('rechnung'));
   $('dokHintZu').textContent = 'Mahnung beenden';
 
-  const offerteZuRechnung = async (r) => {
+  const umwandeln = async (r, ziel = 'rechnung') => {
     try {
       const { daten } = await api('/api/laden', { datei: r.name });
+      const von = DOK[daten.dokArt] ? DOK[daten.dokArt].titel : 'Dokument';
       zustandLaden(daten);
-      dokArt = 'rechnung'; mahnStufe = 0; bezugDatum = '';
+      dokArt = ziel; mahnStufe = 0; bezugDatum = '';
       bearbeitet = null; entwurfId = null; zeigeBearbeitung();
       $('rgDatum').value = heuteIso();
-      textVorlage('rechnung');
+      textVorlage(ziel);
+      // Bezug als Auftrags-Nr. vermerken, damit Kunde und Buchhaltung den Zusammenhang sehen
+      if (r.nr && zusatz.auftrag && !zusatz.auftrag.wert.trim()) { zusatz.auftrag = { wert: String(r.nr), an: true }; zusatzZeichnen(); }
       dokUi(); zeichnePositionen();
       await nummernPflegen({ setzen: true });
       aktualisiere({ sofort: true });
-      toast(`Offerte ${r.nr} übernommen — jetzt Rechnung Nr. ${$('rgNr').value}`, 5000);
+      toast(`${von} ${r.nr} übernommen — jetzt ${DOK[ziel].titel} Nr. ${$('rgNr').value}`, 5000);
       $('rgNr').scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (e) { toast(e.message, 5000); }
   };
@@ -2559,6 +2710,7 @@ ${[[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' — '), [FIRMA.strasse, FIR
     aktualisiere();
   });
   $('rgFaellig').addEventListener('change', () => { faelligManuell = true; aktualisiere(); });
+  $('btnArtikel').addEventListener('click', artikelDialog);
   $('posAdd').addEventListener('click', () => {
     positionen.push({ text: '', menge: '1', preis: '' });
     zeichnePositionen(); aktualisiere();
@@ -2614,7 +2766,7 @@ ${[[FIRMA.name, FIRMA.zusatz].filter(Boolean).join(' — '), [FIRMA.strasse, FIR
     faelligManuell = false;
     $('rgFaellig').value = plusTage(heuteIso(), $('frist').value);
     if (vorgabe) {
-      dokArt = vorgabe.dokArt === 'offerte' ? 'offerte' : 'rechnung'; textVorlage(dokArt); dokUi();
+      dokArt = ['offerte', 'auftrag', 'lieferschein'].includes(vorgabe.dokArt) ? vorgabe.dokArt : 'rechnung'; textVorlage(dokArt); dokUi();
       positionen = vorgabe.positionen.map((p) => ({ text: String(p.text || ''), menge: String(p.menge || '1'), preis: String(p.preis || '') }));
       if (vorgabe.projekt && zusatz.projekt) { zusatz.projekt.wert = vorgabe.projekt; zusatz.projekt.an = true; zusatzZeichnen(); }
       // Kunde übernehmen: vorhandenen wählen oder neu anlegen

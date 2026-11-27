@@ -445,3 +445,30 @@
   addEventListener('storage', (e) => { if (e.key === KEY || e.key === BILD) anwenden(); });
   window.UI = Object.assign(window.UI || {}, { darstellung: dialog });
 })();
+
+// PDF aus HTML: html2canvas kennt die Schreibweise color(srgb …) nicht, die Browser für color-mix() liefern.
+// Vor dem Zeichnen rechnen wir solche Farben in der Kopie in rgba() um.
+(() => {
+  const FINDEN = /(?:color|oklch|oklab|lab|lch)\((?:[^()]|\([^()]*\))*\)/;
+  const ALLE = new RegExp(FINDEN.source, 'g');
+  const EIG = ['color', 'background-color', 'background-image', 'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
+    'outline-color', 'text-decoration-color', 'box-shadow', 'text-shadow', 'fill', 'stroke', 'column-rule-color', 'caret-color'];
+  let ctx;
+  const rgba = (f) => {
+    ctx = ctx || document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+    ctx.clearRect(0, 0, 1, 1); ctx.fillStyle = 'rgba(0,0,0,0)'; ctx.fillStyle = f; ctx.fillRect(0, 0, 1, 1);
+    const d = ctx.getImageData(0, 0, 1, 1).data;
+    return `rgba(${d[0]}, ${d[1]}, ${d[2]}, ${+(d[3] / 255).toFixed(3)})`;
+  };
+  function pdfFarben(doc) {
+    const win = doc.defaultView || window;
+    for (const el of doc.querySelectorAll('*')) {
+      const cs = win.getComputedStyle(el);
+      for (const k of EIG) {
+        const v = cs.getPropertyValue(k);
+        if (v && FINDEN.test(v)) el.style.setProperty(k, v.replace(ALLE, rgba), 'important');
+      }
+    }
+  }
+  window.UI = Object.assign(window.UI || {}, { pdfFarben });
+})();

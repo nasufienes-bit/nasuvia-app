@@ -852,8 +852,8 @@
     }).filter((t) => t.datum && Number.isFinite(t.betragRappen) && t.betragRappen);
   }
   const importSchluessel = (t) => `${t.datum}|${t.betragRappen}|${(t.text || t.partner || '').slice(0, 40).toLowerCase()}`;
-  async function bankImport() {
-    const datei = await dateiWaehlen(''); // alle Dateien: camt, CSV, Excel, PDF
+  async function bankImport(vorgabe) {
+    const datei = vorgabe || await dateiWaehlen(''); // alle Dateien: camt, CSV, Excel, PDF
     if (!datei) return;
     let liste, v;
     try {
@@ -1038,6 +1038,28 @@
     dlg.showModal();
   }
 
+  /* ================= Belege per Drag & Drop ================= */
+  // Dateien irgendwo auf die Buchhaltung ziehen: Bilder und PDF werden Belege, camt/CSV/Excel ein Bankauszug
+  (() => {
+    let tiefe = 0;
+    const hatDateien = (e) => e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files');
+    const decke = () => { let d = document.getElementById('ablegen'); if (!d) { d = document.createElement('div'); d.id = 'ablegen'; d.innerHTML = '<div><b>Dateien hier ablegen</b><span>Belege (Foto, PDF) oder Bankauszug (camt, CSV, Excel)</span></div>'; document.body.appendChild(d); } return d; };
+    const offen = () => document.querySelector('dialog[open]');
+    document.addEventListener('dragenter', (e) => { if (!hatDateien(e) || offen()) return; tiefe++; decke().classList.add('zeigen'); });
+    document.addEventListener('dragleave', () => { if (--tiefe <= 0) { tiefe = 0; decke().classList.remove('zeigen'); } });
+    document.addEventListener('dragover', (e) => { if (hatDateien(e) && !offen()) e.preventDefault(); });
+    document.addEventListener('drop', async (e) => {
+      if (!hatDateien(e) || offen()) return;
+      e.preventDefault(); tiefe = 0; decke().classList.remove('zeigen');
+      const alle = [...e.dataTransfer.files];
+      const belege = alle.filter((d) => /^image\//.test(d.type) || /\.(pdf|jpe?g|png|heic|webp)$/i.test(d.name));
+      const bank = alle.filter((d) => /\.(xml|csv|txt|xlsx?|053)$/i.test(d.name));
+      if (bank.length === 1 && !belege.length) { bankImport(bank[0]); return; }
+      if (belege.length) { await belegeStapel(belege); return; }
+      toast('Diese Datei kann ich nicht übernehmen. Belege als Foto oder PDF, Bankauszüge als camt, CSV oder Excel.');
+    });
+  })();
+
   /* ================= Belege stapelweise hochladen ================= */
   function mehrereDateien(accept) {
     return new Promise((ok) => {
@@ -1047,8 +1069,8 @@
       inp.click();
     });
   }
-  async function belegeStapel() {
-    const dateien = await mehrereDateien('image/*,application/pdf');
+  async function belegeStapel(vorgabe) {
+    const dateien = vorgabe || await mehrereDateien('image/*,application/pdf');
     if (!dateien.length) return;
     let i = 0;
     for (const d of dateien) {
@@ -1073,7 +1095,10 @@
   const monatName = (m) => new Date(m + '-15').toLocaleDateString('de-CH', { month: 'long', year: 'numeric' });
   function lohnBerechnen(m, e = {}) {
     const S = lohnSaetze();
-    const grund = m.lohnart === 'stunde' ? Math.round((Number(e.stunden) || 0) * (m.lohn || 0)) : Math.round((m.lohn || 0) * (Number(m.pensum) || 100) / 100);
+    const grundRoh = m.lohnart === 'stunde' ? Math.round((Number(e.stunden) || 0) * (m.lohn || 0)) : Math.round((m.lohn || 0) * (Number(m.pensum) || 100) / 100);
+    const kuerzung = Math.min(Math.max(Number(e.kuerzung) || 0, 0), grundRoh);
+    const grund = grundRoh - kuerzung;
+    const taggeld = Math.max(Number(e.taggeld) || 0, 0);
     const ferien = m.lohnart === 'stunde' ? r5(grund * (Number(m.ferienPct) || 0) / 100) : 0;
     const bonus = Number(e.bonus) || 0;
     const brutto = grund + ferien + bonus;
@@ -1085,7 +1110,7 @@
     const abzuege = Object.values(an).reduce((a, x) => a + x, 0);
     const ag = { ahv: pct(brutto, S.agAhv), alv: pct(alvBasis, S.agAlv), fak: pct(brutto, S.fak), vk: pct(brutto, S.vk), bu: pct(brutto, S.bu), ktg: pct(brutto, S.agKtg), bvg: m.bvgAg != null && m.bvgAg !== '' ? Number(m.bvgAg) : (Number(m.bvg) || 0) };
     const agTotal = Object.values(ag).reduce((a, x) => a + x, 0);
-    return { grund, ferien, bonus, brutto, zulagen, spesen, an, abzuege, netto: brutto - abzuege + zulagen + spesen, ag, agTotal };
+    return { grundRoh, kuerzung, grund, ferien, bonus, brutto, zulagen, taggeld, spesen, an, abzuege, netto: brutto - abzuege + zulagen + taggeld + spesen, ag, agTotal };
   }
   const chfFeld = (r) => (r ? chf(r).replace(/’/g, '') : '');
 
@@ -1096,13 +1121,13 @@
     const summe = (f) => zeilenL.reduce((a, z) => a + f(z.r), 0);
     const gebucht = Z.buchungen.some((b) => b.quelle === 'lohn' && b.lohnMonat === monat);
     const jahrZeilen = mitarbeiterListe().map((m) => {
-      const t = { brutto: 0, sozial: 0, bvg: 0, qst: 0, zulagen: 0, spesen: 0, netto: 0, monate: 0 };
+      const t = { brutto: 0, sozial: 0, bvg: 0, qst: 0, zulagen: 0, taggeld: 0, spesen: 0, netto: 0, monate: 0 };
       for (let i = 1; i <= 12; i++) {
         const mo = `${jahr}-${String(i).padStart(2, '0')}`;
         if (!Z.buchungen.some((b) => b.quelle === 'lohn' && b.lohnMonat === mo && b.partner === m.name)) continue;
         const r = lohnBerechnen(m, lohnEingabe(mo, m.id));
         t.brutto += r.brutto; t.sozial += r.an.ahv + r.an.alv + r.an.nbu + r.an.ktg; t.bvg += r.an.bvg; t.qst += r.an.qst;
-        t.zulagen += r.zulagen; t.spesen += r.spesen; t.netto += r.netto; t.monate++;
+        t.zulagen += r.zulagen; t.taggeld += r.taggeld; t.spesen += r.spesen; t.netto += r.netto; t.monate++;
       }
       return { m, t };
     }).filter((x) => x.t.monate);
@@ -1114,18 +1139,19 @@
     ${aktive.length ? `<div class="card">
       <h2>Lohnlauf ${monatName(monat)} ${gebucht ? '<span class="marke marke-ok">gebucht</span>' : ''}</h2>
       <div class="tabelle-scroll"><table class="lohn-tabelle">
-        <tr><th>Mitarbeiter</th><th>Stunden</th><th class="b">Bonus</th><th class="b">Spesen</th><th class="b">Brutto</th><th class="b">Abzüge</th><th class="b">Auszahlung</th><th></th></tr>
+        <tr><th>Mitarbeiter</th><th>Stunden</th><th class="b">Bonus</th><th class="b">Spesen</th><th class="b">Brutto</th><th class="b">Abzüge</th><th class="b">Auszahlung</th></tr>
         ${zeilenL.map(({ m, e, r }) => `<tr>
-          <td><b>${esc(m.name)}</b><br><span class="hinweis">${m.lohnart === 'stunde' ? `${chf(m.lohn)} pro Stunde` : `${chf(m.lohn)} pro Monat · ${m.pensum || 100} %`}</span></td>
+          <td><b>${esc(m.name)}</b>${e.gesendet ? ' <span class="marke marke-ok">gesendet</span>' : ''}<br><span class="hinweis">${m.lohnart === 'stunde' ? `${chf(m.lohn)} pro Stunde` : `${chf(m.lohn)} pro Monat · ${m.pensum || 100} %`}${r.taggeld ? ` · Taggeld ${chf(r.taggeld)}` : ''}${r.kuerzung ? ` · Kürzung ${chf(r.kuerzung)}` : ''}${e.notiz ? ' · Text' : ''}</span><div class="lohn-knoepfe"><button class="btn btn-klein" onclick="NB.lohnDetails('${m.id}')">Details</button><button class="btn btn-klein" onclick="NB.lohnzettel('${m.id}')">Abrechnung</button><button class="btn btn-klein" onclick="NB.lohnMail('${m.id}')">E-Mail</button></div></td>
           <td>${m.lohnart === 'stunde' ? `<input class="bilanz-eingabe klein" inputmode="decimal" data-lohn="${m.id}:stunden" value="${e.stunden || ''}" placeholder="0" />` : '<span class="hinweis">Monatslohn</span>'}</td>
           <td class="b"><input class="bilanz-eingabe klein" inputmode="decimal" data-lohn="${m.id}:bonus" value="${chfFeld(e.bonus)}" placeholder="0.00" /></td>
           <td class="b"><input class="bilanz-eingabe klein" inputmode="decimal" data-lohn="${m.id}:spesen" value="${chfFeld(e.spesen)}" placeholder="0.00" /></td>
           <td class="b">${chf(r.brutto)}</td><td class="b">− ${chf(r.abzuege)}</td><td class="b"><b>${chf(r.netto)}</b></td>
-          <td><button class="btn btn-klein" onclick="NB.lohnzettel('${m.id}')">Abrechnung</button></td></tr>`).join('')}
-        <tr class="summe"><td>Total</td><td></td><td></td><td class="b">${chf(summe((r) => r.spesen))}</td><td class="b">${chf(summe((r) => r.brutto))}</td><td class="b">− ${chf(summe((r) => r.abzuege))}</td><td class="b">${chf(summe((r) => r.netto))}</td><td></td></tr>
+</tr>`).join('')}
+        <tr class="summe"><td>Total</td><td></td><td></td><td class="b">${chf(summe((r) => r.spesen))}</td><td class="b">${chf(summe((r) => r.brutto))}</td><td class="b">− ${chf(summe((r) => r.abzuege))}</td><td class="b">${chf(summe((r) => r.netto))}</td></tr>
       </table></div>
       <p class="hinweis abstand">Arbeitgeberbeiträge dazu: <strong>CHF ${chf(summe((r) => r.agTotal))}</strong>. Lohnkosten total: <strong>CHF ${chf(summe((r) => r.brutto + r.agTotal + r.spesen))}</strong>.</p>
-      <div class="abstand" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-haupt" onclick="NB.lohnBuchen()">${gebucht ? 'Lohnlauf neu buchen' : 'Lohnlauf buchen'}</button><span class="hinweis" style="align-self:center">Bucht Löhne, Arbeitgeberbeiträge und Spesen als Ausgaben. Erneut buchen ersetzt den Monat.</span></div>
+      <label class="feld abstand"><span class="hinweis">Text auf allen Abrechnungen ${esc(monatName(monat))} (optional)</span><textarea rows="2" data-lohntext="${monat}" placeholder="z. B. Wir wünschen Ihnen frohe Festtage. Der 13. Monatslohn folgt im Dezember.">${esc((Z.einst.lohnTexte || {})[monat] || '')}</textarea></label>
+      <div class="abstand" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-haupt" onclick="NB.lohnBuchen()">${gebucht ? 'Lohnlauf neu buchen' : 'Lohnlauf buchen'}</button><button class="btn" onclick="NB.lohnCsv()">Excel</button><span class="hinweis" style="align-self:center">Bucht Löhne, Arbeitgeberbeiträge und Spesen als Ausgaben. Erneut buchen ersetzt den Monat.</span></div>
     </div>` : `<div class="card leer-karte"><h2>Noch keine Mitarbeiter</h2><p class="hinweis">Erfassen Sie Ihre Mitarbeiter mit Monats- oder Stundenlohn. Danach rechnet das Programm jeden Monat Brutto, AHV, ALV, Unfall, Pensionskasse und Auszahlung.</p><button class="btn btn-haupt abstand" onclick="NB.mitarbeiter()">+ Ersten Mitarbeiter erfassen</button></div>`}
     <div class="raster raster-2 abstand">
       <div class="card"><h2>Mitarbeiter</h2>
@@ -1133,14 +1159,15 @@
       </div>
       <div class="card"><h2>Jahresübersicht ${jahr}</h2>
         ${jahrZeilen.length ? `<div class="tabelle-scroll"><table>
-          <tr><th>Name</th><th class="b">Brutto</th><th class="b">AHV/ALV/NBU</th><th class="b">BVG</th><th class="b">Netto</th></tr>
-          ${jahrZeilen.map(({ m, t }) => `<tr><td>${esc(m.name)}<br><span class="hinweis">${t.monate} Monate${t.qst ? ` · QST ${chf(t.qst)}` : ''}${t.spesen ? ` · Spesen ${chf(t.spesen)}` : ''}</span></td><td class="b">${chf(t.brutto)}</td><td class="b">${chf(t.sozial)}</td><td class="b">${chf(t.bvg)}</td><td class="b">${chf(t.netto)}</td></tr>`).join('')}
-        </table></div><p class="hinweis abstand">Diese Werte brauchen Sie für den Lohnausweis (Bruttolohn Ziffer 8, Beiträge AHV/IV/EO/ALV/NBUV Ziffer 9, BVG Ziffer 10). <button class="link" onclick="window.print()">Drucken</button></p>` : '<p class="leer">Noch keine gebuchten Lohnläufe in diesem Jahr.</p>'}
+          <tr><th>Name</th><th class="b">Brutto</th><th class="b">Sozialabz.</th><th class="b">BVG</th><th class="b">Netto</th></tr>
+          ${jahrZeilen.map(({ m, t }) => `<tr><td>${esc(m.name)}<br><span class="hinweis">${t.monate} Monate${t.qst ? ` · QST ${chf(t.qst)}` : ''}${t.taggeld ? ` · Taggeld ${chf(t.taggeld)}` : ''}${t.spesen ? ` · Spesen ${chf(t.spesen)}` : ''}</span><div class="lohn-knoepfe"><button class="btn btn-klein" onclick="NB.lohnkonto('${m.id}')">Lohnkonto</button><button class="btn btn-klein" onclick="NB.lohnausweis('${m.id}')">Lohnausweis</button></div></td><td class="b">${chf(t.brutto)}</td><td class="b">${chf(t.sozial)}</td><td class="b">${chf(t.bvg)}</td><td class="b">${chf(t.netto)}</td></tr>`).join('')}
+        </table></div><p class="hinweis abstand">Lohnkonto und Lohnausweis enthalten alle gebuchten Monate ${jahr}. <button class="link" onclick="NB.lohnJahrCsv()">Jahresübersicht als Excel</button></p>` : '<p class="leer">Noch keine gebuchten Lohnläufe in diesem Jahr.</p>'}
       </div>
     </div>
     <div class="card abstand"><h2>Sätze für Sozialversicherungen</h2>
       <p class="hinweis" style="margin-bottom:10px">Vorgaben für 2026. Bitte mit Ihrer Ausgleichskasse, Unfallversicherung und Krankentaggeld-Versicherung abgleichen und anpassen.</p>
       <div class="saetze-raster">${Object.keys(LOHN_SAETZE_STD).map((k) => `<label class="feld"><span class="hinweis">${LOHN_SAETZE_TEXT[k]}</span><input type="text" inputmode="decimal" data-lohnsatz="${k}" value="${S[k]}" /></label>`).join('')}</div>
+      <label class="feld abstand"><span class="hinweis">Lohnabrechnungen zusätzlich senden an (z. B. Treuhänder, mehrere mit Komma)</span><input type="text" inputmode="email" data-lohnkopie value="${esc(Z.einst.lohnKopie || '')}" placeholder="treuhand@beispiel.ch" /></label>
     </div>`;
   }
   document.addEventListener('change', async (e) => {
@@ -1151,6 +1178,8 @@
       await einstSpeichern({ lohnSaetze: { ...(Z.einst.lohnSaetze || {}), [t.dataset.lohnsatz]: Number.isFinite(v) ? v : LOHN_SAETZE_STD[t.dataset.lohnsatz] } });
       zeichnen(); toast('Satz gespeichert'); return;
     }
+    if (t.matches('[data-lohntext]')) { await einstSpeichern({ lohnTexte: { ...(Z.einst.lohnTexte || {}), [t.dataset.lohntext]: t.value.trim() } }); toast('Text gespeichert'); return; }
+    if (t.matches('[data-lohnkopie]')) { await einstSpeichern({ lohnKopie: t.value.trim() }); toast('Gespeichert'); return; }
     if (t.matches('[data-lohn]')) {
       const [id, feld] = t.dataset.lohn.split(':');
       const v = feld === 'stunden' ? Number(String(t.value).replace(',', '.')) || 0 : (Number.isFinite(betragLesen(t.value)) ? betragLesen(t.value) : 0);
@@ -1182,7 +1211,7 @@
         <div class="feld-zeile">${f('pensum', 'Pensum in % (Monatslohn)', m.pensum, 'text', 'inputmode="decimal"')}${f('ferienPct', 'Ferienzuschlag in % (Stundenlohn)', m.ferienPct ?? 8.33, 'text', 'inputmode="decimal"')}</div>
         <div class="feld-zeile">${f('bvg', 'Pensionskasse Arbeitnehmer (CHF/Monat)', chfFeld(m.bvg), 'text', 'inputmode="decimal"')}${f('bvgAg', 'Pensionskasse Arbeitgeber (CHF/Monat)', chfFeld(m.bvgAg), 'text', 'inputmode="decimal" placeholder="gleich wie Arbeitnehmer"')}</div>
         <div class="feld-zeile">${f('zulagen', 'Kinder- und Familienzulagen (CHF/Monat)', chfFeld(m.zulagen), 'text', 'inputmode="decimal"')}${f('qst', 'Quellensteuer in %', m.qst, 'text', 'inputmode="decimal" placeholder="nur falls quellensteuerpflichtig"')}</div>
-        ${f('iban', 'IBAN für die Auszahlung', m.iban)}
+        <div class="feld-zeile">${f('iban', 'IBAN für die Auszahlung', m.iban)}${f('mail', 'E-Mail für Lohnabrechnungen', m.mail, 'text', 'inputmode="email" placeholder="mehrere mit Komma trennen"')}</div>
         <label class="haken"><input type="checkbox" id="m_aktiv" ${m.aktiv !== false ? 'checked' : ''} /> Arbeitet zurzeit bei uns</label>
       </div>
       <div class="dlg-fuss">${vorhanden ? '<button type="button" class="btn btn-rot" data-ma-weg>Löschen</button>' : ''}<div class="rechts"><button type="button" class="btn" data-zu>Abbrechen</button><button type="submit" class="btn btn-haupt">Speichern</button></div></div>
@@ -1201,7 +1230,7 @@
       const zahlF = (id) => { const v = Number(String($('m_' + id).value).replace(',', '.')); return Number.isFinite(v) ? v : 0; };
       Object.assign(m, { name: $('m_name').value.trim(), strasse: $('m_strasse').value.trim(), ort: $('m_ort').value.trim(), ahvNr: $('m_ahvNr').value.trim(),
         eintritt: $('m_eintritt').value, lohnart: $('m_lohnart').value, lohn: z('lohn'), pensum: zahlF('pensum') || 100, ferienPct: zahlF('ferienPct'),
-        bvg: z('bvg'), bvgAg: $('m_bvgAg').value.trim() ? z('bvgAg') : '', zulagen: z('zulagen'), qst: zahlF('qst'), iban: $('m_iban').value.trim(), aktiv: $('m_aktiv').checked });
+        bvg: z('bvg'), bvgAg: $('m_bvgAg').value.trim() ? z('bvgAg') : '', zulagen: z('zulagen'), qst: zahlF('qst'), iban: $('m_iban').value.trim(), mail: $('m_mail').value.trim(), aktiv: $('m_aktiv').checked });
       if (!m.name) { $('m_name').focus(); return; }
       const liste = mitarbeiterListe().filter((x) => x.id !== m.id);
       await einstSpeichern({ mitarbeiter: [...liste, m] });
@@ -1222,7 +1251,7 @@
       const r = lohnBerechnen(m, lohnEingabe(monat, m.id));
       if (!r.brutto) continue;
       const basis = { typ: 'ausgabe', quelle: 'lohn', lohnMonat: monat, datum: ende, mwstSatz: 0, mwstRappen: 0, partner: m.name, zahlung: 'Bank' };
-      await Speicher.speichern('buchungen', { ...basis, id: `lohn-${monat}-${m.id}`, kategorie: 'loehne', betragRappen: r.brutto + r.zulagen, anAbzuege: r.abzuege, text: `Lohn ${name}` });
+      await Speicher.speichern('buchungen', { ...basis, id: `lohn-${monat}-${m.id}`, kategorie: 'loehne', betragRappen: r.brutto + r.zulagen + r.taggeld, anAbzuege: r.abzuege, text: `Lohn ${name}` });
       if (r.agTotal) await Speicher.speichern('buchungen', { ...basis, id: `lohn-ag-${monat}-${m.id}`, kategorie: 'sozial', betragRappen: r.agTotal, text: `Arbeitgeberbeiträge ${name}` });
       if (r.spesen) await Speicher.speichern('buchungen', { ...basis, id: `lohn-sp-${monat}-${m.id}`, kategorie: 'spesen', betragRappen: r.spesen, text: `Spesen ${name}` });
       n++;
@@ -1230,37 +1259,266 @@
     await neuLaden(n ? `Lohnlauf ${name} gebucht (${n} ${n === 1 ? 'Person' : 'Personen'})` : 'Keine Löhne zu buchen');
   }
 
-  function lohnzettel(id) {
-    const m = mitarbeiterListe().find((x) => x.id === id);
-    if (!m) return;
-    const monat = Z.lohnMonat, r = lohnBerechnen(m, lohnEingabe(monat, m.id)), S = lohnSaetze();
-    const F = (window.Marke && Marke.daten()) || {};
-    const firma = F.name || 'Nasuvia', farbe = F.farbe1 || '#0B3B2E';
+  /* ---------- Lohnabrechnung, Lohnkonto, Lohnausweis ---------- */
+  const firmaDaten = () => { const F = (window.Marke && Marke.daten()) || {}; return { ...F, name: F.name || firmenName() || 'Firma', farbe: F.farbe1 || '#0B3B2E' }; };
+  const lohnText = (monat) => (Z.einst.lohnTexte || {})[monat] || '';
+  const absatz = (t) => esc(t).replace(/\n/g, '<br>');
+  const DRUCK_STIL = (farbe) => `body{font:13px/1.5 -apple-system,system-ui,"Segoe UI",sans-serif;color:#0A1F17;margin:0;padding:16mm;background:#fff}
+    h1{font-size:24px;margin:22px 0 2px;color:${farbe}}h2{font-size:15px;margin:18px 0 6px}
+    .kopf{display:flex;justify-content:space-between;align-items:flex-start;border-top:6px solid ${farbe};padding-top:12px}.kopf img{max-height:46px;max-width:200px}
+    .an{margin-top:22px;line-height:1.45}table{width:100%;border-collapse:collapse;margin-top:14px}td,th{padding:5px 4px;border-bottom:1px solid #E3E6EF;text-align:left}
+    .b{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}th{font-size:11px;color:#5B6478;font-weight:600}
+    tr.s td{font-weight:700;border-top:2px solid #0A1F17;border-bottom:0;padding-top:8px}tr.t td{font-weight:700;font-size:16px;color:${farbe}}.h{color:#7C8499;font-size:11.5px}
+    .text{margin-top:16px;padding:10px 12px;background:#F4F6F9;border-radius:8px}.nicht-drucken{margin:0 0 14px;display:flex;gap:8px;flex-wrap:wrap}
+    .nicht-drucken a,.nicht-drucken button{font:600 13px system-ui;padding:8px 14px;border-radius:8px;border:1px solid #CBD2DE;background:#fff;color:#0A1F17;text-decoration:none;cursor:pointer}
+    @media print{body{padding:10mm}.nicht-drucken{display:none}}`;
+  function firmenKopf(F, rechts) {
+    return `<div class="kopf"><div>${F.logo ? `<img src="${F.logo}" alt="">` : `<b style="font-size:19px">${esc(F.name)}</b>`}<div class="h">${esc([F.strasse, F.ort].filter(Boolean).join(', '))}</div></div><div class="h" style="text-align:right">${rechts}</div></div>`;
+  }
+  function lohnzettelDoc(m, monat, drucken) {
+    const e = lohnEingabe(monat, m.id), r = lohnBerechnen(m, e), S = lohnSaetze(), F = firmaDaten();
     const z = (t, b, neg) => `<tr><td>${t}</td><td class="b">${neg ? '−' : ''} ${chf(b)}</td></tr>`;
-    const html = `<!doctype html><html lang="de-CH"><head><meta charset="utf-8"><title>Lohnabrechnung ${esc(m.name)} ${monat}</title>
-      <style>body{font:14px/1.5 -apple-system,system-ui,sans-serif;color:#0A1F17;margin:0;padding:18mm}h1{font-size:26px;margin:24px 0 2px;color:${farbe}}
-      .kopf{display:flex;justify-content:space-between;align-items:flex-start;border-top:6px solid ${farbe};padding-top:12px}.kopf img{max-height:46px;max-width:200px}
-      .an{margin-top:26px;line-height:1.45}table{width:100%;border-collapse:collapse;margin-top:18px}td{padding:6px 0;border-bottom:1px solid #E3E6EF}td.b{text-align:right;font-variant-numeric:tabular-nums}
-      tr.s td{font-weight:700;border-top:2px solid #0A1F17;border-bottom:0;padding-top:9px}tr.t td{font-weight:700;font-size:17px;color:${farbe}}.h{color:#7C8499;font-size:12px}
-      @media print{body{padding:12mm}}</style></head><body>
-      <div class="kopf"><div>${F.logo ? `<img src="${F.logo}" alt="">` : `<b style="font-size:20px">${esc(firma)}</b>`}<div class="h">${esc([F.strasse, F.ort].filter(Boolean).join(', '))}</div></div><div class="h" style="text-align:right">Lohnabrechnung<br>${esc(monatName(monat))}</div></div>
+    const texte = [lohnText(monat), e.notiz].filter(Boolean);
+    return `<!doctype html><html lang="de-CH"><head><meta charset="utf-8"><title>Lohnabrechnung ${esc(m.name)} ${monat}</title><style>${DRUCK_STIL(F.farbe)}</style></head><body>
+      ${firmenKopf(F, `Lohnabrechnung<br>${esc(monatName(monat))}`)}
       <div class="an"><b>${esc(m.name)}</b><br>${esc(m.strasse || '')}<br>${esc(m.ort || '')}${m.ahvNr ? `<br><span class="h">AHV-Nr. ${esc(m.ahvNr)}</span>` : ''}</div>
       <h1>Lohnabrechnung ${esc(monatName(monat))}</h1>
       <table>
-        ${m.lohnart === 'stunde' ? z(`Stundenlohn ${lohnEingabe(monat, m.id).stunden || 0} h × ${chf(m.lohn)}`, r.grund) + (r.ferien ? z(`Ferienentschädigung ${m.ferienPct} %`, r.ferien) : '') : z(`Monatslohn${(m.pensum || 100) !== 100 ? ` (${m.pensum} %)` : ''}`, r.grund)}
+        ${m.lohnart === 'stunde' ? z(`Stundenlohn ${e.stunden || 0} h × ${chf(m.lohn)}`, r.grundRoh) : z(`Monatslohn${(m.pensum || 100) !== 100 ? ` (${m.pensum} %)` : ''}`, r.grundRoh)}
+        ${r.kuerzung ? z('Lohnkürzung wegen Abwesenheit', r.kuerzung, 1) : ''}
+        ${r.ferien ? z(`Ferienentschädigung ${m.ferienPct} %`, r.ferien) : ''}
         ${r.bonus ? z('Bonus / Zulage', r.bonus) : ''}
         <tr class="s"><td>Bruttolohn</td><td class="b">${chf(r.brutto)}</td></tr>
         ${z(`AHV/IV/EO ${S.ahv} %`, r.an.ahv, 1)}${z(`ALV ${S.alv} %`, r.an.alv, 1)}${r.an.nbu ? z(`Nichtberufsunfall ${S.nbu} %`, r.an.nbu, 1) : ''}${r.an.ktg ? z(`Krankentaggeld ${S.ktg} %`, r.an.ktg, 1) : ''}
         ${r.an.bvg ? z('Pensionskasse (BVG)', r.an.bvg, 1) : ''}${r.an.qst ? z(`Quellensteuer ${m.qst} %`, r.an.qst, 1) : ''}
         <tr class="s"><td>Nettolohn</td><td class="b">${chf(r.brutto - r.abzuege)}</td></tr>
-        ${r.zulagen ? z('Kinder- und Familienzulagen', r.zulagen) : ''}${r.spesen ? z('Spesen', r.spesen) : ''}
+        ${r.zulagen ? z('Kinder- und Familienzulagen', r.zulagen) : ''}${r.taggeld ? z('Versicherungstaggeld (Unfall/Krankheit)', r.taggeld) : ''}${r.spesen ? z('Spesen', r.spesen) : ''}
         <tr class="s t"><td>Auszahlung</td><td class="b">CHF ${chf(r.netto)}</td></tr>
       </table>
-      ${m.iban ? `<p class="h" style="margin-top:14px">Überweisung auf ${esc(m.iban)}</p>` : ''}
-      <script>setTimeout(function(){window.print()},300)<\/script></body></html>`;
+      ${m.iban ? `<p class="h" style="margin-top:12px">Überweisung auf ${esc(m.iban)}</p>` : ''}
+      ${texte.length ? `<div class="text">${texte.map(absatz).join('<br><br>')}</div>` : ''}
+      ${drucken ? '<script>setTimeout(function(){window.print()},300)<\/script>' : ''}</body></html>`;
+  }
+  function druckFenster(html) {
     const w = window.open('', '_blank');
     if (!w) { toast('Bitte Pop-ups für diese Seite erlauben'); return; }
     w.document.write(html); w.document.close();
+  }
+  function lohnzettel(id) {
+    const m = mitarbeiterListe().find((x) => x.id === id);
+    if (m) druckFenster(lohnzettelDoc(m, Z.lohnMonat, true));
+  }
+
+  async function lohnEingabeSetzen(monat, id, teil) {
+    const laeufe = { ...(Z.einst.lohnlaeufe || {}) };
+    laeufe[monat] = { ...(laeufe[monat] || {}), [id]: { ...lohnEingabe(monat, id), ...teil } };
+    await einstSpeichern({ lohnlaeufe: laeufe });
+  }
+  function lohnDetails(id) {
+    const m = mitarbeiterListe().find((x) => x.id === id); if (!m) return;
+    const monat = Z.lohnMonat, e = lohnEingabe(monat, id), dlg = $('dlg');
+    const f = (k, label, wert, extra = '') => `<div class="feld"><label for="ld_${k}">${label}</label><input type="text" id="ld_${k}" inputmode="decimal" value="${esc(wert)}" ${extra} /></div>`;
+    dlg.innerHTML = `<form method="dialog" id="ldForm">
+      <div class="dlg-kopf"><h3>${esc(m.name)} · ${esc(monatName(monat))}</h3><button type="button" class="x" data-zu aria-label="Schliessen">×</button></div>
+      <div class="dlg-inhalt">
+        <div class="feld-zeile">${f('bonus', 'Bonus / Zulage (CHF)', chfFeld(e.bonus), 'placeholder="0.00"')}${f('spesen', 'Spesen (CHF)', chfFeld(e.spesen), 'placeholder="0.00"')}</div>
+        <div class="feld-zeile">${f('taggeld', 'Versicherungstaggeld Unfall/Krankheit (CHF)', chfFeld(e.taggeld), 'placeholder="0.00"')}${f('kuerzung', 'Lohnkürzung wegen Abwesenheit (CHF)', chfFeld(e.kuerzung), 'placeholder="0.00"')}</div>
+        <p class="hinweis">Taggelder der Unfall- oder Krankentaggeld-Versicherung sind nicht AHV-pflichtig. Sie werden ohne Sozialabzüge ausbezahlt. Die Erstattung der Versicherung buchen Sie als Einnahme, wenn sie eintrifft.</p>
+        <div class="feld-zeile">${f('zulagen', 'Kinder- und Familienzulagen diesen Monat (CHF)', e.zulagen != null && e.zulagen !== '' ? chfFeld(e.zulagen) : '', `placeholder="${chfFeld(m.zulagen) || '0.00'} (Standard)"`)}</div>
+        <div class="feld"><label for="ld_notiz">Persönlicher Text auf der Abrechnung</label><textarea id="ld_notiz" rows="3" placeholder="z. B. Danke für Ihren Einsatz auf der Baustelle Müller.">${esc(e.notiz || '')}</textarea></div>
+      </div>
+      <div class="dlg-fuss"><div class="rechts"><button type="button" class="btn" data-zu>Abbrechen</button><button type="submit" class="btn btn-haupt">Speichern</button></div></div>
+    </form>`;
+    dlg.oninput = null; dlg.onchange = null;
+    dlg.onclick = (ev) => { if (ev.target === dlg || ev.target.closest('[data-zu]')) dlg.close(); };
+    $('ldForm').onsubmit = async (ev) => {
+      ev.preventDefault();
+      const z = (k) => { const v = $('ld_' + k).value.trim(); if (!v) return 0; const r = betragLesen(v); return Number.isFinite(r) ? r : 0; };
+      const zul = $('ld_zulagen').value.trim();
+      await lohnEingabeSetzen(monat, id, { bonus: z('bonus'), spesen: z('spesen'), taggeld: z('taggeld'), kuerzung: z('kuerzung'), zulagen: zul ? z('zulagen') : '', notiz: $('ld_notiz').value.trim() });
+      dlg.close(); zeichnen(); toast('Gespeichert');
+    };
+    dlg.showModal();
+  }
+
+  // PDF für den E-Mail-Versand: Bibliotheken erst bei Bedarf laden
+  const skript = (src) => new Promise((ok, f) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => f(new Error('Laden fehlgeschlagen')); document.head.appendChild(s); });
+  async function pdfLibs() {
+    if (!window.html2canvas) await skript('lib/html2canvas.min.js');
+    if (!window.jspdf) await skript('lib/jspdf.umd.min.js');
+  }
+  async function htmlAlsPdf(doc) {
+    await pdfLibs();
+    const f = document.createElement('iframe');
+    f.style.cssText = 'position:fixed;left:-30000px;top:0;width:794px;height:1123px;border:0;background:#fff';
+    document.body.appendChild(f);
+    try {
+      await new Promise((ok) => { f.onload = ok; f.srcdoc = doc; });
+      const d = f.contentDocument;
+      if (d.fonts && d.fonts.ready) await d.fonts.ready;
+      await Promise.all([...d.images].map((i) => (i.complete ? null : new Promise((ok) => { i.onload = i.onerror = ok; }))));
+      const c = await window.html2canvas(d.body, { scale: 2, backgroundColor: '#ffffff', logging: false, windowWidth: 794, onclone: (d) => window.UI && UI.pdfFarben && UI.pdfFarben(d) });
+      const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', compress: true });
+      const seiteH = Math.round(c.width * 297 / 210);
+      for (let y = 0, i = 0; y < c.height; y += seiteH, i++) {
+        const teil = document.createElement('canvas'); teil.width = c.width; teil.height = Math.min(seiteH, c.height - y);
+        teil.getContext('2d').drawImage(c, 0, y, c.width, teil.height, 0, 0, c.width, teil.height);
+        if (i) pdf.addPage();
+        pdf.addImage(teil.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 210, teil.height * 210 / c.width, undefined, 'FAST');
+      }
+      return pdf.output('blob');
+    } finally { f.remove(); }
+  }
+  const adressen = (t) => String(t || '').split(/[,;\s]+/).map((x) => x.trim()).filter((x) => /.+@.+\..+/.test(x));
+  async function lohnMail(id) {
+    const m = mitarbeiterListe().find((x) => x.id === id); if (!m) return;
+    const monat = Z.lohnMonat, an = adressen(m.mail), kopie = adressen(Z.einst.lohnKopie).filter((x) => !an.includes(x));
+    if (!an.length && !kopie.length) {
+      if (await UI.frage(`Für ${m.name} ist noch keine E-Mail-Adresse hinterlegt. Jetzt eintragen?`, { ja: 'Eintragen', nein: 'Abbrechen' })) mitarbeiterBearbeiten(m);
+      return;
+    }
+    toast('PDF wird erstellt …');
+    let blob;
+    try { blob = await htmlAlsPdf(lohnzettelDoc(m, monat, false)); } catch (f) { toast('PDF konnte nicht erstellt werden: ' + (f.message || f)); return; }
+    const F = firmaDaten(), vorname = m.name.split(/\s+/)[0];
+    const datei = `Lohnabrechnung_${monat}_${m.name.replace(/[^\wÀ-ž-]+/g, '-')}.pdf`;
+    const betreff = `Lohnabrechnung ${monatName(monat)} – ${F.name}`;
+    const text = `Guten Tag ${vorname}\n\nIm Anhang finden Sie Ihre Lohnabrechnung für ${monatName(monat)}.${lohnText(monat) ? '\n\n' + lohnText(monat) : ''}\n\nFreundliche Grüsse\n${F.name}`;
+    const datei_ = new File([blob], datei, { type: 'application/pdf' });
+    const teilenGeht = navigator.canShare && navigator.canShare({ files: [datei_] });
+    const url = URL.createObjectURL(blob);
+    const ziel = an.length ? an : kopie, cc = an.length ? kopie : [];
+    const mailto = `mailto:${ziel.map(encodeURIComponent).join(',')}?${cc.length ? `cc=${cc.map(encodeURIComponent).join(',')}&` : ''}subject=${encodeURIComponent(betreff)}&body=${encodeURIComponent(text)}`;
+    const dlg = $('dlg');
+    dlg.innerHTML = `<form method="dialog">
+      <div class="dlg-kopf"><h3>Lohnabrechnung senden</h3><button type="button" class="x" data-zu aria-label="Schliessen">×</button></div>
+      <div class="dlg-inhalt">
+        <p><b>An:</b> ${esc(ziel.join(', '))}${cc.length ? `<br><b>Kopie:</b> ${esc(cc.join(', '))}` : ''}</p>
+        <p class="hinweis">${teilenGeht ? 'Tippen Sie auf „Teilen“ und wählen Sie Mail. Das PDF ist schon angehängt, die Adressen fügen Sie mit „Adressen kopieren“ ein.' : 'Laden Sie das PDF herunter, öffnen Sie dann die Mail und hängen Sie das PDF an. Empfänger, Betreff und Text sind schon ausgefüllt.'}</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+          ${teilenGeht ? '<button type="button" class="btn btn-haupt" data-lm="teilen">Teilen</button><button type="button" class="btn" data-lm="kopieren">Adressen kopieren</button>' : `<a class="btn btn-haupt" href="${url}" download="${esc(datei)}" data-lm="laden">PDF herunterladen</a><a class="btn" href="${mailto}" data-lm="mail">Mail öffnen</a>`}
+          <a class="btn" href="${url}" target="_blank" rel="noopener">PDF ansehen</a>
+        </div>
+      </div>
+      <div class="dlg-fuss"><div class="rechts"><button type="button" class="btn" data-zu>Fertig</button></div></div>
+    </form>`;
+    dlg.oninput = null; dlg.onchange = null;
+    const vermerken = () => lohnEingabeSetzen(monat, id, { gesendet: heute() }).catch(() => {});
+    dlg.onclick = async (ev) => {
+      const k = ev.target.closest('[data-lm]');
+      if (k && k.dataset.lm === 'teilen') {
+        try { await navigator.share({ files: [datei_], title: betreff, text }); await vermerken(); toast('Lohnabrechnung geteilt'); } catch (f) { if (f && f.name !== 'AbortError') window.open(url, '_blank'); }
+        return;
+      }
+      if (k && k.dataset.lm === 'kopieren') { try { await navigator.clipboard.writeText([...ziel, ...cc].join(', ')); toast('Adressen kopiert'); } catch { toast([...ziel, ...cc].join(', ')); } return; }
+      if (k && k.dataset.lm === 'mail') vermerken();
+      if (ev.target === dlg || ev.target.closest('[data-zu]')) { dlg.close(); zeichnen(); setTimeout(() => URL.revokeObjectURL(url), 60000); }
+    };
+    dlg.showModal();
+  }
+
+  // Alle gebuchten Monate eines Jahres für eine Person
+  function lohnJahr(m, jahr) {
+    const l = [];
+    for (let i = 1; i <= 12; i++) {
+      const mo = `${jahr}-${String(i).padStart(2, '0')}`;
+      if (!Z.buchungen.some((b) => b.quelle === 'lohn' && b.lohnMonat === mo && b.partner === m.name)) continue;
+      const e = lohnEingabe(mo, m.id);
+      l.push({ mo, e, r: lohnBerechnen(m, e) });
+    }
+    return l;
+  }
+  const LOHNKONTO_ZEILEN = [
+    ['Grundlohn', (r) => r.grundRoh], ['Lohnkürzung', (r) => -r.kuerzung], ['Ferienentschädigung', (r) => r.ferien], ['Bonus / Zulage', (r) => r.bonus],
+    ['Bruttolohn', (r) => r.brutto, 1],
+    ['AHV/IV/EO', (r) => -r.an.ahv], ['ALV', (r) => -r.an.alv], ['Nichtberufsunfall', (r) => -r.an.nbu], ['Krankentaggeld', (r) => -r.an.ktg], ['Pensionskasse (BVG)', (r) => -r.an.bvg], ['Quellensteuer', (r) => -r.an.qst],
+    ['Nettolohn', (r) => r.brutto - r.abzuege, 1],
+    ['Kinder- und Familienzulagen', (r) => r.zulagen], ['Versicherungstaggeld', (r) => r.taggeld], ['Spesen', (r) => r.spesen],
+    ['Auszahlung', (r) => r.netto, 1],
+    ['Arbeitgeberbeiträge', (r) => r.agTotal],
+  ];
+  function lohnkontoDaten(m, jahr) {
+    const l = lohnJahr(m, jahr);
+    const zeilen = LOHNKONTO_ZEILEN.map(([t, f, fett]) => ({ t, fett, werte: l.map((x) => f(x.r)), total: l.reduce((a, x) => a + f(x.r), 0) }))
+      .filter((z) => z.fett || z.werte.some((w) => w));
+    return { l, zeilen };
+  }
+  function lohnkonto(id) {
+    const m = mitarbeiterListe().find((x) => x.id === id); if (!m) return;
+    const jahr = Z.lohnMonat.slice(0, 4), { l, zeilen } = lohnkontoDaten(m, jahr), F = firmaDaten();
+    if (!l.length) { toast(`Für ${m.name} sind ${jahr} noch keine Löhne gebucht.`); return; }
+    const kurz = (mo) => new Date(mo + '-15').toLocaleDateString('de-CH', { month: 'short' });
+    const tabelle = [['Lohnart', ...l.map((x) => monatName(x.mo)), 'Total'], ...zeilen.map((z) => [z.t, ...z.werte.map(csvBetrag), csvBetrag(z.total)])];
+    const csvUrl = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv(tabelle));
+    druckFenster(`<!doctype html><html lang="de-CH"><head><meta charset="utf-8"><title>Lohnkonto ${esc(m.name)} ${jahr}</title><style>${DRUCK_STIL(F.farbe)}@page{size:A4 landscape}table{font-size:11px}</style></head><body>
+      <div class="nicht-drucken"><button onclick="window.print()">Drucken / PDF</button><a href="${csvUrl}" download="Lohnkonto_${jahr}_${esc(m.name.replace(/\s+/g, '-'))}.csv">Als Excel herunterladen</a></div>
+      ${firmenKopf(F, `Lohnkonto ${jahr}`)}
+      <h1>Lohnkonto ${jahr}: ${esc(m.name)}</h1>
+      <p class="h">${[m.ahvNr ? 'AHV-Nr. ' + esc(m.ahvNr) : '', m.eintritt ? 'Eintritt ' + datumKurz(m.eintritt) : '', m.lohnart === 'stunde' ? `Stundenlohn CHF ${chf(m.lohn)}` : `Monatslohn CHF ${chf(m.lohn)} · ${m.pensum || 100} %`].filter(Boolean).join(' · ')}</p>
+      <table><tr><th>Lohnart</th>${l.map((x) => `<th class="b">${kurz(x.mo)}</th>`).join('')}<th class="b">Total</th></tr>
+        ${zeilen.map((z) => `<tr${z.fett ? ' class="s"' : ''}><td>${z.t}</td>${z.werte.map((w) => `<td class="b">${w ? chf(w) : ''}</td>`).join('')}<td class="b"><b>${chf(z.total)}</b></td></tr>`).join('')}
+      </table></body></html>`);
+  }
+
+  function lohnausweis(id) {
+    const m = mitarbeiterListe().find((x) => x.id === id); if (!m) return;
+    const jahr = Z.lohnMonat.slice(0, 4), l = lohnJahr(m, jahr), F = firmaDaten();
+    if (!l.length) { toast(`Für ${m.name} sind ${jahr} noch keine Löhne gebucht.`); return; }
+    const s = (f) => l.reduce((a, x) => a + f(x.r), 0);
+    const z1 = s((r) => r.grund + r.ferien + r.zulagen + r.taggeld), z3 = s((r) => r.bonus), z8 = z1 + z3;
+    const z9 = s((r) => r.an.ahv + r.an.alv + r.an.nbu), z10 = s((r) => r.an.bvg), z11 = z8 - z9 - z10, z12 = s((r) => r.an.qst), z13 = s((r) => r.spesen), ktg = s((r) => r.an.ktg);
+    const von = (() => { const a = l[0].mo + '-01'; return m.eintritt && m.eintritt > a && m.eintritt.slice(0, 7) === l[0].mo ? m.eintritt : a; })();
+    const bis = (() => { const x = l[l.length - 1].mo; return new Date(Number(x.slice(0, 4)), Number(x.slice(5, 7)), 0).toLocaleDateString('sv-SE'); })();
+    const bem = [ktg ? `Beiträge an die Krankentaggeldversicherung Arbeitnehmer CHF ${chf(ktg)}` : '', s((r) => r.taggeld) ? `In Ziffer 1 enthalten: Versicherungstaggelder CHF ${chf(s((r) => r.taggeld))}` : ''].filter(Boolean);
+    const zf = (nr, t, b, opt = {}) => `<tr${opt.fett ? ' class="s"' : ''}><td style="width:46px">${nr}</td><td>${t}</td><td class="b">${opt.minus ? '− ' : ''}${b == null ? '' : chf(b)}</td></tr>`;
+    druckFenster(`<!doctype html><html lang="de-CH"><head><meta charset="utf-8"><title>Lohnausweis ${jahr} ${esc(m.name)}</title><style>${DRUCK_STIL(F.farbe)}
+      .feld4{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;margin-top:14px}.feld4 div{border-bottom:1px solid #E3E6EF;padding:4px 0}.feld4 span{display:block}</style></head><body>
+      <div class="nicht-drucken"><button onclick="window.print()">Drucken / PDF</button></div>
+      ${firmenKopf(F, `Lohnausweis ${jahr}<br>Formular 11`)}
+      <h1>Lohnausweis ${jahr}</h1>
+      <div class="feld4">
+        <div><span class="h">A Lohnausweis · C AHV-Nr.</span>${esc(m.ahvNr || '–')}</div>
+        <div><span class="h">D Jahr · E Lohnperiode</span>${jahr} · ${datumKurz(von)} bis ${datumKurz(bis)}</div>
+        <div><span class="h">H Arbeitnehmer</span><b>${esc(m.name)}</b><br>${esc([m.strasse, m.ort].filter(Boolean).join(', '))}</div>
+        <div><span class="h">F Unentgeltliche Beförderung · G Kantinenverpflegung</span>nein · nein</div>
+      </div>
+      <table>
+        ${zf('1.', 'Lohn (inkl. Familienzulagen und Taggelder)', z1)}
+        ${z3 ? zf('3.', 'Unregelmässige Leistungen (Bonus)', z3) : ''}
+        ${zf('8.', 'Bruttolohn total', z8, { fett: 1 })}
+        ${zf('9.', 'Beiträge AHV/IV/EO/ALV/NBUV', z9, { minus: 1 })}
+        ${zf('10.1', 'Berufliche Vorsorge 2. Säule, ordentliche Beiträge', z10, { minus: 1 })}
+        ${zf('11.', 'Nettolohn', z11, { fett: 1 })}
+        ${z12 ? zf('12.', 'Quellensteuerabzug', z12) : ''}
+        ${z13 ? zf('13.1.1', 'Effektive Spesen: Reise, Verpflegung, Übernachtung', z13) : ''}
+      </table>
+      ${bem.length ? `<h2>15. Bemerkungen</h2><p>${bem.map(esc).join('<br>')}</p>` : ''}
+      <h2>I Ort und Datum, Arbeitgeber</h2>
+      <p>${esc(F.name)}${F.strasse || F.ort ? ', ' + esc([F.strasse, F.ort].filter(Boolean).join(', ')) : ''}${F.tel ? ', Tel. ' + esc(F.tel) : ''}<br>${esc(F.ort ? F.ort.replace(/^\d{4}\s*/, '') + ', ' : '')}${datumKurz(heute())}</p>
+      <p class="h" style="margin-top:24px">Werte aus den gebuchten Lohnläufen ${jahr}, aufgebaut wie das amtliche Formular 11. Bitte vor der Abgabe prüfen. Verlangt Ihr Kanton das amtliche Formular oder ELM (Swissdec), übertragen Sie die Ziffern dorthin.</p>
+    </body></html>`);
+  }
+
+  function lohnCsv() {
+    const monat = Z.lohnMonat;
+    const kopf = ['Name', 'AHV-Nr.', 'Stunden', 'Grundlohn', 'Kürzung', 'Ferien', 'Bonus', 'Brutto', 'AHV/IV/EO', 'ALV', 'NBU', 'KTG', 'BVG', 'Quellensteuer', 'Abzüge', 'Netto', 'Zulagen', 'Taggeld', 'Spesen', 'Auszahlung', 'AG-Beiträge', 'IBAN'];
+    const zeilen = mitarbeiterListe().filter((m) => m.aktiv !== false).map((m) => {
+      const e = lohnEingabe(monat, m.id), r = lohnBerechnen(m, e);
+      return [m.name, m.ahvNr || '', m.lohnart === 'stunde' ? (e.stunden || 0) : '', ...[r.grundRoh, r.kuerzung, r.ferien, r.bonus, r.brutto, r.an.ahv, r.an.alv, r.an.nbu, r.an.ktg, r.an.bvg, r.an.qst, r.abzuege, r.brutto - r.abzuege, r.zulagen, r.taggeld, r.spesen, r.netto, r.agTotal].map(csvBetrag), m.iban || ''];
+    });
+    herunterladen(`Lohnlauf ${monat}.csv`, csv([kopf, ...zeilen]), 'text/csv');
+  }
+  function lohnJahrCsv() {
+    const jahr = Z.lohnMonat.slice(0, 4);
+    const kopf = ['Name', 'AHV-Nr.', 'Monate', 'Ziffer 1 Lohn', 'Ziffer 3 Bonus', 'Ziffer 8 Brutto', 'Ziffer 9 AHV/IV/EO/ALV/NBUV', 'Ziffer 10.1 BVG', 'Ziffer 11 Netto', 'Ziffer 12 Quellensteuer', 'Ziffer 13.1.1 Spesen', 'KTG Arbeitnehmer', 'Taggelder', 'Auszahlung', 'AG-Beiträge'];
+    const zeilen = mitarbeiterListe().map((m) => {
+      const l = lohnJahr(m, jahr); if (!l.length) return null;
+      const s = (f) => l.reduce((a, x) => a + f(x.r), 0);
+      const z1 = s((r) => r.grund + r.ferien + r.zulagen + r.taggeld), z3 = s((r) => r.bonus), z9 = s((r) => r.an.ahv + r.an.alv + r.an.nbu), z10 = s((r) => r.an.bvg);
+      return [m.name, m.ahvNr || '', l.length, ...[z1, z3, z1 + z3, z9, z10, z1 + z3 - z9 - z10, s((r) => r.an.qst), s((r) => r.spesen), s((r) => r.an.ktg), s((r) => r.taggeld), s((r) => r.netto), s((r) => r.agTotal)].map(csvBetrag)];
+    }).filter(Boolean);
+    if (!zeilen.length) { toast('Noch keine gebuchten Löhne in diesem Jahr'); return; }
+    herunterladen(`Löhne ${jahr}.csv`, csv([kopf, ...zeilen]), 'text/csv');
   }
 
   /* ================= Buchungen ================= */
@@ -2771,6 +3029,12 @@
     mitarbeiter: () => mitarbeiterBearbeiten(),
     lohnBuchen: () => lohnBuchen(),
     lohnzettel: (id) => lohnzettel(id),
+    lohnDetails: (id) => lohnDetails(id),
+    lohnMail: (id) => lohnMail(id),
+    lohnkonto: (id) => lohnkonto(id),
+    lohnausweis: (id) => lohnausweis(id),
+    lohnCsv: () => lohnCsv(),
+    lohnJahrCsv: () => lohnJahrCsv(),
     kategorien: () => kategorienBearbeiten(),
     sichern,
     zurueckholen,

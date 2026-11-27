@@ -67,7 +67,7 @@ h1 { font-size: 1.15rem; color: var(--tinte); margin-top: 4px; font-weight: 600;
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const chf = (r) => ((r || 0) / 100).toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const datum = (iso) => iso ? new Date(String(iso).slice(0, 10) + 'T12:00:00').toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
-  const WORT = { rechnung: 'Rechnung', offerte: 'Offerte', gutschrift: 'Gutschrift', mahnung: 'Mahnung' };
+  const WORT = { rechnung: 'Rechnung', offerte: 'Offerte', gutschrift: 'Gutschrift', mahnung: 'Mahnung', auftrag: 'Auftragsbestätigung', lieferschein: 'Lieferschein' };
   const token = new URLSearchParams(location.search).get('t') || '';
   const K = window.NASUVIA_KONFIG && window.NASUVIA_KONFIG.produkt ? window.NASUVIA_KONFIG : { url: 'https://poyilrmwcsyqdajsykpt.supabase.co', key: 'sb_publishable_312jPWJKkZNlWWc51a6Ucw_Ku-xF8Vw' };
   const fehler = (t) => { $('inhalt').innerHTML = `<p class="fehler">${esc(t)}</p>`; };
@@ -88,10 +88,11 @@ h1 { font-size: 1.15rem; color: var(--tinte); margin-top: 4px; font-weight: 600;
     const zeichnen = () => {
       const l = docs.filter((x) => filter === 'alle' || (filter === 'offen' ? offen.includes(x) : filter === 'offerten' ? x.art === 'offerte' : x.art === filter));
       $('liste').innerHTML = l.length ? l.map((x) => {
-        const ueber = !x.bezahlt && x.faellig && x.faellig < heute && x.art !== 'offerte';
+        const keineZahlung = ['offerte', 'auftrag', 'lieferschein', 'gutschrift'].includes(x.art);
+        const ueber = !x.bezahlt && x.faellig && x.faellig < heute && !keineZahlung;
         const st = x.art === 'offerte' ? (x.antwort === 'angenommen' ? '<span class="stand bezahlt">angenommen</span>' : x.antwort === 'abgelehnt' ? '<span class="stand">abgelehnt</span>' : '<span class="stand">offen</span>')
-          : x.art === 'gutschrift' ? '' : x.bezahlt ? '<span class="stand bezahlt">bezahlt</span>' : ueber ? '<span class="stand ueber">überfällig</span>' : '<span class="stand">offen</span>';
-        return `<a class="dok" href="../r/?t=${esc(x.t)}"><div><b>${WORT[x.art] || 'Dokument'} ${esc(x.nr || '')}</b><small>vom ${datum(x.datum)}${x.faellig && x.art !== 'offerte' && !x.bezahlt ? ' · zahlbar bis ' + datum(x.faellig) : ''}</small></div><div class="rechts">CHF ${chf(x.betragRappen)}<br>${st}</div></a>`;
+          : keineZahlung ? '' : x.bezahlt ? '<span class="stand bezahlt">bezahlt</span>' : ueber ? '<span class="stand ueber">überfällig</span>' : '<span class="stand">offen</span>';
+        return `<a class="dok" href="../r/?t=${esc(x.t)}"><div><b>${WORT[x.art] || 'Dokument'} ${esc(x.nr || '')}</b><small>vom ${datum(x.datum)}${x.faellig && !keineZahlung && !x.bezahlt ? ' · zahlbar bis ' + datum(x.faellig) : ''}</small></div><div class="rechts">CHF ${chf(x.betragRappen)}<br>${st}</div></a>`;
       }).join('') : '<p class="laden" style="padding:20px">Nichts in dieser Auswahl.</p>';
       $('inhalt').querySelectorAll('[data-f]').forEach((b) => b.classList.toggle('an', b.dataset.f === filter));
     };

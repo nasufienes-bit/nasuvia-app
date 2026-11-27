@@ -97,6 +97,14 @@
       'Im Rechnungsprogramm oben bei „Rechnung“ auf „Offerte“ tippen. Die Offerte bekommt eine eigene Nummer (O-001).',
       'Ausfüllen und sichern wie eine Rechnung. Eine Offerte hat keinen Zahlteil.',
       'Bekommen Sie den Auftrag, tippen Sie in der Liste „Gesicherte Rechnungen“ bei der Offerte auf „Zu Rechnung“.'], R + '?dok=offerte'],
+    ['auftrag-lieferschein', 'Rechnungen', 'Auftragsbestätigung und Lieferschein', 'auftragsbestätigung auftrag bestätigen lieferschein lieferung ware erhalten unterschrift umwandeln', [
+      'Im Rechnungsprogramm oben „Auftrag“ oder „Lieferschein“ wählen. Beide bekommen eigene Nummern (A-001, L-001) und haben keinen Zahlteil.',
+      'Der Lieferschein zeigt nur Mengen, ohne Preise, und hat Felder für Datum und Unterschrift.',
+      'In „Gesicherte Rechnungen“ machen Sie aus einer Offerte mit einem Tipp einen Auftrag, einen Lieferschein oder die Rechnung.'], R + '?dok=auftrag'],
+    ['artikel', 'Rechnungen', 'Artikel und Leistungen mit Preis hinterlegen', 'artikel artikelstamm leistungen preisliste katalog produkte material stundensatz vorschlag', [
+      'Im Rechnungsprogramm bei „Positionen“ auf „Artikel“ tippen und Bezeichnung, Preis und Einheit eintragen, oder eine CSV-Datei importieren.',
+      'Beim Tippen einer Position schlägt Ordasio passende Artikel vor und setzt den Preis ein.',
+      'Mit „Positionen übernehmen“ werden die Positionen der offenen Rechnung zu Artikeln.'], R],
     ['gutschrift', 'Rechnungen', 'Gutschrift erstellen', 'gutschrift rückerstattung storno korrektur minus', [
       'Oben auf „Gutschrift“ tippen und unter „Zu Rechnung“ die ursprüngliche Rechnungsnummer eintragen.',
       'Beträge eintragen und sichern. Die Gutschrift wird vom Umsatz abgezogen.'], R + '?dok=gutschrift'],
@@ -169,6 +177,10 @@
       'Monats- oder Stundenlohn, Pensum, Pensionskasse und Zulagen eintragen.',
       'Jeden Monat Stunden, Bonus oder Spesen eintragen, „Lohnlauf buchen“ tippen und bei jeder Person „Abrechnung“ für das PDF.',
       'Die Jahresübersicht liefert die Werte für den Lohnausweis. Sozialversicherungs-Sätze unten an Ihre Versicherungen anpassen.'], B + '?ansicht=loehne'],
+    ['lohn-mehr', 'Buchhaltung', 'Lohnausweis, Lohnkonto, Taggelder und Lohnabrechnung per E-Mail', 'lohnausweis formular 11 lohnkonto taggeld unfall krankheit kürzung abwesenheit lohnabrechnung mail senden treuhänder excel export text', [
+      'Unter „Löhne“ bei einer Person auf „Details“ tippen: Taggeld der Unfall- oder Krankentaggeld-Versicherung, Lohnkürzung und einen persönlichen Text eintragen.',
+      'Mit „E-Mail“ geht die Lohnabrechnung als PDF an die Person. Unten bei den Sätzen tragen Sie weitere Empfänger ein, etwa Ihren Treuhänder.',
+      'Nach dem Buchen zeigt die Jahresübersicht bei jeder Person „Lohnkonto“ (alle Monate, auch als Excel) und „Lohnausweis“ mit den Ziffern des Formulars 11.'], B + '?ansicht=loehne'],
     ['startseite', 'Buchhaltung', 'Startseite und Jahresziel anpassen', 'startseite übersicht anpassen jahresziel ziel karten', [
       'Einstellungen, Bereich „Startseite“.',
       'Wählen Sie, welche Karten erscheinen, geben Sie einen eigenen Titel und ein Jahresziel ein.'], B + '?ansicht=mehr'],

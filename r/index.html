@@ -60,7 +60,7 @@ h1 { font-size: 1.15rem; color: var(--tinte); margin-top: 4px; font-weight: 600;
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const chf = (r) => ((r || 0) / 100).toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const datum = (iso) => iso ? new Date(iso + 'T12:00:00').toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
-  const WORT = { rechnung: 'Rechnung', offerte: 'Offerte', gutschrift: 'Gutschrift', mahnung: 'Mahnung' };
+  const WORT = { rechnung: 'Rechnung', offerte: 'Offerte', gutschrift: 'Gutschrift', mahnung: 'Mahnung', auftrag: 'Auftragsbestätigung', lieferschein: 'Lieferschein' };
   const token = new URLSearchParams(location.search).get('t') || '';
   // Immer die Kunden-Datenbank (auch wenn die Seite woanders liegt)
   const K = window.NASUVIA_KONFIG && window.NASUVIA_KONFIG.produkt ? window.NASUVIA_KONFIG : { url: 'https://poyilrmwcsyqdajsykpt.supabase.co', key: 'sb_publishable_312jPWJKkZNlWWc51a6Ucw_Ku-xF8Vw' };
@@ -79,6 +79,8 @@ h1 { font-size: 1.15rem; color: var(--tinte); margin-top: 4px; font-weight: 600;
     const ueber = !d.bezahlt && d.faellig && d.faellig < heute;
     const stand = d.art === 'offerte' ? (d.antwort === 'angenommen' ? `<span class="stand bezahlt">✓ Angenommen am ${datum(String(d.antwort_am).slice(0, 10))}</span>` : `<span class="stand">Gültig gemäss Offerte</span>`)
       : d.art === 'gutschrift' ? `<span class="stand bezahlt">Gutschrift</span>`
+      : d.art === 'auftrag' ? `<span class="stand">Auftrag bestätigt${d.faellig ? ', Ausführung bis ' + datum(d.faellig) : ''}</span>`
+      : d.art === 'lieferschein' ? `<span class="stand">Geliefert${d.faellig ? ' am ' + datum(d.faellig) : ''}</span>`
       : d.bezahlt ? `<span class="stand bezahlt">✓ Bezahlt, vielen Dank</span>`
       : ueber ? `<span class="stand ueber">Fällig seit ${datum(d.faellig)}</span>`
       : d.faellig ? `<span class="stand">Zahlbar bis ${datum(d.faellig)}</span>` : '';
@@ -87,7 +89,7 @@ h1 { font-size: 1.15rem; color: var(--tinte); margin-top: 4px; font-weight: 600;
     $('inhalt').innerHTML = `
       <div class="kopf">${f.logo ? `<img src="${esc(f.logo)}" alt="${esc(f.name || '')}">` : `<span class="name">${esc(f.name || '')}</span>`}<span class="art">${art} Nr. ${esc(d.nr || '')}</span></div>
       <h1>${d.kunde ? 'Für ' + esc(d.kunde) + ' · ' : ''}vom ${datum(d.datum)}</h1>
-      <div class="betrag"><small>CHF</small>${chf(d.betragRappen)}</div>
+      ${d.art === 'lieferschein' ? '' : `<div class="betrag"><small>CHF</small>${chf(d.betragRappen)}</div>`}
       ${stand}
       <div class="knoepfe">
         <a class="knopf" href="${pdf}" target="_blank" rel="noopener">${svgPdf}${art} öffnen</a>

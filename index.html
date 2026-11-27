@@ -204,6 +204,11 @@ tr.summe td { font-weight: 700; color: var(--tinte); border-top: 1.5px solid var
 .stichtag-leiste label { display: flex; gap: 8px; align-items: center; }
 .tabelle-scroll { overflow-x: auto; }
 .lohn-tabelle td, .lohn-tabelle th { white-space: nowrap; vertical-align: middle; }
+#ablegen { position: fixed; inset: 0; z-index: 90; display: none; align-items: center; justify-content: center; background: rgba(11, 59, 46, .55); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); pointer-events: none; }
+#ablegen.zeigen { display: flex; }
+#ablegen div { background: #fff; border: 2px dashed #0E7A55; border-radius: 18px; padding: 34px 46px; text-align: center; display: grid; gap: 6px; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+#ablegen b { font-size: 20px; color: #0B3B2E; } #ablegen span { color: #5B6478; font-size: 14px; }
+.lohn-knoepfe { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .bilanz-eingabe.klein { width: 90px; }
 .saetze-raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
 .leer-karte { text-align: left; }

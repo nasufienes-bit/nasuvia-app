@@ -164,7 +164,7 @@
   async function alsPdf() {
     const b = $('blatt'), alt = b.style.zoom; b.style.zoom = '';
     b.querySelectorAll('.noprint').forEach((x) => (x.style.display = 'none'));
-    const c = await html2canvas(b, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+    const c = await html2canvas(b, { scale: 2, backgroundColor: '#ffffff', useCORS: true, onclone: (d) => window.UI && UI.pdfFarben && UI.pdfFarben(d) });
     b.style.zoom = alt; b.querySelectorAll('.noprint').forEach((x) => (x.style.display = ''));
     const pdf = new jspdf.jsPDF({ unit: 'mm', format: 'a4' });
     pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 210, Math.min(297, 210 * c.height / c.width));

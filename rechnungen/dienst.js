@@ -54,7 +54,7 @@
   const sauber = (t, ersatz = '-') => String(t).replace(/[^\p{L}\p{N}_\s.-]/gu, '').trim().replace(/\s+/g, ersatz) || 'Rechnung';
   // Dokumentarten: Rechnung (Umsatz), Gutschrift (minus Umsatz), Offerte und Mahnung (kein Umsatz)
   const artVon = (x) => (x && x.dokArt) || 'rechnung';
-  const WORT = { rechnung: 'Rechnung', offerte: 'Offerte', gutschrift: 'Gutschrift', mahnung: 'Mahnung' };
+  const WORT = { rechnung: 'Rechnung', offerte: 'Offerte', gutschrift: 'Gutschrift', mahnung: 'Mahnung', auftrag: 'Auftragsbestätigung', lieferschein: 'Lieferschein' };
   const dateiname = (d) => {
     const datum = d.datum || heute();
     const art = artVon(d), wort = WORT[art] + (art === 'mahnung' ? (d.mahnStufe || 1) : '');
@@ -78,7 +78,7 @@
     box.appendChild(kopie);
     document.body.appendChild(box);
     try {
-      const leinwand = await window.html2canvas(kopie, { scale: 3, backgroundColor: '#ffffff', logging: false, useCORS: true });
+      const leinwand = await window.html2canvas(kopie, { scale: 3, backgroundColor: '#ffffff', logging: false, useCORS: true, onclone: (d) => window.UI && UI.pdfFarben && UI.pdfFarben(d) });
       const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', compress: true });
       pdf.addImage(leinwand.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
       return pdf.output('blob');
@@ -170,7 +170,7 @@
     const teilenGeht = navigator.canShare && navigator.canShare({ files: [datei_] });
     const mailto = mail ? `mailto:${encodeURIComponent(mail.an || '')}?subject=${encodeURIComponent(mail.betreff || '')}&body=${encodeURIComponent(mail.text || '')}` : '';
     const d = dialog(`
-      <h3>${mail ? 'Rechnung versenden' : 'Rechnung als PDF'}</h3>
+      <h3>${mail ? 'Versenden' : 'Als PDF gesichert'}</h3>
       <p>${mail ? (teilenGeht ? 'Tippen Sie auf „Teilen“ und wählen Sie Mail. Die Rechnung ist schon angehängt.' : 'Laden Sie das PDF herunter und hängen Sie es an die Mail an.') : esc(datei)}</p>
       <div class="reihe">
         ${teilenGeht ? '<button class="haupt" data-teilen>Teilen</button>' : ''}
@@ -253,8 +253,9 @@
 
   async function naechsteNr(art = 'rechnung') {
     const eigene = (await gueltig('rechnung')).filter((r) => artVon(r) === art);
-    if (art === 'offerte' || art === 'gutschrift') {
-      const vor = art === 'offerte' ? 'O-' : 'G-';
+    const VOR = { offerte: 'O-', gutschrift: 'G-', auftrag: 'A-', lieferschein: 'L-' };
+    if (VOR[art]) {
+      const vor = VOR[art];
       const zahlen = eigene.map((r) => String(r.nr || '')).filter((n) => n.startsWith(vor)).map((n) => parseInt(n.slice(2), 10)).filter(Number.isFinite);
       return vor + String((zahlen.length ? Math.max(...zahlen) : 0) + 1).padStart(3, '0');
     }
@@ -298,7 +299,7 @@
       case '/api/statistik': return { body: await statistik() };
       case '/api/entwuerfe': return { body: { entwuerfe: (await gueltig('entwurf')).sort((a, b) => (b.zeit || '').localeCompare(a.zeit || '')).map(({ daten, offen, ...e }) => ({ ...e, id: e.id.replace(/^rgentwurf-/, ''), geaendert: e.zeit })) } };
       case '/api/naechsteNr': {
-        const art = ['offerte', 'gutschrift'].includes(d.art) ? d.art : 'rechnung';
+        const art = ['offerte', 'gutschrift', 'auftrag', 'lieferschein'].includes(d.art) ? d.art : 'rechnung';
         return { body: { nr: await naechsteNr(art), vergeben: (await gueltig('rechnung')).filter((r) => artVon(r) === art).map((r) => String(r.nr || '')) } };
       }
       case '/api/pdf': {
@@ -387,7 +388,7 @@
 
   /* ---------- Kunden und Zahlungsempfänger mitnehmen ---------- */
   const STAMM = { [KEY_KUNDEN]: 'rgstamm-kunden', [KEY_EMPF]: 'rgstamm-empfaenger',
-    'nasuvia.abos.v1': 'rgstamm-abos', 'nasuvia.vorlagen.v1': 'rgstamm-vorlagen', 'nasuvia.firma.v1': 'rgstamm-firma' };
+    'nasuvia.abos.v1': 'rgstamm-abos', 'nasuvia.vorlagen.v1': 'rgstamm-vorlagen', 'nasuvia.firma.v1': 'rgstamm-firma', 'nasuvia.artikel.v1': 'rgstamm-artikel' };
   const setItemOriginal = Storage.prototype.setItem;
   Storage.prototype.setItem = function (k, v) {
     setItemOriginal.call(this, k, v);
