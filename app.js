@@ -1086,6 +1086,10 @@
   /* ================= Löhne ================= */
   // Sätze 2026 als Vorgabe; jede Firma passt sie an ihre Ausgleichskasse und Versicherungen an.
   const LOHN_SAETZE_STD = { ahv: 5.3, alv: 1.1, alvGrenze: 148200, nbu: 1.2, ktg: 0.6, agAhv: 5.3, agAlv: 1.1, fak: 1.0, vk: 0.3, bu: 0.4, agKtg: 0.6 };
+  // GAV: Beiträge (fix pro Monat in CHF und/oder in Prozent), getrennt von den Sozialversicherungen
+  const GAV_SAETZE_TEXT = { gavAnChf: 'GAV-Beiträge Arbeitnehmer CHF pro Monat', gavAgChf: 'GAV-Beiträge Arbeitgeber CHF pro Monat', gavAnPct: 'GAV/FAR Arbeitnehmer % vom Lohn', gavAgPct: 'GAV/FAR Arbeitgeber % vom Lohn' };
+  const chfZahl = (x) => Number(x).toLocaleString('de-CH', { minimumFractionDigits: x % 1 ? 2 : 0, maximumFractionDigits: 2 });
+  const gavAktiv = () => (window.OrdasioGAV && Z.einst.gav ? OrdasioGAV.finde(Z.einst.gav) : null);
   const LOHN_SAETZE_TEXT = { ahv: 'AHV/IV/EO Arbeitnehmer %', alv: 'ALV Arbeitnehmer %', alvGrenze: 'ALV-Grenze CHF pro Jahr', nbu: 'Nichtberufsunfall (NBU) %', ktg: 'Krankentaggeld Arbeitnehmer %',
     agAhv: 'AHV/IV/EO Arbeitgeber %', agAlv: 'ALV Arbeitgeber %', fak: 'Familienausgleichskasse (FAK) %', vk: 'Verwaltungskosten Ausgleichskasse %', bu: 'Berufsunfall (BU) %', agKtg: 'Krankentaggeld Arbeitgeber %' };
   const lohnSaetze = () => ({ ...LOHN_SAETZE_STD, ...(Z.einst.lohnSaetze || {}) });
@@ -1106,13 +1110,56 @@
     const spesen = Number(e.spesen) || 0;
     const pct = (b, p) => r5(b * (Number(p) || 0) / 100);
     const alvBasis = Math.min(brutto, Math.round(S.alvGrenze * 100 / 12));
-    const an = { ahv: pct(brutto, S.ahv), alv: pct(alvBasis, S.alv), nbu: pct(brutto, S.nbu), ktg: pct(brutto, S.ktg), bvg: Number(m.bvg) || 0, qst: pct(brutto, m.qst) };
+    const gavJa = !!Z.einst.gav && m.gavAus !== true && brutto > 0;
+    const an = { ahv: pct(brutto, S.ahv), alv: pct(alvBasis, S.alv), nbu: pct(brutto, S.nbu), ktg: pct(brutto, S.ktg), bvg: Number(m.bvg) || 0, qst: pct(brutto, m.qst),
+      gav: gavJa ? pct(brutto, S.gavAnPct) + Math.round((Number(S.gavAnChf) || 0) * 100) : 0 };
     const abzuege = Object.values(an).reduce((a, x) => a + x, 0);
     const ag = { ahv: pct(brutto, S.agAhv), alv: pct(alvBasis, S.agAlv), fak: pct(brutto, S.fak), vk: pct(brutto, S.vk), bu: pct(brutto, S.bu), ktg: pct(brutto, S.agKtg), bvg: m.bvgAg != null && m.bvgAg !== '' ? Number(m.bvgAg) : (Number(m.bvg) || 0) };
+    ag.gav = gavJa ? pct(brutto, S.gavAgPct) + Math.round((Number(S.gavAgChf) || 0) * 100) : 0;
     const agTotal = Object.values(ag).reduce((a, x) => a + x, 0);
     return { grundRoh, kuerzung, grund, ferien, bonus, brutto, zulagen, taggeld, spesen, an, abzuege, netto: brutto - abzuege + zulagen + taggeld + spesen, ag, agTotal };
   }
   const chfFeld = (r) => (r ? chf(r).replace(/’/g, '') : '');
+
+  // GAV-Karte: Auswahl, Mindestlöhne, Ferien, 13. Monatslohn, Beiträge übernehmen
+  function gavKarte() {
+    if (!window.OrdasioGAV) return '';
+    const g = gavAktiv(), br = window.Branchen ? Branchen.aktuell() : '';
+    const vorschlag = br ? OrdasioGAV.fuerBranche(br) : [];
+    const fmt = (x) => (x == null ? '–' : Number(x).toLocaleString('de-CH', { minimumFractionDigits: x % 1 ? 2 : 0, maximumFractionDigits: 2 }));
+    const unter = mitarbeiterListe().filter((m) => m.aktiv !== false && m.gavKat != null && g).map((m) => ({ m, p: OrdasioGAV.pruefen(g, Number(m.gavKat), m.lohnart, m.lohn || 0) })).filter((x) => x.p && x.p.mindest != null && !x.p.ok);
+    return `<div class="card abstand"><h2>Gesamtarbeitsvertrag (GAV)</h2>
+      <p class="hinweis" style="margin-bottom:10px">Gilt für Ihre Branche ein allgemeinverbindlicher GAV, müssen Mindestlöhne, Ferien und Beiträge eingehalten werden. Ordasio prüft die Löhne und rechnet die GAV-Beiträge mit.</p>
+      <label class="feld"><span class="hinweis">GAV für diese Firma</span><select data-gav-wahl><option value="">Kein GAV</option>
+        ${vorschlag.length ? `<optgroup label="Passend zu Ihrer Branche">${vorschlag.map((x) => `<option value="${x.id}" ${g && g.id === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</optgroup>` : ''}
+        <optgroup label="Alle">${OrdasioGAV.LISTE.filter((x) => !vorschlag.includes(x)).map((x) => `<option value="${x.id}" ${g && g.id === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</optgroup></select></label>
+      ${g ? `<p class="hinweis abstand">${esc(g.gebiet)}${g.ave ? ' · allgemeinverbindlich' : ''} · Stand 2026 · <a href="${esc(g.quelle)}" target="_blank" rel="noopener">Quelle</a></p>
+        ${unter.length ? `<div class="card" style="border:1px solid rgba(229,72,77,.35);background:rgba(229,72,77,.05);margin:10px 0"><b>Unter dem GAV-Mindestlohn:</b> ${unter.map(({ m, p }) => `${esc(m.name)} (Minimum CHF ${fmt(p.mindest)} pro ${esc(p.einheit.replace(' (100 %)', ' bei 100 %'))})`).join(', ')}</div>` : ''}
+        <div class="tabelle-scroll"><table><tr><th>Kategorie</th><th class="b">pro Monat</th><th class="b">pro Stunde</th></tr>
+          ${g.kategorien.map(([n, mo, st]) => `<tr><td>${esc(n)}</td><td class="b">${mo == null ? '–' : fmt(mo)}</td><td class="b">${st == null ? (mo && g.jahresstunden ? '≈ ' + fmt(Math.round(mo * 12 / g.jahresstunden * 100) / 100) : '–') : fmt(st)}</td></tr>`).join('')}</table></div>
+        <div class="raster raster-2 abstand">
+          <div><b>13. Monatslohn</b><p class="hinweis">${g.dreizehnter ? 'Vorgeschrieben. Im Stundenlohn als Zuschlag von 8.33 % oder Ende Jahr auszahlen.' : 'Nicht vorgeschrieben.'}</p>
+            <b>Ferien</b><p class="hinweis">${esc((g.ferien && g.ferien.text) || 'Gemäss GAV, mindestens gesetzlich 4 Wochen (5 Wochen bis 20 Jahre).')}</p></div>
+          <div><b>Beiträge</b><p class="hinweis">${esc((g.beitraege && g.beitraege.text) || 'Bitte gemäss Abrechnung der paritätischen Kommission eintragen.')}</p>
+            ${g.beitraege ? `<button class="btn btn-klein" data-gav-saetze>Beiträge in die Lohnsätze übernehmen</button>` : ''}</div>
+        </div>
+        ${g.hinweis ? `<p class="hinweis abstand">${esc(g.hinweis)}</p>` : ''}
+        <p class="hinweis">Die Kategorie pro Person wählen Sie beim Mitarbeiter. Angaben ohne Gewähr, massgebend ist der GAV-Text.</p>` : ''}
+    </div>`;
+  }
+  document.addEventListener('change', async (e) => {
+    const w = e.target.closest('[data-gav-wahl]'); if (!w) return;
+    const g = window.OrdasioGAV && OrdasioGAV.finde(w.value);
+    await einstSpeichern({ gav: w.value || null });
+    if (g && g.beitraege && !(Z.einst.lohnSaetze || {}).gavAnChf && !(Z.einst.lohnSaetze || {}).gavAgChf) await einstSpeichern({ lohnSaetze: { ...(Z.einst.lohnSaetze || {}), gavAnChf: g.beitraege.anChf || 0, gavAgChf: g.beitraege.agChf || 0 } });
+    zeichnen(); toast(g ? g.kurz + ' gewählt' : 'Kein GAV');
+  });
+  document.addEventListener('click', async (e) => {
+    if (!e.target.closest('[data-gav-saetze]')) return;
+    const g = gavAktiv(); if (!g || !g.beitraege) return;
+    await einstSpeichern({ lohnSaetze: { ...(Z.einst.lohnSaetze || {}), gavAnChf: g.beitraege.anChf || 0, gavAgChf: g.beitraege.agChf || 0, gavAnPct: g.beitraege.anPct || 0, gavAgPct: g.beitraege.agPct || 0 } });
+    zeichnen(); toast('GAV-Beiträge übernommen');
+  });
 
   function loehneAnsicht() {
     const monat = Z.lohnMonat, jahr = monat.slice(0, 4), S = lohnSaetze();
@@ -1141,7 +1188,7 @@
       <div class="tabelle-scroll"><table class="lohn-tabelle">
         <tr><th>Mitarbeiter</th><th>Stunden</th><th class="b">Bonus</th><th class="b">Spesen</th><th class="b">Brutto</th><th class="b">Abzüge</th><th class="b">Auszahlung</th></tr>
         ${zeilenL.map(({ m, e, r }) => `<tr>
-          <td><b>${esc(m.name)}</b>${e.gesendet ? ' <span class="marke marke-ok">gesendet</span>' : ''}<br><span class="hinweis">${m.lohnart === 'stunde' ? `${chf(m.lohn)} pro Stunde` : `${chf(m.lohn)} pro Monat · ${m.pensum || 100} %`}${r.taggeld ? ` · Taggeld ${chf(r.taggeld)}` : ''}${r.kuerzung ? ` · Kürzung ${chf(r.kuerzung)}` : ''}${e.notiz ? ' · Text' : ''}</span><div class="lohn-knoepfe"><button class="btn btn-klein" onclick="NB.lohnDetails('${m.id}')">Details</button><button class="btn btn-klein" onclick="NB.lohnzettel('${m.id}')">Abrechnung</button><button class="btn btn-klein" onclick="NB.lohnMail('${m.id}')">E-Mail</button></div></td>
+          <td><b>${esc(m.name)}</b>${e.gesendet ? ' <span class="marke marke-ok">gesendet</span>' : ''}${(() => { const g = gavAktiv(); const p = g && m.gavKat != null && window.OrdasioGAV ? OrdasioGAV.pruefen(g, Number(m.gavKat), m.lohnart, m.lohn || 0) : null; return p && p.mindest != null && !p.ok ? ` <span class="marke" style="background:rgba(229,72,77,.12);color:#B91C1C" title="GAV-Minimum CHF ${p.mindest} pro ${esc(p.einheit)}">unter GAV-Minimum</span>` : ''; })()}<br><span class="hinweis">${m.lohnart === 'stunde' ? `${chf(m.lohn)} pro Stunde` : `${chf(m.lohn)} pro Monat · ${m.pensum || 100} %`}${r.taggeld ? ` · Taggeld ${chf(r.taggeld)}` : ''}${r.kuerzung ? ` · Kürzung ${chf(r.kuerzung)}` : ''}${e.notiz ? ' · Text' : ''}</span><div class="lohn-knoepfe"><button class="btn btn-klein" onclick="NB.lohnDetails('${m.id}')">Details</button><button class="btn btn-klein" onclick="NB.lohnzettel('${m.id}')">Abrechnung</button><button class="btn btn-klein" onclick="NB.lohnMail('${m.id}')">E-Mail</button></div></td>
           <td>${m.lohnart === 'stunde' ? `<input class="bilanz-eingabe klein" inputmode="decimal" data-lohn="${m.id}:stunden" value="${e.stunden || ''}" placeholder="0" />` : '<span class="hinweis">Monatslohn</span>'}</td>
           <td class="b"><input class="bilanz-eingabe klein" inputmode="decimal" data-lohn="${m.id}:bonus" value="${chfFeld(e.bonus)}" placeholder="0.00" /></td>
           <td class="b"><input class="bilanz-eingabe klein" inputmode="decimal" data-lohn="${m.id}:spesen" value="${chfFeld(e.spesen)}" placeholder="0.00" /></td>
@@ -1164,9 +1211,11 @@
         </table></div><p class="hinweis abstand">Lohnkonto und Lohnausweis enthalten alle gebuchten Monate ${jahr}. <button class="link" onclick="NB.lohnJahrCsv()">Jahresübersicht als Excel</button></p>` : '<p class="leer">Noch keine gebuchten Lohnläufe in diesem Jahr.</p>'}
       </div>
     </div>
+    ${gavKarte()}
     <div class="card abstand"><h2>Sätze für Sozialversicherungen</h2>
       <p class="hinweis" style="margin-bottom:10px">Vorgaben für 2026. Bitte mit Ihrer Ausgleichskasse, Unfallversicherung und Krankentaggeld-Versicherung abgleichen und anpassen.</p>
       <div class="saetze-raster">${Object.keys(LOHN_SAETZE_STD).map((k) => `<label class="feld"><span class="hinweis">${LOHN_SAETZE_TEXT[k]}</span><input type="text" inputmode="decimal" data-lohnsatz="${k}" value="${S[k]}" /></label>`).join('')}</div>
+      ${Z.einst.gav ? `<p class="hinweis abstand" style="margin-bottom:6px"><b>GAV-Beiträge</b> (werden vom Lohn abgezogen bzw. als Arbeitgeberbeitrag gebucht)</p><div class="saetze-raster">${Object.keys(GAV_SAETZE_TEXT).map((k) => `<label class="feld"><span class="hinweis">${GAV_SAETZE_TEXT[k]}</span><input type="text" inputmode="decimal" data-lohnsatz="${k}" value="${S[k] ?? 0}" /></label>`).join('')}</div>` : ''}
       <label class="feld abstand"><span class="hinweis">Lohnabrechnungen zusätzlich senden an (z. B. Treuhänder, mehrere mit Komma)</span><input type="text" inputmode="email" data-lohnkopie value="${esc(Z.einst.lohnKopie || '')}" placeholder="treuhand@beispiel.ch" /></label>
     </div>`;
   }
@@ -1175,7 +1224,7 @@
     if (t.matches('[data-lohnmonat]')) { Z.lohnMonat = t.value || Z.lohnMonat; zeichnen(); return; }
     if (t.matches('[data-lohnsatz]')) {
       const v = Number(String(t.value).replace(',', '.'));
-      await einstSpeichern({ lohnSaetze: { ...(Z.einst.lohnSaetze || {}), [t.dataset.lohnsatz]: Number.isFinite(v) ? v : LOHN_SAETZE_STD[t.dataset.lohnsatz] } });
+      await einstSpeichern({ lohnSaetze: { ...(Z.einst.lohnSaetze || {}), [t.dataset.lohnsatz]: Number.isFinite(v) ? v : (LOHN_SAETZE_STD[t.dataset.lohnsatz] ?? 0) } });
       zeichnen(); toast('Satz gespeichert'); return;
     }
     if (t.matches('[data-lohntext]')) { await einstSpeichern({ lohnTexte: { ...(Z.einst.lohnTexte || {}), [t.dataset.lohntext]: t.value.trim() } }); toast('Text gespeichert'); return; }
@@ -1212,12 +1261,19 @@
         <div class="feld-zeile">${f('bvg', 'Pensionskasse Arbeitnehmer (CHF/Monat)', chfFeld(m.bvg), 'text', 'inputmode="decimal"')}${f('bvgAg', 'Pensionskasse Arbeitgeber (CHF/Monat)', chfFeld(m.bvgAg), 'text', 'inputmode="decimal" placeholder="gleich wie Arbeitnehmer"')}</div>
         <div class="feld-zeile">${f('zulagen', 'Kinder- und Familienzulagen (CHF/Monat)', chfFeld(m.zulagen), 'text', 'inputmode="decimal"')}${f('qst', 'Quellensteuer in %', m.qst, 'text', 'inputmode="decimal" placeholder="nur falls quellensteuerpflichtig"')}</div>
         <div class="feld-zeile">${f('iban', 'IBAN für die Auszahlung', m.iban)}${f('mail', 'E-Mail für Lohnabrechnungen', m.mail, 'text', 'inputmode="email" placeholder="mehrere mit Komma trennen"')}</div>
+        ${gavAktiv() ? `<div class="feld"><label for="m_gavKat">GAV-Kategorie (${esc(gavAktiv().kurz)})</label><select id="m_gavKat"><option value="">Nicht zugeordnet</option>${gavAktiv().kategorien.map(([n, mo, st], i) => `<option value="${i}" ${String(m.gavKat) === String(i) ? 'selected' : ''}>${esc(n)}${mo ? ' · min. CHF ' + mo.toLocaleString('de-CH') + '/Mt.' : st ? ' · min. CHF ' + st.toFixed(2) + '/Std.' : ''}</option>`).join('')}</select><p class="hinweis" id="m_gavInfo" style="margin-top:4px"></p></div>
+        <label class="haken"><input type="checkbox" id="m_gavAus" ${m.gavAus ? 'checked' : ''} /> Nicht dem GAV unterstellt (z. B. Kader, Büro, Lernende)</label>` : ''}
         <label class="haken"><input type="checkbox" id="m_aktiv" ${m.aktiv !== false ? 'checked' : ''} /> Arbeitet zurzeit bei uns</label>
       </div>
       <div class="dlg-fuss">${vorhanden ? '<button type="button" class="btn btn-rot" data-ma-weg>Löschen</button>' : ''}<div class="rechts"><button type="button" class="btn" data-zu>Abbrechen</button><button type="submit" class="btn btn-haupt">Speichern</button></div></div>
     </form>`;
-    dlg.oninput = null;
-    dlg.onchange = (e) => { if (e.target.id === 'm_lohnart') $('m_lohn').previousElementSibling.textContent = e.target.value === 'stunde' ? 'Lohn pro Stunde (CHF)' : 'Monatslohn 100 % (CHF)'; };
+    const gavInfo = () => { const el = $('m_gavInfo'); if (!el) return; const v = $('m_gavKat').value, g = gavAktiv(); if (v === '' || !g) { el.textContent = ''; return; }
+      const lohn = betragLesen($('m_lohn').value); const p = OrdasioGAV.pruefen(g, Number(v), $('m_lohnart').value, Number.isFinite(lohn) ? lohn : 0);
+      el.innerHTML = !p || p.mindest == null ? 'Mindestlohn je nach Region: bitte Lohntabelle prüfen.' : p.ok ? `<span class="plus">Lohn erfüllt das Minimum von CHF ${chfZahl(p.mindest)} pro ${esc(p.einheit)}.</span>` : `<span class="minus">Unter dem GAV-Minimum von CHF ${chfZahl(p.mindest)} pro ${esc(p.einheit)}.</span>`; };
+    dlg.oninput = (e) => { if (e.target.id === 'm_lohn') gavInfo(); };
+    dlg.onchange = (e) => { if (e.target.id === 'm_lohnart') $('m_lohn').previousElementSibling.textContent = e.target.value === 'stunde' ? 'Lohn pro Stunde (CHF)' : 'Monatslohn 100 % (CHF)'; if (['m_lohnart', 'm_gavKat'].includes(e.target.id)) gavInfo();
+      if (e.target.id === 'm_lohnart' && e.target.value === 'stunde' && gavAktiv() && gavAktiv().stundenZuschlag && !Number($('m_ferienPct').value)) $('m_ferienPct').value = gavAktiv().stundenZuschlag; };
+    setTimeout(gavInfo, 0);
     dlg.onclick = async (e) => {
       if (e.target === dlg || e.target.closest('[data-zu]')) { dlg.close(); return; }
       if (e.target.closest('[data-ma-weg]') && await UI.frage(`${m.name} löschen? Gebuchte Löhne bleiben in der Buchhaltung.`)) {
@@ -1230,7 +1286,8 @@
       const zahlF = (id) => { const v = Number(String($('m_' + id).value).replace(',', '.')); return Number.isFinite(v) ? v : 0; };
       Object.assign(m, { name: $('m_name').value.trim(), strasse: $('m_strasse').value.trim(), ort: $('m_ort').value.trim(), ahvNr: $('m_ahvNr').value.trim(),
         eintritt: $('m_eintritt').value, lohnart: $('m_lohnart').value, lohn: z('lohn'), pensum: zahlF('pensum') || 100, ferienPct: zahlF('ferienPct'),
-        bvg: z('bvg'), bvgAg: $('m_bvgAg').value.trim() ? z('bvgAg') : '', zulagen: z('zulagen'), qst: zahlF('qst'), iban: $('m_iban').value.trim(), mail: $('m_mail').value.trim(), aktiv: $('m_aktiv').checked });
+        bvg: z('bvg'), bvgAg: $('m_bvgAg').value.trim() ? z('bvgAg') : '', zulagen: z('zulagen'), qst: zahlF('qst'), iban: $('m_iban').value.trim(), mail: $('m_mail').value.trim(), aktiv: $('m_aktiv').checked,
+        ...($('m_gavKat') ? { gavKat: $('m_gavKat').value === '' ? null : Number($('m_gavKat').value), gavAus: $('m_gavAus').checked } : {}) });
       if (!m.name) { $('m_name').focus(); return; }
       const liste = mitarbeiterListe().filter((x) => x.id !== m.id);
       await einstSpeichern({ mitarbeiter: [...liste, m] });
@@ -1290,7 +1347,7 @@
         ${r.bonus ? z('Bonus / Zulage', r.bonus) : ''}
         <tr class="s"><td>Bruttolohn</td><td class="b">${chf(r.brutto)}</td></tr>
         ${z(`AHV/IV/EO ${S.ahv} %`, r.an.ahv, 1)}${z(`ALV ${S.alv} %`, r.an.alv, 1)}${r.an.nbu ? z(`Nichtberufsunfall ${S.nbu} %`, r.an.nbu, 1) : ''}${r.an.ktg ? z(`Krankentaggeld ${S.ktg} %`, r.an.ktg, 1) : ''}
-        ${r.an.bvg ? z('Pensionskasse (BVG)', r.an.bvg, 1) : ''}${r.an.qst ? z(`Quellensteuer ${m.qst} %`, r.an.qst, 1) : ''}
+        ${r.an.bvg ? z('Pensionskasse (BVG)', r.an.bvg, 1) : ''}${r.an.qst ? z(`Quellensteuer ${m.qst} %`, r.an.qst, 1) : ''}${r.an.gav ? z(`GAV-Beiträge${gavAktiv() ? ' (' + gavAktiv().kurz + ')' : ''}`, r.an.gav, 1) : ''}
         <tr class="s"><td>Nettolohn</td><td class="b">${chf(r.brutto - r.abzuege)}</td></tr>
         ${r.zulagen ? z('Kinder- und Familienzulagen', r.zulagen) : ''}${r.taggeld ? z('Versicherungstaggeld (Unfall/Krankheit)', r.taggeld) : ''}${r.spesen ? z('Spesen', r.spesen) : ''}
         <tr class="s t"><td>Auszahlung</td><td class="b">CHF ${chf(r.netto)}</td></tr>
@@ -1448,7 +1505,7 @@
   const LOHNKONTO_ZEILEN = [
     ['Grundlohn', (r) => r.grundRoh], ['Lohnkürzung', (r) => -r.kuerzung], ['Ferienentschädigung', (r) => r.ferien], ['Bonus / Zulage', (r) => r.bonus],
     ['Bruttolohn', (r) => r.brutto, 1],
-    ['AHV/IV/EO', (r) => -r.an.ahv], ['ALV', (r) => -r.an.alv], ['Nichtberufsunfall', (r) => -r.an.nbu], ['Krankentaggeld', (r) => -r.an.ktg], ['Pensionskasse (BVG)', (r) => -r.an.bvg], ['Quellensteuer', (r) => -r.an.qst],
+    ['AHV/IV/EO', (r) => -r.an.ahv], ['ALV', (r) => -r.an.alv], ['Nichtberufsunfall', (r) => -r.an.nbu], ['Krankentaggeld', (r) => -r.an.ktg], ['Pensionskasse (BVG)', (r) => -r.an.bvg], ['GAV-Beiträge', (r) => -(r.an.gav || 0)], ['Quellensteuer', (r) => -r.an.qst],
     ['Nettolohn', (r) => r.brutto - r.abzuege, 1],
     ['Kinder- und Familienzulagen', (r) => r.zulagen], ['Versicherungstaggeld', (r) => r.taggeld], ['Spesen', (r) => r.spesen],
     ['Auszahlung', (r) => r.netto, 1],
@@ -1486,7 +1543,8 @@
     const z9 = s((r) => r.an.ahv + r.an.alv + r.an.nbu), z10 = s((r) => r.an.bvg), z11 = z8 - z9 - z10, z12 = s((r) => r.an.qst), z13 = s((r) => r.spesen), ktg = s((r) => r.an.ktg);
     const von = (() => { const a = l[0].mo + '-01'; return m.eintritt && m.eintritt > a && m.eintritt.slice(0, 7) === l[0].mo ? m.eintritt : a; })();
     const bis = (() => { const x = l[l.length - 1].mo; return new Date(Number(x.slice(0, 4)), Number(x.slice(5, 7)), 0).toLocaleDateString('sv-SE'); })();
-    const bem = [ktg ? `Beiträge an die Krankentaggeldversicherung Arbeitnehmer CHF ${chf(ktg)}` : '', s((r) => r.taggeld) ? `In Ziffer 1 enthalten: Versicherungstaggelder CHF ${chf(s((r) => r.taggeld))}` : ''].filter(Boolean);
+    const gavS = s((r) => r.an.gav || 0);
+    const bem = [ktg ? `Beiträge an die Krankentaggeldversicherung Arbeitnehmer CHF ${chf(ktg)}` : '', gavS ? `GAV-Beiträge Arbeitnehmer (Vollzug, Weiterbildung) CHF ${chf(gavS)}` : '', s((r) => r.taggeld) ? `In Ziffer 1 enthalten: Versicherungstaggelder CHF ${chf(s((r) => r.taggeld))}` : ''].filter(Boolean);
     const zf = (nr, t, b, opt = {}) => `<tr${opt.fett ? ' class="s"' : ''}><td style="width:46px">${nr}</td><td>${t}</td><td class="b">${opt.minus ? '− ' : ''}${b == null ? '' : chf(b)}</td></tr>`;
     druckFenster(`<!doctype html><html lang="de-CH"><head><meta charset="utf-8"><title>Lohnausweis ${jahr} ${esc(m.name)}</title><style>${DRUCK_STIL(F.farbe)}
       .feld4{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;margin-top:14px}.feld4 div{border-bottom:1px solid #E3E6EF;padding:4px 0}.feld4 span{display:block}</style></head><body>

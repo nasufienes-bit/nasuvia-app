@@ -308,6 +308,10 @@
       'Mitarbeitende tippen auf ihrem Handy-Link unter „Anfragen ans Büro“ auf das Passende und senden es ab.',
       'Im Büro erscheint es in der Firmenablage unter „Anträge und Anfragen“. Mit „Dokument senden“ legen Sie z. B. die Lohnabrechnung direkt aufs Handy der Person.',
       '„Erledigt“ oder „Ablehnen“ tippen, eine kurze Nachricht schreiben. Der Mitarbeiter sieht die Antwort sofort.'], WURZEL + 'ablage/?tab=antraege'],
+    ['gav', 'Löhne', 'GAV: Mindestlöhne und Beiträge pro Branche', 'gav gesamtarbeitsvertrag mindestlohn l-gav lmv elektro gebäudetechnik maler gipser schreiner reinigung coiffeur gastro vollzugskosten far parifonds', [
+      'Buchhaltung, Löhne, Karte „Gesamtarbeitsvertrag“: GAV wählen (passend zur Branche vorgeschlagen).',
+      'Beim Mitarbeiter die GAV-Kategorie wählen: Ordasio warnt, wenn der Lohn unter dem Minimum liegt.',
+      'GAV-Beiträge (Vollzug, Weiterbildung, FAR) werden vom Lohn abgezogen und auf der Abrechnung ausgewiesen.'], B + '?ansicht=loehne'],
     ['ma-ferien', 'Mitarbeitende', 'Ferientabelle: Anspruch, bezogen, übrig', 'ferien ferientabelle ferienanspruch ferientage saldo übrig bezogen mitarbeiter', [
       'Mitarbeitende sehen auf ihrem Handy „Meine Ferien“: Anspruch, bezogen, beantragt und übrig.',
       'Den Anspruch pro Person stellen Sie in der Firmenablage unter Personal ein („Anspruch ändern“). Standard sind 20 Arbeitstage.',
