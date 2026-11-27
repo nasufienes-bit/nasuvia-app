@@ -79,6 +79,8 @@
   .ordi-eingabe{display:flex;gap:8px;padding:10px;border-top:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 10%,transparent);background:#fff}
   .ordi-eingabe input{flex:1;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 22%,transparent);border-radius:100px;padding:11px 14px;font:inherit;font-size:16px;min-width:0}
   .ordi-eingabe button{border:0;border-radius:100px;background:var(--blau,#0B3B2E);color:#fff;padding:0 16px;font:inherit;font-weight:700;cursor:pointer}
+  .ordi-dateibar{display:flex;align-items:center;gap:8px;margin:0 12px 6px;padding:7px 8px 7px 12px;border-radius:12px;background:color-mix(in srgb,var(--elektrik,#0E7A55) 9%,transparent);font-size:12.5px;color:var(--blau,#0B3B2E)}
+  .ordi-dateibar[hidden]{display:none}.ordi-dateibar b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ordi-dateibar button{border:0;background:none;cursor:pointer;color:inherit;font:inherit;font-weight:700;padding:2px 6px;border-radius:8px}.ordi-dateibar button:hover{background:rgba(0,0,0,.06)}
   .ordi-eingabe .ordi-datei{flex:none;width:44px;padding:0;display:grid;place-items:center;background:#fff;color:var(--blau,#0B3B2E);border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 22%,transparent)}
   .ordi-msg img.ordi-vorschau{display:block;max-width:180px;max-height:140px;border-radius:10px;margin-top:6px;object-fit:cover}
   .ordi-tippt span{display:inline-block;width:7px;height:7px;border-radius:50%;background:#7C8499;margin-right:3px;animation:ordiPunkt 1s infinite}
@@ -98,6 +100,7 @@
   document.head.appendChild(css);
 
   let knopf = null, panel = null;
+  let aktiveDatei = null; // gerade geöffnete Datei: { name, inhalt, seit }
   const verlauf = lies('ordi.verlauf', []).slice(-20);
   const sichern = () => setz('ordi.verlauf', verlauf.slice(-20).map((m) => (m.html && m.html.includes('ordi-vorschau') ? { ...m, html: m.html.replace(/<img class="ordi-vorschau"[^>]*>/g, '') } : m)));
 
@@ -139,7 +142,8 @@
     panel.innerHTML = `<div class="ordi-kopf">${GESICHT(36)}<div><b>Ordi</b><small>Ihr Buchhalter und Helfer</small></div><button class="ordi-menue" data-ordi-menue title="Optionen">⋯</button><button data-ordi-zu aria-label="Schliessen">×</button></div>
       <div class="ordi-mensch-leiste" id="ordiMensch"><span>Unsicher? Ein Mensch aus unserem Team prüft es.</span><button type="button" data-ordi-mensch>Prüfen lassen</button></div>
       <div class="ordi-verlauf" id="ordiVerlauf"></div>
-      <form class="ordi-eingabe"><button type="button" class="ordi-datei" data-ordi-datei aria-label="Foto oder Datei senden" title="Foto oder Datei senden"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l9.2-9.2a3.7 3.7 0 0 1 5.2 5.2l-9.2 9.2a1.8 1.8 0 0 1-2.6-2.6l8.5-8.5"/></svg></button><input type="file" id="ordiDateien" multiple accept="image/*,application/pdf,.pdf,.csv,.xml,.xlsx,.xls,.txt,.053" hidden><input id="ordiFrage" placeholder="Frage stellen oder Beleg senden …" autocomplete="off" enterkeyhint="send"><button>Senden</button></form>`;
+      <div class="ordi-dateibar" hidden></div>
+      <form class="ordi-eingabe"><button type="button" class="ordi-datei" data-ordi-datei aria-label="Foto oder Datei senden" title="Foto oder Datei senden"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l9.2-9.2a3.7 3.7 0 0 1 5.2 5.2l-9.2 9.2a1.8 1.8 0 0 1-2.6-2.6l8.5-8.5"/></svg></button><input type="file" id="ordiDateien" multiple accept="image/*,application/pdf,.pdf,.csv,.xml,.xlsx,.xls,.txt,.053,.docx,.doc,.md,.json,.html,.htm,.eml,.rtf,.odt,.ods" hidden><input id="ordiFrage" placeholder="Frage stellen oder Datei senden …" autocomplete="off" enterkeyhint="send"><button>Senden</button></form>`;
     document.body.appendChild(panel);
     if (!verlauf.length) {
       verlauf.push({ rolle: 'ordi', text: 'Hallo! Ich bin Ordi, Ihr Buchhalter in Ordasio. Sagen Sie mir einfach, was zu tun ist, zum Beispiel: «Buche 45.20 Migros als Material», «Alle Swisscom-Buchungen unter Telefon», «Rechnung 1023 ist bezahlt» oder «Rechnung an Müller über 3 Stunden à 95». Fotos und PDFs von Belegen schicken Sie mit der Büroklammer, ich lese und buche sie. Ich frage immer, bevor ich etwas ausführe.' });
@@ -157,6 +161,8 @@
       if (e.target.closest('[data-ordi-menue]')) menue();
       if (e.target.closest('[data-ordi-datei]')) panel.querySelector('#ordiDateien').click();
       const bk = e.target.closest('[data-ordi-bank]'); if (bk) alsKontoauszug(bk.dataset.ordiBank);
+      const le = e.target.closest('[data-ordi-lesen]'); if (le) { const f = temp.get(le.dataset.ordiLesen); if (f) dateiLesen(f, '', true); }
+      if (e.target.closest('[data-ordi-dateizu]')) { aktiveDatei = null; verlauf.push({ rolle: 'ordi', text: 'Datei geschlossen. Fragen gehen jetzt wieder an mich allgemein.' }); sichern(); malen(); }
       if (e.target.closest('[data-ordi-ja]') || e.target.closest('[data-ordi-nein]')) aktionAntwort(!!e.target.closest('[data-ordi-ja]'));
       if (e.target.closest('[data-ordi-mensch]')) Mensch.start();
       if (e.target.closest('[data-ordi-pruef-senden]')) Mensch.senden();
@@ -176,6 +182,8 @@
     v.innerHTML = verlauf.map((m) => `<div class="ordi-msg ${m.rolle} ${m.fakt ? 'fakt' : ''}">${m.html || md(m.text)}${m.ziel ? `<br><a class="ordi-hin" href="${esc(m.ziel)}">Hinführen ›</a>` : ''}</div>${m.chips ? `<div class="ordi-chips">${m.chips.map((c) => `<button data-ordi-frage="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}`).join('')
       + (verlauf.length <= 2 ? `<div class="ordi-chips">${vorschlaege().map((c) => `<button data-ordi-frage="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : '');
     v.scrollTop = v.scrollHeight;
+    const db = panel.querySelector('.ordi-dateibar');
+    if (db) { const an = aktiveDatei && Date.now() - aktiveDatei.seit < 30 * 60000; db.hidden = !an; if (an) db.innerHTML = `<span>Fragen zur Datei:</span><b>${esc(aktiveDatei.name)}</b><button type="button" data-ordi-dateizu title="Datei schliessen">×</button>`; }
   }
   const S = () => window.NasuviaSuche;
   function lokal(frage) {
@@ -192,13 +200,13 @@
     try { const s = JSON.parse(localStorage.getItem(K.speicher) || 'null'); return (s && s.access_token) || ''; } catch { return ''; }
   }
   let kiAus = false;
-  async function mitKi(frage) {
+  async function mitKi(frage, datei) {
     if (kiAus || !K.produkt || !K.url) return null;
     const t = await token(); if (!t) return null;
     const artikel = (S() ? S().finden(frage) : []).slice(0, 6).map((a) => ({ titel: a.titel, schritte: a.schritte }));
     try {
       const r = await fetch(K.url + '/functions/v1/ordi', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t, apikey: K.key },
-        body: JSON.stringify({ frage, artikel, kontext: window.OrdiAktionen ? await window.OrdiAktionen.kontext().catch(() => null) : null, heute: new Date().toLocaleDateString('sv-SE'), bereich: BEREICH[hier] || hier, paket: (window.NASUVIA_LIZENZ || {}).paket || '', verlauf: verlauf.filter((m) => !m.fakt && !m.denkt).slice(-6).map((m) => ({ rolle: m.rolle, text: m.text })) }) });
+        body: JSON.stringify({ frage, datei: datei || undefined, artikel, kontext: window.OrdiAktionen ? await window.OrdiAktionen.kontext().catch(() => null) : null, heute: new Date().toLocaleDateString('sv-SE'), bereich: BEREICH[hier] || hier, paket: (window.NASUVIA_LIZENZ || {}).paket || '', verlauf: verlauf.filter((m) => !m.fakt && !m.denkt).slice(-6).map((m) => ({ rolle: m.rolle, text: m.text })) }) });
       if (r.status === 501) { kiAus = true; return null; }
       const j = await r.json().catch(() => ({}));
       if (!r.ok || (!j.text && !j.aktion)) return null;
@@ -214,19 +222,22 @@
     let t; try { t = await window.OrdiAktionen.ausfuehren(m.aktion); } catch (f) { t = 'Das hat nicht geklappt: ' + (f.message || f); }
     verlauf.pop(); verlauf.push({ rolle: 'ordi', text: t }); sichern(); malen();
   }
-  async function fragen(frage) {
+  async function fragen(frage, mitDatei, ohneFrage) {
     const n = frage.toLowerCase();
     if (n === 'ordi ausblenden') { setz(AUS, true); zu(); if (knopf) { knopf.remove(); knopf = null; } if (window.UI && UI.hinweis) UI.hinweis('Ordi ist ausgeblendet. Unter „Anleitung“ holen Sie ihn jederzeit zurück.'); return; }
     if (n === 'verlauf löschen') { verlauf.length = 0; sichern(); auf(); return; }
-    verlauf.push({ rolle: 'ich', text: frage });
-    if (/fun ?fact|wusstest|weisst du was|erzähl/.test(n)) { verlauf.push({ rolle: 'ordi', text: '💡 ' + FUNFACTS[Math.floor(Math.random() * FUNFACTS.length)], fakt: true }); sichern(); malen(); return; }
+    if (!ohneFrage) verlauf.push({ rolle: 'ich', text: frage });
+    if (!mitDatei && /fun ?fact|wusstest|weisst du was|erzähl/.test(n)) { verlauf.push({ rolle: 'ordi', text: '💡 ' + FUNFACTS[Math.floor(Math.random() * FUNFACTS.length)], fakt: true }); sichern(); malen(); return; }
     if (/^(hallo|hoi|hey|grüezi|gruezi|salü|sali|guten (tag|morgen|abend))\b/.test(n)) { verlauf.push({ rolle: 'ordi', text: 'Hoi! Wie kann ich helfen?', chips: vorschlaege() }); sichern(); malen(); return; }
     if (/^(danke|merci|super|toll|perfekt)/.test(n)) { verlauf.push({ rolle: 'ordi', text: 'Gern geschehen! 😊' }); sichern(); malen(); return; }
     if (/wer bist du|was bist du|wie heisst du/.test(n)) { verlauf.push({ rolle: 'ordi', text: 'Ich bin Ordi, der Helfer in Ordasio. Der Name kommt von «Ordnung». Ich kenne die ganze Anleitung und zeige Ihnen den Weg.' }); sichern(); malen(); return; }
     verlauf.push({ rolle: 'ordi', html: '<span class="ordi-tippt"><span></span><span></span><span></span></span>', text: '', denkt: true }); malen();
     // Aufgaben und eigene Zahlen zuerst selbst erkennen, dann KI, sonst Anleitung
-    let auf = null; try { auf = window.OrdiAktionen ? await window.OrdiAktionen.erkennen(frage) : null; } catch {}
-    const ki = auf ? null : await mitKi(frage);
+    // Bezieht sich die Frage auf eine Datei, die gerade offen ist? Dann liest die KI den Inhalt mit
+    const datei = mitDatei || (aktiveDatei && Date.now() - aktiveDatei.seit < 30 * 60000 ? aktiveDatei.inhalt : null);
+    let auf = null; if (!datei) { try { auf = window.OrdiAktionen ? await window.OrdiAktionen.erkennen(frage) : null; } catch {} }
+    const ki = auf ? null : await mitKi(frage, datei);
+    if (datei && !ki) { verlauf.pop(); verlauf.push({ rolle: 'ordi', text: 'Ich konnte die Datei gerade nicht lesen. Bitte versuchen Sie es nochmals. Für Dateien muss ich mit dem Internet verbunden und Sie in Ordasio angemeldet sein.' }); sichern(); malen(); return; }
     verlauf.pop();
     let a = (auf && auf.aktion) || (ki && ki.aktion);
     // KI-Vorschläge ebenfalls an die Lizenz anpassen
@@ -236,11 +247,12 @@
     if (a && window.OrdiAktionen) verlauf.push({ rolle: 'ordi', html: (ki && ki.text ? md(ki.text) + '<br>' : '') + window.OrdiAktionen.karte(a), text: 'Vorschlag', aktion: a });
     else if (auf) verlauf.push({ rolle: 'ordi', ...auf });
     else verlauf.push(ki ? { rolle: 'ordi', text: ki.text, ziel: ki.ziel } : { rolle: 'ordi', ...lokal(frage) });
+    if (datei && aktiveDatei && !aktiveDatei.chips) { aktiveDatei.chips = true; dateiChips(); }
     sichern(); malen();
   }
   /* ---------- Fotos und Dateien an Ordi: Belege lesen und buchen, Kontoauszüge einlesen ---------- */
   const temp = new Map();
-  const istBank = (f) => /\.(csv|xml|xlsx?|txt|053)$/i.test(f.name || '') || /csv|xml|spreadsheet|excel/.test(f.type || '');
+  const istBank = (f) => !/\.(docx?|odt|pdf)$/i.test(f.name || '') && (/\.(csv|xml|xlsx?|053)$/i.test(f.name || '') || /csv|^text\/xml|^application\/xml|spreadsheetml|ms-excel/.test(f.type || ''));
   const skriptLaden = (name) => new Promise((ok) => { const sc = document.createElement('script'); sc.src = new URL(name, skript.src).href; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); });
   async function alsKontoauszug(k) {
     const f = temp.get(k); if (!f) { verlauf.push({ rolle: 'ordi', text: 'Die Datei ist nicht mehr da. Bitte nochmals senden.' }); sichern(); malen(); return; }
@@ -252,6 +264,54 @@
       location.href = new URL('?bereich=buchhaltung&aktion=ordiDatei', new URL('.', new URL('ordi.js', skript.src))).href;
     } catch { verlauf.push({ rolle: 'ordi', text: 'Bitte öffnen Sie die Buchhaltung und laden Sie den Auszug dort unter „Bankauszug importieren“.' }); sichern(); malen(); }
   }
+  /* ---------- Inhalt von Dateien lesen: Ordi sieht PDF und Fotos direkt, Word, Excel und Text als Text ---------- */
+  const CDN = 'https://cdnjs.cloudflare.com/ajax/libs/';
+  const cdnLaden = (url, pruef) => (pruef() ? Promise.resolve() : new Promise((ok, x) => { const sc = document.createElement('script'); sc.src = url; sc.onload = ok; sc.onerror = () => x(new Error('Keine Verbindung zum Lesen dieser Datei.')); document.head.appendChild(sc); }));
+  const istTextDatei = (f) => /\.(txt|csv|md|json|xml|html?|eml|rtf|053)$/i.test(f.name || '') || /^text\//.test(f.type || '') || /json|xml/.test(f.type || '');
+  const istWord = (f) => /\.(docx|odt)$/i.test(f.name || '') || /wordprocessingml|opendocument\.text/.test(f.type || '');
+  const istTabelle = (f) => /\.(xlsx|xls|ods)$/i.test(f.name || '') || /spreadsheet|ms-excel/.test(f.type || '');
+  async function dateiInhalt(f) {
+    const name = String(f.name || 'Datei').slice(0, 120), max = 60000;
+    if (/^image\//.test(f.type) || /pdf/.test(f.type) || /\.pdf$/i.test(f.name || '')) {
+      if (!window.Leser) await skriptLaden('leser.js');
+      const v = await Leser.vorbereiten(f);
+      if (!v || !v.daten || v.daten.length > 7e6) throw new Error('Die Datei ist zu gross. Höchstens etwa 5 MB, bei PDF am besten nur die wichtigen Seiten.');
+      return { name, mime: v.mime, daten: v.daten };
+    }
+    let text = '';
+    if (istWord(f)) {
+      await cdnLaden(CDN + 'jszip/3.10.1/jszip.min.js', () => window.JSZip);
+      const zip = await window.JSZip.loadAsync(await f.arrayBuffer());
+      const xml = await (zip.file('word/document.xml') || zip.file('content.xml')).async('string');
+      text = xml.replace(/<\/(w:p|text:p|text:h)>/g, '\n').replace(/<w:tab\/>/g, '\t').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'");
+    } else if (istTabelle(f)) {
+      await cdnLaden(CDN + 'xlsx/0.18.5/xlsx.full.min.js', () => window.XLSX);
+      const wb = window.XLSX.read(await f.arrayBuffer(), { type: 'array', cellDates: true });
+      text = wb.SheetNames.slice(0, 6).map((n) => `## Blatt ${n}\n` + window.XLSX.utils.sheet_to_csv(wb.Sheets[n], { FS: ';', dateNF: 'dd.mm.yyyy' })).join('\n\n');
+    } else if (istTextDatei(f)) {
+      const buf = await f.arrayBuffer(); text = new TextDecoder('utf-8').decode(buf);
+      if (text.includes('�')) { try { text = new TextDecoder('windows-1252').decode(buf); } catch {} }
+      if (/\.html?$/i.test(f.name || '')) text = text.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ');
+    } else if (/\.doc$/i.test(f.name || '')) throw new Error('Alte Word-Dateien (.doc) kann ich nicht lesen. Bitte als .docx oder PDF speichern.');
+    else throw new Error('Diese Art Datei kann ich nicht lesen. Ich lese PDF, Fotos, Word (.docx), Excel und Textdateien.');
+    text = text.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+    if (!text) throw new Error('In der Datei steht kein lesbarer Text.');
+    return { name, text: text.slice(0, max), gekuerzt: text.length > max };
+  }
+  function dateiChips() {
+    if (!aktiveDatei) return;
+    verlauf.push({ rolle: 'ordi', html: `<div class="ordi-chips"><button data-ordi-frage="Was muss ich jetzt tun? Gibt es Fristen?">Was muss ich tun?</button><button data-ordi-frage="Trag die Fristen und Termine aus der Datei als Erinnerungen ein.">Fristen eintragen</button><button data-ordi-frage="Fasse die Datei in 5 Punkten zusammen.">Zusammenfassen</button><button data-ordi-dateizu>Datei schliessen</button></div>`, text: '', chipsDatei: true });
+  }
+  async function dateiLesen(f, frage, schonGezeigt) {
+    if (!schonGezeigt) verlauf.push({ rolle: 'ich', text: 'Datei: ' + (f.name || 'Foto') + (frage ? ' – ' + frage : ''), html: `${esc(f.name || 'Foto')}${frage ? '<br>' + esc(frage) : ''}` });
+    verlauf.push({ rolle: 'ordi', html: '<span class="ordi-tippt"><span></span><span></span><span></span></span> Ich lese die Datei …', text: '', denkt: true }); malen();
+    let inhalt;
+    try { inhalt = await dateiInhalt(f); } catch (x) { verlauf.pop(); verlauf.push({ rolle: 'ordi', text: x.message || 'Die Datei liess sich nicht lesen.' }); sichern(); malen(); return; }
+    verlauf.pop(); malen();
+    aktiveDatei = { name: inhalt.name, inhalt, seit: Date.now() };
+    const q = frage || 'Was ist das für ein Dokument? Fasse kurz zusammen, was drinsteht, und sag mir, ob ich etwas tun muss (Fristen, Beträge, Termine).';
+    await fragen(q, inhalt, true);
+  }
   async function dateienSenden(liste) {
     if (!panel) auf();
     const eingabe = panel.querySelector('#ordiFrage'), hinweis = eingabe.value.trim(); eingabe.value = '';
@@ -259,7 +319,11 @@
       const k = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); temp.set(k, f);
       const bild = /^image\//.test(f.type) ? URL.createObjectURL(f) : '';
       verlauf.push({ rolle: 'ich', text: 'Datei: ' + (f.name || 'Foto') + (hinweis ? ' – ' + hinweis : ''), html: `${esc(f.name || 'Foto')}${hinweis ? '<br>' + esc(hinweis) : ''}${bild ? `<img class="ordi-vorschau" src="${bild}" alt="">` : ''}` });
-      if (istBank(f)) { verlauf.push({ rolle: 'ordi', html: `Das sieht nach einem Kontoauszug aus.<div class="ordi-chips" style="margin-top:8px"><button data-ordi-bank="${k}">Als Kontoauszug einlesen</button></div>`, text: 'Kontoauszug' }); sichern(); malen(); continue; }
+      const fragtWas = hinweis && !/^(buch|beleg|als (beleg|ausgabe|einnahme)|einnahme|ausgabe)\b/i.test(hinweis);
+      if (istBank(f) && !fragtWas) { verlauf.push({ rolle: 'ordi', html: `Das sieht nach einem Kontoauszug aus.<div class="ordi-chips" style="margin-top:8px"><button data-ordi-bank="${k}">Als Kontoauszug einlesen</button><button data-ordi-lesen="${k}">Nur lesen und Fragen stellen</button></div>`, text: 'Kontoauszug' }); sichern(); malen(); continue; }
+      // Frage zur Datei oder kein Foto/PDF (Word, Excel, Text): Inhalt lesen statt als Beleg buchen
+      const bildOderPdf = /^image\//.test(f.type) || /pdf/.test(f.type) || /\.pdf$/i.test(f.name || '');
+      if (fragtWas || !bildOderPdf) { await dateiLesen(f, hinweis, true); continue; }
       if (f.size > 10e6) { verlauf.push({ rolle: 'ordi', text: 'Die Datei ist zu gross (höchstens 10 MB).' }); sichern(); malen(); continue; }
       verlauf.push({ rolle: 'ordi', html: '<span class="ordi-tippt"><span></span><span></span><span></span></span> Ich lese den Beleg …', text: '', denkt: true }); malen();
       if (!window.Leser) await skriptLaden('leser.js');
@@ -271,7 +335,9 @@
       if (r.fehler) { verlauf.push({ rolle: 'ordi', text: r.fehler }); sichern(); malen(); continue; }
       const w = r.felder || {};
       if (w.lesbar === false || !w.betrag) {
-        verlauf.push({ rolle: 'ordi', html: `Ich finde auf ${esc(f.name || 'dem Bild')} keinen Beleg mit Betrag.${/pdf/.test(f.type) ? '<div class="ordi-chips" style="margin-top:8px"><button data-ordi-bank="' + k + '">Ist ein Kontoauszug, einlesen</button></div>' : ' Probieren Sie ein schärferes Foto, ganz von oben.'}`, text: 'Kein Beleg erkannt' }); sichern(); malen(); continue;
+        // Kein Beleg: Ordi liest, was es ist (Brief, Vertrag, Mahnung …), und sagt, was zu tun ist
+        verlauf.push({ rolle: 'ordi', html: `Das ist kein Beleg zum Buchen. Ich lese, was drinsteht …${/pdf/.test(f.type) ? '<div class="ordi-chips" style="margin-top:8px"><button data-ordi-bank="' + k + '">Ist ein Kontoauszug, einlesen</button></div>' : ''}`, text: 'Kein Beleg' }); sichern(); malen();
+        await dateiLesen(f, '', true); continue;
       }
       const einnahme = /einnahme|verkauf|erhalten|bezahlt bekommen/i.test(hinweis);
       let a = { typ: 'buchung', art: einnahme ? 'einnahme' : 'ausgabe', betrag: Math.round(Number(w.betrag) * 100), datum: /^\d{4}-\d{2}-\d{2}$/.test(w.datum || '') ? w.datum : new Date().toLocaleDateString('sv-SE'),
@@ -354,7 +420,7 @@
       try { await rest('support_nachrichten', { method: 'POST', prefer: 'return=minimal', body: { fall_id: fall.id, von: 'kunde', name: lz.name || '', text: text.slice(0, 8000) } }); await holen(); chatMalen(); }
       catch (x) { nachrichten.push({ von: 'team', name: '', text: 'Nicht gesendet: ' + x.message, erstellt: new Date().toISOString() }); chatMalen(); }
     }
-    function zurueck() { fall = null; stopp(); const f = panel && panel.querySelector('#ordiFrage'); if (f) f.placeholder = 'Frage stellen oder Beleg senden …'; malen(); laden().then(leiste); }
+    function zurueck() { fall = null; stopp(); const f = panel && panel.querySelector('#ordiFrage'); if (f) f.placeholder = 'Frage stellen oder Datei senden …'; malen(); laden().then(leiste); }
     function stopp() { if (uhr) { clearInterval(uhr); uhr = null; } }
     function ende() { stopp(); fall = null; }
     // Punkt am Ordi-Knopf, wenn das Team geantwortet hat

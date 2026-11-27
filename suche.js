@@ -308,6 +308,10 @@
       'Mitarbeitende tippen auf ihrem Handy-Link unter „Anfragen ans Büro“ auf das Passende und senden es ab.',
       'Im Büro erscheint es in der Firmenablage unter „Anträge und Anfragen“. Mit „Dokument senden“ legen Sie z. B. die Lohnabrechnung direkt aufs Handy der Person.',
       '„Erledigt“ oder „Ablehnen“ tippen, eine kurze Nachricht schreiben. Der Mitarbeiter sieht die Antwort sofort.'], WURZEL + 'ablage/?tab=antraege'],
+    ['ordi-datei', 'Ordi', 'Ordi liest Dateien: Briefe, Verträge, Word, Excel, PDF', 'ordi datei lesen pdf word excel brief vertrag mahnung zusammenfassen frist dokument foto inhalt', [
+      'Im Ordi-Fenster auf die Büroklammer tippen und eine Datei wählen: PDF, Foto, Word (.docx), Excel oder Text.',
+      'Ohne Text prüft Ordi zuerst, ob es ein Beleg zum Buchen ist. Sonst fasst er zusammen und sagt, was zu tun ist (Fristen, Beträge, Termine).',
+      'Mit einer Frage («Bis wann muss ich zahlen?») antwortet er direkt dazu. Weitere Fragen beziehen sich auf dieselbe Datei, bis Sie sie schliessen.'], WURZEL + 'start/'],
     ['neu-erstellen', 'Allgemein', 'Neu erstellen: Rechnung, Termin, Mitarbeiter …', 'neu erstellen plus anlegen schnell rechnung offerte termin mitarbeiter artikel projekt erinnerung', [
       'Oben rechts auf „+ Neu“ tippen (am Handy auf der Startseite) oder am Computer die Taste N drücken.',
       'Es erscheinen nur Dinge, die in Ihrer Lizenz enthalten sind. Der Bereich öffnet sich direkt mit dem neuen Formular.'], WURZEL + 'start/#uebersicht'],
