@@ -244,7 +244,7 @@
   .rg-leiste{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translate(-50%,30px);opacity:0;z-index:2147483000;display:flex;align-items:center;gap:14px;background:#0A1F17;color:#fff;border-radius:100px;padding:10px 10px 10px 20px;font:600 15px 'League Spartan',-apple-system,system-ui,sans-serif;box-shadow:0 20px 50px -20px rgba(12,18,38,.7);transition:transform .3s,opacity .3s;pointer-events:none;max-width:calc(100vw - 24px)}
   .rg-leiste.da{transform:translate(-50%,0);opacity:1;pointer-events:auto}
   .rg-leiste span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .rg-leiste button{border:0;border-radius:100px;padding:9px 16px;background:#6EE7A8;color:#0A1F17;font:700 15px inherit;font-family:inherit;cursor:pointer;white-space:nowrap}
+  .rg-leiste button{border:0;border-radius:100px;padding:9px 16px;background:var(--hell,#6EE7A8);color:#0A1F17;font:700 15px inherit;font-family:inherit;cursor:pointer;white-space:nowrap}
   @media(min-width:821px){.rg-leiste{bottom:28px}}`;
   document.head.appendChild(stil);
   let leiste, timer, aktuell = null;
@@ -333,7 +333,7 @@
     // Startseite mit eigenem Farbthema (z. B. dunkel) behält ihr Thema
     const B = 'body:is(:not([data-thema]),[data-thema=hell])';
     const papierPassend = eigen ? misch(A.kraeftig, '#FFFFFF', 0.95) : '#F4FAF6';
-    if (eigen) regeln += `html:root{--blau:${A.dunkel};--elektrik:${A.kraeftig};--flaeche:${misch(A.kraeftig, '#FFFFFF', 0.88)};--papier:${papierPassend}}`;
+    if (eigen) regeln += `html:root{--blau:${A.dunkel};--elektrik:${A.kraeftig};--flaeche:${misch(A.kraeftig, '#FFFFFF', 0.88)};--papier:${papierPassend};--hell:${misch(A.kraeftig, '#FFFFFF', 0.5)};--gruen:${A.kraeftig}}`;
     if (bild) regeln += `${B}{background:transparent!important}html{background:${papierPassend}}${B}::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-gradient(rgba(250,252,251,${schleier}),rgba(250,252,251,${schleier})),url("${bild}") center/cover no-repeat;pointer-events:none}`;
     else if (h[0] === 'verlauf') {
       const v = `linear-gradient(155deg,${misch(A.kraeftig, '#FFFFFF', 0.72)} 0%,${misch(A.kraeftig, '#FFFFFF', 0.9)} 50%,${misch(A.dunkel, '#FFFFFF', 0.8)} 100%)`;

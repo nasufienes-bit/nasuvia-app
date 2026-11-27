@@ -54,7 +54,7 @@ h1{font-size:clamp(30px,6vw,42px);letter-spacing:-.03em;line-height:1.05;margin:
 .paket .empf-marke{display:inline-block;background:var(--elektrik,#0E7A55);color:#fff;border-radius:100px;padding:3px 10px;font-size:12px;font-weight:700;margin-bottom:6px}
 .rf-wahl{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:18px 0 4px}
 .rf-wahl button{font:inherit;font-weight:600;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 20%,transparent);background:#fff;border-radius:100px;padding:9px 16px;cursor:pointer;color:var(--tinte)}
-.rf-wahl button.an{background:var(--gruen,#0B3B2E);border-color:transparent;color:#fff}
+.rf-wahl button.an{background:var(--gruen,var(--blau,#0B3B2E));border-color:transparent;color:#fff}
 .rf-text{text-align:center;color:var(--text);font-size:14px;margin:4px 0 0}
 .paket .kurz{color:var(--text);font-size:13.5px;margin-top:4px}
 .paket .btn+.btn{margin-top:8px}
@@ -132,10 +132,10 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   <p class="unter" style="text-align:center;margin-top:14px;font-size:14px">Alle Preise in CHF. Sie erhalten eine QR-Rechnung per E-Mail. Nach der Zahlung schalten wir Ihre Lizenz frei, alle Daten bleiben erhalten.</p>
 
   <div class="dienste" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:18px">
-    <div class="karte" style="background:linear-gradient(135deg,#0A1F17,#0B3B2E);color:#fff">
+    <div class="karte" style="background:linear-gradient(135deg,#0A1F17,var(--blau,#0B3B2E));color:#fff">
       <h3 style="color:#fff">Ihre Website, von uns gestaltet</h3>
       <p style="color:rgba(255,255,255,.82)">Modern, schnell und für das Handy gemacht: mit Online-Termin, Kontaktformular und Google-Profil. Wir erstellen den Entwurf <b style="color:#fff">kostenlos</b>. Gefällt er Ihnen, kostet die Website <b style="color:#fff">CHF 890 einmalig</b>, danach CHF 19 pro Monat für Betrieb und kleine Änderungen.</p>
-      <a class="btn haupt" href="../dienste/?dienst=Website#anfrage" style="background:#fff;color:#0B3B2E;text-decoration:none">Gratis-Entwurf anfragen</a> <a href="../dienste/" style="color:#fff;font-size:14px;margin-left:8px">Mehr erfahren</a></div>
+      <a class="btn haupt" href="../dienste/?dienst=Website#anfrage" style="background:#fff;color:var(--blau,#0B3B2E);text-decoration:none">Gratis-Entwurf anfragen</a> <a href="../dienste/" style="color:#fff;font-size:14px;margin-left:8px">Mehr erfahren</a></div>
     <div class="karte" style="background:linear-gradient(135deg,#7a1f3d,#e0703a);color:#fff">
       <h3 style="color:#fff">Instagram-Highlights im Firmendesign</h3>
       <p style="color:rgba(255,255,255,.85)">Acht Highlight-Cover und passende Bilder in Ihren Farben, dazu das Profilbild. So wirkt Ihr Profil sofort professionell. <b style="color:#fff">CHF 149</b>, fertig in wenigen Tagen.</p>
@@ -168,7 +168,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     <div id="dModule" class="d-module"></div>
     <label style="display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--tinte)"><input type="checkbox" id="dEinrichtung" style="width:18px;height:18px;margin-top:2px"> <span><b>Einrichtung durch uns, CHF 190 einmalig</b><br><span style="color:var(--text)">Wir übernehmen Ihre bisherigen Daten, richten Logo, Vorlagen und Kategorien ein und zeigen Ihnen alles in 30 Minuten per Video oder vor Ort.</span></span></label>
     <div class="summe"><span id="dPaket"></span><span id="dPreis"></span></div>
-    <p class="meldung" id="dAktion" hidden style="color:var(--elektrik,#0E7A55);background:#EAF6F0;border-radius:10px;padding:8px 10px"></p>
+    <p class="meldung" id="dAktion" hidden style="color:var(--elektrik,#0E7A55);background:var(--flaeche,#E8F4EE);border-radius:10px;padding:8px 10px"></p>
     <p class="meldung" id="dMeldung"></p>
     <button class="btn haupt" id="dSenden">Verbindlich bestellen</button>
     <button type="button" class="btn" id="dZu" style="margin-top:6px">Abbrechen</button>

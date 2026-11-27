@@ -40,7 +40,7 @@
       { id: 'hilfe', name: 'Anleitung', text: 'Schritt für Schritt, mit Suche', href: WURZEL + 'hilfe/', icon: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"/><path d="M12 17h.01"/>' }
     ];
     // Farbgruppen: zusammengehörende Bereiche haben dieselbe Farbe (klein beschriftet im Menü)
-    var GRUPPEN = { geld: ['Finanzen', '#0B6B47'], team: ['Team & Aufträge', '#4F46E5'], kunden: ['Kunden & Termine', '#9333EA'], dokumente: ['Dokumente', '#0E7490'], privat: ['Privat', '#DB2777'], allg: ['', '#64748B'] };
+    var GRUPPEN = { geld: ['Finanzen', 'var(--elektrik,#0B6B47)'], team: ['Team & Aufträge', '#4F46E5'], kunden: ['Kunden & Termine', '#9333EA'], dokumente: ['Dokumente', '#0E7490'], privat: ['Privat', '#DB2777'], allg: ['', '#64748B'] };
     var ZU = { buchhaltung: 'geld', rechnungen: 'geld', zeit: 'team', lager: 'team', projekte: 'team', termine: 'kunden', ablage: 'dokumente', vorlagen: 'dokumente', privat: 'privat' };
     BEREICHE.forEach(function(b){ b.gruppe = ZU[b.id] || 'allg'; });
     window.OrdasioGruppen = { GRUPPEN: GRUPPEN, von: function(id){ var g = ZU[id] || 'allg'; return { id: g, name: GRUPPEN[g][0], farbe: GRUPPEN[g][1] }; } };
@@ -113,7 +113,7 @@
     '.nv-rechts svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}',
     '.nv-mit-kopf .nv-weg{display:none!important}',
     '.nv-umzug{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 10px;padding:10px 16px;background:var(--blau,#0B3B2E);color:#fff;text-decoration:none;font:500 .92rem "League Spartan",-apple-system,system-ui,sans-serif;text-align:center}',
-    '.nv-umzug span{color:#6EE7A8;font-weight:600}',
+    '.nv-umzug span{color:var(--hell,#6EE7A8);font-weight:600}',
     '@media (max-width:520px){.nv-bereich{display:none}.nv-rechts button,.nv-rechts a{padding:0 10px}}',
     '.nv-hinten{position:fixed;inset:0;z-index:9998;background:rgba(12,18,38,.32);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s}',
     '.nv-leiste{position:fixed;top:0;bottom:0;right:0;left:auto;z-index:9999;width:min(320px,86vw);background:var(--papier,#F4FAF6);border-radius:26px 0 0 26px;box-shadow:none;transform:translateX(104%);visibility:hidden;transition:transform .42s cubic-bezier(.2,.9,.3,1),box-shadow .42s,visibility 0s .42s;display:flex;flex-direction:column;padding:max(18px,env(safe-area-inset-top)) 16px max(18px,env(safe-area-inset-bottom));font-family:inherit;color:#0A1F17;overflow-y:auto}',

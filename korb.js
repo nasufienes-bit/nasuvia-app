@@ -67,7 +67,7 @@
       d.innerHTML = `<div style="padding:20px;display:grid;gap:10px"><h3 style="font-size:20px;margin:0">Zuletzt gelöscht</h3>
         <p style="color:#3F5A4F;font-size:14px;margin:0">Gelöschtes bleibt ${TAGE} Tage hier und wird danach automatisch entfernt.</p>
         <div style="max-height:60vh;overflow:auto">${zeilen.length ? zeilen.map(({ t, r }, i) => { const rest = TAGE - Math.floor((Date.now() - Date.parse(r.geloescht_am)) / 864e5);
-          return `<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(11,59,46,.14)"><span style="min-width:0"><b style="display:block">${esc(t.titel(r))}</b><small style="color:#7C8499">${esc(t.art)} · gelöscht am ${dk(r.geloescht_am.slice(0, 10))} · noch ${rest} ${rest === 1 ? 'Tag' : 'Tage'}</small></span>
+          return `<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 14%,transparent)"><span style="min-width:0"><b style="display:block">${esc(t.titel(r))}</b><small style="color:#7C8499">${esc(t.art)} · gelöscht am ${dk(r.geloescht_am.slice(0, 10))} · noch ${rest} ${rest === 1 ? 'Tag' : 'Tage'}</small></span>
             <span style="display:flex;gap:6px;flex:none"><button class="btn klein" data-k-zurueck="${i}">Wiederherstellen</button><button class="btn klein rot" data-k-weg="${i}">Endgültig</button></span></div>`; }).join('') : '<p style="color:#7C8499;padding:10px 0">Nichts gelöscht.</p>'}</div>
         <div style="display:flex;justify-content:flex-end"><button class="btn" data-k-zu>Schliessen</button></div></div>`;
       d.onclick = async (e) => {

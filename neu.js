@@ -51,7 +51,7 @@
 
   var css = document.createElement('style');
   css.textContent =
-    'body button.nu-knopf{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 15px 0 12px!important;border:0!important;border-radius:100px!important;background:var(--blau,#0B3B2E)!important;color:#fff!important;font:inherit;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;box-shadow:0 6px 16px -10px rgba(11,59,46,.7)!important}' +
+    'body button.nu-knopf{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 15px 0 12px!important;border:0!important;border-radius:100px!important;background:var(--blau,#0B3B2E)!important;color:#fff!important;font:inherit;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;box-shadow:0 6px 16px -10px color-mix(in srgb,var(--blau,#0B3B2E) 70%,transparent)!important}' +
     '.nu-knopf svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}' +
     '.nu-knopf:hover{filter:brightness(1.12)}' +
     '@media(max-width:640px){body button.nu-knopf{width:40px;padding:0!important;justify-content:center}.nu-knopf span{display:none}body button.nu-knopf.nu-handy-weg{display:none!important}}' +
@@ -205,7 +205,7 @@
   function netz() {
     if (navigator.onLine === false) {
       if (!off) { off = document.createElement('div'); off.className = 'nu-offline'; off.setAttribute('role', 'status'); off.innerHTML = '<i></i>Offline: keine Internetverbindung. Speichern und Senden gehen erst wieder, wenn Sie online sind.'; document.body.appendChild(off); }
-    } else if (off) { off.innerHTML = '<i style="background:#6EE7A8"></i>Wieder online.'; var x = off; off = null; setTimeout(function () { x.remove(); }, 2500); }
+    } else if (off) { off.innerHTML = '<i style="background:var(--hell,#6EE7A8)"></i>Wieder online.'; var x = off; off = null; setTimeout(function () { x.remove(); }, 2500); }
   }
   window.addEventListener('online', netz); window.addEventListener('offline', netz);
   if (document.readyState !== 'loading') netz(); else document.addEventListener('DOMContentLoaded', netz);

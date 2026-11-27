@@ -128,7 +128,7 @@ select { appearance: none; -webkit-appearance: none; cursor: pointer; padding-ri
 .feld-zeile { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .ja-kopf { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
 .pj-spur { height: 8px; border-radius: 100px; background: var(--flaeche); overflow: hidden; } .pj-spur i { display: block; height: 100%; background: var(--elektrik); border-radius: 100px; }
-.ja-zeile { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid var(--linie, rgba(11,59,46,.12)); }
+.ja-zeile { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid var(--linie, color-mix(in srgb,var(--blau,#0B3B2E) 12%,transparent)); }
 .ja-haken { flex: 0 0 26px; width: 26px; height: 26px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--blau) 30%, transparent); background: #fff; color: #fff; font-weight: 800; cursor: pointer; display: grid; place-items: center; font-size: 14px; }
 .ja-haken:disabled { cursor: default; } .ja-zeile.ok .ja-haken { background: var(--elektrik); border-color: var(--elektrik); }
 .ja-text { flex: 1; min-width: 0; } .ja-text b { display: block; font-size: 14.5px; } .ja-text small { color: var(--text); font-size: 12.5px; } .ja-zeile.ok .ja-text b { color: var(--text); }
@@ -204,10 +204,10 @@ tr.summe td { font-weight: 700; color: var(--tinte); border-top: 1.5px solid var
 .stichtag-leiste label { display: flex; gap: 8px; align-items: center; }
 .tabelle-scroll { overflow-x: auto; }
 .lohn-tabelle td, .lohn-tabelle th { white-space: nowrap; vertical-align: middle; }
-#ablegen { position: fixed; inset: 0; z-index: 90; display: none; align-items: center; justify-content: center; background: rgba(11, 59, 46, .55); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); pointer-events: none; }
+#ablegen { position: fixed; inset: 0; z-index: 90; display: none; align-items: center; justify-content: center; background: color-mix(in srgb,var(--blau,#0B3B2E) 55%,transparent); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); pointer-events: none; }
 #ablegen.zeigen { display: flex; }
-#ablegen div { background: #fff; border: 2px dashed #0E7A55; border-radius: 18px; padding: 34px 46px; text-align: center; display: grid; gap: 6px; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
-#ablegen b { font-size: 20px; color: #0B3B2E; } #ablegen span { color: #5B6478; font-size: 14px; }
+#ablegen div { background: #fff; border: 2px dashed var(--elektrik,#0E7A55); border-radius: 18px; padding: 34px 46px; text-align: center; display: grid; gap: 6px; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+#ablegen b { font-size: 20px; color: var(--blau,#0B3B2E); } #ablegen span { color: #5B6478; font-size: 14px; }
 .lohn-knoepfe { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .bilanz-eingabe.klein { width: 90px; }
 .saetze-raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }

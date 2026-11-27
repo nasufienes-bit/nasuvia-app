@@ -37,7 +37,7 @@
   try { if (!window.OrdiAktionen) { const sc = document.createElement('script'); sc.src = new URL('ordi-aktionen.js', skript.src).href; document.head.appendChild(sc); } } catch {}
 
   // Ordi selbst: ein freundlicher Ordner mit Gesicht (eigene Zeichnung)
-  const GESICHT = (gross = 30) => `<svg viewBox="0 0 64 64" width="${gross}" height="${gross}" aria-hidden="true"><defs><linearGradient id="og" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34D399"/><stop offset="1" stop-color="#0E7A55"/></linearGradient></defs>
+  const GESICHT = (gross = 30) => `<svg viewBox="0 0 64 64" width="${gross}" height="${gross}" aria-hidden="true"><defs><linearGradient id="og" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34D399" style="stop-color:color-mix(in srgb,var(--elektrik,#0E7A55),#fff 45%)"/><stop offset="1" stop-color="#0E7A55" style="stop-color:var(--elektrik,#0E7A55)"/></linearGradient></defs>
     <path d="M8 18a6 6 0 0 1 6-6h12l5 5h19a6 6 0 0 1 6 6v25a6 6 0 0 1-6 6H14a6 6 0 0 1-6-6z" fill="url(#og)"/><path d="M8 24h48" stroke="rgba(255,255,255,.35)" stroke-width="2"/>
     <circle cx="25" cy="35" r="3.4" fill="#0A1F17"/><circle cx="39" cy="35" r="3.4" fill="#0A1F17"/><circle cx="26.2" cy="33.8" r="1.1" fill="#fff"/><circle cx="40.2" cy="33.8" r="1.1" fill="#fff"/>
     <path d="M26 43c3.5 3 8.5 3 12 0" stroke="#0A1F17" stroke-width="2.6" fill="none" stroke-linecap="round"/><circle cx="20" cy="41" r="2.4" fill="#F9A8D4" opacity=".7"/><circle cx="44" cy="41" r="2.4" fill="#F9A8D4" opacity=".7"/></svg>`;
@@ -55,7 +55,7 @@
   .ordi-kopfplatz > a{white-space:nowrap}
   @media(max-width:480px){.ordi-kopfplatz > a[href^="mailto"]{font-size:0!important;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 16%,transparent)}.ordi-kopfplatz > a[href^="mailto"]::before{content:"✉";font-size:17px;line-height:1}}
   .ordi-panel.oben{top:76px;bottom:auto}
-  .ordi-blase{position:absolute;right:66px;bottom:8px;background:#0A1F17;color:#fff;font:600 13px/1.3 'League Spartan',system-ui,sans-serif;border-radius:14px 14px 4px 14px;padding:8px 12px;white-space:nowrap;box-shadow:0 10px 24px -12px rgba(0,0,0,.5);animation:ordiRein .4s ease}
+  .ordi-blase{position:absolute;right:66px;bottom:8px;background:var(--blau,#0A1F17);color:#fff;font:600 13px/1.3 'League Spartan',system-ui,sans-serif;border-radius:14px 14px 4px 14px;padding:8px 12px;white-space:nowrap;box-shadow:0 10px 24px -12px rgba(0,0,0,.5);animation:ordiRein .4s ease}
   body:has(.nr-status) .ordi-knopf{bottom:calc(66px + env(safe-area-inset-bottom))}
   @keyframes ordiRein{from{opacity:0;transform:translateY(6px)}}
   @media(max-width:820px){.ordi-knopf{bottom:calc(84px + env(safe-area-inset-bottom));width:52px;height:52px;border-radius:18px}body:has(.fab) .ordi-knopf{bottom:calc(146px + env(safe-area-inset-bottom))}}
@@ -86,15 +86,15 @@
   .ordi-tippt span{display:inline-block;width:7px;height:7px;border-radius:50%;background:#7C8499;margin-right:3px;animation:ordiPunkt 1s infinite}
   .ordi-tippt span:nth-child(2){animation-delay:.15s}.ordi-tippt span:nth-child(3){animation-delay:.3s}
   @keyframes ordiPunkt{50%{opacity:.25;transform:translateY(-2px)}}
-  .ordi-mensch-leiste{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#EAF6F0;font-size:13px;color:#0B3B2E;border-bottom:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 10%,transparent)}
-  .ordi-mensch-leiste button{margin-left:auto;border:0;background:#0B3B2E;color:#fff;border-radius:100px;padding:6px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
-  .ordi-mensch-leiste.neu{background:#FFF4D6}.ordi-msg.team{background:#EAF6F0;border:1px solid #BFE5D2;border-bottom-left-radius:4px;align-self:flex-start}
-  .ordi-msg .ordi-wer{display:block;font-size:11.5px;font-weight:700;color:#0E7A55;margin-bottom:3px}.ordi-msg.ich .ordi-wer{color:#B9F3D4}
+  .ordi-mensch-leiste{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--flaeche,#E8F4EE);font-size:13px;color:var(--blau,#0B3B2E);border-bottom:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 10%,transparent)}
+  .ordi-mensch-leiste button{margin-left:auto;border:0;background:var(--blau,#0B3B2E);color:#fff;border-radius:100px;padding:6px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .ordi-mensch-leiste.neu{background:#FFF4D6}.ordi-msg.team{background:var(--flaeche,#E8F4EE);border:1px solid #BFE5D2;border-bottom-left-radius:4px;align-self:flex-start}
+  .ordi-msg .ordi-wer{display:block;font-size:11.5px;font-weight:700;color:var(--elektrik,#0E7A55);margin-bottom:3px}.ordi-msg.ich .ordi-wer{color:#B9F3D4}
   .ordi-pruef{display:grid;gap:8px;background:#fff;border:1.5px solid color-mix(in srgb,var(--elektrik,#0E7A55) 35%,transparent);border-radius:14px;padding:12px}
   .ordi-pruef textarea{width:100%;box-sizing:border-box;min-height:80px;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 22%,transparent);border-radius:12px;padding:9px 11px;font:inherit;font-size:15px;resize:vertical}
   .ordi-pruef label{display:flex;gap:8px;align-items:center;font-size:13px;color:#3F5A4F}.ordi-pruef .knoepfe{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
-  .ordi-pruef .knoepfe button{border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 18%,transparent);background:#fff;border-radius:100px;padding:8px 13px;font:inherit;font-size:13.5px;font-weight:700;color:#0B3B2E;cursor:pointer}
-  .ordi-pruef .knoepfe button.ja{background:#0B3B2E;color:#fff;border-color:#0B3B2E}
+  .ordi-pruef .knoepfe button{border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 18%,transparent);background:#fff;border-radius:100px;padding:8px 13px;font:inherit;font-size:13.5px;font-weight:700;color:var(--blau,#0B3B2E);cursor:pointer}
+  .ordi-pruef .knoepfe button.ja{background:var(--blau,#0B3B2E);color:#fff;border-color:var(--blau,#0B3B2E)}
   .ordi-punkt{position:absolute;top:-2px;right:-2px;width:11px;height:11px;border-radius:50%;background:#E4572E;border:2px solid #fff}
   @media print{.ordi-knopf,.ordi-panel{display:none!important}}`;
   document.head.appendChild(css);

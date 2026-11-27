@@ -58,8 +58,8 @@
   .lz-meldung{min-height:1.3em;font-size:14px;color:#C53030;margin:4px 0 6px}
   .lz-meldung.ok{color:var(--elektrik,#0A7150)}
   .lz-pille{position:fixed;left:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:9000;background:#0A1F17;color:#fff;border-radius:100px;padding:8px 14px;font:600 13px 'League Spartan',system-ui,sans-serif;box-shadow:0 10px 30px -10px rgba(12,18,38,.5);text-decoration:none}
-  .lz-pille b{color:#6EE7A8}
-  .lz-menue{display:block;margin:0 4px 10px;padding:10px 12px;border-radius:14px;background:#0A1F17;color:#fff;font:600 13px/1.35 'League Spartan',system-ui,sans-serif;text-decoration:none}.lz-menue b{color:#6EE7A8}.lz-menue.lesen{background:#B4282D}.lz-menue.lesen b{color:#fff}
+  .lz-pille b{color:var(--hell,#6EE7A8)}
+  .lz-menue{display:block;margin:0 4px 10px;padding:10px 12px;border-radius:14px;background:#0A1F17;color:#fff;font:600 13px/1.35 'League Spartan',system-ui,sans-serif;text-decoration:none}.lz-menue b{color:var(--hell,#6EE7A8)}.lz-menue.lesen{background:#B4282D}.lz-menue.lesen b{color:#fff}
   .lz-pille.lesen{background:#B4282D}
   @media(max-width:820px){.lz-pille{bottom:calc(76px + env(safe-area-inset-bottom,0px))}}`;
   document.head.appendChild(stil);
@@ -127,7 +127,7 @@
     const paketVorgabe = (O && O.paket(q.get('paket'))) ? O.passend(q.get('paket'), rfVorgabe) : (O ? O.vorgabe(rfVorgabe) : '');
     zeigen(`${SYMBOL}<h2>${modus === 'neu' ? '30 Tage gratis testen' : 'Willkommen zurück'}</h2>
       <p>${modus === 'neu' ? 'Konto erstellen und sofort loslegen. Keine Zahlung nötig.' : `Melden Sie sich an, um ${NAME} zu öffnen.`}</p>
-      ${modus === 'neu' && window.OrdasioAktion && OrdasioAktion() ? `<p style="background:#EAF6F0;color:#0B3B2E;border-radius:12px;padding:10px 12px;font-weight:600">Aktion ${OrdasioAktion().name}: ${OrdasioAktion().text}. Der Rabatt ist für Sie gespeichert.</p>` : ''}
+      ${modus === 'neu' && window.OrdasioAktion && OrdasioAktion() ? `<p style="background:var(--flaeche,#E8F4EE);color:var(--blau,#0B3B2E);border-radius:12px;padding:10px 12px;font-weight:600">Aktion ${OrdasioAktion().name}: ${OrdasioAktion().text}. Der Rabatt ist für Sie gespeichert.</p>` : ''}
       <div class="lz-reiter"><button class="${modus === 'anmelden' ? 'an' : ''}" data-lz-modus="anmelden">Anmelden</button><button class="${modus === 'neu' ? 'an' : ''}" data-lz-modus="neu">Konto erstellen</button></div>
       <form data-lz-form="${modus}">
         ${modus === 'neu' ? `<label>Vor- und Nachname<input name="name" autocomplete="name" required></label>

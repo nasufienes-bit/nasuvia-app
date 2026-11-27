@@ -85,8 +85,8 @@ h2{font-size:22px;margin:30px 0 12px;letter-spacing:-.01em}
     }).join('');
   }
   function hilfen(){
-    $('hilfen').innerHTML = '<button type="button" data-h="tipps" style="border:0;border-radius:100px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer;background:#fff;box-shadow:0 0 0 1px rgba(11,59,46,.15)">💡 Tipps in den Bereichen: ' + (!window.Tipps || Tipps.istAn() ? 'an' : 'aus') + '</button>' +
-      '<button type="button" data-h="ordi" style="border:0;border-radius:100px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer;background:#fff;box-shadow:0 0 0 1px rgba(11,59,46,.15)">💬 Ordi: ' + (!window.Ordi || Ordi.istAn() ? 'an' : 'aus') + '</button>';
+    $('hilfen').innerHTML = '<button type="button" data-h="tipps" style="border:0;border-radius:100px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer;background:#fff;box-shadow:0 0 0 1px color-mix(in srgb,var(--blau,#0B3B2E) 15%,transparent)">💡 Tipps in den Bereichen: ' + (!window.Tipps || Tipps.istAn() ? 'an' : 'aus') + '</button>' +
+      '<button type="button" data-h="ordi" style="border:0;border-radius:100px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer;background:#fff;box-shadow:0 0 0 1px color-mix(in srgb,var(--blau,#0B3B2E) 15%,transparent)">💬 Ordi: ' + (!window.Ordi || Ordi.istAn() ? 'an' : 'aus') + '</button>';
   }
   $('hilfen').addEventListener('click', function(e){ var b = e.target.closest('[data-h]'); if (!b) return;
     if (b.dataset.h === 'ordi' && window.Ordi) { Ordi.istAn() ? Ordi.aus() : Ordi.an(); }

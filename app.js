@@ -522,7 +522,7 @@
     const karteMonate = st.monate ? `<div class="card">
         <h2>Monate ${Z.jahr}</h2>
         <div class="balken">${balken}</div>
-        <div class="legende"><span><i style="background:var(--elektrik)"></i>Einnahmen</span><span><i style="background:rgba(11,59,46,.22)"></i>Ausgaben</span></div>
+        <div class="legende"><span><i style="background:var(--elektrik)"></i>Einnahmen</span><span><i style="background:color-mix(in srgb,var(--blau,#0B3B2E) 22%,transparent)"></i>Ausgaben</span></div>
       </div>` : '';
     const karteMwst = st.mwst ? `<div class="card">
         <h2>MWST ${q}. Quartal ${jetztJahr}</h2>
@@ -577,7 +577,7 @@
       <div class="card">
         <h2>Monate ${Z.jahr}</h2>
         <div class="balken">${balken}</div>
-        <div class="legende"><span><i style="background:var(--elektrik)"></i>Einnahmen</span><span><i style="background:rgba(11,59,46,.22)"></i>Ausgaben</span></div>
+        <div class="legende"><span><i style="background:var(--elektrik)"></i>Einnahmen</span><span><i style="background:color-mix(in srgb,var(--blau,#0B3B2E) 22%,transparent)"></i>Ausgaben</span></div>
       </div>
       <div class="card">
         <h2>MWST ${q}. Quartal ${jetztJahr}</h2>
@@ -664,7 +664,7 @@
         `<text x="${L + i * w + w / 2}" y="${H - 8}" class="dg-achse" text-anchor="middle">${MONATE[i].slice(0, 1)}</text>`;
     }).join('');
     return `<svg class="diagramm" viewBox="0 0 ${B} ${H}" role="img" aria-label="Vergleich">${gitter}${saeulen}</svg>
-      <div class="legende"><span><i style="background:var(--elektrik)"></i>${esc(namen[0])}</span><span><i style="background:rgba(11,59,46,.22)"></i>${esc(namen[1])}</span></div>`;
+      <div class="legende"><span><i style="background:var(--elektrik)"></i>${esc(namen[0])}</span><span><i style="background:color-mix(in srgb,var(--blau,#0B3B2E) 22%,transparent)"></i>${esc(namen[1])}</span></div>`;
   }
   function ringDiagramm(teile) {
     const total = teile.reduce((a, t) => a + t.wert, 0);
@@ -1476,7 +1476,7 @@
           const erg = await OrdasioMail.senden({ an: ziel, cc, betreff, text, anhaenge: [{ name: datei, blob }], antwortAn: F.mail, absenderName: F.name, art: 'lohn' });
           await vermerken();
           dlg.querySelectorAll('[data-lm-alt]').forEach((x) => { x.hidden = true; x.style.display = 'none'; });
-          dlg.querySelector('[data-lm-direkt]').innerHTML = `<p style="color:#0E7A55;font-weight:600">✓ Gesendet an ${esc([...erg.an, ...(erg.cc || [])].join(', '))}</p>`;
+          dlg.querySelector('[data-lm-direkt]').innerHTML = `<p style="color:var(--elektrik,#0E7A55);font-weight:600">✓ Gesendet an ${esc([...erg.an, ...(erg.cc || [])].join(', '))}</p>`;
         } catch (x) { f.textContent = x.message; k.disabled = false; k.textContent = 'Nochmals senden'; }
         return;
       }
