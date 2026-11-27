@@ -354,7 +354,9 @@
         ${K} .nv-app-ic,${H} .marke i{background:rgba(255,255,255,.16)!important;box-shadow:none!important}
         ${K} .nv-bereich{background:rgba(255,255,255,.16)!important;color:#fff!important}
         ${K} .nv-logo img,${H} .nv-logo img{filter:brightness(0) invert(1)}${K} .nv-logo i,${H} .nv-logo i{background:#fff!important}
-        ${K} .nv-knopf,${H} .nv-knopf,${K} .su-knopf,${H} .su-knopf{box-shadow:none!important;border-color:transparent!important}`;
+        ${K} .nv-knopf,${H} .nv-knopf,${K} .su-knopf,${H} .su-knopf{box-shadow:none!important;border-color:transparent!important}
+        ${H} .st-logo-hell{display:none!important}${H} .st-logo-dunkel{display:block!important}
+        body ${K} button.nu-knopf,body ${H} button.nu-knopf{background:#fff!important;color:${A.dunkel}!important;box-shadow:none!important}`;
     }
     if (d.schrift === 'gross') regeln += 'body{zoom:1.08}';
     css.textContent = regeln;
