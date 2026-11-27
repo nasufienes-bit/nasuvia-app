@@ -19,7 +19,7 @@
     antraege: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M8 15l2.5 2.5L16 12"/>',
     bewerbungen: '<circle cx="10" cy="8" r="4"/><path d="M3 21a7 7 0 0 1 11-5.7M17 14v6M14 17h6"/>',
   };
-  const TABS = [['ablage', 'Ordner'], ['personal', 'Personal'], ['mitteilungen', 'Mitteilungen'], ['antraege', 'Anträge'], ['bewerbungen', 'Bewerbungen']];
+  const TABS = [['ablage', 'Ordner'], ['personal', 'Personal'], ['mitteilungen', 'Mitteilungen'], ['antraege', 'Anträge und Anfragen'], ['bewerbungen', 'Bewerbungen']];
   const FARBEN = ['#0E7A55', '#0B3B2E', '#2563EB', '#7C3AED', '#DB2777', '#E0703A', '#C9A45C', '#0891B2', '#64748B'];
   const SYMBOLE = ['📁', '👤', '📄', '📝', '🎓', '⬆️', '✉️', '🏖️', '📣', '🛡️', '🚗', '🧾', '🏷️', '📦', '⚖️', '💼', '🔑', '📸'];
   // Vorschläge: der Kunde benennt seine Ordner selbst, das sind nur Ideen
@@ -29,7 +29,7 @@
   const ANTRAG = { ferien: 'Ferien', frei: 'Frei / Kompensation', krank: 'Krankheit', unfall: 'Unfall', weiterbildung: 'Weiterbildung', anderes: 'Anderes' };
   const STATUS = { offen: ['Offen', 'm-offen'], bewilligt: ['Bewilligt', 'm-ok'], abgelehnt: ['Abgelehnt', 'm-grau'], zurueckgezogen: ['Zurückgezogen', 'm-grau'] };
 
-  const Z = { tab: 'ablage', ordner: [], dateien: [], mitarbeiter: [], mitteilungen: [], antraege: [], stellen: [], bewerbungen: [], bwFilter: 'aktiv', bwOffen: null, offen: null, person: null, suche: '', bereit: false };
+  const Z = { tab: 'ablage', ordner: [], dateien: [], mitarbeiter: [], mitteilungen: [], antraege: [], anfragen: [], stellen: [], bewerbungen: [], bwFilter: 'aktiv', bwOffen: null, offen: null, person: null, suche: '', bereit: false };
   const q = new URLSearchParams(location.search);
   if (TABS.some(([id]) => id === q.get('tab'))) Z.tab = q.get('tab');
   if (!K.produkt) { $('inhalt').innerHTML = '<div class="start"><h2>Firmenablage</h2><p>Die Firmenablage gibt es in der Verkaufsversion (Ordasio).</p></div>'; return; }
@@ -47,7 +47,7 @@
       const [o, d, m, n, a] = await Promise.all([
         sb.from('ab_ordner').select('*').is('geloescht_am', null).order('sortierung').order('name'),
         sb.from('ab_dateien').select('*').is('geloescht_am', null).order('erstellt', { ascending: false }).limit(3000),
-        sb.from('ze_mitarbeiter').select('id,name,aktiv,token').is('geloescht_am', null).order('aktiv', { ascending: false }).order('name'),
+        sb.from('ze_mitarbeiter').select('id,name,aktiv,token,ferien_tage').is('geloescht_am', null).order('aktiv', { ascending: false }).order('name'),
         sb.from('ab_mitteilungen').select('*').is('geloescht_am', null).order('erstellt', { ascending: false }).limit(100),
         sb.from('ab_antraege').select('*').order('erstellt', { ascending: false }).limit(300),
       ]);
@@ -55,12 +55,13 @@
       Z.ordner = o.data; Z.dateien = d.data; Z.mitarbeiter = m.data; Z.mitteilungen = n.data; Z.antraege = a.data;
       const [st, bw] = await Promise.all([sb.from('bw_stellen').select('*').is('geloescht_am', null).order('erstellt', { ascending: false }), sb.from('bw_bewerbungen').select('*').is('geloescht_am', null).order('erstellt', { ascending: false }).limit(500)]);
       Z.stellen = st.data || []; Z.bewerbungen = bw.data || [];
+      const af = await sb.from('ab_anfragen').select('*').order('erstellt', { ascending: false }).limit(300); Z.anfragen = af.error ? [] : (af.data || []);
       Z.bereit = true; zeichnen();
     } catch (e) { $('inhalt').innerHTML = `<div class="card"><h2>Daten konnten nicht geladen werden</h2><p class="hinweis">${esc(fehlerText(e))}</p></div>`; }
   }
 
   function zeichnen() {
-    const offen = Z.antraege.filter((a) => a.status === 'offen').length;
+    const offen = Z.antraege.filter((a) => a.status === 'offen').length + (Z.anfragen || []).filter((a) => a.status === 'offen').length;
     const neueBw = Z.bewerbungen.filter((b) => b.status === 'neu').length;
     const name = (id, n) => n + (id === 'antraege' && offen ? ` (${offen})` : '') + (id === 'bewerbungen' && neueBw ? ` (${neueBw})` : '');
     $('tabs').innerHTML = TABS.map(([id, n]) => `<button class="${Z.tab === id ? 'an' : ''}" data-tab="${id}">${name(id, n)}</button>`).join('');
@@ -223,10 +224,11 @@
       const gruppen = [...new Set(l.map((d) => d.ordner_id || ''))];
       const ferien = a.filter((x) => x.art === 'ferien' && x.status === 'bewilligt' && x.von.slice(0, 4) === heute().slice(0, 4)).reduce((s, x) => s + werktage(x.von, x.bis), 0);
       return `<p class="hinweis" style="margin-bottom:8px"><a href="#" data-person-zu>← Alle Mitarbeitenden</a></p>
-        <div class="kopf"><div><h1>${esc(m.name)}</h1><p class="unter">${l.length} Dokumente · ${ferien} Ferientage ${heute().slice(0, 4)} bewilligt</p></div>
+        <div class="kopf"><div><h1>${esc(m.name)}</h1><p class="unter">${l.length} Dokumente · Ferien ${heute().slice(0, 4)}: ${ferien} von ${m.ferien_tage ?? 20} Tagen bezogen, ${Math.max(0, (m.ferien_tage ?? 20) - ferien)} übrig · <a href="#" data-ferien-anspruch="${m.id}" onclick="return false">Anspruch ändern</a></p></div>
           <div class="aktionen"><button class="btn" data-mitteilung-an="${m.id}">Mitteilung senden</button><button class="btn haupt" data-hoch-person="${m.id}">Dokument ablegen</button></div></div>
         ${gruppen.map((g) => { const o = ordner(g); return `<div class="card" style="margin-bottom:12px"><h2>${o ? esc(o.symbol + ' ' + o.name) : 'Ohne Ordner'}</h2>${l.filter((d) => (d.ordner_id || '') === g).map((d) => dateiZeile(d, false)).join('')}</div>`; }).join('') || '<div class="card"><p class="leer">Noch keine Dokumente. Mit „Dokument ablegen“ zum Beispiel den Arbeitsvertrag hochladen.</p></div>'}
-        ${a.length ? `<div class="card abstand"><h2>Anträge</h2>${a.map(antragZeile).join('')}</div>` : ''}`;
+        ${a.length ? `<div class="card abstand"><h2>Anträge</h2>${a.map(antragZeile).join('')}</div>` : ''}
+        ${(Z.anfragen || []).some((x) => x.mitarbeiter_id === m.id) ? `<div class="card abstand"><h2>Anfragen</h2>${Z.anfragen.filter((x) => x.mitarbeiter_id === m.id).map(anfrageZeile).join('')}</div>` : ''}`;
     }
     return `<div class="kopf"><div><h1>Personal</h1><p class="unter">Ein Dossier pro Person. Was Sie freigeben, sieht der Mitarbeiter auf seinem Handy-Link.</p></div></div>
       <div class="card">${Z.mitarbeiter.map((m) => { const n = Z.dateien.filter((d) => d.mitarbeiter_id === m.id).length, o = Z.antraege.filter((a) => a.mitarbeiter_id === m.id && a.status === 'offen').length;
@@ -265,12 +267,24 @@
   const antragZeile = (a) => { const m = ma(a.mitarbeiter_id) || {}, [st, cls] = STATUS[a.status];
     return `<div class="zeile"><div style="min-width:0"><b>${esc(ANTRAG[a.art])} · ${esc(m.name || '')}</b><small>${dk(a.von)}${a.bis !== a.von ? ' bis ' + dk(a.bis) : ''} · ${werktage(a.von, a.bis)} Arbeitstage${a.text ? ' · ' + esc(a.text) : ''}</small>${a.antwort ? `<small>Antwort: ${esc(a.antwort)}</small>` : ''}</div>
       <span class="aktionen">${a.status === 'offen' ? `<button class="btn klein haupt" data-antrag="${a.id}" data-wert="bewilligt">Bewilligen</button><button class="btn klein" data-antrag="${a.id}" data-wert="abgelehnt">Ablehnen</button>` : `<span class="marke-s ${cls}">${st}</span>`}</span></div>`; };
+  const ANFRAGE = { kinderzulage: 'Kinderzulage', lohnabrechnung: 'Lohnabrechnung', lohnausweis: 'Lohnausweis', bestaetigung: 'Arbeitsbestätigung', personalien: 'Adresse oder Bank ändern', vorschuss: 'Lohnvorschuss', frage: 'Frage' };
+  const DETAIL = { kind: 'Kind', geburt: 'Geburtsdatum', zulage: 'Art', andere: 'Anderer Elternteil arbeitet', monat: 'Monat', jahr: 'Jahr', was: 'Was', neu: 'Neu', betrag: 'Betrag CHF' };
+  const detailText = (d) => Object.entries(d || {}).filter(([, v]) => v).map(([k, v]) => `${DETAIL[k] || k}: ${k === 'geburt' ? dk(v) : k === 'zulage' ? (v === 'ausbildungszulage' ? 'Ausbildungszulage' : 'Kinderzulage') : v}`).join(' · ');
+  const ANF_ST = { offen: ['Offen', 'm-offen'], erledigt: ['Erledigt', 'm-ok'], abgelehnt: ['Abgelehnt', 'm-rot'], zurueckgezogen: ['Zurückgezogen', 'm-grau'] };
+  const anfrageZeile = (a) => { const m = ma(a.mitarbeiter_id) || {}, [st, cls] = ANF_ST[a.status] || ['', ''];
+    const doku = ['lohnabrechnung', 'lohnausweis', 'bestaetigung'].includes(a.art);
+    return `<div class="zeile"><div style="min-width:0"><b>${esc(ANFRAGE[a.art] || a.art)} · ${esc(m.name || '')}</b><small>${dk(String(a.erstellt).slice(0, 10))}${a.details ? ' · ' + esc(detailText(a.details)) : ''}${a.text ? ' · ' + esc(a.text) : ''}</small>${a.antwort ? `<small>Antwort: ${esc(a.antwort)}</small>` : ''}</div>
+      <span class="aktionen">${a.status === 'offen' ? `${doku ? `<button class="btn klein" data-hoch-person="${a.mitarbeiter_id}" title="Dokument direkt aufs Handy des Mitarbeiters">Dokument senden</button>` : ''}<button class="btn klein haupt" data-anfrage="${a.id}" data-wert="erledigt">Erledigt</button><button class="btn klein" data-anfrage="${a.id}" data-wert="abgelehnt">Ablehnen</button>` : `<span class="marke-s ${cls}">${st}</span>`}</span></div>`; };
   function antraegeAnsicht() {
     const offen = Z.antraege.filter((a) => a.status === 'offen'), rest = Z.antraege.filter((a) => a.status !== 'offen');
-    return `<div class="kopf"><div><h1>Anträge</h1><p class="unter">Ferien, Kompensation und Absenzen, von den Mitarbeitenden direkt auf dem Handy beantragt.</p></div></div>
+    const aOffen = (Z.anfragen || []).filter((a) => a.status === 'offen'), aRest = (Z.anfragen || []).filter((a) => a.status !== 'offen');
+    return `<div class="kopf"><div><h1>Anträge und Anfragen</h1><p class="unter">Ferien, Absenzen, Kinderzulagen, Lohnabrechnungen und Fragen, von den Mitarbeitenden direkt auf dem Handy gestellt.</p></div></div>
+      <div class="card" style="margin-bottom:14px"><h2>Anfragen ans Büro</h2>${aOffen.map(anfrageZeile).join('') || '<p class="leer">Keine offenen Anfragen.</p>'}
+        ${aRest.length ? `<details style="margin-top:8px"><summary style="cursor:pointer" class="hinweis">Erledigte Anfragen (${aRest.length})</summary>${aRest.slice(0, 60).map(anfrageZeile).join('')}</details>` : ''}</div>
+      <h2 style="margin:6px 0 10px;font-size:18px">Ferien und Absenzen</h2>
       <div class="card" style="margin-bottom:14px"><h2>Offen</h2>${offen.map(antragZeile).join('') || '<p class="leer">Keine offenen Anträge.</p>'}</div>
       ${rest.length ? `<div class="card"><h2>Erledigt</h2>${rest.slice(0, 60).map(antragZeile).join('')}</div>` : ''}
-      <p class="hinweis abstand">Ihre Mitarbeitenden finden „Ferien oder Abwesenheit melden“ unten auf ihrem Handy-Link.</p>`;
+      <p class="hinweis abstand">Ihre Mitarbeitenden finden „Ferien beantragen“ und „Anfragen ans Büro“ auf ihrem Handy-Link. Den Ferienanspruch pro Person stellen Sie unter Personal ein.</p>`;
   }
 
   /* ---------- Bewerbungen (Zusatzoption) ---------- */
@@ -372,6 +386,20 @@
     const hp = t.closest('[data-hoch-person]'); if (hp) { hochladenDialog({ ma: hp.dataset.hochPerson }); return; }
     const mi = t.closest('[data-mitteilung-an]'); if (mi) { mitteilungDialog(mi.dataset.mitteilungAn); return; }
     const mw = t.closest('[data-mitteilung-weg]'); if (mw) { if (!await UI.frage('Diese Mitteilung löschen? Die Mitarbeitenden sehen sie danach nicht mehr.')) return; await sb.from('ab_mitteilungen').update({ geloescht_am: new Date().toISOString() }).eq('id', mw.dataset.mitteilungWeg); laden(); return; }
+    const aq = t.closest('[data-anfrage]');
+    if (aq) {
+      const ok = aq.dataset.wert === 'erledigt';
+      const antwort = await UI.eingabe(ok ? 'Erledigt. Kurze Nachricht an den Mitarbeiter (freiwillig), z. B. «Liegt in Ihren Dokumenten»:' : 'Ablehnen. Bitte kurz begründen:', { ja: ok ? 'Erledigt' : 'Ablehnen' });
+      if (antwort === null) return;
+      const { error } = await sb.from('ab_anfragen').update({ status: aq.dataset.wert, antwort: antwort.trim() || null, erledigt_am: new Date().toISOString() }).eq('id', aq.dataset.anfrage);
+      if (error) { toast(fehlerText(error)); return; } await laden(); toast(ok ? 'Erledigt' : 'Abgelehnt'); return;
+    }
+    const fa = t.closest('[data-ferien-anspruch]');
+    if (fa) {
+      const m = ma(fa.dataset.ferienAnspruch); const w = await UI.eingabe(`Ferienanspruch von ${m.name} pro Jahr (Arbeitstage):`, { vorgabe: String(m.ferien_tage ?? 20), ja: 'Speichern' });
+      if (w === null) return; const n = Number(String(w).replace(',', '.')); if (!Number.isFinite(n) || n < 0 || n > 60) { toast('Bitte eine Zahl zwischen 0 und 60'); return; }
+      const { error } = await sb.from('ze_mitarbeiter').update({ ferien_tage: n }).eq('id', m.id); if (error) { toast(fehlerText(error)); return; } await laden(); toast('Gespeichert'); return;
+    }
     const an = t.closest('[data-antrag]');
     if (an) {
       const antwort = await UI.eingabe(an.dataset.wert === 'bewilligt' ? 'Bewilligen. Kurze Nachricht an den Mitarbeiter (freiwillig):' : 'Ablehnen. Bitte kurz begründen:', { ja: an.dataset.wert === 'bewilligt' ? 'Bewilligen' : 'Ablehnen' });

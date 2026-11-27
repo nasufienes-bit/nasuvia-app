@@ -32,6 +32,9 @@ button{font:inherit;cursor:pointer}
 .summen b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
 .summen span{font-size:12px;color:rgba(255,255,255,.75)}
 .btn-klein{border:0;border-radius:100px;padding:7px 12px;font:600 13px/1.2 inherit;font-family:inherit;background:var(--flaeche,#EEF2F7);color:var(--blau,#0B3B2E);cursor:pointer;white-space:nowrap}.btn-klein.voll{background:var(--blau,#0B3B2E);color:#fff}.btn-klein:disabled{opacity:.5}
+.ferien-zahlen{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;margin:6px 0 10px}.ferien-zahlen b{display:block;font-size:18px}.ferien-zahlen span{font-size:12px;color:#64748B}
+.ferien-balken{height:8px;border-radius:8px;background:#E8F4EE;overflow:hidden;margin-bottom:8px}.ferien-balken i{display:block;height:100%;background:#0E7A55;border-radius:8px}
+.anfrage-raster{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.anfrage-raster button{border:1px solid #DCE7E2;background:#fff;border-radius:14px;padding:11px 12px;text-align:left;font:inherit;color:#0A1F17;cursor:pointer}.anfrage-raster b{display:block;font-size:14.5px}.anfrage-raster small{display:block;font-size:12px;color:#64748B;margin-top:2px;line-height:1.3}
 .team-ansicht{border:0;padding:0;border-radius:22px;width:min(420px,calc(100vw - 16px));height:min(820px,calc(100vh - 24px));overflow:hidden;display:flex;flex-direction:column}.team-ansicht[open]{display:flex}.team-ansicht::backdrop{background:rgba(5,19,16,.55)}
 .ta-kopf{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#0B3B2E;color:#fff}.ta-kopf button{margin-left:auto;border:0;background:rgba(255,255,255,.15);color:#fff;width:34px;height:34px;border-radius:10px;font-size:20px}
 .team-ansicht iframe{flex:1;border:0;width:100%}
@@ -139,14 +142,14 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
   if (!token || !K.url) { fehler('Kein gültiger Link', 'Bitte öffnen Sie den Link, den Sie von Ihrem Arbeitgeber bekommen haben.'); return; }
   const sb = window.supabase.createClient(K.url, K.key, { auth: { persistSession: false, autoRefreshToken: false } });
   if (VORSCHAU) {
-    const LESEN = ['ze_ich', 'ze_spesen_meine', 'ab_ich', 'ze_lager', 'ze_material'];
+    const LESEN = ['ze_ich', 'ze_spesen_meine', 'ab_ich', 'ze_lager', 'ze_material', 'ab_mein_buero'];
     const rpc = sb.rpc.bind(sb), inv = sb.functions.invoke.bind(sb.functions);
     const nein = () => { toast('Vorschau: Hier wird nichts gespeichert.'); return Promise.resolve({ data: null, error: { message: 'Vorschau: nichts gespeichert' } }); };
     sb.rpc = (n, a) => (!LESEN.includes(n) ? nein() : VT ? rpc('ze_vorschau', { p_vtoken: VT, p_fn: n, p_von: (a && a.p_von) || null, p_bis: (a && a.p_bis) || null }) : rpc(n, a));
     sb.functions.invoke = (n, o) => (!VT && ((n === 'ze-foto' && o && o.body && o.body.aktion === 'liste') || n === 'ablage-ma') ? inv(n, o) : nein());
     const LOS = ['monatZurueck', 'monatVor', 'zurueck'];
     document.addEventListener('click', (e) => {
-      const z = e.target.closest('[data-a],[data-pruefen],[data-foto-weg],[data-lg-buchen],[data-lg],[data-anf],[data-anf-neu]');
+      const z = e.target.closest('[data-a],[data-pruefen],[data-foto-weg],[data-lg-buchen],[data-lg],[data-anf],[data-anf-neu],[data-anfrage],[data-anfrage-zurueck],[data-team-ansicht]');
       if (!z || (z.dataset.a && LOS.includes(z.dataset.a)) || z.dataset.lg === 'suche') return;
       e.preventDefault(); e.stopImmediatePropagation(); toast('Vorschau: Diese Aktion macht nur der Mitarbeiter selbst.');
     }, true);
@@ -174,6 +177,7 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
     zeichnen();
     sb.rpc('ze_spesen_meine', { p_token: token }).then(({ data: sp }) => { if (Array.isArray(sp)) { Z.spesen = sp; if (!Z.form) zeichnen(); } });
     sb.rpc('ab_ich', { p_token: token }).then(({ data: ab }) => { if (ab && !ab.fehler) { Z.ab = ab; if (!Z.form) zeichnen(); } });
+    sb.rpc('ab_mein_buero', { p_token: token }).then(({ data: mb }) => { if (mb && !mb.fehler) { Z.buero = mb; if (!Z.form) zeichnen(); } });
     lagerLaden();
     if (Z.auftrag && !Z.form) fotosLaden(Z.auftrag);
   }
@@ -213,6 +217,8 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
         </div>` : ''}
         ${(d.einsaetze || []).length ? `<div class="karte"><h2>Einsätze im Handy-Kalender</h2><p class="hinweis">Einmal verbinden: Neue Einsätze erscheinen automatisch in Ihrem Kalender, mit Erinnerung eine Stunde vorher.</p><a class="gross leicht" style="display:block;text-align:center;text-decoration:none;margin-top:10px" href="${K.url.replace(/^https?:/, 'webcal:')}/functions/v1/kalender?ma=${token}">📅 Kalender verbinden</a></div>` : ''}
         ${lagerKarte()}
+        ${ferienKarte()}
+        ${anfragenKarte()}
         ${teamKarte()}
         <p class="fuss">${zeitAn ? 'Sie sehen nur Ihre eigenen Stunden.' : 'Sie sehen nur die Aufträge, die Ihnen zugewiesen sind.'} Tipp: Seite zum Home-Bildschirm hinzufügen, dann ist sie wie eine App.</p>
       </main>`;
@@ -311,6 +317,70 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
     return l.map((m) => `<div class="karte" style="border-left:4px solid ${m.wichtig ? '#E5484D' : '#0E7A55'}"><div style="display:flex;justify-content:space-between;gap:8px"><b>${m.wichtig ? '❗ ' : '📣 '}${esc(m.titel)}</b><small class="hinweis">${dk(String(m.erstellt).slice(0, 10))}</small></div>
       ${m.text ? `<p style="margin-top:6px;white-space:pre-wrap">${esc(m.text)}</p>` : ''}<button class="gross leicht" style="margin-top:10px" data-gelesen="${m.id}">Gelesen</button></div>`).join('');
   }
+  /* ---------- Anfragen ans Büro und Ferien-Übersicht ---------- */
+  const ANFRAGE = {
+    kinderzulage: ['Kinderzulage beantragen', 'Für ein Kind die Kinder- oder Ausbildungszulage'],
+    lohnabrechnung: ['Lohnabrechnung', 'Eine Kopie einer Lohnabrechnung'],
+    lohnausweis: ['Lohnausweis', 'Für die Steuererklärung'],
+    bestaetigung: ['Arbeitsbestätigung', 'Bestätigung oder Zwischenzeugnis'],
+    personalien: ['Adresse oder Bank ändern', 'Neue Adresse, Zivilstand oder IBAN'],
+    vorschuss: ['Lohnvorschuss', 'Einen Teil des Lohns früher'],
+    frage: ['Andere Frage', 'Alles andere ans Büro'],
+  };
+  const ANF_ST = { offen: ['wartet auf das Büro', '#B45309'], erledigt: ['erledigt', '#0E7A55'], abgelehnt: ['abgelehnt', '#B91C1C'], zurueckgezogen: ['zurückgezogen', '#64748B'] };
+  const tageText = (n) => (Number(n) === 1 ? '1 Tag' : (Math.round(Number(n) * 10) / 10) + ' Tage');
+  function ferienKarte() {
+    const f = Z.buero && Z.buero.ferien; if (!f) return '';
+    const rest = Number(f.anspruch) - Number(f.bezogen) - Number(f.beantragt), proz = Math.min(100, Math.round((Number(f.bezogen) / Math.max(1, Number(f.anspruch))) * 100));
+    return `<div class="karte"><h2>Meine Ferien ${f.jahr}</h2>
+      <div class="ferien-zahlen"><div><b>${esc(tageText(f.anspruch))}</b><span>Anspruch</span></div><div><b>${esc(tageText(f.bezogen))}</b><span>bezogen</span></div><div><b>${esc(tageText(f.beantragt))}</b><span>beantragt</span></div><div><b style="color:${rest < 0 ? '#B91C1C' : '#0E7A55'}">${esc(tageText(rest))}</b><span>übrig</span></div></div>
+      <div class="ferien-balken"><i style="width:${proz}%"></i></div>
+      ${(f.liste || []).map((x) => `<div class="zeile" style="cursor:default"><div><b>${dk(x.von)}${x.bis !== x.von ? ' bis ' + dk(x.bis) : ''}</b><small>${esc(tageText(x.tage))} · ${x.status === 'bewilligt' ? 'bewilligt' : 'wartet auf das Büro'}</small></div></div>`).join('') || '<p class="hinweis">Noch keine Ferien eingetragen.</p>'}
+      <button class="gross leicht" data-a="antrag" data-art="ferien" style="margin-top:10px">Ferien beantragen</button>
+      <p class="hinweis" style="margin-top:6px">Gezählt werden Arbeitstage von Montag bis Freitag. Feiertage zieht das Büro ab.</p></div>`;
+  }
+  function anfragenKarte() {
+    if (!Z.buero) return '';
+    const l = Z.buero.anfragen || [];
+    return `<div class="karte" id="anfragenKarte"><h2>Anfragen ans Büro</h2><p class="hinweis">Statt anrufen oder Zettel: hier direkt ans Büro. Die Antwort sehen Sie hier.</p>
+      <div class="anfrage-raster">${Object.entries(ANFRAGE).map(([k, [t, x]]) => `<button data-anfrage="${k}"><b>${esc(t)}</b><small>${esc(x)}</small></button>`).join('')}</div>
+      ${l.slice(0, 8).map((a) => { const [st, c] = ANF_ST[a.status] || ['', '#64748B']; return `<div class="zeile" style="cursor:default"><div style="min-width:0"><b>${esc((ANFRAGE[a.art] || [a.art])[0])}</b><small>${dk(String(a.erstellt).slice(0, 10))} · <span style="color:${c};font-weight:600">${st}</span>${a.text ? ' · ' + esc(a.text) : ''}</small>${a.antwort ? `<small style="color:#0A1F17"><b style="display:inline">Büro:</b> ${esc(a.antwort)}</small>` : ''}</div>${a.status === 'offen' ? `<button class="loeschen" data-anfrage-zurueck="${a.id}" title="Zurückziehen" aria-label="Zurückziehen">×</button>` : ''}</div>`; }).join('')}</div>`;
+  }
+  function anfrageFenster(art) {
+    const [titel, unter] = ANFRAGE[art];
+    const jahr = new Date().getFullYear(), monat = (() => { const d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().slice(0, 7); })();
+    const FELDER = {
+      kinderzulage: `<label>Name des Kindes<input name="kind" required maxlength="80"></label><label>Geburtsdatum<input type="date" name="geburt" required></label>
+        <label>Art<select name="zulage"><option value="kinderzulage">Kinderzulage (bis 16 Jahre)</option><option value="ausbildungszulage">Ausbildungszulage (16 bis 25, in Ausbildung)</option></select></label>
+        <label>Anderer Elternteil arbeitet auch?<select name="andere"><option value="">Bitte wählen</option><option value="nein">Nein</option><option value="ja">Ja, angestellt</option><option value="selbstaendig">Ja, selbständig</option></select></label>
+        <p class="hinweis">Das Büro meldet die Zulage bei der Familienausgleichskasse an. Meist braucht es eine Kopie von Geburtsurkunde oder Familienbüchlein, bei Ausbildung eine Ausbildungsbestätigung.</p>`,
+      lohnabrechnung: `<label>Für welchen Monat?<input type="month" name="monat" value="${monat}" required></label>`,
+      lohnausweis: `<label>Für welches Jahr?<input type="number" name="jahr" value="${jahr - 1}" min="2000" max="${jahr}" required></label>`,
+      bestaetigung: `<label>Was brauchen Sie?<select name="was"><option>Arbeitsbestätigung</option><option>Zwischenzeugnis</option><option>Bestätigung für Wohnung oder Bank</option></select></label>`,
+      personalien: `<label>Was ändert sich?<select name="was"><option>Neue Adresse</option><option>Neue Bankverbindung (IBAN)</option><option>Zivilstand</option><option>Anderes</option></select></label><label>Neue Angaben<textarea name="neu" rows="3" maxlength="400" required placeholder="z. B. Seeweg 4, 6000 Luzern, ab 1.1."></textarea></label>`,
+      vorschuss: `<label>Betrag CHF<input name="betrag" inputmode="decimal" required maxlength="10"></label>`,
+      frage: '',
+    };
+    const dlg = document.createElement('dialog'); dlg.className = 'ui-frage';
+    dlg.innerHTML = `<form method="dialog"><h3>${esc(titel)}</h3><p class="hinweis" style="margin:0 0 6px">${esc(unter)}</p>${FELDER[art]}
+      <label>${art === 'frage' ? 'Ihre Frage' : 'Bemerkung'} ${art === 'frage' ? '' : '<small class="hinweis">(freiwillig)</small>'}<textarea name="text" rows="3" maxlength="1000" ${art === 'frage' ? 'required' : ''}></textarea></label>
+      <div class="ui-knoepfe"><button type="button" class="nein" data-zu>Abbrechen</button><button class="ja">Senden</button></div></form>`;
+    document.body.appendChild(dlg);
+    dlg.addEventListener('close', () => dlg.remove());
+    dlg.querySelector('[data-zu]').onclick = () => dlg.close();
+    dlg.querySelector('form').onsubmit = async (e) => {
+      e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); const text = f.text || ''; delete f.text;
+      const { error } = await sb.rpc('ab_anfrage_stellen', { p_token: token, p_art: art, p_text: text, p_details: Object.keys(f).length ? f : null });
+      if (error) { toast(fehlerText(error), 4000); return; }
+      dlg.close(); toast('Gesendet. Die Antwort vom Büro sehen Sie hier.'); const { data } = await sb.rpc('ab_mein_buero', { p_token: token }); if (data && !data.fehler) { Z.buero = data; zeichnen(); }
+    };
+    dlg.showModal();
+  }
+  document.addEventListener('click', async (ev) => {
+    const a = ev.target.closest('[data-anfrage]'); if (a) { anfrageFenster(a.dataset.anfrage); return; }
+    const z = ev.target.closest('[data-anfrage-zurueck]');
+    if (z) { if (!await UI.frage('Diese Anfrage zurückziehen?')) return; await sb.rpc('ab_anfrage_zurueck', { p_token: token, p_id: z.dataset.anfrageZurueck }); const { data } = await sb.rpc('ab_mein_buero', { p_token: token }); if (data && !data.fehler) { Z.buero = data; zeichnen(); } }
+  });
   function teamKarte() {
     const ab = Z.ab; if (!ab) return '';
     const doks = ab.dokumente || [], antr = ab.antraege || [], alt = (ab.mitteilungen || []).filter((m) => m.gelesen);
@@ -505,10 +575,10 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
     };
     dlg.showModal();
   }
-  function antragFenster() {
+  function antragFenster(vorArt) {
     const dlg = document.createElement('dialog'); dlg.className = 'ui-frage';
     dlg.innerHTML = `<form method="dialog"><h3>Ferien oder Abwesenheit</h3>
-      <label>Was?<select name="art">${Object.entries(ANTRAG).map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select></label>
+      <label>Was?<select name="art">${Object.entries(ANTRAG).map(([k, n]) => `<option value="${k}" ${k === vorArt ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label>Von<input type="date" name="von" value="${heute()}" required></label><label>Bis<input type="date" name="bis" value="${heute()}" required></label></div>
       <label>Bemerkung <small class="hinweis">(freiwillig)</small><input type="text" name="text" maxlength="300" placeholder="z. B. Arztzeugnis folgt"></label>
       <div class="ui-knoepfe"><button type="button" class="nein" data-zu>Abbrechen</button><button class="ja">Senden</button></div></form>`;
@@ -520,7 +590,7 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
       if (f.bis < f.von) { toast('Das Enddatum liegt vor dem Beginn'); return; }
       const { error } = await sb.rpc('ab_antrag_stellen', { p_token: token, p_art: f.art, p_von: f.von, p_bis: f.bis, p_text: f.text || '' });
       if (error) { toast(fehlerText(error), 4000); return; }
-      dlg.close(); toast('✓ Gesendet. Sie sehen hier, wenn das Büro antwortet.'); laden();
+      dlg.close(); toast('Gesendet. Sie sehen hier, wenn das Büro antwortet.'); laden(); sb.rpc('ab_mein_buero', { p_token: token }).then(({ data }) => { if (data && !data.fehler) { Z.buero = data; if (!Z.form) zeichnen(); } });
     };
     dlg.showModal();
   }
@@ -533,7 +603,7 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
       if (f) f.location = data.url; else location.href = data.url; const d = Z.ab.dokumente.find((x) => x.id === dk2.dataset.dok); if (d) { d.gelesen = true; zeichnen(); } return; }
     const az = ev.target.closest('[data-antrag-zurueck]');
     if (az) { if (!await UI.frage('Diesen Antrag zurückziehen?')) return; await sb.rpc('ab_antrag_zurueck', { p_token: token, p_id: az.dataset.antragZurueck }); laden(); return; }
-    if (ev.target.closest('[data-a="antrag"]')) antragFenster();
+    if (ev.target.closest('[data-a="antrag"]')) antragFenster(ev.target.closest('[data-a="antrag"]').dataset.art);
     if (ev.target.closest('[data-a="spesen"]')) spesenFenster();
   });
 

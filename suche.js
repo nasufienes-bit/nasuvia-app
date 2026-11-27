@@ -304,6 +304,25 @@
     ['uebersicht-anpassen', 'Erste Schritte', 'Übersicht anpassen', 'übersicht startseite anpassen karten ausblenden einblenden dashboard', [
       'Auf der Übersicht jedes Bereichs „Übersicht anpassen“ tippen.',
       'Anhaken, was erscheinen soll, und speichern.'], B],
+    ['ma-anfragen', 'Mitarbeitende', 'Anfragen ans Büro: Kinderzulage, Lohnabrechnung, Lohnausweis', 'anfrage kinderzulage ausbildungszulage lohnabrechnung lohnausweis arbeitsbestätigung zwischenzeugnis adresse iban vorschuss frage büro mitarbeiter handy', [
+      'Mitarbeitende tippen auf ihrem Handy-Link unter „Anfragen ans Büro“ auf das Passende und senden es ab.',
+      'Im Büro erscheint es in der Firmenablage unter „Anträge und Anfragen“. Mit „Dokument senden“ legen Sie z. B. die Lohnabrechnung direkt aufs Handy der Person.',
+      '„Erledigt“ oder „Ablehnen“ tippen, eine kurze Nachricht schreiben. Der Mitarbeiter sieht die Antwort sofort.'], WURZEL + 'ablage/?tab=antraege'],
+    ['ma-ferien', 'Mitarbeitende', 'Ferientabelle: Anspruch, bezogen, übrig', 'ferien ferientabelle ferienanspruch ferientage saldo übrig bezogen mitarbeiter', [
+      'Mitarbeitende sehen auf ihrem Handy „Meine Ferien“: Anspruch, bezogen, beantragt und übrig.',
+      'Den Anspruch pro Person stellen Sie in der Firmenablage unter Personal ein („Anspruch ändern“). Standard sind 20 Arbeitstage.',
+      'Bewilligte Ferienanträge zählen automatisch als bezogen.'], WURZEL + 'ablage/?tab=personal'],
+    ['pl-ansicht', 'Mitarbeitende', 'Sehen, was ein Mitarbeiter auf dem Handy sieht', 'ansicht vorschau mitarbeiter handy sehen projektleiter team lukas', [
+      'Im Büro: Zeiterfassung, Mitarbeiter, bei der Person „Ansicht“.',
+      'Als Projektleiter auf dem Handy: Karte „Mein Team“, bei der Person „Ansicht“. Nur zum Ansehen, nichts wird gespeichert.'], WURZEL + 'zeit/?tab=mitarbeiter'],
+    ['hb-erinnerung', 'Home-Büro', 'Erinnerung für eine offene Rechnung', 'erinnerung rechnung offen erinnern zahlen fällig wie oft wöchentlich täglich home-büro', [
+      'Home-Büro, Rechnungen, die Rechnung antippen und „Erinnerung setzen“.',
+      'Wählen, wann zum ersten Mal (z. B. 3 Tage vor Fälligkeit), Uhrzeit und wie oft.',
+      'Die Erinnerung kommt, bis die Rechnung bezahlt ist. In der Erinnerung selbst können Sie „Ist bezahlt“ tippen.'], WURZEL + 'privat/?tab=rechnungen'],
+    ['ordi-mensch', 'Ordi', 'Von einem Menschen prüfen lassen', 'prüfen mensch team support chat ordi unsicher kontrolle treuhänder hilfe', [
+      'Ordi öffnen und oben auf „Prüfen lassen“ tippen.',
+      'Kurz beschreiben, was geprüft werden soll. Der Ordi-Verlauf kann mitgeschickt werden.',
+      'Die Antwort vom Ordasio-Team erscheint im Ordi-Fenster. Ein roter Punkt am Ordi-Knopf zeigt neue Antworten.'], WURZEL + 'start/'],
     ['ze-auftraege-ordner', 'Zeiterfassung', 'Aufträge in Ordnern mit Fotos', 'auftrag ordner ftth zürich adresse foto bilder projektleiter kontrolle status erledigt', [
       'Zeiterfassung, „Aufträge“: mit „+ Ordner“ Ordner anlegen (z. B. Kunden, darin Zürich) und darin mit „+ Auftrag“ die Adressen.',
       'Mitarbeiter sehen die gleichen Ordner auf dem Handy und laden Fotos hoch. Den Stand (In Arbeit, Erledigt, Kontrolliert) setzen nur Sie oder ein Projektleiter.',
