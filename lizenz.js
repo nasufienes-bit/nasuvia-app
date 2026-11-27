@@ -10,6 +10,10 @@
   // Pakete und Rechtsformen kommen aus pakete.js (vor lizenz.js einbinden)
   const O = window.ORDASIO || null;
   try { const em = new URLSearchParams(location.search).get('empf'); if (em && /^[A-Za-z0-9]{6,10}$/.test(em)) localStorage.setItem('ordasio.empf', em.toUpperCase()); } catch {}
+  // Aktionscodes (z. B. vom Autokleber: ordasio.ch/auto → ?code=AUTO100): Rabatt aufs Jahresabo
+  const AKTIONEN = { AUTO100: { code: 'AUTO100', name: 'Autokleber', rabatt: 100, text: 'CHF 100 Rabatt auf das erste Jahresabo' } };
+  try { const c = (new URLSearchParams(location.search).get('code') || '').toUpperCase(); if (AKTIONEN[c]) localStorage.setItem('ordasio.aktion', JSON.stringify({ code: c, am: new Date().toISOString().slice(0, 10) })); } catch {}
+  window.OrdasioAktion = () => { try { const a = JSON.parse(localStorage.getItem('ordasio.aktion') || 'null'); return a && AKTIONEN[a.code] ? { ...AKTIONEN[a.code], am: a.am } : null; } catch { return null; } };
   const paketName = (id) => (O && O.paket(id) ? O.paket(id).name : id);
   // Lizenz-Objekt (mit Zusatzpaketen) oder nur Paket-ID; „konto“ ist immer offen
   const darf = (l) => !O || PRODUKT === 'konto' || O.darf(l, PRODUKT);
@@ -92,6 +96,7 @@
     const paketVorgabe = (O && O.paket(q.get('paket'))) ? O.passend(q.get('paket'), rfVorgabe) : (O ? O.vorgabe(rfVorgabe) : '');
     zeigen(`${SYMBOL}<h2>${modus === 'neu' ? '30 Tage gratis testen' : 'Willkommen zurück'}</h2>
       <p>${modus === 'neu' ? 'Konto erstellen und sofort loslegen. Keine Zahlung nötig.' : `Melden Sie sich an, um ${NAME} zu öffnen.`}</p>
+      ${modus === 'neu' && window.OrdasioAktion && OrdasioAktion() ? `<p style="background:#EAF6F0;color:#0B3B2E;border-radius:12px;padding:10px 12px;font-weight:600">Aktion ${OrdasioAktion().name}: ${OrdasioAktion().text}. Der Rabatt ist für Sie gespeichert.</p>` : ''}
       <div class="lz-reiter"><button class="${modus === 'anmelden' ? 'an' : ''}" data-lz-modus="anmelden">Anmelden</button><button class="${modus === 'neu' ? 'an' : ''}" data-lz-modus="neu">Konto erstellen</button></div>
       <form data-lz-form="${modus}">
         ${modus === 'neu' ? `<label>Vor- und Nachname<input name="name" autocomplete="name" required></label>
@@ -191,7 +196,7 @@
     try {
       if (f.dataset.lzForm === 'neu') {
         const { data, error } = await sb.auth.signUp({ email: d.email.trim(), password: d.passwort,
-          options: { emailRedirectTo: location.origin + location.pathname, data: { empf: (() => { try { return localStorage.getItem('ordasio.empf') || ''; } catch { return ''; } })(), name: d.name.trim(), firma: (d.firma || '').trim(), paket: d.paket || '', rechtsform: d.rechtsform || 'einzel', branche: d.branche || '', zyklus: 'jahr' } } });
+          options: { emailRedirectTo: location.origin + location.pathname, data: { empf: (() => { try { return localStorage.getItem('ordasio.empf') || ''; } catch { return ''; } })(), aktion: (window.OrdasioAktion() || {}).code || '', name: d.name.trim(), firma: (d.firma || '').trim(), paket: d.paket || '', rechtsform: d.rechtsform || 'einzel', branche: d.branche || '', zyklus: 'jahr' } } });
         try { if (d.branche) localStorage.setItem('ordasio.branche', d.branche); } catch {}
         if (error) throw error;
         if (!data.session) { anmelden('anmelden', '✓ Fast geschafft: Bitte bestätigen Sie Ihre E-Mail über den Link, den wir Ihnen gerade geschickt haben.'); return; }

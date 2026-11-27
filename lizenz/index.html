@@ -12,6 +12,12 @@
 <link rel="stylesheet" href="../schrift.css" />
 <script src="../konfig.js"></script>
 <script src="../pakete.js"></script>
+<script>
+  // Aktionscode (z.B. Autokleber): gleiche Liste wie in lizenz.js, hier ohne Anmeldemaske
+  if (!window.OrdasioAktion) (function () { var AK = { AUTO100: { code: 'AUTO100', name: 'Autokleber', rabatt: 100, text: 'CHF 100 Rabatt auf das erste Jahresabo' } };
+    try { var c = (new URLSearchParams(location.search).get('code') || '').toUpperCase(); if (AK[c]) localStorage.setItem('ordasio.aktion', JSON.stringify({ code: c, am: new Date().toISOString().slice(0, 10) })); } catch (e) {}
+    window.OrdasioAktion = function () { try { var a = JSON.parse(localStorage.getItem('ordasio.aktion') || 'null'); return a && AK[a.code] ? Object.assign({}, AK[a.code], { am: a.am }) : null; } catch (e) { return null; } }; })();
+</script>
 <script src="../branchen.js"></script>
 <script src="../lib/supabase.js"></script>
 <style>
@@ -157,6 +163,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     <div id="dModule" class="d-module"></div>
     <label style="display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--tinte)"><input type="checkbox" id="dEinrichtung" style="width:18px;height:18px;margin-top:2px"> <span><b>Einrichtung durch uns, CHF 190 einmalig</b><br><span style="color:var(--text)">Wir übernehmen Ihre bisherigen Daten, richten Logo, Vorlagen und Kategorien ein und zeigen Ihnen alles in 30 Minuten per Video oder vor Ort.</span></span></label>
     <div class="summe"><span id="dPaket"></span><span id="dPreis"></span></div>
+    <p class="meldung" id="dAktion" hidden style="color:var(--elektrik,#0E7A55);background:#EAF6F0;border-radius:10px;padding:8px 10px"></p>
     <p class="meldung" id="dMeldung"></p>
     <button class="btn haupt" id="dSenden">Verbindlich bestellen</button>
     <button type="button" class="btn" id="dZu" style="margin-top:6px">Abbrechen</button>
@@ -184,7 +191,11 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     var n = zeitAnzahl(), pr = O.preis({ paket: preisId(gewaehlt.id), module: Array.from(wahl), zyklus: zyklus, weitere: n });
     $('dZeitFeld').hidden = !wahl.has('team');
     $('dPaket').textContent = gewaehlt.name + (pr.module.length ? ' + ' + pr.module.map(function(m){ return m.name; }).join(', ') : '') + (n ? ' + ' + n + ' weitere Mitarbeitende' : '') + (zyklus === 'jahr' ? ', jährlich' : ', monatlich') + (pr.rabatt ? ' (Kombi-Rabatt ' + pr.prozent + ' %)' : '');
-    $('dPreis').textContent = 'CHF ' + pr.total + (zyklus === 'jahr' ? '/Jahr' : '/Monat') + ($('dEinrichtung').checked ? ' + 190 einmalig' : '');
+    var ak = window.OrdasioAktion && OrdasioAktion();
+    var aktiv = ak && zyklus === 'jahr' && !(lizenz && lizenz.status === 'aktiv');
+    $('dPreis').textContent = 'CHF ' + (aktiv ? Math.max(0, pr.total - ak.rabatt) : pr.total) + (zyklus === 'jahr' ? '/Jahr' : '/Monat') + ($('dEinrichtung').checked ? ' + 190 einmalig' : '');
+    $('dAktion').hidden = !ak;
+    if (ak) $('dAktion').innerHTML = aktiv ? '<b>Aktion ' + esc(ak.name) + ':</b> CHF ' + ak.rabatt + ' Rabatt im ersten Jahr ist abgezogen (statt CHF ' + pr.total + ').' : '<b>Aktion ' + esc(ak.name) + ':</b> CHF ' + ak.rabatt + ' Rabatt gibt es beim Jahresabo. Wählen Sie oben „jährlich“.';
   }
   // Bestehende Kombi-Pakete (Team, Business Team) behalten ihren festen Preis
   function preisId(hId){ var k = lizenz && O.paket(lizenz.paket); return k && k.kombi && k.haupt === hId && k.module.every(function(m){ return wahl.has(m); }) ? k.id : hId; }
@@ -380,7 +391,9 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     var nr = 'LIZ-' + String(d.getFullYear()).slice(2) + zz(d.getMonth() + 1) + zz(d.getDate()) + '-' + (100 + Math.floor(Math.random() * 900));
     var zeitN = zeitAnzahl();
     var pr = O.preis({ paket: preisId(gewaehlt.id), module: Array.from(wahl), zyklus: zyklus, weitere: zeitN }), preis = pr.total;
-    var daten = { Paket: gewaehlt.name, Rechtsform: O.RECHTSFORMEN[rf].name, 'Zusätzliche Mitarbeitende': String(zeitN), Einrichtung: $('dEinrichtung').checked ? 'Ja, CHF 190 einmalig' : 'Nein', Zusatzpakete: pr.module.map(function(m){ return m.name; }).join(', ') || 'keine', 'Kombi-Rabatt': pr.rabatt ? pr.prozent + ' % (CHF ' + pr.rabatt + ')' : 'keiner', Zahlungsweise: zyklus === 'jahr' ? 'Jährlich' : 'Monatlich', Preis: 'CHF ' + preis + (zyklus === 'jahr' ? ' pro Jahr' : ' pro Monat'),
+    var ak = window.OrdasioAktion && OrdasioAktion(), akAktiv = ak && zyklus === 'jahr' && !(lizenz && lizenz.status === 'aktiv');
+    if (akAktiv) preis = Math.max(0, preis - ak.rabatt);
+    var daten = { Paket: gewaehlt.name, Rechtsform: O.RECHTSFORMEN[rf].name, 'Zusätzliche Mitarbeitende': String(zeitN), Einrichtung: $('dEinrichtung').checked ? 'Ja, CHF 190 einmalig' : 'Nein', Zusatzpakete: pr.module.map(function(m){ return m.name; }).join(', ') || 'keine', 'Kombi-Rabatt': pr.rabatt ? pr.prozent + ' % (CHF ' + pr.rabatt + ')' : 'keiner', Zahlungsweise: zyklus === 'jahr' ? 'Jährlich' : 'Monatlich', Preis: 'CHF ' + preis + (zyklus === 'jahr' ? ' pro Jahr' : ' pro Monat'), Aktion: akAktiv ? ak.code + ': CHF ' + ak.rabatt + ' Rabatt im ersten Jahr (' + ak.name + ')' : (ak ? ak.code + ' (nicht angewendet, nur Jahresabo)' : 'keine'),
       'Rechnung an': firma, Adresse: adresse, 'E-Mail': benutzer.email, Telefon: $('dTel').value.trim(), Konto: benutzer.id,
       'Stand jetzt': lizenz ? lizenz.status + ' / ' + lizenz.paket + ' / ' + lizenz.rechtsform : '' };
     var ok1 = await fetch('https://dyepnomhidubsfwyorke.supabase.co/rest/v1/anfragen', { method: 'POST',
