@@ -18,6 +18,7 @@
     } catch { /* ohne Speicher: eigene Nutzung */ }
   }
   window.NASUVIA_KONFIG = produkt ? KUNDEN : EIGEN;
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persisted().then((ja) => { if (!ja) navigator.storage.persist().catch(() => {}); }).catch(() => {}); } catch { /* leer */ }
   // Bereiche öffnen immer bei der Übersicht. Nur bei Neuladen oder «Zurück» kommt der zuletzt gewählte Reiter wieder.
   window.ordasioReiterBehalten = (() => { try { const n = performance.getEntriesByType('navigation')[0]; return !!n && (n.type === 'reload' || n.type === 'back_forward'); } catch { return false; } })();
 
@@ -44,7 +45,7 @@
         const wurzel = ((document.currentScript && document.currentScript.src) || '').replace(/konfig\.js(\?.*)?$/, '') || '/';
         const ausnahme = () => /\/(zeit\/erfassen|r|p|b|buchen|treuhand|team|start)\//.test(location.pathname)
           || /token_hash|access_token|refresh_token|[?&#](code|type|neu|paket|produkt|app)=/.test(location.search + location.hash);
-        const zurStart = () => { try { sessionStorage.setItem('ordasio.appSitzung', '1'); } catch { /* leer */ } location.replace(wurzel + 'start/'); };
+        const zurStart = () => { try { sessionStorage.setItem('ordasio.appSitzung', '1'); } catch { /* leer */ } window.ORDASIO_UMLEITUNG = true; location.replace(wurzel + 'start/'); };
         let neu = false; try { neu = !sessionStorage.getItem('ordasio.appSitzung'); sessionStorage.setItem('ordasio.appSitzung', '1'); } catch { /* leer */ }
         if (neu && !ausnahme()) zurStart();
         let weg = 0, angefangen = false;

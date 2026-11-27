@@ -4,6 +4,9 @@
 (() => {
   const K = window.NASUVIA_KONFIG || {};
   if (!K.produkt) return;
+  // Die Seite wird gerade zur Startseite umgeleitet (App neu geöffnet): hier nichts anmelden oder erneuern,
+  // sonst laufen zwei Erneuerungen der Anmeldung gleichzeitig und eine davon geht verloren.
+  if (window.ORDASIO_UMLEITUNG) return;
   const skript = document.currentScript || {};
   const PRODUKT = (skript.dataset && skript.dataset.produkt) || 'buchhaltung';
   const NAME = { buchhaltung: 'die Buchhaltung', rechnungen: 'das Rechnungsprogramm', privat: 'das Home-Büro', zeit: 'die Zeiterfassung', termine: 'die Online-Terminbuchung', lager: 'das Lager', ablage: 'die Firmenablage', start: 'Ordasio', projekte: 'die Projekte', konto: 'Ihr Konto' }[PRODUKT] || 'diesen Bereich';
@@ -322,8 +325,26 @@
       ${mitLesen ? '<button class="lz-link" data-lz-lesen>Daten nur ansehen und herunterladen</button>' : ''}
       <button class="lz-link" data-lz-abmelden>Abmelden</button>`);
   }
+  // Gespeicherte Anmeldung vorhanden, aber gerade nicht erneuerbar (App eben geöffnet, Netz noch nicht da)?
+  // Dann mehrmals versuchen, statt sofort die Anmeldung zu zeigen.
+  async function sitzungHolen() {
+    let { data: { session } } = await sb.auth.getSession();
+    if (session) return session;
+    let gespeichert = null; try { gespeichert = JSON.parse(localStorage.getItem(K.speicher) || 'null'); } catch { /* leer */ }
+    const rt = gespeichert && (gespeichert.refresh_token || (gespeichert.currentSession || {}).refresh_token);
+    if (!rt) return null;
+    for (let i = 0; i < 4; i++) {
+      if (!navigator.onLine) await new Promise((ok) => { const f = () => { window.removeEventListener('online', f); ok(); }; window.addEventListener('online', f); setTimeout(f, 4000); });
+      const r = await sb.auth.refreshSession({ refresh_token: rt }).catch((e) => ({ error: e }));
+      if (r && r.data && r.data.session) return r.data.session;
+      const m = String((r && r.error && r.error.message) || '');
+      if (/invalid|not found|already used|revoked/i.test(m)) return null; // wirklich abgelaufen: neu anmelden
+      await new Promise((ok) => setTimeout(ok, 800 * (i + 1)));
+    }
+    return null;
+  }
   async function pruefen() {
-    const { data: { session } } = await sb.auth.getSession();
+    const session = await sitzungHolen();
     if (!session) {
       const willNeu = /[?&#](paket|neu)=/.test(location.href);
       if (demoErlaubt() && !willNeu) {
