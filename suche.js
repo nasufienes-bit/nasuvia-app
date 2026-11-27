@@ -105,6 +105,11 @@
       'Bei „Per E-Mail senden“ oder bei der Lohnabrechnung „E-Mail“ auf „Jetzt senden“ tippen. Die E-Mail geht sofort mit dem PDF im Anhang raus.',
       'Als Absender sehen Ihre Kunden Ihren Firmennamen. Antworten kommen direkt zu Ihnen.',
       'Unter „Absender … ändern“ verbinden Sie Ihr eigenes Postfach, dann kommen die E-Mails von Ihrer Adresse.'], R + '?aktion=absender'],
+    ['lager-auftraege', 'Lager', 'Lagerist hinzufügen, Aufträge ans Lager und mehrere Lager', 'lager lagerist hinzufügen auftrag aufgabe bereitstellen bestätigen nicht möglich grund projektleiter übersicht mehrere lager standort werkstatt', [
+      'Im Lager unter „Aufträge“ auf „+ Lagerist“ tippen, Namen eingeben und den Handy-Link per WhatsApp senden.',
+      'Mit „+ Auftrag ans Lager“ Material bereitstellen lassen oder eine Aufgabe geben. Der Lagerist bestätigt auf dem Handy mit „Gegeben“, „Erledigt“ oder „Nicht möglich“ mit Grund.',
+      'Projektleiter sehen in ihrer Handy-App die Lager-Übersicht: alles Offene, wer bestätigt hat und wann.',
+      'Mehrere Standorte: „Lager bearbeiten“ und Lager hinzufügen oder umbenennen. Jedes Lager hat seinen eigenen Bestand.'], L + '?tab=anf'],
     ['artikel', 'Rechnungen', 'Artikel und Leistungen mit Preis hinterlegen', 'artikel artikelstamm leistungen preisliste katalog produkte material stundensatz vorschlag', [
       'Im Rechnungsprogramm bei „Positionen“ auf „Artikel“ tippen und Bezeichnung, Preis und Einheit eintragen, oder eine CSV-Datei importieren.',
       'Beim Tippen einer Position schlägt Ordasio passende Artikel vor und setzt den Preis ein.',

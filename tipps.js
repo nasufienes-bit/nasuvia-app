@@ -34,7 +34,7 @@
       ['📅', 'Kalender', 'Im Menü unter „Erinnerungen“ verbinden Sie die Termine mit Ihrem Handy-Kalender.']],
     lager: [['📦', 'Artikel', 'Artikel mit Mindestbestand erfassen. Ordasio zeigt, was nachbestellt werden muss.'],
       ['🔄', 'Bewegungen', 'Eingang, Ausgang oder Korrektur. Material lässt sich einem Auftrag zuordnen.'],
-      ['📋', 'Bereitstellen', 'Projektleiter fordern Material auf dem Handy an, der Lagerist stellt es bereit, der Bestand wird abgebucht.']],
+      ['📋', 'Aufträge ans Lager', 'Material bereitstellen oder Aufgaben ans Lager geben. Der Lagerist bestätigt auf dem Handy, Projektleiter sehen alles.']],
     vorlagen: [['🖨️', 'Drucken oder PDF', 'Vorlage wählen, links ausfüllen, rechts sehen Sie das fertige Blatt.'],
       ['📁', 'In die Ablage', 'Als PDF direkt beim richtigen Ordner und Mitarbeiter ablegen.']],
     start: [['👋', 'Willkommen', 'Hier sehen Sie, was als Nächstes zu tun ist. Erledigtes verschwindet.'],

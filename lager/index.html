@@ -82,6 +82,12 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 .dlg h3{font-size:20px}
 .dlg label{display:grid;gap:4px;font-size:13px;color:var(--text)}
 .dlg .zwei{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lager-leiste{align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}.lager-wahl{display:flex;align-items:center;gap:8px;font-size:14px}.lager-wahl select{min-width:180px}
+.lager-liste{display:grid;gap:8px;margin:6px 0 10px}.lager-zeile{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center}
+@media(max-width:600px){.lager-zeile{grid-template-columns:1fr}}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.chips button{border:1px solid var(--hairline,#E3E6EF);background:#fff;border-radius:100px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer;color:inherit}.chips button.an{background:var(--blau);color:#fff;border-color:transparent}
+.m-rot{background:rgba(229,72,77,.12);color:#B91C1C}
+.antwort{display:block;margin-top:4px;color:#B91C1C;font-size:13px}.bestaetigt{display:block;margin-top:4px;color:var(--elektrik,#0A7150);font-size:12.5px}
 .dlg .drei{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 .dlg .fuss{display:flex;justify-content:space-between;gap:8px;margin-top:6px;flex-wrap:wrap}
 .link-feld{display:flex;gap:6px}
@@ -175,9 +181,9 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     bestellen: '<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h12L22 7H6.2"/>',
     anf: '<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/>',
   };
-  const TABS = [['artikel', 'Artikel'], ['anf', 'Bereitstellen'], ['bewegungen', 'Bewegungen'], ['bestellen', 'Nachbestellen']];
+  const TABS = [['artikel', 'Artikel'], ['anf', 'Aufträge'], ['bewegungen', 'Bewegungen'], ['bestellen', 'Nachbestellen']];
   const ART = { eingang: 'Eingang', ausgang: 'Ausgang', korrektur: 'Korrektur' };
-  const Z = { tab: 'artikel', suche: '', fAuftrag: '', artikel: [], bewegungen: [], auftraege: [], anf: [], team: [], bereit: false };
+  const Z = { tab: 'artikel', suche: '', fAuftrag: '', artikel: [], bewegungen: [], auftraege: [], anf: [], team: [], lager: [], bestaende: [], anfFilter: 'offen', lagerWahl: (() => { try { return localStorage.getItem('lg.lagerWahl') || ''; } catch { return ''; } })(), bereit: false };
   const q = new URLSearchParams(location.search);
   if (TABS.some(([id]) => id === q.get('tab'))) Z.tab = q.get('tab');
 
@@ -198,8 +204,10 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       ]);
       for (const r of [a, b, z]) if (r.error) throw r.error;
       Z.artikel = a.data; Z.bewegungen = b.data; Z.auftraege = z.data;
-      const [an, tm] = await Promise.all([sb.from('lg_anforderungen').select('*').order('erstellt', { ascending: false }).limit(300), sb.from('ze_mitarbeiter').select('id,name,rolle,lager,aktiv').is('geloescht_am', null).order('name')]);
-      Z.anf = an.data || []; Z.team = tm.data || [];
+      const [an, tm, lg, bs] = await Promise.all([sb.from('lg_anforderungen').select('*').order('erstellt', { ascending: false }).limit(300), sb.from('ze_mitarbeiter').select('id,name,rolle,lager,aktiv,lager_id,token').is('geloescht_am', null).order('name'),
+        sb.from('lg_lager').select('*').is('geloescht_am', null).order('name'), sb.from('lg_bestand_lager').select('artikel_id,lager_id,bestand')]);
+      Z.anf = an.data || []; Z.team = tm.data || []; Z.lager = lg.data || []; Z.bestaende = bs.data || [];
+      if (Z.lagerWahl && !Z.lager.some((l) => l.id === Z.lagerWahl)) Z.lagerWahl = '';
       Z.bereit = true; zeichnen();
       if (q.get('anfordern') === '1' && !Z.anfGezeigt) { Z.anfGezeigt = true; Z.tab = 'anf'; zeichnen(); anfDialog(); }
     } catch (e) { $('inhalt').innerHTML = `<div class="card"><h2>Daten konnten nicht geladen werden</h2><p class="hinweis">${esc(fehlerText(e))}</p></div>`; }
@@ -221,7 +229,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const l = Z.artikel.filter((a) => !s || `${a.name} ${a.nummer} ${a.lieferant}`.toLowerCase().includes(s));
     const wert = Z.artikel.filter((a) => a.aktiv).reduce((x, a) => x + Math.max(0, Number(a.bestand)) * a.einkauf_rappen, 0);
     return `<div class="kopf"><div><h1>Artikel</h1><p class="unter">${Z.artikel.filter((a) => a.aktiv).length} Artikel · Lagerwert CHF ${chf(wert)} (Einkauf)</p></div>
-        <div class="aktionen"><button class="btn" data-a="anpassen">Übersicht anpassen</button><button class="btn" data-a="korb">Zuletzt gelöscht</button><button class="btn" data-a="verrechnen">Material verrechnen</button><a class="btn" href="../zeit/?tab=mitarbeiter&neu=lagerist" title="Ein Mitarbeiter führt das Lager mit dem Handy">+ Lagerist</a><button class="btn haupt" data-a="artikelNeu">+ Artikel</button></div></div>
+        <div class="aktionen"><button class="btn" data-a="anpassen">Übersicht anpassen</button><button class="btn" data-a="korb">Zuletzt gelöscht</button><button class="btn" data-a="verrechnen">Material verrechnen</button><button class="btn" data-a="lageristNeu" title="Ein Mitarbeiter führt das Lager mit dem Handy">+ Lagerist</button><button class="btn haupt" data-a="artikelNeu">+ Artikel</button></div></div>
+      ${lagerLeiste()}
       <div class="raster r4" data-teil="zahlen">
         <div class="card zahl"><div class="l">Artikel</div><div class="w">${Z.artikel.filter((a) => a.aktiv).length}</div><div class="k">aktiv</div></div>
         <div class="card zahl"><div class="l">Lagerwert</div><div class="w">${chf(wert)}</div><div class="k">CHF zum Einkaufspreis</div></div>
@@ -231,57 +240,159 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       <div class="filter abstand" data-teil="suche"><input type="search" data-f="suche" value="${esc(Z.suche)}" placeholder="Artikel suchen …" style="flex:1;max-width:360px"></div>
       <div class="card">${l.length ? l.map((a) => `<div class="zeile klick" data-artikel="${a.id}"><div style="min-width:0"><b>${esc(a.name)}${a.aktiv ? '' : '<span class="marke-s m-grau">inaktiv</span>'}${knapp(a) ? '<span class="marke-s m-offen">nachbestellen</span>' : ''}</b>
           <small>${esc([a.nummer, a.lieferant, a.verkauf_rappen ? 'Verkauf CHF ' + chf(a.verkauf_rappen) + '/' + a.einheit : ''].filter(Boolean).join(' · ')) || '&nbsp;'}</small></div>
-          <div class="aktionen"><button class="btn klein" data-schnell="eingang:${a.id}" aria-label="Eingang">+</button><button class="btn klein" data-schnell="ausgang:${a.id}" aria-label="Ausgang">−</button><span class="betrag ${Number(a.bestand) < 0 || knapp(a) ? 'warn' : ''}" style="min-width:76px">${zahl(a.bestand)} ${esc(a.einheit)}</span></div></div>`).join('')
+          <div class="aktionen"><button class="btn klein" data-schnell="eingang:${a.id}" aria-label="Eingang">+</button><button class="btn klein" data-schnell="ausgang:${a.id}" aria-label="Ausgang">−</button><span class="betrag ${bestandIn(a) < 0 || knapp(a) ? 'warn' : ''}" style="min-width:76px">${zahl(bestandIn(a))} ${esc(a.einheit)}${Z.lagerWahl && Z.lager.length > 1 ? `<small style="display:block;font-size:11px;color:var(--leise)">total ${zahl(a.bestand)}</small>` : ''}</span></div></div>`).join('')
         : '<p class="leer">Nichts gefunden.</p>'}</div>`;
   }
-  /* ---------- Bereitstellen: Material für Mitarbeitende (Projektleiter fordert an, Lager stellt bereit) ---------- */
-  const ANF = { offen: ['Offen', 'm-offen'], bereit: ['Liegt bereit', 'm-blau'], abgeholt: ['Abgeholt', 'm-ok'], abgelehnt: ['Abgelehnt', 'm-grau'] };
+  /* ---------- Mehrere Lager (Standorte) ---------- */
+  const LS_LAGER = 'lg.lagerWahl';
+  const lagerName = (id) => (Z.lager.find((l) => l.id === id) || {}).name || '';
+  const bestandIn = (a, lagerId = Z.lagerWahl) => {
+    if (!lagerId) return Number(a.bestand) || 0;
+    return Z.bestaende.filter((b) => b.artikel_id === a.id && b.lager_id === lagerId).reduce((s, b) => s + Number(b.bestand || 0), 0);
+  };
+  const standardLager = () => Z.lagerWahl || (Z.lager[0] || {}).id || null;
+  const lagerOptionen = (wahl, leer) => (leer ? `<option value="">${leer}</option>` : '') + Z.lager.map((l) => `<option value="${l.id}" ${l.id === wahl ? 'selected' : ''}>${esc(l.name)}</option>`).join('');
+  function lagerLeiste() {
+    return `<div class="filter lager-leiste">${Z.lager.length ? `<label class="lager-wahl"><span>Lager</span><select data-f="lagerWahl">${lagerOptionen(Z.lagerWahl, 'Alle Lager')}</select></label>` : '<span class="hinweis" style="align-self:center">Ein Lager. Haben Sie mehrere Standorte?</span>'}<button class="btn klein" data-a="lagerVerwalten">${Z.lager.length ? 'Lager bearbeiten' : '+ Weiteres Lager'}</button></div>`;
+  }
+  function lagerVerwalten() {
+    const zeile = (l) => `<div class="lager-zeile" data-lager-zeile="${l.id || ''}"><input type="text" name="name" value="${esc(l.name || '')}" maxlength="80" placeholder="z. B. Lager 1 oder Werkstatt Luzern" required><input type="text" name="adresse" value="${esc(l.adresse || '')}" maxlength="200" placeholder="Adresse (optional)">${l.id ? `<button type="button" class="btn klein rot" data-lager-weg="${l.id}" aria-label="Lager löschen">Löschen</button>` : '<span></span>'}</div>`;
+    const f = dialog(`<h3>Lager und Standorte</h3><p class="hinweis">Jedes Lager führt seinen eigenen Bestand. Lageristen sehen die Aufträge ihres Lagers.</p>
+      <div class="lager-liste">${Z.lager.map(zeile).join('')}${zeile({})}</div>
+      <button type="button" class="btn klein" data-lager-mehr>+ Noch ein Lager</button>
+      <div class="fuss"><span></span><span class="aktionen"><button type="button" class="btn" data-a="zu">Abbrechen</button><button class="btn haupt">Speichern</button></span></div>`);
+    f.querySelector('[data-lager-mehr]').onclick = () => f.querySelector('.lager-liste').insertAdjacentHTML('beforeend', zeile({}));
+    f.onclick = async (e) => {
+      const w = e.target.closest('[data-lager-weg]'); if (!w) return;
+      const l = Z.lager.find((x) => x.id === w.dataset.lagerWeg);
+      if (!await UI.frage(`Lager „${l.name}“ löschen? Die Bewegungen bleiben erhalten, sind dann aber keinem Lager mehr zugeordnet.`)) return;
+      const { error } = await sb.from('lg_lager').update({ geloescht_am: new Date().toISOString() }).eq('id', l.id);
+      if (error) { toast(fehlerText(error)); return; }
+      if (Z.lagerWahl === l.id) { Z.lagerWahl = ''; try { localStorage.removeItem(LS_LAGER); } catch {} }
+      dlg.close(); await laden(); toast('Lager gelöscht');
+    };
+    f.onsubmit = async (ev) => {
+      ev.preventDefault();
+      const zeilen = [...f.querySelectorAll('[data-lager-zeile]')].map((z) => ({ id: z.dataset.lagerZeile, name: z.querySelector('[name=name]').value.trim(), adresse: z.querySelector('[name=adresse]').value.trim() || null }));
+      const erstes = !Z.lager.length;
+      for (const z of zeilen) {
+        if (z.id) { const alt = Z.lager.find((l) => l.id === z.id); if (z.name && (alt.name !== z.name || (alt.adresse || null) !== z.adresse)) { const { error } = await sb.from('lg_lager').update({ name: z.name, adresse: z.adresse }).eq('id', z.id); if (error) { toast(fehlerText(error)); return; } } }
+        else if (z.name) { const { error } = await sb.from('lg_lager').insert({ name: z.name, adresse: z.adresse }); if (error) { toast(fehlerText(error)); return; } }
+      }
+      dlg.close(); await laden();
+      // Erstes Lager: bisherigen Bestand diesem Lager zuordnen
+      if (erstes && Z.lager.length && Z.bewegungen.some((b) => !b.lager_id)) {
+        const ziel = Z.lager[0];
+        if (await UI.frage(`Gehört der bisherige Bestand zu „${ziel.name}“? Dann ordne ich alle bisherigen Bewegungen diesem Lager zu.`, { ja: 'Ja, zuordnen', nein: 'Nein' })) {
+          const { error } = await sb.from('lg_bewegungen').update({ lager_id: ziel.id }).is('lager_id', null);
+          if (error) toast(fehlerText(error)); else { await laden(); toast('Bestand zugeordnet'); }
+        }
+      } else toast('Gespeichert');
+    };
+  }
+  /* ---------- Lageristen direkt hier erfassen ---------- */
+  const linkVon = (t) => new URL('../zeit/erfassen/?t=' + t, location.href).href;
+  function linkZeigen(name, token) {
+    const url = linkVon(token), text = `Hallo ${name.split(' ')[0]}, hier ist dein Lager-Zugang für Ordasio. Öffne den Link auf dem Handy und speichere ihn auf dem Home-Bildschirm: ${url}`;
+    dialog(`<h3>Zugang für ${esc(name)}</h3><p class="hinweis">Diesen persönlichen Link auf dem Handy öffnen. Darüber sieht ${esc(name.split(' ')[0])} die Aufträge ans Lager und bestätigt sie.</p>
+      <input type="text" readonly value="${esc(url)}" onclick="this.select()">
+      <div class="fuss"><span></span><span class="aktionen"><button type="button" class="btn" data-kopieren="${esc(url)}">Link kopieren</button><a class="btn haupt" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">Per WhatsApp senden</a></span></div>`);
+  }
+  function lageristDialog() {
+    const andere = Z.team.filter((t) => t.aktiv && !(t.lager || t.rolle === 'lagerist'));
+    const f = dialog(`<h3>Lagerist hinzufügen</h3>
+      <label>Vor- und Nachname<input type="text" name="name" maxlength="120" placeholder="z. B. Fabian Meier" autofocus></label>
+      ${andere.length ? `<label>oder jemanden aus dem Team<select name="bestehend"><option value="">Neue Person</option>${andere.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select></label>` : ''}
+      ${Z.lager.length ? `<label>Zuständig für<select name="lager">${lagerOptionen('', 'Alle Lager')}</select></label>` : ''}
+      <p class="hinweis">Der Lagerist bekommt einen persönlichen Handy-Link. Er sieht dort die Aufträge ans Lager, bestätigt sie und bucht Material ein und aus.</p>
+      <div class="fuss"><span></span><span class="aktionen"><button type="button" class="btn" data-a="zu">Abbrechen</button><button class="btn haupt">Hinzufügen</button></span></div>`);
+    f.onsubmit = async (ev) => {
+      ev.preventDefault(); const d = new FormData(f), lagerId = d.get('lager') || null;
+      let r;
+      if (d.get('bestehend')) r = await sb.from('ze_mitarbeiter').update({ lager: true, lager_id: lagerId }).eq('id', d.get('bestehend')).select('id,name,token').single();
+      else { const name = String(d.get('name') || '').trim(); if (!name) { toast('Bitte den Namen eingeben'); return; } r = await sb.from('ze_mitarbeiter').insert({ name, rolle: 'lagerist', lager: true, lager_id: lagerId }).select('id,name,token').single(); }
+      if (r.error) { toast(fehlerText(r.error), 6000); return; }
+      await laden(); linkZeigen(r.data.name, r.data.token);
+    };
+  }
+  function lageristenKarte() {
+    const l = Z.team.filter((t) => t.aktiv && (t.lager || t.rolle === 'lagerist'));
+    return `<div class="card abstand"><div class="kopf" style="margin-bottom:6px"><h2 style="margin:0">Lageristen</h2><button class="btn klein" data-a="lageristNeu">+ Lagerist</button></div>
+      ${l.length ? l.map((t) => `<div class="zeile"><div style="min-width:0"><b>${esc(t.name)}</b><small>${Z.lager.length ? `<select data-lagerist-lager="${t.id}" aria-label="Zuständiges Lager">${lagerOptionen(t.lager_id || '', 'Alle Lager')}</select>` : 'Führt das Lager'}</small></div>
+        <div class="aktionen"><button class="btn klein" data-lagerist-link="${t.id}">Handy-Link</button><button class="btn klein" data-lagerist-weg="${t.id}">Entfernen</button></div></div>`).join('') : '<p class="leer">Noch niemand. Fügen Sie einen Lageristen hinzu, dann kann er Aufträge auf dem Handy bestätigen.</p>'}</div>`;
+  }
+  /* ---------- Aufträge ans Lager: Material bereitstellen oder Aufgabe, der Lagerist bestätigt ---------- */
+  const ANF = { offen: ['Offen', 'm-offen'], bereit: ['Gegeben', 'm-ok'], abgeholt: ['Abgeholt', 'm-grau'], abgelehnt: ['Nicht möglich', 'm-rot'] };
+  const anfLabel = (a) => (a.art === 'aufgabe' && a.status === 'bereit' ? ['Erledigt', 'm-ok'] : ANF[a.status] || ['?', 'm-grau']);
   const person = (id) => (Z.team.find((t) => t.id === id) || {}).name || '';
+  const zeitKurz = (t) => (t ? new Date(t).toLocaleString('de-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '');
+  const anfWas = (a) => (a.art === 'aufgabe' ? esc(a.artikel_text) : `${a.menge != null ? zahl(a.menge) + ' ' : ''}${esc(a.einheit || '')} ${esc(a.artikel_text)}`.replace(/\s+/g, ' '));
   function anfAnsicht() {
-    const aktiv = Z.anf.filter((a) => ['offen', 'bereit'].includes(a.status)), fertig = Z.anf.filter((a) => !['offen', 'bereit'].includes(a.status)).slice(0, 20);
-    const zeile = (a) => `<div class="zeile"><div style="min-width:0"><b>${zahl(a.menge)} ${esc(a.einheit || '')} ${esc(a.artikel_text)}<span class="marke-s ${ANF[a.status][1]}">${ANF[a.status][0]}</span></b>
-        <small>${esc(['Für ' + (person(a.fuer_id) || '?'), a.an_id ? 'Lager: ' + person(a.an_id) : 'Lager: alle', a.auftrag_id && auftrag(a.auftrag_id) ? auftrag(a.auftrag_id).name : '', a.von_name ? 'von ' + a.von_name : '', a.bis ? 'bis ' + dk(a.bis) : '', a.notiz].filter(Boolean).join(' · '))}</small></div>
-      <div class="aktionen">${a.status === 'offen' ? `<button class="btn klein" data-anf-st="abgelehnt:${a.id}">Ablehnen</button><button class="btn klein haupt" data-anf-st="bereit:${a.id}">Bereitgestellt</button>` : a.status === 'bereit' ? `<button class="btn klein" data-anf-st="abgeholt:${a.id}">Abgeholt</button>` : ''}</div></div>`;
-    return `<div class="kopf"><div><h1>Bereitstellen</h1><p class="unter">Material für Ihre Leute: Projektleiter fordern es auf dem Handy an, das Lager stellt es bereit, der Bestand wird dabei abgebucht.</p></div>
-        <div class="aktionen"><a class="btn" href="../zeit/?tab=mitarbeiter&neu=lagerist">+ Lagerist</a><button class="btn haupt" data-a="anfNeu">+ Material anfordern</button></div></div>
-      <div class="card">${aktiv.length ? aktiv.map(zeile).join('') : '<p class="leer">Nichts offen. Tipp: Sagen Sie Ordi «Stelle 30 Meter Kabel für Robert bereit».</p>'}</div>
-      ${fertig.length ? `<h2 class="abstand" style="font-size:15px">Erledigt</h2><div class="card">${fertig.map(zeile).join('')}</div>` : ''}`;
+    const F = { offen: (a) => a.status === 'offen', erledigt: (a) => ['bereit', 'abgeholt'].includes(a.status), nicht: (a) => a.status === 'abgelehnt', alle: () => true };
+    const imLager = (a) => !Z.lagerWahl || !a.lager_id || a.lager_id === Z.lagerWahl;
+    const basis = Z.anf.filter(imLager), l = basis.filter(F[Z.anfFilter] || F.offen).slice(0, 120);
+    const n = (k) => basis.filter(F[k]).length;
+    const zeile = (a) => { const [lbl, kl] = anfLabel(a);
+      return `<div class="zeile"><div style="min-width:0"><b>${a.art === 'aufgabe' ? '<span class="marke-s m-blau" style="margin:0 6px 0 0">Aufgabe</span>' : ''}${anfWas(a)}<span class="marke-s ${kl}">${lbl}</span></b>
+        <small>${esc([a.fuer_id ? 'Für ' + (person(a.fuer_id) || '?') : '', a.an_id ? 'Lager: ' + person(a.an_id) : 'Lager: alle', Z.lager.length && a.lager_id ? lagerName(a.lager_id) : '', a.auftrag_id && auftrag(a.auftrag_id) ? auftrag(a.auftrag_id).name : '', a.von_name ? 'von ' + a.von_name : '', a.bis ? 'bis ' + dk(a.bis) : '', 'erstellt ' + zeitKurz(a.erstellt), a.notiz].filter(Boolean).join(' · '))}</small>
+        ${a.erledigt_am ? `<span class="${a.status === 'abgelehnt' ? 'antwort' : 'bestaetigt'}">${a.status === 'abgelehnt' ? 'Nicht möglich' : 'Bestätigt'} von ${esc(a.erledigt_name || '?')} am ${zeitKurz(a.erledigt_am)}${a.antwort ? ': ' + esc(a.antwort) : ''}${a.abgeholt_am ? ' · abgeholt ' + zeitKurz(a.abgeholt_am) : ''}</span>` : ''}</div>
+      <div class="aktionen">${a.status === 'offen' ? `<button class="btn klein" data-anf-st="abgelehnt:${a.id}">Nicht möglich</button><button class="btn klein haupt" data-anf-st="bereit:${a.id}">${a.art === 'aufgabe' ? 'Erledigt' : 'Gegeben'}</button>` : a.status === 'bereit' && a.art !== 'aufgabe' ? `<button class="btn klein" data-anf-st="abgeholt:${a.id}">Abgeholt</button>` : ''}</div></div>`; };
+    return `<div class="kopf"><div><h1>Aufträge ans Lager</h1><p class="unter">Material bereitstellen oder Aufgaben fürs Lager. Der Lagerist bestätigt auf dem Handy, ob es gegeben oder erledigt ist, oder warum nicht. Projektleiter sehen alles in ihrer App.</p></div>
+        <div class="aktionen"><button class="btn" data-a="lageristNeu">+ Lagerist</button><button class="btn haupt" data-a="anfNeu">+ Auftrag ans Lager</button></div></div>
+      ${lagerLeiste()}
+      <div class="chips">${[['offen', 'Offen'], ['erledigt', 'Erledigt'], ['nicht', 'Nicht möglich'], ['alle', 'Alle']].map(([k, t]) => `<button class="${Z.anfFilter === k ? 'an' : ''}" data-anf-filter="${k}">${t} (${n(k)})</button>`).join('')}</div>
+      <div class="card">${l.length ? l.map(zeile).join('') : `<p class="leer">${Z.anfFilter === 'offen' ? 'Nichts offen. Tipp: Sagen Sie Ordi «Stelle 30 Meter Kabel für Robert bereit».' : 'Nichts in dieser Auswahl.'}</p>`}</div>
+      ${lageristenKarte()}`;
   }
   function anfDialog(v = {}) {
-    if (!Z.team.length) { UI.hinweis('Erfassen Sie zuerst Ihre Mitarbeitenden in der Zeiterfassung. Dann können Sie Material für sie bereitstellen lassen.'); return; }
     const lager = Z.team.filter((t) => t.aktiv && (t.lager || t.rolle === 'lagerist'));
-    const f = dialog(`<h3>Material anfordern</h3>
-      <label>Artikel<select name="artikel"><option value="">Anderes (unten eintragen)</option>${Z.artikel.filter((a) => a.aktiv).map((a) => `<option value="${a.id}" ${a.id === v.artikel_id ? 'selected' : ''}>${esc(a.name)} (${zahl(a.bestand)} ${esc(a.einheit)})</option>`).join('')}</select></label>
-      <label data-frei ${v.artikel_id ? 'hidden' : ''}>Was genau?<input type="text" name="text" maxlength="160" value="${esc(v.text || '')}" placeholder="z. B. Kabel T13 3x1.5"></label>
-      <div class="zwei"><label>Menge<input type="text" inputmode="decimal" name="menge" required value="${v.menge ? zahl(v.menge) : ''}" placeholder="z. B. 30"></label>
-      <label>Für wen?<select name="fuer" required>${Z.team.filter((t) => t.aktiv).map((t) => `<option value="${t.id}" ${t.id === v.fuer_id ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></label></div>
-      <div class="zwei"><label>An wen im Lager?<select name="an"><option value="">Alle im Lager</option>${lager.map((t) => `<option value="${t.id}" ${t.id === v.an_id ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></label>
-      <label>Bis wann?<input type="date" name="bis" value="${v.bis || ''}"></label></div>
-      <label>Auftrag<select name="auftrag"><option value="">Kein Auftrag</option>${Z.auftraege.filter((a) => a.aktiv).map((a) => `<option value="${a.id}" ${a.id === v.auftrag_id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label>
+    const f = dialog(`<h3>Auftrag ans Lager</h3>
+      <div class="chips" role="group"><button type="button" class="an" data-anf-art="material">Material bereitstellen</button><button type="button" data-anf-art="aufgabe">Aufgabe</button></div>
+      <input type="hidden" name="art" value="material">
+      <div data-nur="material"><label>Artikel<select name="artikel"><option value="">Anderes (unten eintragen)</option>${Z.artikel.filter((a) => a.aktiv).map((a) => `<option value="${a.id}" ${a.id === v.artikel_id ? 'selected' : ''}>${esc(a.name)} (${zahl(bestandIn(a))} ${esc(a.einheit)})</option>`).join('')}</select></label></div>
+      <label data-frei>${'<span data-nur="material">Was genau?</span><span data-nur="aufgabe" hidden>Was ist zu tun?</span>'}<input type="text" name="text" maxlength="160" value="${esc(v.text || '')}" placeholder="z. B. Kabel T13 3x1.5"></label>
+      <div class="zwei"><label data-nur="material">Menge<input type="text" inputmode="decimal" name="menge" value="${v.menge ? zahl(v.menge) : ''}" placeholder="z. B. 30"></label>
+      <label>Für wen?<select name="fuer"><option value="" data-nur-opt="aufgabe">Niemand bestimmtes</option>${Z.team.filter((t) => t.aktiv).map((t) => `<option value="${t.id}" ${t.id === v.fuer_id ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></label></div>
+      <div class="zwei">${Z.lager.length ? `<label>Welches Lager?<select name="lager">${lagerOptionen(v.lager_id || Z.lagerWahl || '', 'Egal')}</select></label>` : ''}
+      <label>An wen im Lager?<select name="an"><option value="">Alle im Lager</option>${lager.map((t) => `<option value="${t.id}" ${t.id === v.an_id ? 'selected' : ''}>${esc(t.name)}${t.lager_id && Z.lager.length ? ' (' + esc(lagerName(t.lager_id)) + ')' : ''}</option>`).join('')}</select></label></div>
+      <div class="zwei"><label>Bis wann?<input type="date" name="bis" value="${v.bis || ''}"></label>
+      <label>Auftrag<select name="auftrag"><option value="">Kein Auftrag</option>${Z.auftraege.filter((a) => a.aktiv).map((a) => `<option value="${a.id}" ${a.id === v.auftrag_id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label></div>
       <label>Notiz<input type="text" name="notiz" maxlength="300" placeholder="optional"></label>
-      ${lager.length ? '' : '<p class="hinweis">Noch niemand führt das Lager. Machen Sie in der Zeiterfassung jemanden zum Lageristen, dann sieht er die Anforderung auf dem Handy.</p>'}
-      <div class="fuss"><span></span><span class="aktionen"><button type="button" class="btn" data-a="zu">Abbrechen</button><button class="btn haupt">Anfordern</button></span></div>`);
-    const sel = f.querySelector('[name=artikel]'); sel.onchange = () => { f.querySelector('[data-frei]').hidden = !!sel.value; };
+      ${lager.length ? '' : '<p class="hinweis">Noch niemand führt das Lager. Mit „+ Lagerist“ fügen Sie jemanden hinzu, dann sieht er den Auftrag auf dem Handy.</p>'}
+      <div class="fuss"><span></span><span class="aktionen"><button type="button" class="btn" data-a="zu">Abbrechen</button><button class="btn haupt">Senden</button></span></div>`);
+    const sel = f.querySelector('[name=artikel]');
+    const umschalten = (art) => {
+      f.querySelector('[name=art]').value = art;
+      f.querySelectorAll('[data-anf-art]').forEach((b) => b.classList.toggle('an', b.dataset.anfArt === art));
+      f.querySelectorAll('[data-nur]').forEach((x) => { x.hidden = x.dataset.nur !== art; });
+      f.querySelector('[data-frei]').hidden = art === 'material' && !!sel.value;
+      f.querySelector('[name=text]').placeholder = art === 'aufgabe' ? 'z. B. Lieferung von Elektro Material entgegennehmen und einräumen' : 'z. B. Kabel T13 3x1.5';
+      const opt = f.querySelector('[data-nur-opt]'), fu = f.querySelector('[name=fuer]'); opt.hidden = art !== 'aufgabe'; if (art === 'material' && !fu.value) fu.selectedIndex = 1; if (art === 'aufgabe' && !v.fuer_id) fu.value = '';
+    };
+    f.querySelectorAll('[data-anf-art]').forEach((b) => { b.onclick = () => umschalten(b.dataset.anfArt); });
+    sel.onchange = () => { f.querySelector('[data-frei]').hidden = !!sel.value; };
+    umschalten(v.art || 'material');
     f.onsubmit = async (ev) => {
-      ev.preventDefault(); const d = new FormData(f), a = art(d.get('artikel'));
-      const menge = Number(String(d.get('menge')).replace(/[’'\s]/g, '').replace(',', '.'));
-      if (!(menge > 0)) { toast('Bitte eine Menge eingeben'); return; }
-      const text = a.name || String(d.get('text') || '').trim(); if (!text) { toast('Bitte den Artikel angeben'); return; }
-      const { error } = await sb.from('lg_anforderungen').insert({ artikel_id: a.id || null, artikel_text: text, menge, einheit: a.einheit || null, fuer_id: d.get('fuer') || null, an_id: d.get('an') || null, auftrag_id: d.get('auftrag') || null, bis: d.get('bis') || null, notiz: String(d.get('notiz') || '').trim() || null, von_name: 'Büro' });
+      ev.preventDefault(); const d = new FormData(f), aufgabe = d.get('art') === 'aufgabe', a = aufgabe ? {} : art(d.get('artikel'));
+      const menge = mengeLesen(d.get('menge'));
+      if (!aufgabe && !(menge > 0)) { toast('Bitte eine Menge eingeben'); return; }
+      const text = a.name || String(d.get('text') || '').trim(); if (!text) { toast(aufgabe ? 'Bitte beschreiben, was zu tun ist' : 'Bitte den Artikel angeben'); return; }
+      const { error } = await sb.from('lg_anforderungen').insert({ art: aufgabe ? 'aufgabe' : 'material', artikel_id: a.id || null, artikel_text: text, menge: aufgabe ? null : menge, einheit: a.einheit || null, fuer_id: d.get('fuer') || null, an_id: d.get('an') || null, lager_id: d.get('lager') || null, auftrag_id: d.get('auftrag') || null, bis: d.get('bis') || null, notiz: String(d.get('notiz') || '').trim() || null, von_name: 'Büro' });
       if (error) { toast(fehlerText(error)); return; }
-      dlg.close(); await laden(); toast('✓ Angefordert. Das Lager sieht es auf dem Handy.');
+      dlg.close(); Z.anfFilter = 'offen'; await laden(); toast('✓ Gesendet. Das Lager sieht es auf dem Handy.');
     };
   }
 
   function bewegungenAnsicht() {
-    const l = Z.bewegungen.filter((b) => !Z.fAuftrag || b.auftrag_id === Z.fAuftrag);
+    const l = Z.bewegungen.filter((b) => (!Z.fAuftrag || b.auftrag_id === Z.fAuftrag) && (!Z.lagerWahl || b.lager_id === Z.lagerWahl));
     const offenWert = l.filter((b) => b.art === 'ausgang' && b.auftrag_id && !b.verrechnet).reduce((x, b) => x + Math.round(Math.abs(b.menge) * (art(b.artikel_id).verkauf_rappen || 0)), 0);
     return `<div class="kopf"><div><h1>Bewegungen</h1><p class="unter">Eingänge, Verbrauch und Korrekturen. Material für einen Auftrag wird mit dessen Stunden verrechnet.</p></div>
         <div class="aktionen"><button class="btn haupt" data-a="bewegungNeu">+ Bewegung</button></div></div>
+      ${lagerLeiste()}
       <div class="filter"><select data-f="fAuftrag"><option value="">Alle Aufträge</option>${Z.auftraege.map((a) => `<option value="${a.id}" ${Z.fAuftrag === a.id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select>
         ${Z.fAuftrag && offenWert ? `<span class="hinweis" style="align-self:center">Noch nicht verrechnet: CHF ${chf(offenWert)}</span>` : ''}</div>
       <div class="card">${l.length ? l.map((b) => { const a = art(b.artikel_id); return `<div class="zeile klick" data-bewegung="${b.id}"><div style="min-width:0"><b>${esc(a.name || 'Gelöschter Artikel')} <span style="font-weight:400;color:var(--leise)">· ${dk(b.datum)}</span>${b.verrechnet ? '<span class="marke-s m-ok">verrechnet</span>' : ''}</b>
-          <small>${esc([ART[b.art], auftrag(b.auftrag_id) ? auftrag(b.auftrag_id).name : '', b.notiz].filter(Boolean).join(' · '))}</small></div>
+          <small>${esc([ART[b.art], Z.lager.length ? lagerName(b.lager_id) || 'ohne Lager' : '', auftrag(b.auftrag_id) ? auftrag(b.auftrag_id).name : '', b.notiz].filter(Boolean).join(' · '))}</small></div>
           <div class="betrag ${b.menge < 0 ? '' : 'plus'}">${b.menge > 0 ? '+' : ''}${zahl(b.menge)} ${esc(a.einheit || '')}</div></div>`; }).join('') : '<p class="leer">Noch keine Bewegungen.</p>'}</div>`;
   }
   function bestellenAnsicht() {
@@ -321,7 +432,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       const r = a.id ? await Korb.aendern(sb, 'lg_artikel', a.id, zeile, 'Artikel geändert') : await Korb.neu(sb, 'lg_artikel', zeile, 'Artikel erfasst');
       if (r.error) { toast(fehlerText(r.error), 6000); return; }
       const start = mengeLesen(d.get('bestand'));
-      if (!a.id && start) await sb.from('lg_bewegungen').insert({ artikel_id: r.data.id, menge: start, art: 'korrektur', notiz: 'Anfangsbestand' });
+      if (!a.id && start) await sb.from('lg_bewegungen').insert({ artikel_id: r.data.id, menge: start, art: 'korrektur', notiz: 'Anfangsbestand', lager_id: standardLager() });
       dlg.close(); await laden(); toast('Gespeichert');
     };
   }
@@ -329,10 +440,10 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const aktive = Z.artikel.filter((a) => a.aktiv);
     if (!aktive.length) { toast('Zuerst einen Artikel erfassen'); return; }
     const f = dialog(`<h3>${vorgabe.art === 'eingang' ? 'Wareneingang' : vorgabe.art === 'ausgang' ? 'Material verbraucht' : 'Bewegung erfassen'}</h3>
-      <label>Artikel<select name="artikel" required>${aktive.map((a) => `<option value="${a.id}" ${a.id === vorgabe.artikel_id ? 'selected' : ''}>${esc(a.name)} (${zahl(a.bestand)} ${esc(a.einheit)})</option>`).join('')}</select></label>
+      <label>Artikel<select name="artikel" required>${aktive.map((a) => `<option value="${a.id}" ${a.id === vorgabe.artikel_id ? 'selected' : ''}>${esc(a.name)} (${zahl(bestandIn(a))} ${esc(a.einheit)})</option>`).join('')}</select></label>
       <div class="zwei"><label>Art<select name="art">${Object.entries(ART).map(([k, n]) => `<option value="${k}" ${k === (vorgabe.art || 'ausgang') ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
       <label>Menge<input type="text" inputmode="decimal" name="menge" required placeholder="z. B. 25" autofocus></label></div>
-      <label>Datum<input type="date" name="datum" value="${heute()}" required></label>
+      <div class="zwei"><label>Datum<input type="date" name="datum" value="${heute()}" required></label>${Z.lager.length ? `<label>Lager<select name="lager">${lagerOptionen(vorgabe.lager_id || standardLager())}</select></label>` : ''}</div>
       <label>Für Auftrag (wird mit den Stunden verrechnet)<select name="auftrag"><option value="">Kein Auftrag</option>${Z.auftraege.filter((a) => a.aktiv).map((a) => `<option value="${a.id}">${esc(a.name)}${a.kunde ? ' · ' + esc(a.kunde) : ''}</option>`).join('')}</select></label>
       <label>Notiz<input type="text" name="notiz" maxlength="300" placeholder="z. B. Lieferschein 4711"></label>
       <p class="hinweis">Bei „Korrektur“ geben Sie den Unterschied ein, zum Beispiel −3 nach der Inventur.</p>
@@ -344,7 +455,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       const a = d.get('art');
       if (!menge) { toast('Bitte eine Menge eingeben'); return; }
       if (a === 'eingang') menge = Math.abs(menge); else if (a === 'ausgang') menge = -Math.abs(menge);
-      const { error } = await Korb.neu(sb, 'lg_bewegungen', { artikel_id: d.get('artikel'), art: a, menge, datum: d.get('datum'), auftrag_id: d.get('auftrag') || null, notiz: String(d.get('notiz') || '').trim() }, 'Gebucht');
+      const { error } = await Korb.neu(sb, 'lg_bewegungen', { artikel_id: d.get('artikel'), art: a, menge, datum: d.get('datum'), auftrag_id: d.get('auftrag') || null, lager_id: d.get('lager') || null, notiz: String(d.get('notiz') || '').trim() }, 'Gebucht');
       if (error) { toast(fehlerText(error), 6000); return; }
       dlg.close(); await laden(); toast('Gebucht');
     };
@@ -363,7 +474,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       const auftragId = new FormData(f).get('auftrag') || null;
       const posten = [...f.querySelectorAll('[data-korb]')].map((i) => ({ a: art(i.dataset.korb), m: mengeLesen(i.value) })).filter((p) => p.m > 0);
       if (!posten.length) { toast('Bitte bei mindestens einem Artikel eine Menge eintragen'); return; }
-      const { error } = await sb.from('lg_bewegungen').insert(posten.map((p) => ({ artikel_id: p.a.id, art: 'ausgang', menge: -p.m, auftrag_id: auftragId, verrechnet: true, notiz: 'Verrechnet' })));
+      const { error } = await sb.from('lg_bewegungen').insert(posten.map((p) => ({ artikel_id: p.a.id, art: 'ausgang', menge: -p.m, auftrag_id: auftragId, verrechnet: true, notiz: 'Verrechnet', lager_id: standardLager() })));
       if (error) { toast(fehlerText(error), 6000); return; }
       const positionen = posten.map((p) => ({ text: p.a.name + (p.a.nummer ? ` (${p.a.nummer})` : ''), menge: String(p.m), preis: (p.a.verkauf_rappen / 100).toFixed(2) }));
       try { sessionStorage.setItem('ordasio.zeit.rechnung', JSON.stringify({ positionen, projekt: auftragId && auftrag(auftragId) ? auftrag(auftragId).name : '', quelle: 'Lager' })); } catch {}
@@ -391,14 +502,24 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       if (window.Rueckgaengig) Rueckgaengig.zeigen('Bewegung gelöscht', async () => { const { lg_artikel, ...zeile } = b; const x = await sb.from('lg_bewegungen').insert(zeile); if (x.error) throw x.error; await laden(); });
       await laden(); toast('Gelöscht'); return;
     }
+    const kp = t.closest('[data-kopieren]'); if (kp) { try { await navigator.clipboard.writeText(kp.dataset.kopieren); toast('Link kopiert'); } catch { toast('Bitte den Link oben markieren und kopieren'); } return; }
+    const ll = t.closest('[data-lagerist-link]'); if (ll) { const m = Z.team.find((x) => x.id === ll.dataset.lageristLink); if (m) linkZeigen(m.name, m.token); return; }
+    const lw = t.closest('[data-lagerist-weg]');
+    if (lw) {
+      const m = Z.team.find((x) => x.id === lw.dataset.lageristWeg);
+      if (!await UI.frage(`${m.name} führt das Lager nicht mehr? Die Person bleibt im Team, sieht aber keine Lageraufträge mehr.`)) return;
+      const { error } = await sb.from('ze_mitarbeiter').update({ lager: false, ...(m.rolle === 'lagerist' ? { rolle: 'mitarbeiter' } : {}) }).eq('id', m.id);
+      if (error) { toast(fehlerText(error)); return; } await laden(); toast('Entfernt'); return;
+    }
+    const af = t.closest('[data-anf-filter]'); if (af) { Z.anfFilter = af.dataset.anfFilter; zeichnen(); return; }
     const st = t.closest('[data-anf-st]');
     if (st) {
       const [neu, id] = st.dataset.anfSt.split(':');
-      if (neu === 'abgelehnt' && !await UI.frage('Diese Anforderung ablehnen?')) return;
       const upd = { status: neu }; if (neu === 'abgeholt') upd.abgeholt_am = new Date().toISOString();
+      if (neu === 'abgelehnt') { const g = await UI.eingabe('Warum ist es nicht möglich?', { platzhalter: 'z. B. nur noch 10 m an Lager', ja: 'Vermerken' }); if (!g || !g.trim()) return; upd.antwort = g.trim().slice(0, 300); }
       const { error } = await sb.from('lg_anforderungen').update(upd).eq('id', id);
       if (error) { toast(fehlerText(error)); return; }
-      await laden(); toast(neu === 'bereit' ? '✓ Bereitgestellt, Bestand abgebucht' : neu === 'abgeholt' ? '✓ Abgeholt' : 'Abgelehnt'); return;
+      await laden(); toast(neu === 'bereit' ? '✓ Als erledigt bestätigt' : neu === 'abgeholt' ? '✓ Abgeholt' : 'Als nicht möglich vermerkt'); return;
     }
     const a = t.closest('[data-a]'); if (!a) return;
     const form = a.closest('form');
@@ -408,6 +529,8 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       case 'anpassen': UI.teile.dialog('lager', [['zahlen', 'Zahlen oben (Artikel, Lagerwert, Knapp, Ausgänge)'], ['suche', 'Suchfeld']]); break;
       case 'bewegungNeu': bewegungDialog(); break;
       case 'anfNeu': anfDialog(); break;
+      case 'lagerVerwalten': lagerVerwalten(); break;
+      case 'lageristNeu': lageristDialog(); break;
       case 'verrechnen': verrechnenDialog(); break;
       case 'bestellDruck': bestellDruck(); break;
       case 'korb': Korb.oeffnen(sb, [{ tabelle: 'lg_artikel', art: 'Artikel', titel: (r) => r.name }], laden); break;
@@ -418,7 +541,11 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     }
   });
   document.addEventListener('input', (ev) => { if (ev.target.dataset.f === 'suche') { Z.suche = ev.target.value; const pos = ev.target.selectionStart; zeichnen(); const n = document.querySelector('[data-f=suche]'); n.focus(); n.setSelectionRange(pos, pos); } });
-  document.addEventListener('change', (ev) => { if (ev.target.dataset.f === 'fAuftrag') { Z.fAuftrag = ev.target.value; zeichnen(); } });
+  document.addEventListener('change', async (ev) => {
+    if (ev.target.dataset.f === 'fAuftrag') { Z.fAuftrag = ev.target.value; zeichnen(); }
+    if (ev.target.dataset.f === 'lagerWahl') { Z.lagerWahl = ev.target.value; try { localStorage.setItem(LS_LAGER, Z.lagerWahl); } catch {} zeichnen(); }
+    if (ev.target.dataset.lageristLager) { const { error } = await sb.from('ze_mitarbeiter').update({ lager_id: ev.target.value || null }).eq('id', ev.target.dataset.lageristLager); if (error) toast(fehlerText(error)); else { await laden(); toast('Gespeichert'); } }
+  });
   zeichnen();
   (async function warten(n = 0) { const { data: { session } } = await sb.auth.getSession(); if (session) laden(); else if (n < 600) setTimeout(() => warten(n + 1), 500); })();
 })();

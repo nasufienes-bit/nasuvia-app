@@ -80,6 +80,7 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
 .ordner{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--linie);cursor:pointer}
 .ordner:last-child{border-bottom:0}
 .ordner b{flex:1}
+.anf-chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.anf-chips button{border:1px solid color-mix(in srgb,var(--blau) 18%,transparent);background:#fff;border-radius:100px;padding:7px 12px;font:inherit;font-size:13px;color:var(--blau);cursor:pointer}.anf-chips button.an{background:var(--blau);color:#fff;border-color:transparent}
 .status{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;border-radius:100px;padding:2px 8px;margin-left:6px;background:var(--flaeche);color:var(--blau)}
 .status.erledigt{background:rgba(245,181,61,.2);color:#8a5a00}.status.kontrolliert{background:rgba(14,159,110,.12);color:var(--elektrik,#0A7150)}.status.in_arbeit{background:color-mix(in srgb,var(--elektrik,#0E7A55) 12%,transparent)}
 .fotos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
@@ -321,76 +322,106 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
     const [{ data }, { data: mt }] = await Promise.all([sb.rpc('ze_lager', { p_token: token }), sb.rpc('ze_material', { p_token: token })]);
     Z.lager = data && data.erlaubt ? data : null; Z.mat = mt && mt.erlaubt ? mt : null; if (!Z.form) zeichnen();
   }
-  /* ---------- Material bereitstellen: Projektleiter fordert an, Lager stellt bereit, Empfänger holt ab ---------- */
-  const ANF = { offen: ['Wird bereitgestellt', '#B45309'], bereit: ['Liegt bereit', '#0E7A55'], abgeholt: ['Abgeholt', '#64748B'], abgelehnt: ['Abgelehnt', '#B91C1C'] };
-  const anfStatus = (st) => `<span class="status" style="background:color-mix(in srgb,${ANF[st][1]} 14%,#fff);color:${ANF[st][1]}">${ANF[st][0]}</span>`;
-  const anfMenge = (a) => `${zahl(a.menge)} ${esc(a.einheit || '')} ${esc(a.text)}`.replace(/\s+/g, ' ');
+  /* ---------- Aufträge ans Lager: Projektleiter oder Büro gibt sie, das Lager bestätigt, der Projektleiter sieht alles ---------- */
+  const ANF = { offen: ['Offen', '#B45309'], bereit: ['Gegeben', '#0E7A55'], abgeholt: ['Abgeholt', '#64748B'], abgelehnt: ['Nicht möglich', '#B91C1C'] };
+  const anfStatus = (a) => { const st = typeof a === 'string' ? a : a.status; const [t, c] = a.art === 'aufgabe' && st === 'bereit' ? ['Erledigt', '#0E7A55'] : (ANF[st] || ['?', '#64748B']); return `<span class="status" style="background:color-mix(in srgb,${c} 14%,#fff);color:${c}">${t}</span>`; };
+  const anfMenge = (a) => (a.art === 'aufgabe' ? `<span class="status" style="margin-right:6px">Aufgabe</span>${esc(a.text)}` : `${a.menge != null ? zahl(a.menge) : ''} ${esc(a.einheit || '')} ${esc(a.text)}`.replace(/\s+/g, ' '));
+  const zeitK = (t) => (t ? new Date(t).toLocaleString('de-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '');
+  const bestaetigung = (a) => (a.erledigt_name ? `<small style="color:${a.status === 'abgelehnt' ? '#B91C1C' : '#0E7A55'}">${a.status === 'abgelehnt' ? 'Nicht möglich' : 'Bestätigt'}: ${esc(a.erledigt_name)}${a.erledigt_am ? ' · ' + zeitK(a.erledigt_am) : ''}${a.antwort ? ' · ' + esc(a.antwort) : ''}</small>` : (a.antwort ? `<small style="color:#B91C1C">${esc(a.antwort)}</small>` : ''));
   function materialKarten() {
     const M = Z.mat; if (!M) return '';
     const mein = M.fuer_mich || [];
     let html = '';
-    if (mein.length) html += `<div class="karte"><h2>Material für Sie</h2>${mein.map((a) => `<div class="zeile" style="cursor:default"><div style="min-width:0"><b>${anfMenge(a)}</b><small>${[a.auftrag, a.von ? 'von ' + a.von : '', a.bis ? 'bis ' + dk(a.bis) : '', a.notiz].filter(Boolean).map(esc).join(' · ')}</small></div><div style="display:grid;gap:6px;justify-items:end">${anfStatus(a.status)}${a.status === 'bereit' ? `<button class="btn-klein" data-anf="abgeholt:${a.id}">Abgeholt</button>` : ''}</div></div>`).join('')}</div>`;
+    if (mein.length) html += `<div class="karte"><h2>Material für Sie</h2>${mein.map((a) => `<div class="zeile" style="cursor:default"><div style="min-width:0"><b>${anfMenge(a)}</b><small>${[a.lagerort, a.auftrag, a.von ? 'von ' + a.von : '', a.bis ? 'bis ' + dk(a.bis) : '', a.notiz].filter(Boolean).map(esc).join(' · ')}</small>${bestaetigung(a)}</div><div style="display:grid;gap:6px;justify-items:end">${anfStatus(a)}${a.status === 'bereit' ? `<button class="btn-klein" data-anf="abgeholt:${a.id}">Abgeholt</button>` : ''}</div></div>`).join('')}</div>`;
     if (M.lager && (M.zu_ruesten || []).length) {
       const offen = M.zu_ruesten.filter((a) => a.status === 'offen');
-      html += `<div class="karte" id="ruestKarte"><h2>Bereitstellen${offen.length ? ` <span class="status" style="background:#FEF3C7;color:#B45309">${offen.length} offen</span>` : ''}</h2>
-        ${M.zu_ruesten.map((a) => `<div class="zeile" style="cursor:default"><div style="min-width:0"><b>${anfMenge(a)}</b><small>Für <b style="display:inline">${esc(a.fuer || '?')}</b>${a.auftrag ? ' · ' + esc(a.auftrag) : ''}${a.von ? ' · von ' + esc(a.von) : ''}${a.bis ? ' · bis ' + dk(a.bis) : ''}${a.bestand != null ? ' · Bestand ' + zahl(a.bestand) : ''}${a.notiz ? ' · ' + esc(a.notiz) : ''}</small></div>
-          <div style="display:grid;gap:6px;justify-items:end">${a.status === 'offen' ? `<button class="btn-klein voll" data-anf="bereit:${a.id}">Bereitgestellt</button><button class="btn-klein" data-anf="abgelehnt:${a.id}">Ablehnen</button>` : anfStatus(a.status) + (a.status === 'bereit' ? `<button class="btn-klein" data-anf="abgeholt:${a.id}">Abgeholt</button>` : '')}</div></div>`).join('')}</div>`;
+      html += `<div class="karte" id="ruestKarte"><h2>Aufträge fürs Lager${offen.length ? ` <span class="status" style="background:#FEF3C7;color:#B45309">${offen.length} offen</span>` : ''}</h2>
+        ${M.zu_ruesten.map((a) => `<div class="zeile" style="cursor:default"><div style="min-width:0"><b>${anfMenge(a)}</b><small>${[a.fuer ? `Für <b style="display:inline">${esc(a.fuer)}</b>` : '', esc(a.lagerort || ''), esc(a.auftrag || ''), a.von ? 'von ' + esc(a.von) : '', a.bis ? 'bis ' + dk(a.bis) : '', a.bestand != null && a.art !== 'aufgabe' ? 'Bestand ' + zahl(a.bestand) : '', esc(a.notiz || '')].filter(Boolean).join(' · ')}</small>${a.status !== 'offen' && a.antwort ? `<small style="color:#B91C1C">${esc(a.antwort)}</small>` : ''}</div>
+          <div style="display:grid;gap:6px;justify-items:end">${a.status === 'offen' ? `<button class="btn-klein voll" data-anf="bereit:${a.id}">${a.art === 'aufgabe' ? 'Erledigt' : 'Gegeben'}</button><button class="btn-klein" data-anf="abgelehnt:${a.id}">Nicht möglich</button>` : anfStatus(a) + (a.status === 'bereit' && a.art !== 'aufgabe' ? `<button class="btn-klein" data-anf="abgeholt:${a.id}">Abgeholt</button>` : '')}</div></div>`).join('')}</div>`;
     }
-    if (M.darf_anfordern) html += `<div class="karte"><h2>Material anfordern</h2><p class="hinweis">Das Lager stellt es bereit, die Person sieht es auf dem Handy.</p>
-      <button class="gross leicht" data-anf-neu style="margin-top:10px">+ Material anfordern</button>
-      ${(M.von_mir || []).length ? M.von_mir.slice(0, 6).map((a) => `<div class="zeile" style="cursor:default"><div style="min-width:0"><b>${anfMenge(a)}</b><small>für ${esc(a.fuer || '?')}${a.an ? ' · Lager: ' + esc(a.an) : ''}</small></div>${anfStatus(a.status)}</div>`).join('') : ''}</div>`;
+    // Projektleiter: alles im Blick
+    if (M.projektleiter) {
+      const F = { offen: (a) => a.status === 'offen', erledigt: (a) => ['bereit', 'abgeholt'].includes(a.status), nicht: (a) => a.status === 'abgelehnt', alle: () => true };
+      const u = M.uebersicht || [], f = Z.anfFilter || 'offen', l = u.filter(F[f]);
+      html += `<div class="karte" id="lagerUebersicht"><h2>Lager-Übersicht</h2><p class="hinweis">Alle Aufträge ans Lager: wer bestätigt hat, wann, und warum etwas nicht ging.</p>
+        <div class="anf-chips">${[['offen', 'Offen'], ['erledigt', 'Erledigt'], ['nicht', 'Nicht möglich'], ['alle', 'Alle']].map(([k, t]) => `<button class="${f === k ? 'an' : ''}" data-anf-filter="${k}">${t} ${u.filter(F[k]).length}</button>`).join('')}</div>
+        <button class="gross leicht" data-anf-neu style="margin:8px 0 4px">+ Auftrag ans Lager</button>
+        ${l.length ? l.slice(0, 40).map((a) => `<div class="zeile" style="cursor:default"><div style="min-width:0"><b>${anfMenge(a)}</b><small>${[a.fuer ? 'für ' + a.fuer : '', a.an ? 'Lager: ' + a.an : 'Lager: alle', a.lagerort, a.auftrag, a.von ? 'von ' + a.von : '', a.bis ? 'bis ' + dk(a.bis) : '', zeitK(a.erstellt)].filter(Boolean).map(esc).join(' · ')}</small>${bestaetigung(a)}${a.abgeholt_am ? `<small>Abgeholt ${zeitK(a.abgeholt_am)}</small>` : ''}</div>${anfStatus(a)}</div>`).join('') : '<p class="hinweis" style="margin-top:8px">Nichts in dieser Auswahl.</p>'}</div>`;
+    } else if (M.darf_anfordern) html += `<div class="karte"><h2>Auftrag ans Lager</h2><p class="hinweis">Material bereitstellen lassen oder eine Aufgabe ans Lager geben.</p>
+      <button class="gross leicht" data-anf-neu style="margin-top:10px">+ Auftrag ans Lager</button>
+      ${(M.von_mir || []).length ? M.von_mir.slice(0, 6).map((a) => `<div class="zeile" style="cursor:default"><div style="min-width:0"><b>${anfMenge(a)}</b><small>${a.fuer ? 'für ' + esc(a.fuer) : ''}${a.an ? ' · Lager: ' + esc(a.an) : ''}</small>${bestaetigung(a)}</div>${anfStatus(a)}</div>`).join('') : ''}</div>`;
     return html;
   }
   function anfordernFenster() {
     const M = Z.mat; if (!M) return;
     const dlg = document.createElement('dialog'); dlg.className = 'ui-frage';
-    const lageristen = M.team.filter((t) => t.lager);
-    dlg.innerHTML = `<form method="dialog"><h3>Material anfordern</h3>
-      <label>Artikel<select name="artikel"><option value="">Anderes (unten eintragen)</option>${M.artikel.map((a) => `<option value="${a.id}">${esc(a.name)} (${zahl(a.bestand)} ${esc(a.einheit || '')})</option>`).join('')}</select></label>
-      <label data-anf-frei>Was genau?<input type="text" name="text" maxlength="160" placeholder="z. B. Kabel T13 3x1.5"></label>
-      <label>Menge<input type="text" name="menge" inputmode="decimal" required placeholder="z. B. 30"></label>
-      <label>Für wen?<select name="fuer">${M.team.map((t) => `<option value="${t.id}" ${t.name === Z.daten.name ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></label>
+    const lageristen = M.team.filter((t) => t.lager), orte = M.lagerorte || [];
+    dlg.innerHTML = `<form method="dialog"><h3>Auftrag ans Lager</h3>
+      <div class="anf-chips"><button type="button" class="an" data-art="material">Material bereitstellen</button><button type="button" data-art="aufgabe">Aufgabe</button></div>
+      <label data-nur="material">Artikel<select name="artikel"><option value="">Anderes (unten eintragen)</option>${M.artikel.map((a) => `<option value="${a.id}">${esc(a.name)} (${zahl(a.bestand)} ${esc(a.einheit || '')})</option>`).join('')}</select></label>
+      <label data-anf-frei><span data-titel>Was genau?</span><input type="text" name="text" maxlength="160" placeholder="z. B. Kabel T13 3x1.5"></label>
+      <label data-nur="material">Menge<input type="text" name="menge" inputmode="decimal" placeholder="z. B. 30"></label>
+      <label>Für wen?<select name="fuer"><option value="" data-leer>Niemand bestimmtes</option>${M.team.map((t) => `<option value="${t.id}" ${t.name === Z.daten.name ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></label>
+      ${orte.length ? `<label>Welches Lager?<select name="lager"><option value="">Egal</option>${orte.map((o) => `<option value="${o.id}">${esc(o.name)}</option>`).join('')}</select></label>` : ''}
       <label>An wen im Lager?<select name="an"><option value="">Alle im Lager</option>${lageristen.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select></label>
       <label>Auftrag (optional)<select name="auftrag"><option value="">Kein Auftrag</option>${M.auftraege.map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label>
       <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:8px"><label>Bis wann?<input type="date" name="bis" min="${heute()}"></label><label>Notiz<input type="text" name="notiz" maxlength="200" placeholder="optional"></label></div>
-      <div class="ui-knoepfe"><button type="button" class="nein" data-zu>Abbrechen</button><button class="ja">Anfordern</button></div></form>`;
+      <div class="ui-knoepfe"><button type="button" class="nein" data-zu>Abbrechen</button><button class="ja">Senden</button></div></form>`;
     document.body.appendChild(dlg);
     dlg.addEventListener('close', () => dlg.remove());
     dlg.querySelector('[data-zu]').onclick = () => dlg.close();
-    const sel = dlg.querySelector('[name=artikel]'); sel.onchange = () => { dlg.querySelector('[data-anf-frei]').hidden = !!sel.value; };
+    let art = 'material';
+    const sel = dlg.querySelector('[name=artikel]');
+    const umschalten = (x) => {
+      art = x; dlg.querySelectorAll('[data-art]').forEach((b) => b.classList.toggle('an', b.dataset.art === x));
+      dlg.querySelectorAll('[data-nur]').forEach((e) => { e.hidden = e.dataset.nur !== x; });
+      dlg.querySelector('[data-anf-frei]').hidden = x === 'material' && !!sel.value;
+      dlg.querySelector('[data-titel]').textContent = x === 'aufgabe' ? 'Was ist zu tun?' : 'Was genau?';
+      dlg.querySelector('[name=text]').placeholder = x === 'aufgabe' ? 'z. B. Lieferung entgegennehmen und einräumen' : 'z. B. Kabel T13 3x1.5';
+      dlg.querySelector('[data-leer]').hidden = x !== 'aufgabe'; const fu = dlg.querySelector('[name=fuer]'); if (x === 'aufgabe') fu.value = ''; else if (!fu.value) { const ich = M.team.find((t) => t.name === Z.daten.name); fu.value = ich ? ich.id : (M.team[0] || {}).id || ''; }
+    };
+    dlg.querySelectorAll('[data-art]').forEach((b) => { b.onclick = () => umschalten(b.dataset.art); });
+    sel.onchange = () => { dlg.querySelector('[data-anf-frei]').hidden = !!sel.value; };
+    umschalten('material');
     dlg.querySelector('form').onsubmit = async (e) => {
       e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
-      const m = Number(String(f.menge).replace(/[’'\s]/g, '').replace(',', '.'));
-      if (!(m > 0)) { toast('Bitte eine Menge eingeben'); return; }
-      if (!f.artikel && !String(f.text || '').trim()) { toast('Bitte den Artikel angeben'); return; }
-      const { data, error } = await sb.rpc('ze_anfordern', { p_token: token, p_artikel: f.artikel || null, p_text: f.text || '', p_menge: m, p_fuer: f.fuer || null, p_an: f.an || null, p_auftrag: f.auftrag || null, p_notiz: f.notiz || '', p_bis: f.bis || null });
+      const m = Number(String(f.menge || '').replace(/[’'\s]/g, '').replace(',', '.'));
+      if (art === 'material' && !(m > 0)) { toast('Bitte eine Menge eingeben'); return; }
+      if ((art === 'aufgabe' || !f.artikel) && !String(f.text || '').trim()) { toast(art === 'aufgabe' ? 'Bitte beschreiben, was zu tun ist' : 'Bitte den Artikel angeben'); return; }
+      const { data, error } = await sb.rpc('ze_lagerauftrag', { p_token: token, p_art: art, p_artikel: art === 'material' ? f.artikel || null : null, p_text: f.text || '', p_menge: art === 'material' ? m : null, p_fuer: f.fuer || null, p_an: f.an || null, p_lager: f.lager || null, p_auftrag: f.auftrag || null, p_notiz: f.notiz || '', p_bis: f.bis || null });
       if (error || (data && data.fehler)) { toast(error ? fehlerText(error) : data.fehler, 4000); return; }
-      dlg.close(); toast('✓ Angefordert. Das Lager sieht es sofort.'); lagerLaden();
+      dlg.close(); toast('✓ Gesendet. Das Lager sieht es sofort.'); lagerLaden();
     };
     dlg.showModal();
   }
   document.addEventListener('click', async (e) => {
     if (e.target.closest('[data-anf-neu]')) { anfordernFenster(); return; }
+    const fl = e.target.closest('[data-anf-filter]'); if (fl) { Z.anfFilter = fl.dataset.anfFilter; zeichnen(); return; }
     const b = e.target.closest('[data-anf]'); if (!b) return;
     const [st, id] = b.dataset.anf.split(':');
-    if (st === 'abgelehnt' && !(await UI.frage('Diese Anforderung ablehnen?'))) return;
+    let antwort = null;
+    if (st === 'abgelehnt') { antwort = await UI.eingabe('Warum ist es nicht möglich?', { platzhalter: 'z. B. nur noch 10 m an Lager', ja: 'Senden' }); if (!antwort || !antwort.trim()) return; }
     b.disabled = true;
-    const { data, error } = await sb.rpc('ze_anforderung_status', { p_token: token, p_id: id, p_status: st });
+    const { data, error } = await sb.rpc('ze_anforderung_status', { p_token: token, p_id: id, p_status: st, p_antwort: antwort });
     if (error || (data && data.fehler)) { b.disabled = false; toast(error ? fehlerText(error) : data.fehler, 4000); return; }
-    toast(st === 'bereit' ? '✓ Bereitgestellt. Der Bestand ist abgebucht.' : st === 'abgeholt' ? '✓ Als abgeholt vermerkt.' : 'Abgelehnt.'); lagerLaden();
+    toast(st === 'bereit' ? '✓ Bestätigt. Der Projektleiter sieht es.' : st === 'abgeholt' ? '✓ Als abgeholt vermerkt.' : 'Vermerkt: nicht möglich.'); lagerLaden();
   });
   const zahl = (x) => Number(x || 0).toLocaleString('de-CH', { maximumFractionDigits: 2 });
   function lagerKarte() {
     const L = Z.lager; if (!L) return '';
     const such = (Z.lagerSuche || '').toLowerCase();
+    const orte = L.lager || [];
+    if (Z.lagerOrt === undefined) Z.lagerOrt = L.mein_lager || '';
+    const best = (a) => (Z.lagerOrt ? Number((a.bestaende || {})[Z.lagerOrt] || 0) : Number(a.bestand || 0));
     const knapp = L.artikel.filter((a) => Number(a.mindest) > 0 && Number(a.bestand) <= Number(a.mindest));
     const liste = L.artikel.filter((a) => !such || (a.name + ' ' + (a.nummer || '') + ' ' + (a.lieferant || '')).toLowerCase().includes(such));
     return `<div class="karte" id="lagerKarte"><h2>Lager${Z.daten.rolle === 'lagerist' ? ' <span class="status">Lagerist</span>' : ''}</h2>
       ${knapp.length ? `<p class="hinweis" style="color:#B45309"><b>Nachbestellen:</b> ${knapp.map((a) => esc(a.name)).join(', ')}</p>` : '<p class="hinweis">Tippen Sie auf einen Artikel, um Verbrauch, Eingang oder Inventur zu buchen.</p>'}
+      ${orte.length ? `<label class="hinweis" style="display:flex;gap:8px;align-items:center;margin-top:6px">Lager<select data-lg-ort style="flex:1"><option value="">Alle Lager</option>${orte.map((o) => `<option value="${o.id}" ${o.id === Z.lagerOrt ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select></label>` : ''}
       <input type="search" data-lg="suche" id="lagerSuche" placeholder="Artikel suchen …" value="${esc(Z.lagerSuche || '')}" style="margin:8px 0 4px">
       ${liste.length ? liste.slice(0, 60).map((a) => { const tief = Number(a.mindest) > 0 && Number(a.bestand) <= Number(a.mindest);
-        return `<div class="zeile" data-lg-buchen="${a.id}"><div style="min-width:0"><b>${esc(a.name)}</b><small>${esc([a.nummer, a.lieferant].filter(Boolean).join(' · ')) || '&nbsp;'}</small></div><span class="betrag" style="${tief ? 'color:#B45309' : ''}">${zahl(a.bestand)} ${esc(a.einheit || '')}</span></div>`; }).join('') : '<p class="hinweis">Keine Artikel gefunden.</p>'}
-      ${(L.letzte || []).length ? `<details style="margin-top:10px"><summary class="hinweis" style="cursor:pointer">Letzte Bewegungen</summary>${L.letzte.slice(0, 10).map((b) => `<div class="zeile" style="cursor:default"><div><b>${esc(b.artikel)}</b><small>${dk(b.datum)} · ${esc(b.notiz || '')}</small></div><span class="betrag">${Number(b.menge) > 0 ? '+' : ''}${zahl(b.menge)} ${esc(b.einheit || '')}</span></div>`).join('')}</details>` : ''}</div>`;
+        return `<div class="zeile" data-lg-buchen="${a.id}"><div style="min-width:0"><b>${esc(a.name)}</b><small>${esc([a.nummer, a.lieferant].filter(Boolean).join(' · ')) || '&nbsp;'}</small></div><span class="betrag" style="${tief ? 'color:#B45309' : ''}">${zahl(best(a))} ${esc(a.einheit || '')}</span></div>`; }).join('') : '<p class="hinweis">Keine Artikel gefunden.</p>'}
+      ${(L.letzte || []).length ? `<details style="margin-top:10px"><summary class="hinweis" style="cursor:pointer">Letzte Bewegungen</summary>${L.letzte.slice(0, 10).map((b) => `<div class="zeile" style="cursor:default"><div><b>${esc(b.artikel)}</b><small>${dk(b.datum)}${b.lager ? ' · ' + esc(b.lager) : ''} · ${esc(b.notiz || '')}</small></div><span class="betrag">${Number(b.menge) > 0 ? '+' : ''}${zahl(b.menge)} ${esc(b.einheit || '')}</span></div>`).join('')}</details>` : ''}</div>`;
   }
   document.addEventListener('input', (e) => {
     if (e.target.id !== 'lagerSuche') return;
@@ -401,7 +432,10 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
   function lagerFenster(id) {
     const a = Z.lager.artikel.find((x) => x.id === id); if (!a) return;
     const dlg = document.createElement('dialog'); dlg.className = 'ui-frage';
-    dlg.innerHTML = `<form method="dialog"><h3>${esc(a.name)}</h3><p class="hinweis" style="margin:0 0 8px">Bestand: <b>${zahl(a.bestand)} ${esc(a.einheit || '')}</b></p>
+    const orte = Z.lager.lager || [];
+    const bestOrt = (o) => (o ? Number((a.bestaende || {})[o] || 0) : Number(a.bestand || 0));
+    dlg.innerHTML = `<form method="dialog"><h3>${esc(a.name)}</h3><p class="hinweis" style="margin:0 0 8px">Bestand: <b data-lg-bestand>${zahl(bestOrt(Z.lagerOrt))} ${esc(a.einheit || '')}</b>${orte.length ? (Z.lagerOrt ? '' : ' (alle Lager)') : ''}</p>
+      ${orte.length ? `<label>Lager<select name="lager">${orte.map((o) => `<option value="${o.id}" ${o.id === (Z.lagerOrt || Z.lager.mein_lager) ? 'selected' : ''}>${esc(o.name)} (${zahl(bestOrt(o.id))})</option>`).join('')}</select></label>` : ''}
       <div class="lg-art">${[['ausgang', 'Verbrauch'], ['eingang', 'Eingang'], ['korrektur', 'Inventur']].map(([w, t], i) => `<label><input type="radio" name="art" value="${w}" ${i ? '' : 'checked'}><span>${t}</span></label>`).join('')}</div>
       <label><span data-lg-titel>Menge</span> (${esc(a.einheit || 'Stück')})<input type="text" name="menge" inputmode="decimal" required placeholder="0"></label>
       <label data-lg-auftrag>Auftrag (optional)<select name="auftrag"><option value="">Kein Auftrag</option>${(Z.lager.auftraege || []).map((x) => `<option value="${x.id}">${esc(x.name)}${x.kunde ? ' · ' + esc(x.kunde) : ''}</option>`).join('')}</select></label>
@@ -416,7 +450,7 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
       e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
       const m = Number(String(f.menge).replace(/[’'\s]/g, '').replace(',', '.'));
       if (!isFinite(m) || m < 0 || (m === 0 && art() !== 'korrektur')) { toast('Bitte eine Menge eingeben'); return; }
-      const { data, error } = await sb.rpc('ze_lager_buchen', { p_token: token, p_artikel: a.id, p_art: art(), p_menge: m, p_auftrag: art() === 'ausgang' && f.auftrag ? f.auftrag : null, p_notiz: f.notiz || '' });
+      const { data, error } = await sb.rpc('ze_lager_buchung', { p_token: token, p_artikel: a.id, p_art: art(), p_menge: m, p_lager: f.lager || null, p_auftrag: art() === 'ausgang' && f.auftrag ? f.auftrag : null, p_notiz: f.notiz || '' });
       if (error || (data && data.fehler)) { toast(error ? fehlerText(error) : data.fehler, 4000); return; }
       dlg.close(); toast(`✓ Gebucht. Neuer Bestand: ${zahl(data.bestand)} ${a.einheit || ''}`); lagerLaden();
     };
@@ -556,6 +590,7 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
     }
   });
   document.addEventListener('input', (ev) => { if (ev.target.closest('#form')) vorschau(); });
+  document.addEventListener('change', (ev) => { if (ev.target.matches('[data-lg-ort]')) { Z.lagerOrt = ev.target.value; zeichnen(); } });
   document.addEventListener('change', async (ev) => {
     const fh = ev.target.closest && ev.target.closest('[data-foto-hoch]');
     if (!fh || !fh.files.length) return;
