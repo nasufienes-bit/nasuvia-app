@@ -163,6 +163,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 <script src="../tipps.js" defer></script>
 <script src="../auszug.js"></script>
 <script src="mehr.js"></script>
+<script src="steuer.js"></script>
 <script src="../ui.js"></script>
 <script src="../leser.js"></script>
 <script src="../navi.js" data-hier="privat" data-einfuegen=".kopfzeile .wrap"></script>
@@ -327,7 +328,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
             b.kategorie = kategorieRaten(b);
             D.bewegungen.push(b); neu++;
           }
-          (D.importe = D.importe || []).unshift({ id: imp, name: datei.name.slice(0, 80), am: new Date().toISOString(), anzahl: ok.length });
+          (D.importe = D.importe || []).unshift({ id: imp, name: datei.name.slice(0, 80), am: new Date().toISOString(), anzahl: ok.length, saldoEnde: Number.isFinite(e.ende) ? e.ende : null, bis: ok.reduce((m, t) => (t.datum > m ? t.datum : m), '') });
           D.importe = D.importe.slice(0, 60);
         } catch (f) { fehler = f.message; }
       }
@@ -459,7 +460,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     ['start', 'Übersicht', [['start', 'Übersicht']]],
     ['geld', 'Geld', [['jahr', 'Mein Jahr'], ['konto', 'Konto'], ['bargeld', 'Bargeld'], ['budget', 'Budget'], ['abos', 'Abos'], ['fix', 'Fixe Zahlungen']]],
     ['schulden', 'Rechnungen', [['rechnungen', 'Rechnungen'], ['betreibung', 'Betreibungen'], ['guthaben', 'Mir geschuldet'], ['teilen', 'Teilen']]],
-    ['planen', 'Planen', [['kalender', 'Kalender'], ['sparen', 'Sparziele'], ['steuern', 'Steuern'], ['kk', 'Krankenkasse']]],
+    ['planen', 'Planen', [['kalender', 'Kalender'], ['sparen', 'Sparziele'], ['steuererklaerung', 'Steuererklärung'], ['steuern', 'Abzüge'], ['kk', 'Krankenkasse']]],
     ['dokumente', 'Dokumente', [['dokumente', 'Ordner'], ['papierkorb', 'Zuletzt gelöscht']]],
   ];
   const TABS = GRUPPEN.flatMap((g) => g[2]);
@@ -1048,6 +1049,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const summe = (art) => l.filter((s) => s.art === art).reduce((x, s) => x + s.betragRappen, 0);
     return `<div class="kopf"><div><h1>Steuern</h1><p class="unter">Sammeln Sie das ganze Jahr, was Sie bei den Steuern abziehen können. Im Frühling haben Sie alles beisammen.</p></div>
         <div class="aktionen"><select data-steuerjahr>${jahre.map((j) => `<option ${j === steuerJahr ? 'selected' : ''}>${j}</option>`).join('')}</select><button class="btn" data-hb="steuerDruck">Übersicht drucken</button><button class="btn haupt" data-hb="abzugNeu">+ Abzug</button></div></div>
+      <div class="card" style="display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px;background:var(--flaeche,#E8F4EE)"><div style="min-width:0"><b>Steuererklärung ${steuerJahr} vorbereiten</b><p class="hinweis" style="margin:4px 0 0">Der Assistent nimmt diese Abzüge mit und macht eine Ausfüllhilfe für das Portal Ihres Kantons.</p></div><button class="btn haupt" data-tab="steuererklaerung">Assistent öffnen</button></div>
       ${steuerAnleitung(l)}
       <div class="raster r2 voll">
         <div class="card"><h2>Steuerjahr ${steuerJahr}</h2>${ABZUG.filter(([id]) => summe(id)).map(([id, n]) => `<div class="zeile"><div><b>${esc(n)}</b><small>${l.filter((s) => s.art === id).length} Belege</small></div><div class="betrag">${chf(summe(id))}</div></div>`).join('') || '<p class="leer">Noch nichts gesammelt.</p>'}
@@ -1265,7 +1267,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     const a = e.target.closest('[data-aktion]'); if (!a) return;
     ({ auszug: auszugLaden, importe: importeZeigen, rechnung: () => rechnungBearbeiten(), betreibung: () => betreibungBearbeiten(), sicherung })[a.dataset.aktion]();
   });
-  Object.assign(window.HomeBuero = window.HomeBuero || {}, { daten: D, abosFinden, sichern, zeichnen, toast, esc, chf, dk, heute, tageBis, betragLesen, neueId, katName, katFarbe, KAT, bildKlein, wegwerfen, listeVon, listeSetzen, ORT, restBetrag, ring, zeitWahl, imZeitraum, auszugLaden, setzeAnsicht: (a) => { ansicht = a; try { localStorage.setItem('homebuero.ansicht', a); } catch {} zeichnen(); window.scrollTo(0, 0); } });
+  Object.assign(window.HomeBuero = window.HomeBuero || {}, { ABZUG, daten: D, abosFinden, sichern, zeichnen, toast, esc, chf, dk, heute, tageBis, betragLesen, neueId, katName, katFarbe, KAT, bildKlein, wegwerfen, listeVon, listeSetzen, ORT, restBetrag, ring, zeitWahl, imZeitraum, auszugLaden, setzeAnsicht: (a) => { ansicht = a; try { localStorage.setItem('homebuero.ansicht', a); } catch {} zeichnen(); window.scrollTo(0, 0); } });
   zeichnen();
   bezahltAusErinnerung();
   if (window.NASUVIA_KONFIG && NASUVIA_KONFIG.produkt) setTimeout(erLaden, 1200);
