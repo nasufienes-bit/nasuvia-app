@@ -203,6 +203,7 @@ details>summary.btn{list-style:none;cursor:pointer}details>summary.btn::-webkit-
       ? await sb.auth.signUp({ email: d.email.trim(), password: d.passwort, options: { captchaToken: await window.ordasioCaptcha(), emailRedirectTo: location.origin + location.pathname, data: { name: d.email.trim(), firma: 'Treuhand', paket: 'kombi', zyklus: 'jahr' } } })
       : await sb.auth.signInWithPassword({ email: d.email.trim(), password: d.passwort, options: { captchaToken: await window.ordasioCaptcha() } });
     if (r.error) { $('meldung').textContent = /captcha/i.test(r.error.message) ? 'Die Sicherheitsprüfung hat nicht geklappt. Bitte die Seite neu laden.' : /Invalid login/i.test(r.error.message) ? 'E-Mail oder Passwort stimmt nicht.' : /not confirmed/i.test(r.error.message) ? 'Bitte zuerst die E-Mail bestätigen.' : r.error.message; return; }
+    if (modus === 'neu' && r.data.user && Array.isArray(r.data.user.identities) && r.data.user.identities.length === 0) { $('meldung').textContent = 'Mit dieser E-Mail gibt es schon ein Konto. Bitte melden Sie sich an.'; return; }
     if (modus === 'neu' && !r.data.session) {
       const em = d.email.trim();
       $('inhalt').innerHTML = `<div class="card login"><h2>Bitte bestätigen Sie Ihre E-Mail</h2>

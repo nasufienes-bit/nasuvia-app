@@ -230,6 +230,12 @@
           options: { captchaToken: await window.ordasioCaptcha(), emailRedirectTo: location.origin + location.pathname, data: { empf: (() => { try { return localStorage.getItem('ordasio.empf') || ''; } catch { return ''; } })(), aktion: (window.OrdasioAktion() || {}).code || '', name: d.name.trim(), firma: (d.firma || '').trim(), paket: d.paket || '', rechtsform: d.rechtsform || 'einzel', branche: d.branche || '', zyklus: 'jahr' } } });
         try { if (d.branche) localStorage.setItem('ordasio.branche', d.branche); } catch {}
         if (error) throw error;
+        // Gibt es die E-Mail schon, schickt der Server aus Sicherheitsgründen keine Mail (und meldet trotzdem «ok»)
+        if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+          anmelden('anmelden', 'Mit dieser E-Mail gibt es schon ein Konto. Bitte melden Sie sich an. Passwort vergessen? Unten auf «Passwort vergessen» tippen.');
+          const em = decke.querySelector('input[name=email]'); if (em) em.value = d.email.trim();
+          return;
+        }
         if (!data.session) { bestaetigenKarte(d.email.trim(), 'Fast geschafft!'); return; }
         location.reload();
       } else if (f.dataset.lzForm === 'mfa') {
