@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Ordasio-Team: Anfragen</title>
+<link rel="icon" href="../favicon.png" />
+<link rel="stylesheet" href="../schrift.css" />
+<script src="../konfig.js"></script>
+<script src="../lib/supabase.js"></script>
+<style>
+:root{--blau:#0B3B2E;--elektrik:#0E7A55;--papier:#F4FAF6;--tinte:#0A1F17;--text:#3F5A4F;--leise:#7C8499;--linie:#E1E9E5}
+*{box-sizing:border-box}body{margin:0;font-family:'League Spartan',system-ui,sans-serif;background:var(--papier);color:var(--tinte)}
+header{display:flex;align-items:center;gap:12px;padding:14px 18px;background:#fff;border-bottom:1px solid var(--linie);position:sticky;top:0;z-index:5}
+header img{height:22px}header b{font-size:17px}header .r{margin-left:auto;display:flex;gap:8px;align-items:center;font-size:13px;color:var(--leise)}
+header input{border:1px solid var(--linie);border-radius:10px;padding:7px 10px;font:inherit;font-size:14px;width:150px}
+.rahmen{display:grid;grid-template-columns:340px 1fr;height:calc(100vh - 59px)}
+.liste{border-right:1px solid var(--linie);overflow:auto;background:#fff}
+.filter{display:flex;gap:4px;padding:10px;position:sticky;top:0;background:#fff;border-bottom:1px solid var(--linie)}
+.filter button{flex:1;border:0;background:#EEF4F1;border-radius:100px;padding:7px 6px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;color:var(--text)}.filter button.an{background:var(--blau);color:#fff}
+.fall{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--linie);background:#fff;padding:12px 14px;font:inherit;cursor:pointer}
+.fall:hover{background:#F7FAF8}.fall.an{background:#EAF6F0}.fall b{display:block;font-size:14.5px}.fall small{display:block;color:var(--leise);font-size:12.5px;margin-top:2px}
+.fall .t{display:block;font-size:14px;color:var(--text);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.marke{display:inline-block;font-size:11px;font-weight:700;border-radius:100px;padding:2px 8px;margin-left:6px;vertical-align:middle}
+.m-neu{background:#E4572E;color:#fff}.m-offen{background:#FFF1D6;color:#8A5A00}.m-in_arbeit{background:#E3EDFF;color:#1D4ED8}.m-erledigt{background:#EAF6F0;color:var(--elektrik)}
+.chat{display:flex;flex-direction:column;min-width:0;height:100%}
+.chat-kopf{padding:14px 18px;background:#fff;border-bottom:1px solid var(--linie);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.chat-kopf h2{margin:0;font-size:18px;flex:1;min-width:200px}.chat-kopf button{border:1px solid var(--linie);background:#fff;border-radius:100px;padding:8px 13px;font:inherit;font-weight:600;font-size:13.5px;cursor:pointer}
+.chat-kopf button.an{background:var(--blau);color:#fff;border-color:var(--blau)}
+.verlauf{flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:74%;border-radius:16px;padding:10px 13px;white-space:pre-wrap;word-wrap:break-word;line-height:1.45}
+.msg small{display:block;font-size:11.5px;font-weight:700;margin-bottom:3px;opacity:.75}
+.msg.kunde{background:#fff;border:1px solid var(--linie);align-self:flex-start;border-bottom-left-radius:4px}
+.msg.team{background:var(--blau);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+details.ordi{background:#FFF8E6;border:1px solid #F5D58A;border-radius:14px;padding:10px 13px;font-size:14px}
+details.ordi summary{cursor:pointer;font-weight:700}details.ordi p{margin:6px 0;white-space:pre-wrap}
+form.antwort{display:flex;gap:8px;padding:12px;background:#fff;border-top:1px solid var(--linie)}
+form.antwort textarea{flex:1;min-height:52px;max-height:200px;border:1px solid var(--linie);border-radius:14px;padding:10px 12px;font:inherit;font-size:15px;resize:vertical}
+form.antwort button{border:0;border-radius:14px;background:var(--blau);color:#fff;padding:0 18px;font:inherit;font-weight:700;cursor:pointer}
+.leer{padding:40px;text-align:center;color:var(--leise)}
+.zurueck{display:none}
+@media(max-width:800px){.rahmen{grid-template-columns:1fr}.rahmen.offen .liste{display:none}.rahmen:not(.offen) .chat{display:none}.zurueck{display:inline-block}header input{width:110px}.msg{max-width:88%}}
+</style>
+</head>
+<body>
+<header><img src="../logo.png" alt="Ordasio"><b>Team: Anfragen</b><span class="r">Ihr Name <input id="name" placeholder="z. B. Enes" autocomplete="off"></span></header>
+<div class="rahmen" id="rahmen">
+  <aside class="liste"><div class="filter" id="filter"></div><div id="faelle"><p class="leer">Wird geladen …</p></div></aside>
+  <section class="chat" id="chat"><p class="leer">Links eine Anfrage wählen.</p></section>
+</div>
+<script>
+(function () {
+  'use strict';
+  var K = window.NASUVIA_KONFIG;
+  var sb = window.supabase.createClient(K.url, K.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: K.speicher } });
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var zeit = function (t) { return new Date(t).toLocaleString('de-CH', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }); };
+  var Z = { filter: 'aktiv', faelle: [], fall: null, nachrichten: [] };
+  var ST = { offen: 'Offen', in_arbeit: 'In Arbeit', erledigt: 'Erledigt' };
+  try { $('name').value = localStorage.getItem('ordasio.teamName') || ''; } catch (e) {}
+  $('name').oninput = function () { try { localStorage.setItem('ordasio.teamName', this.value.trim()); } catch (e) {} };
+  var neu = function (f) { return f.kunde_gelesen && (!f.team_gelesen || f.kunde_gelesen > f.team_gelesen); };
+
+  async function start() {
+    var s = (await sb.auth.getSession()).data.session;
+    if (!s) { $('faelle').innerHTML = '<p class="leer">Bitte zuerst in der App anmelden.<br><a href="../start/">Zur Anmeldung</a></p>'; $('chat').innerHTML = ''; return; }
+    var r = await sb.rpc('ist_inhaber');
+    if (r.error || !r.data) { $('faelle').innerHTML = '<p class="leer">Diese Seite ist nur für das Ordasio-Team.</p>'; $('chat').innerHTML = ''; return; }
+    await liste(); setInterval(aktualisieren, 15000);
+  }
+  async function liste() {
+    var q = sb.from('support_faelle').select('id,firma,titel,status,zuletzt,erstellt,kunde_gelesen,team_gelesen,ordi_verlauf').order('zuletzt', { ascending: false }).limit(200);
+    var r = await q; Z.faelle = r.data || [];
+    filterMalen(); listeMalen();
+  }
+  function filterMalen() {
+    var n = Z.faelle.filter(function (f) { return f.status !== 'erledigt'; }).length;
+    $('filter').innerHTML = [['aktiv', 'Offen (' + n + ')'], ['erledigt', 'Erledigt'], ['alle', 'Alle']].map(function (x) { return '<button data-filter="' + x[0] + '" class="' + (Z.filter === x[0] ? 'an' : '') + '">' + x[1] + '</button>'; }).join('');
+    var u = Z.faelle.filter(neu).length; document.title = (u ? '(' + u + ') ' : '') + 'Ordasio-Team: Anfragen';
+  }
+  function listeMalen() {
+    var l = Z.faelle.filter(function (f) { return Z.filter === 'alle' || (Z.filter === 'erledigt' ? f.status === 'erledigt' : f.status !== 'erledigt'); });
+    $('faelle').innerHTML = l.length ? l.map(function (f) {
+      return '<button class="fall ' + (Z.fall && Z.fall.id === f.id ? 'an' : '') + '" data-fall="' + f.id + '"><b>' + esc(f.firma || 'Ohne Firmenname') + (neu(f) ? '<span class="marke m-neu">Neu</span>' : '') + '<span class="marke m-' + f.status + '">' + ST[f.status] + '</span></b><span class="t">' + esc(f.titel) + '</span><small>' + esc(zeit(f.zuletzt)) + '</small></button>';
+    }).join('') : '<p class="leer">Keine Anfragen.</p>';
+  }
+  async function oeffnen(id) {
+    Z.fall = Z.faelle.find(function (f) { return f.id === id; }); if (!Z.fall) return;
+    $('rahmen').classList.add('offen'); listeMalen();
+    await holen(); chatMalen(true);
+    await gelesen();
+  }
+  async function holen() { var r = await sb.from('support_nachrichten').select('id,von,name,text,erstellt').eq('fall_id', Z.fall.id).order('erstellt'); Z.nachrichten = r.data || []; }
+  async function gelesen() { if (!Z.fall) return; await sb.from('support_faelle').update({ team_gelesen: new Date().toISOString() }).eq('id', Z.fall.id); Z.fall.team_gelesen = new Date().toISOString(); filterMalen(); listeMalen(); }
+  function chatMalen(neuAufgebaut) {
+    var f = Z.fall, alt = $('antwortText') ? $('antwortText').value : '';
+    var v = Array.isArray(f.ordi_verlauf) && f.ordi_verlauf.length ? '<details class="ordi"><summary>Ordi-Verlauf des Kunden (' + f.ordi_verlauf.length + ')</summary>' + f.ordi_verlauf.map(function (m) { return '<p><b>' + (m.rolle === 'ich' ? 'Kunde' : 'Ordi') + ':</b> ' + esc(m.text) + '</p>'; }).join('') + '</details>' : '';
+    $('chat').innerHTML = '<div class="chat-kopf"><button class="zurueck" data-zurueck>‹ Liste</button><h2>' + esc(f.firma || 'Ohne Firmenname') + '<br><small style="font-size:13px;color:var(--leise);font-weight:500">' + esc(f.titel) + '</small></h2>' +
+      ['offen', 'in_arbeit', 'erledigt'].map(function (s) { return '<button data-status="' + s + '" class="' + (f.status === s ? 'an' : '') + '">' + ST[s] + '</button>'; }).join('') + '</div>' +
+      '<div class="verlauf" id="verlauf">' + v + Z.nachrichten.map(function (n) { return '<div class="msg ' + n.von + '"><small>' + (n.von === 'team' ? 'Team' + (n.name ? ' · ' + esc(n.name) : '') : 'Kunde' + (n.name ? ' · ' + esc(n.name) : '')) + ' · ' + esc(zeit(n.erstellt)) + '</small>' + esc(n.text) + '</div>'; }).join('') + '</div>' +
+      '<form class="antwort" id="antwort"><textarea id="antwortText" placeholder="Antwort an den Kunden … (Ctrl+Enter sendet)" required></textarea><button>Senden</button></form>';
+    $('antwortText').value = alt;
+    var vl = $('verlauf'); vl.scrollTop = vl.scrollHeight;
+    if (neuAufgebaut) $('antwortText').focus();
+  }
+  async function senden() {
+    var t = $('antwortText').value.trim(); if (!t || !Z.fall) return;
+    var name = ($('name').value || '').trim();
+    var r = await sb.from('support_nachrichten').insert({ fall_id: Z.fall.id, von: 'team', name: name, text: t });
+    if (r.error) { alert('Nicht gesendet: ' + r.error.message); return; }
+    if (Z.fall.status === 'offen') await status('in_arbeit', true);
+    $('antwortText').value = ''; await holen(); chatMalen(); await liste();
+  }
+  async function status(s, still) {
+    var r = await sb.from('support_faelle').update({ status: s }).eq('id', Z.fall.id);
+    if (r.error) { alert(r.error.message); return; }
+    Z.fall.status = s; if (!still) { chatMalen(); await liste(); }
+  }
+  async function aktualisieren() {
+    await liste();
+    if (Z.fall) { var f = Z.faelle.find(function (x) { return x.id === Z.fall.id; }); if (f) Z.fall = f; var n = Z.nachrichten.length; await holen(); if (Z.nachrichten.length !== n) { chatMalen(); await gelesen(); } }
+  }
+  document.addEventListener('click', function (e) {
+    var fi = e.target.closest('[data-filter]'); if (fi) { Z.filter = fi.dataset.filter; filterMalen(); listeMalen(); return; }
+    var fa = e.target.closest('[data-fall]'); if (fa) { oeffnen(fa.dataset.fall); return; }
+    var st = e.target.closest('[data-status]'); if (st) { status(st.dataset.status); return; }
+    if (e.target.closest('[data-zurueck]')) { $('rahmen').classList.remove('offen'); Z.fall = null; listeMalen(); }
+  });
+  document.addEventListener('submit', function (e) { if (e.target.id === 'antwort') { e.preventDefault(); senden(); } });
+  document.addEventListener('keydown', function (e) { if (e.target.id === 'antwortText' && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); senden(); } });
+  start();
+})();
+</script>
+</body>
+</html>

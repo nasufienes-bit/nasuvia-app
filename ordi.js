@@ -84,6 +84,16 @@
   .ordi-tippt span{display:inline-block;width:7px;height:7px;border-radius:50%;background:#7C8499;margin-right:3px;animation:ordiPunkt 1s infinite}
   .ordi-tippt span:nth-child(2){animation-delay:.15s}.ordi-tippt span:nth-child(3){animation-delay:.3s}
   @keyframes ordiPunkt{50%{opacity:.25;transform:translateY(-2px)}}
+  .ordi-mensch-leiste{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#EAF6F0;font-size:13px;color:#0B3B2E;border-bottom:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 10%,transparent)}
+  .ordi-mensch-leiste button{margin-left:auto;border:0;background:#0B3B2E;color:#fff;border-radius:100px;padding:6px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .ordi-mensch-leiste.neu{background:#FFF4D6}.ordi-msg.team{background:#EAF6F0;border:1px solid #BFE5D2;border-bottom-left-radius:4px;align-self:flex-start}
+  .ordi-msg .ordi-wer{display:block;font-size:11.5px;font-weight:700;color:#0E7A55;margin-bottom:3px}.ordi-msg.ich .ordi-wer{color:#B9F3D4}
+  .ordi-pruef{display:grid;gap:8px;background:#fff;border:1.5px solid color-mix(in srgb,var(--elektrik,#0E7A55) 35%,transparent);border-radius:14px;padding:12px}
+  .ordi-pruef textarea{width:100%;box-sizing:border-box;min-height:80px;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 22%,transparent);border-radius:12px;padding:9px 11px;font:inherit;font-size:15px;resize:vertical}
+  .ordi-pruef label{display:flex;gap:8px;align-items:center;font-size:13px;color:#3F5A4F}.ordi-pruef .knoepfe{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+  .ordi-pruef .knoepfe button{border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 18%,transparent);background:#fff;border-radius:100px;padding:8px 13px;font:inherit;font-size:13.5px;font-weight:700;color:#0B3B2E;cursor:pointer}
+  .ordi-pruef .knoepfe button.ja{background:#0B3B2E;color:#fff;border-color:#0B3B2E}
+  .ordi-punkt{position:absolute;top:-2px;right:-2px;width:11px;height:11px;border-radius:50%;background:#E4572E;border:2px solid #fff}
   @media print{.ordi-knopf,.ordi-panel{display:none!important}}`;
   document.head.appendChild(css);
 
@@ -122,11 +132,12 @@
       setTimeout(() => { if (!knopf || panel) return; const b = document.createElement('span'); b.className = 'ordi-blase'; b.textContent = 'Fragen? Ich bin Ordi 👋'; knopf.appendChild(b); setTimeout(() => b.remove(), 5000); }, 2500);
     }
   }
-  function zu() { if (panel) { panel.remove(); panel = null; } }
+  function zu() { if (panel) { panel.remove(); panel = null; } try { Mensch.ende(); } catch {} }
   function auf() {
     zu();
     panel = document.createElement('div'); panel.className = 'ordi-panel' + (knopf && knopf.classList.contains('ordi-kopfknopf') && innerWidth > 820 ? ' oben' : ''); panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Ordi');
     panel.innerHTML = `<div class="ordi-kopf">${GESICHT(36)}<div><b>Ordi</b><small>Ihr Buchhalter und Helfer</small></div><button class="ordi-menue" data-ordi-menue title="Optionen">⋯</button><button data-ordi-zu aria-label="Schliessen">×</button></div>
+      <div class="ordi-mensch-leiste" id="ordiMensch"><span>Unsicher? Ein Mensch aus unserem Team prüft es.</span><button type="button" data-ordi-mensch>Prüfen lassen</button></div>
       <div class="ordi-verlauf" id="ordiVerlauf"></div>
       <form class="ordi-eingabe"><button type="button" class="ordi-datei" data-ordi-datei aria-label="Foto oder Datei senden" title="Foto oder Datei senden"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l9.2-9.2a3.7 3.7 0 0 1 5.2 5.2l-9.2 9.2a1.8 1.8 0 0 1-2.6-2.6l8.5-8.5"/></svg></button><input type="file" id="ordiDateien" multiple accept="image/*,application/pdf,.pdf,.csv,.xml,.xlsx,.xls,.txt,.053" hidden><input id="ordiFrage" placeholder="Frage stellen oder Beleg senden …" autocomplete="off" enterkeyhint="send"><button>Senden</button></form>`;
     document.body.appendChild(panel);
@@ -139,7 +150,7 @@
     // Dateien auch aufs Fenster ziehen
     panel.addEventListener('dragover', (e) => { if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')) { e.preventDefault(); e.stopPropagation(); } });
     panel.addEventListener('drop', (e) => { if (!e.dataTransfer || !e.dataTransfer.files.length) return; e.preventDefault(); e.stopPropagation(); dateienSenden([...e.dataTransfer.files]); });
-    panel.querySelector('form').addEventListener('submit', (e) => { e.preventDefault(); const f = panel.querySelector('#ordiFrage'); const t = f.value.trim(); if (!t) return; f.value = ''; fragen(t); });
+    panel.querySelector('form').addEventListener('submit', (e) => { e.preventDefault(); const f = panel.querySelector('#ordiFrage'); const t = f.value.trim(); if (!t) return; f.value = ''; if (Mensch.fall) Mensch.schreiben(t); else fragen(t); });
     panel.addEventListener('click', (e) => {
       if (e.target.closest('[data-ordi-zu]')) zu();
       const c = e.target.closest('[data-ordi-frage]'); if (c) fragen(c.dataset.ordiFrage);
@@ -147,7 +158,12 @@
       if (e.target.closest('[data-ordi-datei]')) panel.querySelector('#ordiDateien').click();
       const bk = e.target.closest('[data-ordi-bank]'); if (bk) alsKontoauszug(bk.dataset.ordiBank);
       if (e.target.closest('[data-ordi-ja]') || e.target.closest('[data-ordi-nein]')) aktionAntwort(!!e.target.closest('[data-ordi-ja]'));
+      if (e.target.closest('[data-ordi-mensch]')) Mensch.start();
+      if (e.target.closest('[data-ordi-pruef-senden]')) Mensch.senden();
+      if (e.target.closest('[data-ordi-pruef-ab]')) Mensch.zurueck();
+      const pf = e.target.closest('[data-ordi-fall]'); if (pf) Mensch.oeffnen(pf.dataset.ordiFall);
     });
+    Mensch.leiste();
     setTimeout(() => { const f = panel && panel.querySelector('#ordiFrage'); if (f && !matchMedia('(max-width: 820px)').matches) f.focus(); }, 50);
   }
   function menue() {
@@ -269,6 +285,90 @@
   }
   // Text ins Eingabefeld legen, damit man ihn anpassen und selbst abschicken kann
   function vorschlag(text) { if (!panel) auf(); const f = panel && panel.querySelector('#ordiFrage'); if (f) { f.value = text; f.focus(); try { f.setSelectionRange(text.length, text.length); } catch {} } }
+  /* ---------- Prüfung durch einen Menschen: Fall an das Ordasio-Team, danach Chat im Ordi-Fenster ---------- */
+  const Mensch = (() => {
+    let faelle = [], fall = null, nachrichten = [], uhr = null;
+    async function rest(pfad, o = {}) {
+      const t = await token(); if (!t || !K.produkt) throw new Error('Bitte zuerst anmelden.');
+      const r = await fetch(K.url + '/rest/v1/' + pfad, { method: o.method || 'GET', headers: { apikey: K.key, Authorization: 'Bearer ' + t, 'Content-Type': 'application/json', ...(o.prefer ? { Prefer: o.prefer } : {}) }, body: o.body ? JSON.stringify(o.body) : undefined });
+      if (!r.ok) throw new Error('Verbindung zum Team fehlgeschlagen (' + r.status + ').');
+      return r.status === 204 ? null : r.json().catch(() => null);
+    }
+    const ungelesen = (f) => f.team_gelesen && (!f.kunde_gelesen || f.team_gelesen > f.kunde_gelesen);
+    async function laden() { try { faelle = await rest('support_faelle?select=id,titel,status,zuletzt,kunde_gelesen,team_gelesen&order=zuletzt.desc&limit=20') || []; } catch { faelle = []; } return faelle; }
+    function leiste() {
+      const l = panel && panel.querySelector('#ordiMensch'); if (!l) return;
+      if (!K.produkt) { l.remove(); return; }
+      const neu = faelle.find(ungelesen), offen = faelle.find((f) => f.status !== 'erledigt');
+      l.classList.toggle('neu', !!neu);
+      if (fall) l.innerHTML = `<span>Chat mit dem Ordasio-Team</span><button type="button" data-ordi-pruef-ab>Zurück zu Ordi</button>`;
+      else if (neu) l.innerHTML = `<span><b>Neue Antwort vom Team</b></span><button type="button" data-ordi-fall="${neu.id}">Lesen</button>`;
+      else if (offen) l.innerHTML = `<span>Ihre Anfrage: ${esc(offen.status === 'in_arbeit' ? 'wird bearbeitet' : 'ist beim Team')}</span><button type="button" data-ordi-fall="${offen.id}">Öffnen</button>`;
+      else l.innerHTML = `<span>Unsicher? Ein Mensch aus unserem Team prüft es.</span><button type="button" data-ordi-mensch>Prüfen lassen</button>`;
+    }
+    function start() {
+      const letzte = [...verlauf].reverse().find((m) => m.rolle === 'ich');
+      verlauf.push({ rolle: 'ordi', html: `<b>Von unserem Team prüfen lassen</b><br>Beschreiben Sie kurz, was geprüft werden soll. Eine Person aus dem Ordasio-Team schaut es an und antwortet hier im Chat, meist am gleichen Arbeitstag.
+        <div class="ordi-pruef" style="margin-top:8px"><textarea id="ordiPruefText" maxlength="4000" placeholder="z. B. Ist die Buchung der Leasingrate richtig?">${esc(letzte ? letzte.text : '')}</textarea>
+        <label><input type="checkbox" id="ordiPruefVerlauf" checked> Den bisherigen Ordi-Verlauf mitschicken</label>
+        <div class="knoepfe"><button type="button" class="ja" data-ordi-pruef-senden>An das Team senden</button></div></div>`, text: 'Prüfung anfragen', pruef: true });
+      malen();
+      setTimeout(() => { const t = panel && panel.querySelector('#ordiPruefText'); if (t) t.focus(); }, 50);
+    }
+    async function senden() {
+      const ta = panel && panel.querySelector('#ordiPruefText'); if (!ta) return;
+      const text = ta.value.trim(); if (text.length < 3) { ta.focus(); return; }
+      const mitVerlauf = panel.querySelector('#ordiPruefVerlauf').checked;
+      const knopfS = panel.querySelector('[data-ordi-pruef-senden]'); knopfS.disabled = true; knopfS.textContent = 'Wird gesendet …';
+      try {
+        const lz = window.NASUVIA_LIZENZ || {};
+        const v = mitVerlauf ? verlauf.filter((m) => !m.fakt && !m.denkt && !m.pruef).slice(-14).map((m) => ({ rolle: m.rolle, text: String(m.text || '').slice(0, 1500) })) : null;
+        const f = await rest('support_faelle', { method: 'POST', prefer: 'return=representation', body: { titel: text.split('\n')[0].slice(0, 120), firma: lz.firma || lz.name || '', ordi_verlauf: v } });
+        const neu = Array.isArray(f) ? f[0] : f;
+        await rest('support_nachrichten', { method: 'POST', prefer: 'return=minimal', body: { fall_id: neu.id, von: 'kunde', name: lz.name || '', text } });
+        // Team per E-Mail informieren (klappt nur, wenn der Versand eingerichtet ist)
+        try { const t = await token(); fetch(K.url + '/functions/v1/mail-senden', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: K.key, Authorization: 'Bearer ' + t }, body: JSON.stringify({ aktion: 'senden', art: 'support', an: 'support@ordasio.ch', betreff: 'Ordi: Prüfung angefragt von ' + (lz.firma || lz.name || 'Kunde'), text: text + '\n\nAntworten unter https://app.ordasio.ch/team/' }) }).catch(() => {}); } catch {}
+        const m = verlauf.find((x) => x.pruef && !x.erledigt); if (m) { m.erledigt = true; m.html = '<b>Prüfung angefragt</b><br>' + esc(text); }
+        sichern(); await laden(); await oeffnen(neu.id);
+      } catch (x) { knopfS.disabled = false; knopfS.textContent = 'An das Team senden'; verlauf.push({ rolle: 'ordi', text: x.message || 'Senden hat nicht geklappt.' }); malen(); }
+    }
+    async function oeffnen(id) {
+      fall = faelle.find((f) => f.id === id) || { id };
+      await holen(); leiste(); chatMalen();
+      try { await rest('rpc/support_gelesen', { method: 'POST', body: { p_fall: id } }); await laden(); } catch {}
+      stopp(); uhr = setInterval(async () => { if (!panel || !fall) return stopp(); const vorher = nachrichten.length; await holen(); if (nachrichten.length !== vorher) { chatMalen(); try { await rest('rpc/support_gelesen', { method: 'POST', body: { p_fall: fall.id } }); } catch {} } }, 8000);
+    }
+    async function holen() { try { nachrichten = await rest('support_nachrichten?select=id,von,name,text,erstellt&fall_id=eq.' + fall.id + '&order=erstellt.asc') || []; } catch { nachrichten = []; } }
+    function chatMalen() {
+      const v = panel && panel.querySelector('#ordiVerlauf'); if (!v || !fall) return;
+      const zeit = (t) => new Date(t).toLocaleString('de-CH', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
+      v.innerHTML = `<div class="ordi-msg ordi">Hier schreiben Sie direkt mit dem Ordasio-Team. Wir antworten so schnell wie möglich, meist am gleichen Arbeitstag.${fall.status === 'erledigt' ? '<br><b>Diese Anfrage ist erledigt.</b> Schreiben Sie einfach, wenn noch etwas offen ist.' : ''}</div>` +
+        nachrichten.map((n) => `<div class="ordi-msg ${n.von === 'team' ? 'team' : 'ich'}"><span class="ordi-wer">${n.von === 'team' ? 'Ordasio-Team' + (n.name ? ' · ' + esc(n.name) : '') : 'Sie'} · ${esc(zeit(n.erstellt))}</span>${md(n.text)}</div>`).join('');
+      v.scrollTop = v.scrollHeight;
+      const f = panel.querySelector('#ordiFrage'); if (f) f.placeholder = 'Nachricht an das Team …';
+    }
+    async function schreiben(text) {
+      if (!fall) return;
+      const lz = window.NASUVIA_LIZENZ || {};
+      nachrichten.push({ von: 'kunde', text, erstellt: new Date().toISOString() }); chatMalen();
+      try { await rest('support_nachrichten', { method: 'POST', prefer: 'return=minimal', body: { fall_id: fall.id, von: 'kunde', name: lz.name || '', text: text.slice(0, 8000) } }); await holen(); chatMalen(); }
+      catch (x) { nachrichten.push({ von: 'team', name: '', text: 'Nicht gesendet: ' + x.message, erstellt: new Date().toISOString() }); chatMalen(); }
+    }
+    function zurueck() { fall = null; stopp(); const f = panel && panel.querySelector('#ordiFrage'); if (f) f.placeholder = 'Frage stellen oder Beleg senden …'; malen(); laden().then(leiste); }
+    function stopp() { if (uhr) { clearInterval(uhr); uhr = null; } }
+    function ende() { stopp(); fall = null; }
+    // Punkt am Ordi-Knopf, wenn das Team geantwortet hat
+    async function pruefenNeu() {
+      if (!K.produkt) return;
+      await laden();
+      const neu = faelle.some(ungelesen);
+      if (knopf) { knopf.style.position = knopf.style.position || 'relative'; let p = knopf.querySelector('.ordi-punkt'); if (neu && !p) { p = document.createElement('span'); p.className = 'ordi-punkt'; knopf.appendChild(p); } if (!neu && p) p.remove(); }
+      leiste();
+    }
+    return { start, senden, oeffnen, schreiben, zurueck, stopp, ende, leiste, pruefenNeu, get fall() { return fall; } };
+  })();
+  setTimeout(() => Mensch.pruefenNeu().catch(() => {}), 2500);
+
   window.Ordi = { vorschlag, fragen: (t) => { if (!panel) auf(); fragen(t); }, auf, zu, an: () => { setz(AUS, false); knopfZeigen(); }, aus: () => { setz(AUS, true); zu(); if (knopf) { knopf.remove(); knopf = null; } }, istAn: () => !lies(AUS, false) };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', knopfZeigen); else knopfZeigen();
 })();
