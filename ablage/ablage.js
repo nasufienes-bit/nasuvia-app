@@ -8,7 +8,7 @@
   const dk = (d) => (d ? d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4) : '');
   const heute = () => new Date().toLocaleDateString('sv-SE');
   const toast = (t, ms = 2800) => { const e = $('toast'); e.textContent = t; e.classList.add('da'); clearTimeout(toast.z); toast.z = setTimeout(() => e.classList.remove('da'), ms); };
-  const fehlerText = (e) => String((e && e.message) || e || 'Unbekannter Fehler');
+  const fehlerText = (e) => { const t = e && (e.message || e.error_description || e.msg || e.hint || e.details); if (t) return String(t).replace(/^.*?: /, (m) => (/exception/i.test(m) ? '' : m)); if (typeof e === 'string' && e) return e; return navigator.onLine === false ? 'Keine Internetverbindung. Bitte später nochmals versuchen.' : 'Der Server hat nicht geantwortet. Bitte die Seite neu laden.'; };
   const groesse = (b) => (b > 1e6 ? (b / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1e3)) + ' KB');
   const tageBis = (d) => Math.round((new Date(d + 'T12:00') - new Date(heute() + 'T12:00')) / 864e5);
 

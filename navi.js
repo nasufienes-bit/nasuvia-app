@@ -296,6 +296,16 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', einbauen); else einbauen();
   // Mehrere Firmen (Buchhalter): Firmen-Knopf und Wechsel, nur in der Verkaufsversion
+  // Zuletzt geöffnete Bereiche (für «Weiter, wo Sie waren» auf der Startseite)
+  if (PRODUKT && hier && !/^(start|hilfe|konto|mehr)$/.test(hier)) {
+    try {
+      var bz = BEREICHE.filter(function (b) { return b.id === hier; })[0] || {};
+      var zl = JSON.parse(localStorage.getItem('ordasioZuletzt') || '[]').filter(function (x) { return x.id !== hier; });
+      zl.unshift({ id: hier, name: bz.name || ds.titel || hier, href: location.pathname + location.search, t: Date.now(), icon: bz.icon || '' });
+      localStorage.setItem('ordasioZuletzt', JSON.stringify(zl.slice(0, 6)));
+    } catch (e) {}
+  }
+  if (PRODUKT && !window.OrdasioNeu && !document.querySelector('script[src$="neu.js"]')) { var ns = document.createElement('script'); ns.src = WURZEL + 'neu.js'; document.head.appendChild(ns); }
   if (PRODUKT && window.supabase && !window.OrdasioFirmen && !document.querySelector('script[src$="firmen.js"]')) {
     var fs = document.createElement('script'); fs.src = WURZEL + 'firmen.js'; document.head.appendChild(fs);
   }

@@ -206,7 +206,7 @@ a.live{text-decoration:none}
   const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
   const monatName = (m) => MONATE[Number(m.slice(5, 7)) - 1] + ' ' + m.slice(0, 4);
   const toast = (t, ms = 2800) => { const e = $('toast'); e.textContent = t; e.classList.add('da'); clearTimeout(toast.z); toast.z = setTimeout(() => e.classList.remove('da'), ms); };
-  const fehlerText = (e) => String((e && e.message) || e || 'Unbekannter Fehler').replace(/^.*?: /, (m) => (/exception/i.test(m) ? '' : m));
+  const fehlerText = (e) => { const t = e && (e.message || e.error_description || e.msg || e.hint || e.details); if (t) return String(t).replace(/^.*?: /, (m) => (/exception/i.test(m) ? '' : m)); if (typeof e === 'string' && e) return e; return navigator.onLine === false ? 'Keine Internetverbindung. Bitte später nochmals versuchen.' : 'Der Server hat nicht geantwortet. Bitte die Seite neu laden.'; };
   const neuerSchluessel = () => { const a = new Uint8Array(18); crypto.getRandomValues(a); return [...a].map((b) => b.toString(16).padStart(2, '0')).join(''); };
   const erfassenLink = (t) => new URL('erfassen/?t=' + t, location.href).href;
 

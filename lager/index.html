@@ -175,7 +175,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   const betragLesen = (t) => { const n = Number(String(t || '').replace(/[’'\s]/g, '').replace(/^CHF/i, '').replace(',', '.')); return Number.isFinite(n) ? Math.round(n * 100) : 0; };
   const mengeLesen = (t) => { const n = Number(String(t || '').replace(/[’'\s]/g, '').replace(',', '.')); return Number.isFinite(n) ? n : 0; };
   const toast = (t, ms = 2800) => { const e = $('toast'); e.textContent = t; e.classList.add('da'); clearTimeout(toast.z); toast.z = setTimeout(() => e.classList.remove('da'), ms); };
-  const fehlerText = (e) => String((e && e.message) || e || 'Unbekannter Fehler');
+  const fehlerText = (e) => { const t = e && (e.message || e.error_description || e.msg || e.hint || e.details); if (t) return String(t).replace(/^.*?: /, (m) => (/exception/i.test(m) ? '' : m)); if (typeof e === 'string' && e) return e; return navigator.onLine === false ? 'Keine Internetverbindung. Bitte später nochmals versuchen.' : 'Der Server hat nicht geantwortet. Bitte die Seite neu laden.'; };
   const ICON = {
     artikel: '<path d="M3 8 12 3l9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
     bewegungen: '<path d="M7 7h13l-3-3M17 17H4l3 3"/>',

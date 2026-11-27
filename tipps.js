@@ -74,6 +74,7 @@
   .tp-leiste::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:var(--elektrik,#0E7A55)}
   .tp-band{display:grid;grid-auto-flow:column;grid-auto-columns:100%;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
   .tp-band::-webkit-scrollbar{display:none}
+  .tp-band{align-items:start;transition:height .2s ease;overflow-y:hidden}
   .tp-karte{min-width:0;scroll-snap-align:start;display:grid;grid-template-columns:40px minmax(0,1fr);gap:0 14px;align-items:center}
   .tp-ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:var(--elektrik,#0E7A55);background:color-mix(in srgb,var(--elektrik,#0E7A55) 10%,transparent)}
   .tp-ic svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
@@ -100,6 +101,11 @@
   function bauen() {
     const l = TIPPS[hier]; if (!l) return null;
     const d = lies(); if (d.alle === false || d[hier]) return null;
+    // Nach 8 Besuchen eines Bereichs kennt man ihn: Tipps blenden sich von selbst aus (unter „Darstellung“ wieder einschalten)
+    let besuche = {}; try { besuche = JSON.parse(localStorage.getItem('ordasio.tippsBesuche') || '{}'); } catch {}
+    const nBesuch = (besuche[hier] || 0) + 1; besuche[hier] = nBesuch;
+    try { if (!sessionStorage.getItem('tpGezaehlt.' + hier)) { sessionStorage.setItem('tpGezaehlt.' + hier, '1'); localStorage.setItem('ordasio.tippsBesuche', JSON.stringify(besuche)); } } catch {}
+    if (nBesuch > 8 && !d.immer) return null;
     const el = document.createElement('div'); el.className = 'tp-leiste'; el.setAttribute('aria-label', 'Tipps');
     el.innerHTML = `<div class="tp-innen"><div class="tp-band">${l.map(([ic, t, x, f]) => `<div class="tp-karte"><span class="tp-ic">${symbol(ic)}</span><div class="tp-text"><small>Tipp</small><b>${esc(t)}</b><p>${esc(x)}</p>${f ? `<button type="button" class="tp-ordi" data-tp-ordi="${esc(f)}">Ausprobieren</button>` : ''}</div></div>`).join('')}</div>
       <div class="tp-steuer"><button type="button" data-tp="-1" aria-label="Vorheriger Tipp"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button><span class="tp-zahl"></span><button type="button" data-tp="1" aria-label="Nächster Tipp"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button><button class="tp-zu" type="button" title="Tipps ausblenden" aria-label="Tipps ausblenden"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div></div>`;
@@ -111,6 +117,7 @@
     const malen = () => {
       const n = seiten(), i = Math.min(jetzt(), n - 1);
       zahl.textContent = n > 1 ? `${i + 1} / ${n}` : '';
+      const akt = band.children[i]; if (akt) band.style.height = akt.offsetHeight + 'px';
       el.querySelectorAll('[data-tp]').forEach((b) => { b.hidden = n <= 1; b.disabled = (b.dataset.tp === '-1' && i <= 0) || (b.dataset.tp === '1' && i >= n - 1); });
     };
     const gehe = (i) => { const k = band.querySelector('.tp-karte'); if (k) band.scrollTo({ left: Math.max(0, i) * (k.offsetWidth + 16) * proSeite(), behavior: 'smooth' }); };
@@ -131,6 +138,6 @@
     beobachter = new MutationObserver(() => { if (!el.isConnected) rein(); });
     beobachter.observe(ziel, { childList: true });
   }
-  window.Tipps = { an: () => { setz({ alle: true }); location.reload(); }, aus: () => { setz({ alle: false }); document.querySelectorAll('.tp-leiste').forEach((e) => e.remove()); }, istAn: () => lies().alle !== false };
+  window.Tipps = { an: () => { setz({ alle: true, immer: true }); try { localStorage.removeItem('ordasio.tippsBesuche'); } catch {} location.reload(); }, aus: () => { setz({ alle: false }); document.querySelectorAll('.tp-leiste').forEach((e) => e.remove()); }, istAn: () => lies().alle !== false };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(einsetzen, 400)); else setTimeout(einsetzen, 400);
 })();

@@ -13,7 +13,7 @@
   const dk = (d) => (d ? d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4) : '');
   const betragLesen = (t) => { const n = Number(String(t || '').replace(/[’'\s]/g, '').replace(/^CHF/i, '').replace(',', '.')); return Number.isFinite(n) ? Math.round(n * 100) : null; };
   const toast = (t, ms = 2800) => { const e = $('toast'); e.textContent = t; e.classList.add('da'); clearTimeout(toast.z); toast.z = setTimeout(() => e.classList.remove('da'), ms); };
-  const fehlerText = (e) => String((e && e.message) || e || 'Unbekannter Fehler');
+  const fehlerText = (e) => { const t = e && (e.message || e.error_description || e.msg || e.hint || e.details); if (t) return String(t).replace(/^.*?: /, (m) => (/exception/i.test(m) ? '' : m)); if (typeof e === 'string' && e) return e; return navigator.onLine === false ? 'Keine Internetverbindung. Bitte später nochmals versuchen.' : 'Der Server hat nicht geantwortet. Bitte die Seite neu laden.'; };
   const ICON = {
     projekte: '<path d="M4 20h16M6 20V9l6-5 6 5v11"/><path d="M10 20v-6h4v6"/>',
     kostenstellen: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',

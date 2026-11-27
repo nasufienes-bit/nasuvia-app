@@ -121,7 +121,7 @@ input,select{font:inherit;font-size:16px;border:1px solid color-mix(in srgb,var(
   const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
   const jetztZeit = () => new Date().toTimeString().slice(0, 5);
   const toast = (t, ms = 2600) => { const e = $('toast'); e.textContent = t; e.classList.add('da'); clearTimeout(toast.z); toast.z = setTimeout(() => e.classList.remove('da'), ms); };
-  const fehlerText = (e) => String((e && e.message) || e || 'Unbekannter Fehler');
+  const fehlerText = (e) => { const t = e && (e.message || e.error_description || e.msg || e.hint || e.details); if (t) return String(t).replace(/^.*?: /, (m) => (/exception/i.test(m) ? '' : m)); if (typeof e === 'string' && e) return e; return navigator.onLine === false ? 'Keine Internetverbindung. Bitte später nochmals versuchen.' : 'Der Server hat nicht geantwortet. Bitte die Seite neu laden.'; };
   const lies = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
   let NUR_LESEN = false; // in der Vorschau nichts auf dem Gerät speichern (sonst würde z. B. der eigene Link überschrieben)
   const setz = (k, v) => { if (NUR_LESEN) return; try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} };

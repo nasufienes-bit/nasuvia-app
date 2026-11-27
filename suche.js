@@ -308,6 +308,12 @@
       'Mitarbeitende tippen auf ihrem Handy-Link unter „Anfragen ans Büro“ auf das Passende und senden es ab.',
       'Im Büro erscheint es in der Firmenablage unter „Anträge und Anfragen“. Mit „Dokument senden“ legen Sie z. B. die Lohnabrechnung direkt aufs Handy der Person.',
       '„Erledigt“ oder „Ablehnen“ tippen, eine kurze Nachricht schreiben. Der Mitarbeiter sieht die Antwort sofort.'], WURZEL + 'ablage/?tab=antraege'],
+    ['neu-erstellen', 'Allgemein', 'Neu erstellen: Rechnung, Termin, Mitarbeiter …', 'neu erstellen plus anlegen schnell rechnung offerte termin mitarbeiter artikel projekt erinnerung', [
+      'Oben rechts auf „+ Neu“ tippen (am Handy auf der Startseite) oder am Computer die Taste N drücken.',
+      'Es erscheinen nur Dinge, die in Ihrer Lizenz enthalten sind. Der Bereich öffnet sich direkt mit dem neuen Formular.'], WURZEL + 'start/#uebersicht'],
+    ['tastenkuerzel', 'Allgemein', 'Tastenkürzel am Computer', 'tastenkürzel tastatur shortcut kürzel taste schnell', [
+      'N: Neu erstellen · / oder Ctrl/⌘ K: Suchen · ?: alle Kürzel anzeigen.',
+      'G und dann ein Buchstabe wechselt den Bereich: G B Buchhaltung, G R Rechnungen, G Z Zeiterfassung, G T Termine, G S Start.'], WURZEL + 'start/'],
     ['hb-jahr', 'Home-Büro', 'Mein Jahr: verdient, ausgegeben, Monate, Zahlungen suchen', 'jahr verdient ausgegeben monate monat übersicht private buchhaltung zahlung suchen coop migros kontoauszug sparquote', [
       'Home-Büro, Geld, „Mein Jahr“: Verdient, Ausgegeben, Übrig und jeder Monat einzeln.',
       'Oben im Suchfeld z. B. „coop“ eingeben: alle Coop-Zahlungen mit Total, Durchschnitt und pro Monat. Auch als Excel.',
@@ -427,7 +433,10 @@
   .su-knopf{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 16%,transparent)!important;border-radius:100px!important;background:#fff!important;color:#3F5A4F!important;font:500 .92rem 'League Spartan',-apple-system,system-ui,sans-serif;cursor:pointer;min-width:0}
   .su-knopf svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
   .su-knopf kbd{font:500 11px 'JetBrains Mono',monospace;background:var(--flaeche,#E8F4EE);border-radius:5px;padding:2px 5px;color:#7C8499}
-  @media(max-width:640px){.su-knopf span,.su-knopf kbd{display:none}.su-knopf{padding:0 11px}}
+  @media(max-width:640px){.su-knopf span,.su-knopf kbd{display:none}.su-knopf{padding:0 11px;width:40px;justify-content:center}}
+  .su-knopf,.ordi-kopfknopf,.nv-menue-rechts{flex-shrink:0!important}
+  [data-suche-hier]{display:inline-flex;gap:8px;flex-shrink:0}
+  .kopfzeile .marke{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .su-hinten{position:fixed;inset:0;z-index:99990;background:rgba(12,18,38,.35);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;justify-content:center;align-items:flex-start;padding:max(60px,8vh) 14px 14px}
   .su-box{width:min(620px,100%);background:#fff;border-radius:20px;box-shadow:0 40px 100px -30px rgba(12,18,38,.55);overflow:hidden;font-family:'League Spartan',-apple-system,system-ui,sans-serif;color:#0A1F17}
   .su-feld{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid color-mix(in srgb,var(--blau,#0B3B2E) 12%,transparent)}

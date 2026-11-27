@@ -204,7 +204,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   const plusTage = (d, n) => { const x = new Date(d + 'T12:00'); x.setDate(x.getDate() + n); return x.toLocaleDateString('sv-SE'); };
   const betragLesen = (t) => { const n = Number(String(t || '').replace(/[’'\s]/g, '').replace(/^CHF/i, '').replace(',', '.')); return Number.isFinite(n) ? Math.round(n * 100) : 0; };
   const toast = (t, ms = 2800) => { const e = $('toast'); e.textContent = t; e.classList.add('da'); clearTimeout(toast.z); toast.z = setTimeout(() => e.classList.remove('da'), ms); };
-  const fehlerText = (e) => String((e && e.message) || e || 'Unbekannter Fehler');
+  const fehlerText = (e) => { const t = e && (e.message || e.error_description || e.msg || e.hint || e.details); if (t) return String(t).replace(/^.*?: /, (m) => (/exception/i.test(m) ? '' : m)); if (typeof e === 'string' && e) return e; return navigator.onLine === false ? 'Keine Internetverbindung. Bitte später nochmals versuchen.' : 'Der Server hat nicht geantwortet. Bitte die Seite neu laden.'; };
   // Datum und Uhrzeit in Zürich → Zeitpunkt (unabhängig von der Zeitzone des Geräts)
   function zuerich(datum, zeit) {
     const [j, m, t] = datum.split('-').map(Number), [h, mi] = zeit.split(':').map(Number);
