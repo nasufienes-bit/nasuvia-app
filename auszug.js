@@ -186,9 +186,9 @@
   }
 
   /* ---------- KI (falls eingerichtet) ---------- */
-  async function mitKi(datei) {
-    if (!window.Leser || !Leser.ki) return null;
-    const j = await Leser.ki(datei, 'kontoauszug').catch(() => null);
+  // Ein Teil (Bild oder PDF) mit KI lesen
+  async function kiTeil(blob) {
+    const j = await Leser.ki(blob, 'kontoauszug').catch(() => null);
     if (!j) return null;
     if (j.fehler) return { fehler: j.fehler };
     const f = j.felder || {};
@@ -202,6 +202,46 @@
     })).filter((b) => b.datum && Number.isFinite(b.betragRappen) && b.betragRappen);
     const num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Math.round(Number(x) * 100));
     return { liste, anfang: num(f.anfangssaldo), ende: num(f.endsaldo) };
+  }
+  // Grosse PDFs in Teile von wenigen Seiten aufteilen: jede Antwort der KI bleibt kurz und vollständig
+  const PDFLIB = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+  const SEITEN_PRO_TEIL = 2;
+  async function pdfTeile(datei) {
+    if (!window.PDFLib) await laden(PDFLIB);
+    const quelle = await window.PDFLib.PDFDocument.load(await datei.arrayBuffer(), { ignoreEncryption: true });
+    const n = quelle.getPageCount();
+    if (n <= SEITEN_PRO_TEIL) return [datei];
+    const teile = [];
+    for (let a = 0; a < n; a += SEITEN_PRO_TEIL) {
+      const neu = await window.PDFLib.PDFDocument.create();
+      const idx = Array.from({ length: Math.min(SEITEN_PRO_TEIL, n - a) }, (_, k) => a + k);
+      (await neu.copyPages(quelle, idx)).forEach((s) => neu.addPage(s));
+      teile.push(new Blob([await neu.save()], { type: 'application/pdf' }));
+    }
+    return teile;
+  }
+  async function mitKi(datei, melden, pdf) {
+    if (!window.Leser || !Leser.ki) return null;
+    let teile = [datei];
+    if (pdf) { try { teile = await pdfTeile(datei); } catch { teile = [datei]; } }
+    if (teile.length === 1) return kiTeil(datei);
+    const erg = new Array(teile.length); let fertig = 0, naechster = 0;
+    const melde = () => { if (melden) melden(`Auszug wird mit KI gelesen … Teil ${fertig} von ${teile.length}`); };
+    melde();
+    const arbeiter = async () => {
+      while (naechster < teile.length) {
+        const k = naechster++;
+        let r = await kiTeil(teile[k]);
+        if (!r || r.fehler) r = await kiTeil(teile[k]); // einmal wiederholen
+        erg[k] = r; fertig++; melde();
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(4, teile.length) }, arbeiter));
+    const fehlt = erg.findIndex((r) => !r || r.fehler);
+    if (fehlt >= 0) return { fehler: `Teil ${fehlt + 1} von ${teile.length} (Seiten ${fehlt * SEITEN_PRO_TEIL + 1}–${Math.min((fehlt + 1) * SEITEN_PRO_TEIL, 9999)}) liess sich nicht lesen.` };
+    const anfang = erg.map((r) => r.anfang).find((x) => x != null) ?? null;
+    const ende = [...erg].reverse().map((r) => r.ende).find((x) => x != null) ?? null;
+    return { liste: erg.flatMap((r) => r.liste), anfang, ende, teile: teile.length };
   }
 
   // Stimmt Anfangssaldo + Bewegungen = Endsaldo?
@@ -226,7 +266,7 @@
     if (pdf || bild) {
       if (melden) melden(bild ? 'Foto wird gelesen …' : 'PDF wird gelesen …');
       let ki = null;
-      try { ki = await mitKi(datei); } catch { ki = null; }
+      try { ki = await mitKi(datei, melden, pdf); } catch { ki = null; }
       let lokal = null;
       if (pdf) { try { lokal = pdfBewegungen(await pdfSeiten(datei, melden)); } catch (f) { if (!ki || ki.fehler) throw f; } }
       if (melden) melden('Beträge und Saldo werden kontrolliert …');
@@ -605,7 +645,7 @@
     const zeilen = e.liste.map((b) => ({ ...b, an: !(optionen.doppelt && optionen.doppelt(b)), doppelt: !!(optionen.doppelt && optionen.doppelt(b)) }));
     return new Promise((fertig) => {
       const dlg = document.createElement('dialog'); dlg.className = 'az-dlg';
-      const quelle = (e.bank ? `Erkannt: Export von ${e.bank}. ` : '') + ({ ki: 'Automatisch mit KI gelesen.', pdf: (e.kiFehlt ? 'Achtung: Das Lesen mit KI war gerade nicht möglich, darum wurde das PDF nur einfach gelesen. Bitte Beträge und Vorzeichen genau prüfen oder den Auszug später nochmals hochladen. Am zuverlässigsten ist der CSV- oder camt.053-Export aus dem E-Banking.' : 'Aus dem PDF gelesen.'), csv: 'Aus der Datei gelesen.', camt: 'Aus der camt-Datei gelesen.' }[e.quelle] || 'Aus der Datei gelesen.');
+      const quelle = (e.bank ? `Erkannt: Export von ${e.bank}. ` : '') + ({ ki: e.teile ? `Automatisch mit KI gelesen, in ${e.teile} Teilen.` : 'Automatisch mit KI gelesen.', pdf: (e.kiFehlt ? 'Achtung: Das Lesen mit KI war gerade nicht möglich, darum wurde das PDF nur einfach gelesen. Bitte Beträge und Vorzeichen genau prüfen oder den Auszug später nochmals hochladen. Am zuverlässigsten ist der CSV- oder camt.053-Export aus dem E-Banking.' : 'Aus dem PDF gelesen.'), csv: 'Aus der Datei gelesen.', camt: 'Aus der camt-Datei gelesen.' }[e.quelle] || 'Aus der Datei gelesen.');
       let bestaetigt = false;
       // Zweifel: Saldo geht nicht auf, oder er lässt sich nicht kontrollieren und die Lesung ist unsicher
       const zweifel = () => {
