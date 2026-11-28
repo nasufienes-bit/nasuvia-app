@@ -325,6 +325,14 @@
       'Einstellungen, ganz unten «Ihre Daten».',
       '«Alle Daten löschen»: Daten weg, Konto und Lizenz bleiben.',
       '«Konto löschen»: Konto, Lizenz und alle Daten endgültig. Vorher eine Sicherung herunterladen.'], WURZEL + 'konto/#daten'],
+    ['hb-briefkasten', 'Home-Büro', 'Briefkasten: Post fotografieren und im Haushalt teilen', 'briefkasten post brief briefe haushalt partner partnerin familie teilen einladen gemeinsam rechnung bezahlt wer hat bezahlt', [
+      'Home-Büro, «Haushalt», «Briefkasten».',
+      'Mit «+ Post erfassen» einen Brief fotografieren. Ordasio liest Absender, Frist und Betrag.',
+      'Alle im Haushalt sehen den Eintrag, können Notizen schreiben und «Ich habe bezahlt» tippen.'], WURZEL + 'privat/?tab=briefkasten'],
+    ['hb-haushalt', 'Home-Büro', 'Person in den Haushalt einladen (gratis)', 'haushalt person einladen partner partnerin mitbewohner familie familienpaket gratis zweites login', [
+      'Home-Büro, «Haushalt», «Personen».',
+      '«Person gratis einladen» tippen und den Link per WhatsApp, SMS oder E-Mail schicken.',
+      'Die Person erstellt ihr Konto und hat das Home-Büro gratis, solange sie im Haushalt ist.'], WURZEL + 'privat/?tab=haushalt'],
     ['hb-steuer', 'Home-Büro', 'Steuererklärung vorbereiten (Assistent)', 'steuererklärung steuern assistent lohnausweis abzüge kanton frist einreichen etax vermögen', [
       'Home-Büro, Planen, «Steuererklärung».',
       'Kanton und Frist wählen, Lohnausweis fotografieren, Abzüge und Vermögen prüfen.',

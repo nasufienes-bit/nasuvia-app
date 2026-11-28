@@ -131,7 +131,10 @@
       else { wartetAufBestaetigung = ''; anmelden('anmelden', 'Melden Sie sich jetzt mit E-Mail und Passwort an.'); }
     } else if (e.target.closest('[data-lz-andere]')) { wartetAufBestaetigung = ''; anmelden('neu'); }
   });
-  const zeigen = (html) => { decke.querySelector('.lz-karte').innerHTML = html; if (!decke.isConnected) anhaengen(decke); };
+  const zeigen = (html) => { decke.querySelector('.lz-karte').innerHTML = html; if (!decke.isConnected) anhaengen(decke);
+    // Eingeladen in einen Haushalt: kein Paket wählen, es ist das Home-Büro
+    if (HH && PRODUKT === 'privat') { decke.querySelectorAll('[data-lz-form="neu"] [data-lz-rechtsform],[data-lz-form="neu"] [data-lz-paket],[data-lz-form="neu"] [data-lz-rfhinweis]').forEach((x) => { (x.closest('label') || x).hidden = true; });
+      const k = decke.querySelector('[data-lz-form="neu"] button.lz-knopf'); if (k) k.textContent = 'Konto erstellen und beitreten'; } };
   const weg = () => decke.remove();
   anhaengen(decke);
   const SYMBOL = '<img src="' + KAUFEN.replace(/lizenz\/$/, 'logo.png') + '" alt="Ordasio" style="height:34px;display:block">';
@@ -154,12 +157,14 @@
     if (h) h.innerHTML = esc(rechtsformHinweis(r.value)) + (e && e.gruende.length ? `<br><b>Empfehlung ${esc((O.paket(id) || {}).name || '')}:</b> ${esc(e.gruende.slice(0, 2).join(' '))}` : '');
     f.querySelectorAll('[data-lz-firmafeld]').forEach((x) => { x.hidden = r.value === 'privat'; });
   }
+  // Einladung in einen Haushalt (?haushalt=CODE): merken, auch über die Bestätigungs-Mail hinweg
+  const HH = (() => { try { const c = new URLSearchParams(location.search).get('haushalt'); if (c && /^[A-Za-z0-9]{6,16}$/.test(c)) localStorage.setItem('ordasio.haushalt', c.toUpperCase()); return localStorage.getItem('ordasio.haushalt') || ''; } catch { return ''; } })();
   function anmelden(modus = 'anmelden', meldung = '') {
     const q = new URLSearchParams(location.search);
     const rfVorgabe = (O && O.RECHTSFORMEN[q.get('rechtsform')]) ? q.get('rechtsform') : (PRODUKT === 'privat' ? 'privat' : 'einzel');
     const paketVorgabe = (O && O.paket(q.get('paket'))) ? O.passend(q.get('paket'), rfVorgabe) : (O ? O.vorgabe(rfVorgabe) : '');
-    zeigen(`${SYMBOL}<h2>${modus === 'neu' ? '30 Tage gratis testen' : 'Willkommen zurück'}</h2>
-      <p>${modus === 'neu' ? 'Konto erstellen und sofort loslegen. Keine Zahlung nötig.' : `Melden Sie sich an, um ${NAME} zu öffnen.`}</p>
+    zeigen(`${SYMBOL}<h2>${HH && PRODUKT === 'privat' ? 'Einladung in den Haushalt' : modus === 'neu' ? '30 Tage gratis testen' : 'Willkommen zurück'}</h2>
+      <p>${HH && PRODUKT === 'privat' ? (modus === 'neu' ? 'Erstellen Sie Ihr eigenes Konto. Als Person im Haushalt ist das Home-Büro für Sie gratis.' : 'Haben Sie schon ein Ordasio-Konto? Dann melden Sie sich an, sonst wählen Sie «Konto erstellen».') : modus === 'neu' ? 'Konto erstellen und sofort loslegen. Keine Zahlung nötig.' : `Melden Sie sich an, um ${NAME} zu öffnen.`}</p>
       ${modus === 'neu' && window.OrdasioAktion && OrdasioAktion() ? `<p style="background:var(--flaeche,#E8F4EE);color:var(--blau,#0B3B2E);border-radius:12px;padding:10px 12px;font-weight:600">Aktion ${OrdasioAktion().name}: ${OrdasioAktion().text}. Der Rabatt ist für Sie gespeichert.</p>` : ''}
       <div class="lz-reiter"><button class="${modus === 'anmelden' ? 'an' : ''}" data-lz-modus="anmelden">Anmelden</button><button class="${modus === 'neu' ? 'an' : ''}" data-lz-modus="neu">Konto erstellen</button></div>
       <form data-lz-form="${modus}">
@@ -260,7 +265,7 @@
     try {
       if (f.dataset.lzForm === 'neu') {
         const { data, error } = await sb.auth.signUp({ email: d.email.trim(), password: d.passwort,
-          options: { captchaToken: await window.ordasioCaptcha(), emailRedirectTo: location.origin + location.pathname, data: { empf: (() => { try { return localStorage.getItem('ordasio.empf') || ''; } catch { return ''; } })(), aktion: (window.OrdasioAktion() || {}).code || '', name: d.name.trim(), firma: (d.firma || '').trim(), paket: d.paket || '', rechtsform: d.rechtsform || 'einzel', branche: d.branche || '', zyklus: 'jahr' } } });
+          options: { captchaToken: await window.ordasioCaptcha(), emailRedirectTo: location.origin + location.pathname, data: { empf: (() => { try { return localStorage.getItem('ordasio.empf') || ''; } catch { return ''; } })(), aktion: (window.OrdasioAktion() || {}).code || '', haushalt: HH || undefined, name: d.name.trim(), firma: (d.firma || '').trim(), paket: d.paket || '', rechtsform: d.rechtsform || 'einzel', branche: d.branche || '', zyklus: 'jahr' } } });
         try { if (d.branche) localStorage.setItem('ordasio.branche', d.branche); } catch {}
         if (error) throw error;
         // Gibt es die E-Mail schon, schickt der Server aus Sicherheitsgründen keine Mail (und meldet trotzdem «ok»)

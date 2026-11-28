@@ -9,6 +9,7 @@
     ['fristen', 'Fristen, Kalender und Erinnerungen', 'Termine aus dem Kalender, Steuer- und MWST-Fristen, Ihre Erinnerungen', 'alle'],
     ['zahlungen', 'Zahlungen fällig', 'Rechnungen und Betreibungen im Home-Büro, kurz vor der Frist', 'privat'],
     ['steuern', 'Steuererklärung', 'Erinnerung an die Frist der Steuererklärung', 'privat'],
+    ['haushalt', 'Haushalt und Briefkasten', 'Neue Post, geteilte Rechnungen und wer bezahlt hat', 'privat'],
     ['rechnungen', 'Rechnungen und Offerten', 'Kunde hat geöffnet, Offerte angenommen', 'firma'],
     ['team', 'Team', 'Anträge, Anfragen, Spesen und Material von Mitarbeitenden', 'firma'],
     ['termine', 'Online-Termine', 'Neue Buchung durch Kunden', 'firma'],

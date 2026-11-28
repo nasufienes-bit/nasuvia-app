@@ -83,8 +83,9 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 .dlg .zwei{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .dlg .fuss{display:flex;justify-content:space-between;gap:8px;margin-top:6px;flex-wrap:wrap}
 .unten-nav{display:none}
-@media(max-width:820px){.unten-nav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(247,249,253,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--linie);padding:6px 4px calc(6px + var(--unten))}
-.unten-nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--leise);padding:4px 0}
+@media(max-width:820px){.unten-nav{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(247,249,253,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--linie);padding:6px 4px calc(6px + var(--unten))}
+.unten-nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--leise);padding:4px 0;min-width:0;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:380px){.unten-nav button{font-size:9.5px;letter-spacing:-.1px}}
 .unten-nav button.an{color:var(--blau);font-weight:600}
 .unten-nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}}
 .toast{position:fixed;left:50%;bottom:calc(90px + var(--unten));transform:translate(-50%,20px);opacity:0;background:var(--tinte);color:#fff;border-radius:100px;padding:11px 18px;font-weight:600;transition:.3s;z-index:99;pointer-events:none;max-width:90vw;text-align:center}
@@ -164,6 +165,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
 <script src="../auszug.js"></script>
 <script src="mehr.js"></script>
 <script src="steuer.js"></script>
+<script src="haushalt.js"></script>
 <script src="../ui.js"></script>
 <script src="../leser.js"></script>
 <script src="../navi.js" data-hier="privat" data-einfuegen=".kopfzeile .wrap"></script>
@@ -411,7 +413,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     let n = 0;
     for (const r of D.rechnungen.filter((x) => x.status === 'offen')) {
       const t = D.bewegungen.find((b) => b.betragRappen === -r.betragRappen && b.datum >= (r.erhalten || '0000') && !b.rechnungId);
-      if (t) { r.status = 'bezahlt'; r.bezahltAm = t.datum; t.rechnungId = r.id; n++; }
+      if (t) { r.status = 'bezahlt'; r.bezahltAm = t.datum; t.rechnungId = r.id; n++; if (r.haushaltId && window.HomeBuero.haushaltRechnungGeaendert) window.HomeBuero.haushaltRechnungGeaendert(r).catch(() => {}); }
     }
     return n;
   }
@@ -456,12 +458,14 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
     teilen: '<svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20a5.5 5.5 0 0 1 11 0M14 20a4 4 0 0 1 7.5-2"/></svg>',
     steuern: '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>',
     kk: '<svg viewBox="0 0 24 24"><path d="M12 21s-8-4.5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6.5-8 11-8 11z"/><path d="M12 9v5M9.5 11.5h5"/></svg>',
+    haushalt: '<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M8.5 13.5h7v6h-7z"/><path d="M8.5 13.5l3.5 3 3.5-3"/></svg>',
   };
   const GRUPPEN = [
     ['start', 'Übersicht', [['start', 'Übersicht']]],
     ['geld', 'Geld', [['jahr', 'Mein Jahr'], ['konto', 'Konto'], ['bargeld', 'Bargeld'], ['budget', 'Budget'], ['abos', 'Abos'], ['fix', 'Fixe Zahlungen']]],
     ['schulden', 'Rechnungen', [['rechnungen', 'Rechnungen'], ['betreibung', 'Betreibungen'], ['guthaben', 'Mir geschuldet'], ['teilen', 'Teilen']]],
     ['planen', 'Planen', [['kalender', 'Kalender'], ['sparen', 'Sparziele'], ['steuererklaerung', 'Steuererklärung'], ['steuern', 'Abzüge'], ['kk', 'Krankenkasse']]],
+    ['haushalt', 'Haushalt', [['briefkasten', 'Briefkasten'], ['haushalt', 'Personen']]],
     ['dokumente', 'Dokumente', [['dokumente', 'Ordner'], ['papierkorb', 'Zuletzt gelöscht']]],
   ];
   const TABS = GRUPPEN.flatMap((g) => g[2]);
@@ -803,7 +807,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
   // Aus der Erinnerung heraus «Ist bezahlt» getippt
   function bezahltAusErinnerung() {
     let l = []; try { l = JSON.parse(localStorage.getItem('hb.bezahltVonErinnerung') || '[]'); localStorage.removeItem('hb.bezahltVonErinnerung'); } catch {}
-    let n = 0; for (const x of l) { const r = D.rechnungen.find((y) => y.id === x.id); if (r && r.status === 'offen') { r.status = 'bezahlt'; r.bezahltAm = x.am || heute(); n++; } ER.delete(x.id); }
+    let n = 0; for (const x of l) { const r = D.rechnungen.find((y) => y.id === x.id); if (r && r.status === 'offen') { r.status = 'bezahlt'; r.bezahltAm = x.am || heute(); n++; if (r.haushaltId && window.HomeBuero.haushaltRechnungGeaendert) window.HomeBuero.haushaltRechnungGeaendert(r).catch(() => {}); } ER.delete(x.id); }
     if (n) { sichern(); zeichnen(); toast(n === 1 ? 'Rechnung als bezahlt markiert' : n + ' Rechnungen als bezahlt markiert'); }
   }
   document.addEventListener('ordasio-rechnung-bezahlt', bezahltAusErinnerung);
@@ -825,6 +829,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
       ${r.datei ? `<div class="aktionen"><button type="button" class="btn klein" data-r-ocr>✨ Automatisch lesen</button>${r.datei.startsWith('data:image') ? '<button type="button" class="btn klein" data-r-bild>Foto bearbeiten</button>' : ''}<span class="hinweis" id="rOcr"></span></div>` : ''}
       ${r.datei ? `<div class="aktionen">${r.datei.startsWith('data:image') ? `<img src="${r.datei}" alt="Rechnung" style="max-width:100%;max-height:220px;border-radius:12px">` : ''}<a class="btn klein" href="${r.datei}" download="Rechnung">Öffnen</a><button type="button" class="btn klein rot" data-datei-weg>Datei entfernen</button></div>` : ''}
       <label>Notiz<textarea id="rNotiz" rows="2" placeholder="z. B. Referenznummer, Kundennummer">${esc(r.notiz || '')}</textarea></label>
+      ${!neu && window.HomeBuero.haushaltKnopf ? window.HomeBuero.haushaltKnopf(r) : ''}
       ${!neu && r.status === 'offen' ? `<div class="er-block" id="rEr"><span class="hinweis">Erinnerung wird geladen …</span></div>` : neu ? '<p class="hinweis" style="margin:0">Nach dem Speichern können Sie eine Erinnerung setzen: wann und wie oft.</p>' : ''}
       <div class="fuss">${neu ? '<span></span>' : '<button type="button" class="btn rot" data-weg>Löschen</button>'}<span class="aktionen"><button type="button" class="btn" data-zu>Abbrechen</button><button class="btn haupt">Speichern</button></span></div></form>`;
     dlg.onchange = (e) => { if (e.target.id === 'rStatus' && e.target.value === 'bezahlt' && !$('rBezahlt').value) $('rBezahlt').value = heute(); };
@@ -884,6 +889,7 @@ dialog::backdrop{background:rgba(12,18,38,.35)}
         status: $('rStatus').value, bezahltAm: $('rStatus').value === 'bezahlt' ? ($('rBezahlt').value || heute()) : '', raten: $('rRaten').checked, notiz: $('rNotiz').value.trim() });
       if (neu) D.rechnungen.push(r);
       sichern(); dlg.close(); zeichnen(); toast(neu ? 'Rechnung erfasst' : 'Gespeichert');
+      if (r.haushaltId && window.HomeBuero.haushaltRechnungGeaendert) window.HomeBuero.haushaltRechnungGeaendert(r).catch(() => {});
       if (r.status !== 'offen' && ER.has(r.id) && window.Erinnerungen) { Erinnerungen.entfernen('hb-rechnung:' + r.id); ER.delete(r.id); }
       else if (neu && r.status === 'offen' && window.Erinnerungen && window.NASUVIA_KONFIG && NASUVIA_KONFIG.produkt && await UI.frage('Soll Ordasio Sie an diese Rechnung erinnern? Sie wählen, wann und wie oft.', { ja: 'Erinnerung setzen', nein: 'Nein danke', gefahr: false })) erinnerungDialog(r);
     };
