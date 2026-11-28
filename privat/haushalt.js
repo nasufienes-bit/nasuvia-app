@@ -234,7 +234,12 @@
     const ok = window.UI && UI.frage ? await UI.frage(selbst ? 'Aus dem Haushalt austreten? Sie sehen den Briefkasten danach nicht mehr. Ihr eigenes Home-Büro bleibt erhalten, Sie haben 14 Tage Zeit, um ein eigenes Abo zu lösen.'
       : `${nameVon(uid)} aus dem Haushalt entfernen? Die Person sieht den Briefkasten danach nicht mehr. Ihr eigenes Home-Büro bleibt erhalten.`, { ja: selbst ? 'Austreten' : 'Entfernen', gefahr: true }) : confirm('Sicher?');
     if (!ok) return;
-    try { await rpc('haushalt_austreten', { p_user: uid }); toast(selbst ? 'Sie sind ausgetreten' : 'Entfernt'); await laden(); }
+    try {
+      const { data, error } = await sb().from('haushalt_mitglieder').delete().eq('user_id', uid).eq('rolle', 'mitglied').select('user_id');
+      if (error) throw new Error(error.message);
+      if (!data || !data.length) throw new Error('Das hat nicht geklappt.');
+      toast(selbst ? 'Sie sind ausgetreten' : 'Entfernt'); await laden();
+    }
     catch (e) { toast(fehlerText(e)); }
   }
 
