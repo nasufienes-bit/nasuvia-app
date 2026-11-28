@@ -81,7 +81,7 @@
     zeigen(`${SYMBOL}<h2>Bitte bestätigen Sie Ihre E-Mail</h2>
       <p>${hinweis ? esc(hinweis) + ' ' : ''}Wir haben Ihnen eine Bestätigung an <b>${esc(email)}</b> geschickt. Öffnen Sie die E-Mail von <b>Ordasio</b> und tippen Sie auf <b>«E-Mail-Adresse bestätigen»</b>. Danach sind Sie automatisch angemeldet.</p>
       <div class="lz-postfach">${P ? P.knoepfe(email) : ''}</div>
-      <p class="lz-klein">Keine E-Mail da? Schauen Sie auch im Spam- oder Werbung-Ordner nach. Absender: noreply@ordasio.ch</p>
+      <p class="lz-klein">Keine E-Mail da? Schauen Sie auch im Spam- oder Werbung-Ordner nach (Absender: noreply@ordasio.ch) und tippen Sie dort auf «Kein Spam». Dann kommen die nächsten Mails direkt in den Posteingang.</p>
       <button class="lz-link" data-lz-nochmals>Bestätigung nochmals senden</button>
       <button class="lz-link" data-lz-weiter>Ich habe bestätigt, weiter</button>
       <button class="lz-link" data-lz-andere>Andere E-Mail-Adresse verwenden</button>
