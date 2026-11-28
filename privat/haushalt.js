@@ -141,7 +141,7 @@
       const wer = e.status !== 'offen' && e.erledigt_von_name ? ` · ${e.status === 'bezahlt' ? 'bezahlt' : 'erledigt'} von ${esc(e.erledigt_von_name)}` : '';
       const fuer = e.fuer ? ` · für ${esc(e.fuer === ich() ? 'Sie' : nameVon(e.fuer) || '…')}` : '';
       return `<div class="zeile klick hh-zeile ${neu(e) ? 'hh-neu' : ''}" data-hh-eintrag="${e.id}"><span style="min-width:0"><b>${neu(e) ? '<i class="hh-punkt"></i>' : ''}${esc(e.titel || e.absender || 'Brief')}<span class="marke-s ${kk[2]}">${kk[1]}</span>${st}</b>
-        <small>${esc(e.absender || '')}${e.absender ? ' · ' : ''}${e.von === ich() ? 'von Ihnen' : 'von ' + esc(e.von_name || nameVon(e.von) || '…')} am ${dk(String(e.erstellt).slice(0, 10))}${fuer}${e.status === 'offen' && e.faellig ? ` · <span class="${t !== null && t < 0 ? 'minus' : ''}">Frist ${dk(e.faellig)}${t !== null ? (t < 0 ? ` (seit ${-t} Tagen)` : t === 0 ? ' (heute)' : ` (in ${t} Tagen)`) : ''}</span>` : ''}${wer}${(e.notizen || []).length ? ` · ${(e.notizen || []).length} Notiz${(e.notizen || []).length > 1 ? 'en' : ''}` : ''}</small></span>
+        <small>${esc(e.absender || '')}${e.absender ? ' · ' : ''}${e.herkunft === 'email' ? 'per E-Mail' : e.von === ich() ? 'von Ihnen' : 'von ' + esc(e.von_name || nameVon(e.von) || '…')} am ${dk(String(e.erstellt).slice(0, 10))}${fuer}${e.status === 'offen' && e.faellig ? ` · <span class="${t !== null && t < 0 ? 'minus' : ''}">Frist ${dk(e.faellig)}${t !== null ? (t < 0 ? ` (seit ${-t} Tagen)` : t === 0 ? ' (heute)' : ` (in ${t} Tagen)`) : ''}</span>` : ''}${wer}${(e.notizen || []).length ? ` · ${(e.notizen || []).length} Notiz${(e.notizen || []).length > 1 ? 'en' : ''}` : ''}</small></span>
         ${istRechnung(e) ? `<span class="betrag">${chf(e.betrag_rappen)}</span>` : ''}</div>`;
     };
     return `<div class="kopf"><div><h1>Briefkasten</h1><p class="unter">${esc(hh().name)} · ${mitglieder().map((m) => esc(m.user_id === ich() ? 'Sie' : m.name)).join(', ')}</p></div>
@@ -152,7 +152,21 @@
         <div class="card zahl klick" data-hh-filter="alle"><div class="l">Bezahlt ${new Date().getFullYear()}</div><div class="w plus">${chf(rg.filter((e) => e.status === 'bezahlt' && String(e.erledigt_am || '').startsWith(String(new Date().getFullYear()))).reduce((a, e) => a + Number(e.betrag_rappen || 0), 0))}</div><div class="k">im Haushalt</div></div></div>
       <div class="segment" style="margin:16px 0 0">${[['offen', 'Zu erledigen'], ['rechnungen', 'Rechnungen'], ['alle', 'Alles']].map(([id, n]) => `<button class="${filter === id ? 'an' : ''}" data-hh-filter="${id}">${n}</button>`).join('')}</div>
       <div class="card abstand">${sicht.map(zeile).join('') || `<p class="leer">${filter === 'offen' ? 'Nichts zu erledigen. Neue Post fotografieren Sie mit «+ Post erfassen».' : 'Noch nichts im Briefkasten.'}</p>`}</div>
+      ${postKarte()}
       ${fehler ? `<p class="hinweis">${esc(fehler)}</p>` : ''}`;
+  }
+  // Rechnungen per E-Mail: eigene Adresse des Haushalts, Mails dorthin weiterleiten
+  function postKarte() {
+    const a = hh() && hh().post; if (!a) return '';
+    return `<div class="card abstand hh-mail"><h2>Rechnungen per E-Mail</h2>
+      <p class="hinweis" style="margin-top:0">Leiten Sie E-Mails mit Rechnungen an diese Adresse weiter. Ordasio liest das PDF und legt es in den Briefkasten.</p>
+      <div class="hh-adresse"><code>${esc(a)}</code><button class="btn klein haupt" data-hh-kopie-adr="${esc(a)}">Kopieren</button></div>
+      <details class="hh-anleitung"><summary>Automatisch weiterleiten (Gmail, Outlook, iCloud)</summary>
+        <p><b>Gmail</b> (am Computer): Einstellungen, «Weiterleitung und POP/IMAP», «Weiterleitungsadresse hinzufügen» und die Adresse oben eintragen. Gmail schickt einen Bestätigungscode, er erscheint nach ein paar Minuten hier im Briefkasten. Danach unter «Filter» einen Filter anlegen, z. B. «Hat Anhang» und das Wort «Rechnung», mit «Weiterleiten an» diese Adresse.</p>
+        <p><b>Outlook / Hotmail:</b> Einstellungen, E-Mail, Regeln, «Neue Regel»: Bedingung z. B. «Betreff enthält Rechnung», Aktion «Weiterleiten an» diese Adresse.</p>
+        <p><b>iCloud:</b> auf icloud.com in Mail, Einstellungen, Regeln: «Wenn eine Nachricht … enthält: Rechnung», dann «Weiterleiten an» diese Adresse.</p>
+        <p><b>Einzelne Mail:</b> einfach weiterleiten. Das geht immer, auch vom Handy.</p></details>
+      ${istBesitzer() ? '<button class="btn klein" data-hh-post-neu style="margin-top:8px">Neue Adresse (bei Spam)</button>' : ''}</div>`;
   }
 
   /* ---------- Ansicht: Personen im Haushalt ---------- */
@@ -371,7 +385,7 @@
     const kk = kat(e.kategorie);
     const zeile = (l, w, kopieren) => (w ? `<div class="hh-zeile-k"><span>${l}</span><b>${esc(w)}</b>${kopieren ? `<button type="button" class="btn klein" data-hh-kopie="${esc(w)}">Kopieren</button>` : ''}</div>` : '');
     d.innerHTML = `<form class="dlg" method="dialog"><h3>${esc(e.titel || e.absender || 'Brief')}</h3>
-      <p class="hinweis" style="margin-top:0"><span class="marke-s ${kk[2]}">${kk[1]}</span> ${e.von === ich() ? 'von Ihnen' : 'von ' + esc(e.von_name)} am ${dk(String(e.erstellt).slice(0, 10))}${e.status !== 'offen' ? ` · ${e.status === 'bezahlt' ? 'bezahlt' : 'erledigt'}${e.erledigt_von_name ? ' von ' + esc(e.erledigt_von_name) : ''}${e.erledigt_am ? ' am ' + dk(e.erledigt_am) : ''}` : ''}</p>
+      <p class="hinweis" style="margin-top:0"><span class="marke-s ${kk[2]}">${kk[1]}</span> ${e.herkunft === 'email' ? 'per E-Mail' + (e.email_von ? ' von ' + esc(e.email_von) : '') : e.von === ich() ? 'von Ihnen' : 'von ' + esc(e.von_name)} am ${dk(String(e.erstellt).slice(0, 10))}${e.status !== 'offen' ? ` · ${e.status === 'bezahlt' ? 'bezahlt' : 'erledigt'}${e.erledigt_von_name ? ' von ' + esc(e.erledigt_von_name) : ''}${e.erledigt_am ? ' am ' + dk(e.erledigt_am) : ''}` : ''}</p>
       <div class="hh-bild" data-hh-bild>${e.datei_pfad ? '<span class="hinweis">Foto wird geladen …</span>' : ''}</div>
       ${e.zusammenfassung ? `<p style="margin:0 0 10px">${esc(e.zusammenfassung)}</p>` : ''}
       ${e.handlung && e.status === 'offen' ? `<p class="hh-tun"><b>Zu tun:</b> ${esc(e.handlung)}</p>` : ''}
@@ -477,6 +491,9 @@
     else if (t.closest('[data-hh-einladen]')) einladen();
     else if (t.closest('[data-hh-post]')) postErfassen();
     else if (t.closest('[data-hh-rg-teilen]')) rechnungWaehlen();
+    else if (t.closest('[data-hh-kopie-adr]')) { const x = t.closest('[data-hh-kopie-adr]').dataset.hhKopieAdr; (navigator.clipboard ? navigator.clipboard.writeText(x) : Promise.reject()).then(() => toast('Adresse kopiert'), () => toast(x)); }
+    else if (t.closest('[data-hh-post-neu]')) { (window.UI && UI.frage ? UI.frage('Neue Adresse erstellen? Die alte funktioniert danach nicht mehr. Passen Sie Ihre Weiterleitungen an.', { ja: 'Neue Adresse', gefahr: true }) : Promise.resolve(confirm('Neue Adresse?')))
+      .then((ok) => ok && rpc('haushalt_post_neu').then(() => laden()).then(() => toast('Neue Adresse erstellt'))).catch((x) => toast(fehlerText(x))); }
     else if (t.closest('[data-hh-neu-laden]')) { geladen = false; neuZeichnen(); }
     else if (t.closest('[data-hh-eintrag]')) oeffnen(t.closest('[data-hh-eintrag]').dataset.hhEintrag);
     else if (t.closest('[data-hh-filter]')) { filter = t.closest('[data-hh-filter]').dataset.hhFilter; neuZeichnen(); }
@@ -522,6 +539,9 @@
     .hh-zeile-k span{color:var(--leise,#7C8499);font-size:13px}.hh-zeile-k b{overflow-wrap:anywhere;font-weight:600}
     .hh-notizen{margin-top:6px}.hh-notiz{background:var(--flaeche,#F3F8F5);border-radius:10px;padding:8px 10px;margin:6px 0;overflow-wrap:anywhere}.hh-notiz small{display:block;color:var(--leise,#7C8499);font-size:12px}
     .hh-notiz-neu{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:8px}.hh-notiz-neu input{min-width:0}
+    .hh-adresse{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;background:var(--flaeche,#F3F8F5);border-radius:12px;padding:8px 8px 8px 12px}
+    .hh-adresse code{font-family:var(--mono,monospace);font-size:13.5px;overflow-wrap:anywhere;color:var(--tinte,#0A1F17)}
+    .hh-anleitung{margin-top:10px}.hh-anleitung summary{cursor:pointer;font-weight:600;color:var(--blau,#0B3B2E)}.hh-anleitung p{font-size:14px;color:var(--text,#3F5A4F);margin:8px 0}
     .hh-teilen{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.hh-teilen a.btn{text-decoration:none;display:inline-flex;align-items:center}`;
   document.head.appendChild(st);
 
